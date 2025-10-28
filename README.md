@@ -16,9 +16,8 @@
   <hr/>
 </div>
 
-cgov is an open-source Cardano governance platform, containing following components:
+cgov is an open-source Cardano governance platform, it is interacting with below components:
 
-- `cgov` - The governance platform deployed at `cgov.io`
 - `api` - Core API server as backend supporting the application
 - `discord` - The discord bot component of the cgov platform
 
