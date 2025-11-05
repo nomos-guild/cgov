@@ -1,4 +1,4 @@
-import type { GovernanceAction, GovernanceActionDetail, VoteRecord } from "@/types/governance";
+import type { GovernanceAction, GovernanceActionDetail, VoteRecord, NCLData } from "@/types/governance";
 
 export const mockGovernanceActions: GovernanceAction[] = [
   {
@@ -186,4 +186,11 @@ export const getActionByHash = (hash: string): GovernanceActionDetail | undefine
   }
 
   return undefined;
+};
+
+export const mockNCLData: NCLData = {
+  year: 2025,
+  currentValue: 1247,
+  targetValue: 1500,
+  progress: 83.13,
 };

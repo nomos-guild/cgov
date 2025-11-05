@@ -38,3 +38,10 @@ export interface GovernanceActionDetail extends GovernanceAction {
 
 export type GovernanceActionType = "All" | "Info" | "Treasury" | "Constitution";
 export type VoteType = "All" | "Yes" | "No" | "Abstain";
+
+export interface NCLData {
+  year: number;
+  currentValue: number;
+  targetValue: number;
+  progress: number; // percentage 0-100
+}

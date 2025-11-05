@@ -1,5 +1,7 @@
 import { Card } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { useAppSelector } from "@/store/hooks";
+import { mockNCLData } from "@/data/mockData";
 
 export function GovernanceStats() {
   const actions = useAppSelector((state) => state.governance.actions);
@@ -31,10 +33,17 @@ export function GovernanceStats() {
         </div>
       </Card>
 
-      <Card className="p-6 border-border/50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-4xl mb-2">🏛️</div>
-          <div className="text-sm text-muted-foreground">On-chain Governance</div>
+      <Card className="p-6 bg-gradient-to-br from-blue-500/20 to-blue-500/5 border-blue-500/30">
+        <div className="text-sm text-muted-foreground uppercase tracking-wide mb-2">
+          {mockNCLData.year} NCL Progress
+        </div>
+        <div className="flex items-baseline gap-2 mb-3">
+          <span className="text-3xl font-bold text-foreground">{mockNCLData.currentValue}</span>
+          <span className="text-lg text-muted-foreground">/ {mockNCLData.targetValue}</span>
+        </div>
+        <Progress value={mockNCLData.progress} className="h-2 mb-2" />
+        <div className="text-right">
+          <span className="text-xl font-bold text-blue-500">{mockNCLData.progress.toFixed(1)}%</span>
         </div>
       </Card>
     </div>
