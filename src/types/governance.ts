@@ -43,5 +43,4 @@ export interface NCLData {
   year: number;
   currentValue: number;
   targetValue: number;
-  progress: number; // percentage 0-100
 }

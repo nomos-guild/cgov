@@ -1,4 +1,9 @@
-import type { GovernanceAction, GovernanceActionDetail, VoteRecord, NCLData } from "@/types/governance";
+import type {
+  GovernanceAction,
+  GovernanceActionDetail,
+  VoteRecord,
+  NCLData,
+} from "@/types/governance";
 
 export const mockGovernanceActions: GovernanceAction[] = [
   {
@@ -147,9 +152,17 @@ const generateMockVotes = (count: number): VoteRecord[] => {
       vote: voteType,
       votingPower: `${(Math.random() * 100000).toFixed(0)}`,
       votingPowerAda: Math.random() * 100000,
-      anchorUrl: Math.random() > 0.5 ? `ipfs://Qm${Math.random().toString(36).substring(2, 15)}` : undefined,
-      anchorHash: Math.random() > 0.5 ? `hash${Math.random().toString(36).substring(2, 15)}` : undefined,
-      votedAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
+      anchorUrl:
+        Math.random() > 0.5
+          ? `ipfs://Qm${Math.random().toString(36).substring(2, 15)}`
+          : undefined,
+      anchorHash:
+        Math.random() > 0.5
+          ? `hash${Math.random().toString(36).substring(2, 15)}`
+          : undefined,
+      votedAt: new Date(
+        Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000
+      ).toISOString(),
     });
   }
 
@@ -159,19 +172,25 @@ const generateMockVotes = (count: number): VoteRecord[] => {
 export const mockDetailedActions: GovernanceActionDetail[] = [
   {
     ...mockGovernanceActions[0],
-    description: "This governance action proposes to withdraw 50,000,000 ADA from the treasury to fund continued development of core infrastructure and ecosystem tools. The funds will be allocated across multiple development teams working on critical projects.",
-    rationale: "The Cardano ecosystem requires sustained investment in infrastructure development to maintain competitiveness and deliver on roadmap commitments. This proposal outlines a comprehensive funding plan for Q1-Q2 development efforts.",
+    description:
+      "This governance action proposes to withdraw 50,000,000 ADA from the treasury to fund continued development of core infrastructure and ecosystem tools. The funds will be allocated across multiple development teams working on critical projects.",
+    rationale:
+      "The Cardano ecosystem requires sustained investment in infrastructure development to maintain competitiveness and deliver on roadmap commitments. This proposal outlines a comprehensive funding plan for Q1-Q2 development efforts.",
     votes: generateMockVotes(150),
   },
   {
     ...mockGovernanceActions[2],
-    description: "A proposal to ratify a new constitution that updates governance procedures and establishes clearer guidelines for future governance actions. This represents a significant evolution in Cardano's on-chain governance framework.",
-    rationale: "The current constitutional framework requires updates to address emerging governance challenges and provide more detailed guidance on decision-making processes. This new constitution incorporates community feedback gathered over the past six months.",
+    description:
+      "A proposal to ratify a new constitution that updates governance procedures and establishes clearer guidelines for future governance actions. This represents a significant evolution in Cardano's on-chain governance framework.",
+    rationale:
+      "The current constitutional framework requires updates to address emerging governance challenges and provide more detailed guidance on decision-making processes. This new constitution incorporates community feedback gathered over the past six months.",
     votes: generateMockVotes(200),
   },
 ];
 
-export const getActionByHash = (hash: string): GovernanceActionDetail | undefined => {
+export const getActionByHash = (
+  hash: string
+): GovernanceActionDetail | undefined => {
   const detailed = mockDetailedActions.find((a) => a.hash === hash);
   if (detailed) return detailed;
 
@@ -190,7 +209,6 @@ export const getActionByHash = (hash: string): GovernanceActionDetail | undefine
 
 export const mockNCLData: NCLData = {
   year: 2025,
-  currentValue: 1247,
-  targetValue: 1500,
-  progress: 83.13,
+  currentValue: 290000000,
+  targetValue: 350000000,
 };
