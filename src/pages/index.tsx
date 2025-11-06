@@ -1,65 +1,41 @@
+import { useEffect } from "react";
 import Head from "next/head";
-import { CardanoWallet, MeshBadge } from "@meshsdk/react";
+import { GovernanceStats } from "@/components/GovernanceStats";
+import { GovernanceTable } from "@/components/GovernanceTable";
+import { useAppDispatch } from "@/store/hooks";
+import { setActions } from "@/store/governanceSlice";
+import { mockGovernanceActions } from "@/data/mockData";
 
 export default function Home() {
+  const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    dispatch(setActions(mockGovernanceActions));
+  }, [dispatch]);
+
   return (
-    <div className="bg-gray-900 w-full text-white text-center">
+    <>
       <Head>
-        <title>Mesh App on Cardano</title>
-        <meta name="description" content="A Cardano dApp powered my Mesh" />
+        <title>CGOV - Cardano Governance Platform</title>
+        <meta
+          name="description"
+          content="Integrated Cardano on-chain platform"
+        />
       </Head>
-      <main
-        className={`flex min-h-screen flex-col items-center justify-center p-24`}
-      >
-        <h1 className="text-6xl font-thin mb-20">
-          <a href="https://meshjs.dev/" className="text-sky-600">
-            Mesh
-          </a>{" "}
-          Next.js
-        </h1>
-
-        <div className="mb-20">
-          <CardanoWallet />
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          <div className="mb-8 text-center">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent">
+              Cardano Governance
+            </h1>
+            <p className="text-muted-foreground text-lg">
+              Track and monitor on-chain governance actions
+            </p>
+          </div>
+          <GovernanceStats />
+          <GovernanceTable />
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 content-center justify-around ">
-          <a
-            href="https://meshjs.dev/apis"
-            className="bg-gray-800 rounded-xl border border-white hover:scale-105 transition max-w-96 p-5 m-5"
-          >
-            <h2 className="text-2xl font-bold mb-2">Documentation</h2>
-            <p className="text-gray-400">
-              Our documentation provide live demos and code samples; great
-              educational tool for learning how Cardano works.
-            </p>
-          </a>
-
-          <a
-            href="https://meshjs.dev/guides"
-            className="bg-gray-800 rounded-xl border border-white hover:scale-105 transition max-w-96  p-5 m-5"
-          >
-            <h2 className="text-2xl font-bold mb-2">Guides</h2>
-            <p className="text-gray-400">
-              Whether you are launching a new NFT project or ecommerce store,
-              these guides will help you get started.
-            </p>
-          </a>
-
-          <a
-            href="https://meshjs.dev/smart-contracts"
-            className="bg-gray-800 rounded-xl border border-white hover:scale-105 transition max-w-96 p-5 m-5 md:mx-auto lg:mx-5 md:col-span-2 lg:col-span-1 "
-          >
-            <h2 className="text-2xl font-bold mb-2">Smart Contracts</h2>
-            <p className="text-gray-400">
-              Open-source smart contracts, complete with documentation, live
-              demos, and end-to-end source code.
-            </p>
-          </a>
-        </div>
-      </main>
-      <footer className="p-8 border-t border-gray-300 flex justify-center">
-        <MeshBadge isDark={true} />
-      </footer>
-    </div>
+      </div>
+    </>
   );
 }
