@@ -1,5 +1,6 @@
 export interface GovernanceAction {
-  hash: string;
+  proposal_id: string;
+  txhash: string;
   title: string;
   type: string;
   status: "Active" | "Ratified" | "Expired" | "Approved" | "Not approved";
@@ -8,10 +9,17 @@ export interface GovernanceAction {
   drepNoPercent: number;
   drepYesAda: string;
   drepNoAda: string;
+  drepAbstainAda?: string;
   spoYesPercent?: number;
   spoNoPercent?: number;
   spoYesAda?: string;
   spoNoAda?: string;
+  spoAbstainAda?: string;
+  ccYesPercent?: number;
+  ccNoPercent?: number;
+  ccYesCount?: number;
+  ccNoCount?: number;
+  ccAbstainCount?: number;
   totalYes: number;
   totalNo: number;
   totalAbstain: number;
@@ -27,12 +35,15 @@ export interface VoteRecord {
   votingPowerAda: number;
   anchorUrl?: string;
   anchorHash?: string;
+  voteTxHash?: string;
   votedAt: string;
 }
 
 export interface GovernanceActionDetail extends GovernanceAction {
   description?: string;
   rationale?: string;
+  motivation?: string;
+  references?: string;
   votes?: VoteRecord[];
 }
 

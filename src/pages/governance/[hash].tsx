@@ -87,9 +87,11 @@ export default function GovernanceDetail() {
               </Badge>
             </div>
             <h1 className="text-3xl md:text-4xl font-bold mb-4">{selectedAction.title}</h1>
-            <code className="text-sm text-muted-foreground bg-secondary px-3 py-1 rounded font-mono">
-              {selectedAction.hash}
-            </code>
+            <div className="flex flex-col gap-1">
+              <code className="text-sm text-muted-foreground bg-secondary px-3 py-1 rounded font-mono">
+                {selectedAction.proposal_id}
+              </code>
+            </div>
             <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mt-4">
               <span>Submission: Epoch {selectedAction.submissionEpoch}</span>
               <span>•</span>
@@ -115,6 +117,26 @@ export default function GovernanceDetail() {
                   <h2 className="text-xl font-semibold mb-4">Rationale</h2>
                   <div className="text-foreground/90 whitespace-pre-wrap leading-relaxed">
                     {selectedAction.rationale}
+                  </div>
+                </Card>
+              )}
+
+              {/* Motivation Card */}
+              {selectedAction.motivation && (
+                <Card className="p-6">
+                  <h2 className="text-xl font-semibold mb-4">Motivation</h2>
+                  <div className="text-foreground/90 whitespace-pre-wrap leading-relaxed">
+                    {selectedAction.motivation}
+                  </div>
+                </Card>
+              )}
+
+              {/* References Card */}
+              {selectedAction.references && (
+                <Card className="p-6">
+                  <h2 className="text-xl font-semibold mb-4">References</h2>
+                  <div className="text-foreground/90 whitespace-pre-wrap leading-relaxed">
+                    {selectedAction.references}
                   </div>
                 </Card>
               )}
@@ -177,6 +199,31 @@ export default function GovernanceDetail() {
                   </div>
                 </Card>
               )}
+
+              {/* Constitutional Committee Votes Card */}
+              {selectedAction.ccYesPercent !== undefined || selectedAction.ccYesCount !== undefined ? (
+                <Card className="p-6">
+                  <h3 className="font-semibold mb-4">Constitutional Committee Votes</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <div className="flex justify-between mb-2">
+                        <span className="text-sm text-success">
+                          {`Yes: ${selectedAction.ccYesPercent?.toFixed(1) ?? "0.0"}%${selectedAction.ccYesCount !== undefined ? ` (${selectedAction.ccYesCount})` : ""}`}
+                        </span>
+                      </div>
+                      <Progress value={selectedAction.ccYesPercent || 0} className="h-3 bg-secondary" />
+                    </div>
+                    <div>
+                      <div className="flex justify-between mb-2">
+                        <span className="text-sm text-destructive">
+                          {`No: ${selectedAction.ccNoPercent?.toFixed(1) ?? "0.0"}%${selectedAction.ccNoCount !== undefined ? ` (${selectedAction.ccNoCount})` : ""}`}
+                        </span>
+                      </div>
+                      <Progress value={selectedAction.ccNoPercent || 0} className="h-3 bg-secondary" />
+                    </div>
+                  </div>
+                </Card>
+              ) : null}
 
               {/* Vote Summary Card */}
               <Card className="p-6">
