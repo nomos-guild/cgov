@@ -7,9 +7,9 @@ import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { setTypeFilter } from "@/store/governanceSlice";
 import type { GovernanceAction, GovernanceActionType } from "@/types/governance";
 
-function formatHash(hash: string): string {
-  if (hash.length <= 18) return hash;
-  return `${hash.slice(0, 12)}...${hash.slice(-6)}`;
+function formatHash(id: string): string {
+  if (id.length <= 18) return id;
+  return `${id.slice(0, 12)}...${id.slice(-6)}`;
 }
 
 function getStatusColor(status: GovernanceAction["status"]): string {
@@ -39,8 +39,8 @@ export function GovernanceTable() {
     return action.type === currentFilter;
   });
 
-  const handleRowClick = (hash: string) => {
-    router.push(`/governance/${hash}`);
+  const handleRowClick = (id: string) => {
+    router.push(`/governance/${id}`);
   };
 
   const handleTabChange = (value: string) => {
@@ -86,9 +86,9 @@ export function GovernanceTable() {
           ) : (
             filteredActions.map((action) => (
               <Card
-                key={action.hash}
+                key={action.proposal_id}
                 className="p-6 hover:border-primary/50 transition-all duration-300 cursor-pointer"
-                onClick={() => handleRowClick(action.hash)}>
+                onClick={() => handleRowClick(action.proposal_id)}>
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                   {/* Main Info - 5 columns */}
                   <div className="lg:col-span-5 space-y-3">
@@ -101,11 +101,11 @@ export function GovernanceTable() {
                       </Badge>
                     </div>
                     <h3 className="text-lg font-semibold">{action.title}</h3>
-                    <p className="text-xs text-muted-foreground font-mono">{formatHash(action.hash)}</p>
+                    <p className="text-xs text-muted-foreground font-mono">{formatHash(action.proposal_id)}</p>
                   </div>
 
-                  {/* DRep Votes - 3 columns */}
-                  <div className="lg:col-span-3 space-y-2">
+                  {/* DRep Votes - 2 columns */}
+                  <div className="lg:col-span-2 space-y-2">
                     <div className="text-sm font-medium text-muted-foreground">DRep Votes</div>
                     <div className="space-y-1">
                       <div className="flex justify-between text-sm">
@@ -120,8 +120,8 @@ export function GovernanceTable() {
                     </div>
                   </div>
 
-                  {/* SPO Votes - 3 columns */}
-                  <div className="lg:col-span-3 space-y-2">
+                  {/* SPO Votes - 2 columns */}
+                  <div className="lg:col-span-2 space-y-2">
                     {action.spoYesPercent !== undefined ? (
                       <>
                         <div className="text-sm font-medium text-muted-foreground">SPO Votes</div>
@@ -140,6 +140,33 @@ export function GovernanceTable() {
                     ) : (
                       <>
                         <div className="text-sm font-medium text-muted-foreground">SPO Votes</div>
+                        <div className="flex items-center justify-center h-full text-xs text-muted-foreground">
+                          Not applicable
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Committee Votes - 2 columns */}
+                  <div className="lg:col-span-2 space-y-2">
+                    {action.ccYesPercent !== undefined ? (
+                      <>
+                        <div className="text-sm font-medium text-muted-foreground">Committee Votes</div>
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-success">Yes: {action.ccYesPercent.toFixed(1)}%</span>
+                            <span className="text-muted-foreground">Yes: {action.ccYesCount || 0}</span>
+                          </div>
+                          <Progress value={action.ccYesPercent} className="h-2 bg-secondary" />
+                        </div>
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>No: {action.ccNoPercent?.toFixed(1) || "0"}%</span>
+                          <span>No: {action.ccNoCount || 0}</span>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="text-sm font-medium text-muted-foreground">Committee Votes</div>
                         <div className="flex items-center justify-center h-full text-xs text-muted-foreground">
                           Not applicable
                         </div>
