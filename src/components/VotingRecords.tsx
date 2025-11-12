@@ -34,7 +34,9 @@ function formatAda(ada: number): string {
 }
 
 function getVoteBadgeClasses(vote: VoteRecord["vote"]): string {
-  return "text-foreground border-foreground/30 bg-transparent";
+  return vote === "Yes"
+    ? "text-foreground border-foreground/40 bg-foreground/5"
+    : "text-foreground/60 border-foreground/20 bg-transparent";
 }
 
 export function VotingRecords({ votes }: VotingRecordsProps) {

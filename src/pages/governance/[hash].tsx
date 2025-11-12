@@ -11,14 +11,16 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setSelectedAction } from "@/store/governanceSlice";
 import { getActionByHash } from "@/data/mockData";
 import { ArrowLeft } from "lucide-react";
+import type { GovernanceAction } from "@/types/governance";
 
-function formatAda(ada: string | number): string {
-  const num = typeof ada === "string" ? parseFloat(ada) : ada;
-  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(num);
-}
-
-function getStatusColor(status: string): string {
-  return "text-foreground border-foreground/30 bg-transparent";
+function getStatusColor(status: GovernanceAction["status"]): string {
+  switch (status) {
+    case "Active":
+    case "Approved":
+      return "text-primary border-primary/40 bg-primary/10";
+    default:
+      return "text-foreground/70 border-foreground/30 bg-transparent";
+  }
 }
 
 export default function GovernanceDetail() {

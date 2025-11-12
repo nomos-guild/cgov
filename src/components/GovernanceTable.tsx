@@ -8,7 +8,9 @@ import { setTypeFilter } from "@/store/governanceSlice";
 import type { GovernanceAction, GovernanceActionType } from "@/types/governance";
 
 function getStatusColor(status: GovernanceAction["status"]): string {
-  return "text-foreground border-foreground/30 bg-transparent";
+  return status === "Active"
+    ? "text-foreground border-foreground/40 bg-foreground/5"
+    : "text-foreground/60 border-foreground/20 bg-transparent";
 }
 
 export function GovernanceTable() {
