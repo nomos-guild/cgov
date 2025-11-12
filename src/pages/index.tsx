@@ -25,7 +25,7 @@ export default function Home() {
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
           <div className="mb-8 text-center">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">
               Cardano Governance
             </h1>
             <p className="text-muted-foreground text-lg">

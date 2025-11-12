@@ -1,0 +1,50 @@
+import Link from "next/link";
+import { useRouter } from "next/router";
+import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/ThemeToggle";
+
+export function Navbar() {
+  const router = useRouter();
+
+  const navItems = [
+    { href: "/", label: "Dashboard" },
+  ];
+
+  return (
+    <nav className="border-b border-border glass sticky top-0 z-50">
+      <div className="container mx-auto px-4">
+        <div className="flex h-16 items-center justify-between">
+          <Link href="/" className="flex items-center space-x-2">
+            <span className="text-2xl font-bold">
+              CGOV
+            </span>
+          </Link>
+
+          <div className="flex items-center space-x-1">
+            {navItems.map((item) => {
+              const isActive = router.pathname === item.href || 
+                (item.href !== "/" && router.pathname.startsWith(item.href));
+              
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "px-4 py-2 rounded-md text-sm font-medium transition-colors",
+                    isActive
+                      ? "bg-foreground/10 text-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-foreground/5"
+                  )}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+            <ThemeToggle />
+          </div>
+        </div>
+      </div>
+    </nav>
+  );
+}
+

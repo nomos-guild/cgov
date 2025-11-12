@@ -4,28 +4,54 @@
 
 @layer base {
   :root {
-    --background: 210 30% 8%;
-    --foreground: 210 20% 98%;
-    --card: 215 25% 12%;
-    --card-foreground: 210 20% 98%;
-    --popover: 215 25% 12%;
-    --popover-foreground: 210 20% 98%;
-    --primary: 189 94% 43%;
-    --primary-foreground: 210 30% 8%;
-    --secondary: 215 20% 16%;
-    --secondary-foreground: 210 20% 98%;
-    --muted: 215 20% 18%;
-    --muted-foreground: 210 15% 65%;
-    --accent: 189 94% 43%;
-    --accent-foreground: 210 20% 98%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 20% 98%;
-    --success: 142 76% 36%;
-    --success-foreground: 210 20% 98%;
-    --border: 215 20% 20%;
-    --input: 215 20% 20%;
-    --ring: 189 94% 43%;
-    --radius: 0.75rem;
+    /* Light mode - white background, black text */
+    --background: 0 0% 100%;
+    --foreground: 0 0% 0%;
+    --card: 0 0% 98%;
+    --card-foreground: 0 0% 0%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 0%;
+    --primary: 0 0% 0%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 0%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
+    --accent: 0 0% 0%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 0% 20%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 0 0% 20%;
+    --success-foreground: 0 0% 100%;
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 0 0% 0%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    /* Dark mode - black background, white text */
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
+    --card: 0 0% 3%;
+    --card-foreground: 0 0% 100%;
+    --popover: 0 0% 3%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 0 0% 100%;
+    --primary-foreground: 0 0% 0%;
+    --secondary: 0 0% 8%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 0 0% 8%;
+    --muted-foreground: 0 0% 65%;
+    --accent: 0 0% 100%;
+    --accent-foreground: 0 0% 0%;
+    --destructive: 0 0% 80%;
+    --destructive-foreground: 0 0% 0%;
+    --success: 0 0% 80%;
+    --success-foreground: 0 0% 0%;
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+    --ring: 0 0% 100%;
   }
 }
 
@@ -35,5 +61,90 @@
   }
   body {
     @apply bg-background text-foreground;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+}
+
+/* Simple modern glass effect */
+@layer utilities {
+  .glass {
+    background: rgba(0, 0, 0, 0.03);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+  }
+
+  .dark .glass {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .glass-button {
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    transition: all 0.3s ease;
+  }
+
+  .glass-button:hover {
+    backdrop-filter: blur(20px) saturate(200%);
+    -webkit-backdrop-filter: blur(20px) saturate(200%);
+  }
+
+  .glass-progress {
+    backdrop-filter: blur(12px) saturate(150%);
+    -webkit-backdrop-filter: blur(12px) saturate(150%);
+  }
+
+  .glass-card {
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+  }
+
+  .progress-yes {
+    background: hsl(0, 0%, 0%);
+    position: relative;
+  }
+
+  .progress-yes::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background: linear-gradient(to right, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+    pointer-events: none;
+  }
+
+  .dark .progress-yes {
+    background: hsl(0, 0%, 100%);
+  }
+
+  .dark .progress-yes::after {
+    background: linear-gradient(to right, rgba(0, 0, 0, 0.1) 0%, transparent 50%);
+  }
+
+  .progress-no {
+    background: hsl(0, 0%, 70%);
+    position: relative;
+  }
+
+  .progress-no::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background: linear-gradient(to left, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+    pointer-events: none;
+  }
+
+  .dark .progress-no {
+    background: hsl(0, 0%, 30%);
+  }
+
+  .dark .progress-no::after {
+    background: linear-gradient(to left, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
   }
 }

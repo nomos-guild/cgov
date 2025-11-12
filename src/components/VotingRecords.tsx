@@ -34,16 +34,7 @@ function formatAda(ada: number): string {
 }
 
 function getVoteBadgeClasses(vote: VoteRecord["vote"]): string {
-  switch (vote) {
-    case "Yes":
-      return "bg-emerald-500/20 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/30";
-    case "No":
-      return "bg-red-500/20 text-red-400 border-red-500/30 hover:bg-red-500/30";
-    case "Abstain":
-      return "bg-gray-500/20 text-gray-400 border-gray-500/30 hover:bg-gray-500/30";
-    default:
-      return "bg-gray-500/20 text-gray-400 border-gray-500/30";
-  }
+  return "text-foreground border-foreground/30 bg-transparent";
 }
 
 export function VotingRecords({ votes }: VotingRecordsProps) {
@@ -82,12 +73,12 @@ export function VotingRecords({ votes }: VotingRecordsProps) {
           <div className="text-2xl font-bold">{voteStats.total}</div>
           <div className="text-sm text-muted-foreground">Total Votes</div>
         </Card>
-        <Card className="p-4 border-success/30">
-          <div className="text-2xl font-bold text-success">{voteStats.yes}</div>
+        <Card className="p-4 border-border">
+          <div className="text-2xl font-bold">{voteStats.yes}</div>
           <div className="text-sm text-muted-foreground">Yes Votes</div>
         </Card>
-        <Card className="p-4 border-destructive/30">
-          <div className="text-2xl font-bold text-destructive">{voteStats.no}</div>
+        <Card className="p-4 border-border">
+          <div className="text-2xl font-bold">{voteStats.no}</div>
           <div className="text-sm text-muted-foreground">No Votes</div>
         </Card>
         <Card className="p-4">
@@ -192,7 +183,7 @@ export function VotingRecords({ votes }: VotingRecordsProps) {
                                       href={vote.anchorUrl}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="text-primary hover:underline text-sm flex items-center gap-1"
+                                      className="text-foreground hover:underline text-sm flex items-center gap-1"
                                     >
                                       <ExternalLink className="h-3 w-3" />
                                       Open on IPFS
@@ -209,7 +200,7 @@ export function VotingRecords({ votes }: VotingRecordsProps) {
                             href={vote.anchorUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-primary hover:underline"
+                            className="text-foreground hover:underline"
                           >
                             <ExternalLink className="h-4 w-4" />
                           </a>

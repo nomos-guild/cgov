@@ -2,30 +2,13 @@ import { useRouter } from "next/router";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
+import { VoteProgress } from "@/components/ui/vote-progress";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { setTypeFilter } from "@/store/governanceSlice";
 import type { GovernanceAction, GovernanceActionType } from "@/types/governance";
 
-function formatHash(hash: string): string {
-  if (hash.length <= 18) return hash;
-  return `${hash.slice(0, 12)}...${hash.slice(-6)}`;
-}
-
 function getStatusColor(status: GovernanceAction["status"]): string {
-  switch (status) {
-    case "Active":
-      return "bg-success/20 text-success border-success/30";
-    case "Ratified":
-    case "Approved":
-      return "bg-primary/20 text-primary border-primary/30";
-    case "Expired":
-      return "bg-muted text-muted-foreground border-border";
-    case "Not approved":
-      return "bg-destructive/20 text-destructive border-destructive/30";
-    default:
-      return "bg-muted text-muted-foreground border-border";
-  }
+  return "text-foreground border-foreground/30 bg-transparent";
 }
 
 export function GovernanceTable() {
@@ -58,22 +41,22 @@ export function GovernanceTable() {
 
       <Tabs value={currentFilter} onValueChange={handleTabChange} className="w-full">
         <TabsList className="bg-secondary/50 flex-wrap h-auto">
-          <TabsTrigger value="All" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+          <TabsTrigger value="All" className="data-[state=active]:bg-foreground data-[state=active]:text-background">
             All
           </TabsTrigger>
           <TabsTrigger
             value="Info"
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            className="data-[state=active]:bg-foreground data-[state=active]:text-background">
             Info action
           </TabsTrigger>
           <TabsTrigger
             value="Treasury"
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            className="data-[state=active]:bg-foreground data-[state=active]:text-background">
             Treasury withdrawals
           </TabsTrigger>
           <TabsTrigger
             value="Constitution"
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            className="data-[state=active]:bg-foreground data-[state=active]:text-background">
             New constitution
           </TabsTrigger>
         </TabsList>
@@ -87,12 +70,12 @@ export function GovernanceTable() {
             filteredActions.map((action) => (
               <Card
                 key={action.hash}
-                className="p-6 hover:border-primary/50 transition-all duration-300 cursor-pointer"
+                className="hover:border-foreground/30 transition-all duration-300 cursor-pointer"
                 onClick={() => handleRowClick(action.hash)}>
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                  {/* Main Info - 5 columns */}
-                  <div className="lg:col-span-5 space-y-3">
-                    <div className="flex items-center gap-2 flex-wrap">
+                <div className="p-6">
+                  <div className="flex items-start justify-between gap-4 mb-6">
+                    <h3 className="text-lg font-semibold flex-1">{action.title}</h3>
+                    <div className="flex items-center gap-2 flex-shrink-0">
                       <Badge variant="outline" className={getStatusColor(action.status)}>
                         {action.status}
                       </Badge>
@@ -100,69 +83,36 @@ export function GovernanceTable() {
                         {action.type}
                       </Badge>
                     </div>
-                    <h3 className="text-lg font-semibold">{action.title}</h3>
-                    <p className="text-xs text-muted-foreground font-mono">{formatHash(action.hash)}</p>
                   </div>
-
-                  {/* DRep Votes - 3 columns */}
-                  <div className="lg:col-span-3 space-y-2">
-                    <div className="text-sm font-medium text-muted-foreground">DRep Votes</div>
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-success">Yes: {action.drepYesPercent.toFixed(1)}%</span>
-                        <span className="text-muted-foreground">{action.drepYesAda} ₳</span>
-                      </div>
-                      <Progress value={action.drepYesPercent} className="h-2 bg-secondary" />
-                    </div>
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>No: {action.drepNoPercent.toFixed(1)}%</span>
-                      <span>{action.drepNoAda} ₳</span>
-                    </div>
-                  </div>
-
-                  {/* SPO Votes - 3 columns */}
-                  <div className="lg:col-span-3 space-y-2">
+                  <div className="space-y-4">
+                    <VoteProgress
+                      title="DRep Votes"
+                      yesPercent={action.drepYesPercent}
+                      noPercent={action.drepNoPercent}
+                      yesAda={action.drepYesAda}
+                      noAda={action.drepNoAda}
+                      showPercentages={false}
+                      showAda={false}
+                    />
                     {action.spoYesPercent !== undefined ? (
-                      <>
-                        <div className="text-sm font-medium text-muted-foreground">SPO Votes</div>
-                        <div className="space-y-1">
-                          <div className="flex justify-between text-sm">
-                            <span className="text-success">Yes: {action.spoYesPercent.toFixed(1)}%</span>
-                            <span className="text-muted-foreground">{action.spoYesAda || "0"} ₳</span>
-                          </div>
-                          <Progress value={action.spoYesPercent} className="h-2 bg-secondary" />
-                        </div>
-                        <div className="flex justify-between text-xs text-muted-foreground">
-                          <span>No: {action.spoNoPercent?.toFixed(1) || "0"}%</span>
-                          <span>{action.spoNoAda || "0"} ₳</span>
-                        </div>
-                      </>
+                      <VoteProgress
+                        title="SPO Votes"
+                        yesPercent={action.spoYesPercent}
+                        noPercent={action.spoNoPercent || 0}
+                        yesAda={action.spoYesAda || "0"}
+                        noAda={action.spoNoAda || "0"}
+                        showPercentages={false}
+                        showAda={false}
+                      />
                     ) : (
-                      <>
-                        <div className="text-sm font-medium text-muted-foreground">SPO Votes</div>
-                        <div className="flex items-center justify-center h-full text-xs text-muted-foreground">
-                          Not applicable
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-medium text-muted-foreground whitespace-nowrap w-24 flex-shrink-0">SPO Votes</span>
+                        <div className="flex-1">
+                          <span className="text-xs text-muted-foreground">Not applicable</span>
                         </div>
-                      </>
+                      </div>
                     )}
                   </div>
-
-                  {/* Vote Counts - 1 column */}
-                  <div className="lg:col-span-1 flex flex-col justify-center text-right lg:text-center space-y-1">
-                    <div className="text-sm">
-                      <span className="text-success font-semibold">Yes: {action.totalYes}</span>
-                    </div>
-                    <div className="text-sm">
-                      <span className="text-destructive font-semibold">No: {action.totalNo}</span>
-                    </div>
-                    <div className="text-xs text-muted-foreground">Abstain: {action.totalAbstain}</div>
-                  </div>
-                </div>
-
-                {/* Footer */}
-                <div className="mt-4 pt-4 border-t border-border/50 flex justify-between text-xs text-muted-foreground">
-                  <span>Submission: Epoch {action.submissionEpoch}</span>
-                  <span>Expiry: Epoch {action.expiryEpoch}</span>
                 </div>
               </Card>
             ))

@@ -10,6 +10,7 @@ export function GovernanceStats() {
     total: actions.length,
     active: actions.filter((a) => a.status === "Active").length,
     ratified: actions.filter((a) => a.status === "Ratified" || a.status === "Approved").length,
+    expired: actions.filter((a) => a.status === "Expired").length,
   };
 
   // Calculate NCL progress percentage
@@ -21,39 +22,50 @@ export function GovernanceStats() {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-      <Card className="p-6 bg-gradient-to-br from-primary/20 to-primary/5 border-primary/30">
-        <div className="text-5xl font-bold text-primary mb-2">{stats.total}</div>
-        <div className="text-sm text-muted-foreground uppercase tracking-wide">Total Actions</div>
-      </Card>
-
-      <Card className="p-6 border-border/50">
-        <div className="text-2xl font-semibold text-foreground mb-3">Governance Statistics</div>
-        <div className="space-y-2">
-          <div className="flex justify-between items-center">
-            <span className="text-muted-foreground">Active</span>
-            <span className="text-success font-semibold">{stats.active}</span>
+    <Card className="p-4 mb-6 border-border">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        {/* Left side - Stats */}
+        <div className="flex flex-wrap items-center gap-6 md:gap-8">
+          <div className="flex items-baseline gap-2">
+            <span className="text-3xl font-bold">{stats.total}</span>
+            <span className="text-sm text-muted-foreground uppercase tracking-wide">Total</span>
           </div>
-          <div className="flex justify-between items-center">
-            <span className="text-muted-foreground">Ratified</span>
-            <span className="text-primary font-semibold">{stats.ratified}</span>
+          
+          <div className="h-8 w-px bg-border" />
+          
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl font-semibold">{stats.active}</span>
+            <span className="text-sm text-muted-foreground">Active</span>
+          </div>
+          
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl font-semibold">{stats.ratified}</span>
+            <span className="text-sm text-muted-foreground">Ratified</span>
+          </div>
+          
+          <div className="h-8 w-px bg-border" />
+          
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl font-semibold">{stats.expired}</span>
+            <span className="text-sm text-muted-foreground">Expired</span>
           </div>
         </div>
-      </Card>
 
-      <Card className="p-6 bg-gradient-to-br from-blue-500/20 to-blue-500/5 border-blue-500/30">
-        <div className="text-sm text-muted-foreground uppercase tracking-wide mb-2">
-          {mockNCLData.year} NCL Progress
+        {/* Right side - NCL Progress */}
+        <div className="flex-1 md:max-w-md md:ml-auto">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs text-muted-foreground uppercase tracking-wide">
+              {mockNCLData.year} NCL
+            </span>
+            <span className="text-sm font-semibold">{nclProgress.toFixed(1)}%</span>
+          </div>
+          <div className="flex items-baseline gap-2 mb-2">
+            <span className="text-lg font-bold">{formatToMillions(mockNCLData.currentValue)}</span>
+            <span className="text-sm text-muted-foreground">/ {formatToMillions(mockNCLData.targetValue)}</span>
+          </div>
+          <Progress value={nclProgress} className="h-1.5" />
         </div>
-        <div className="flex items-baseline gap-2 mb-3">
-          <span className="text-3xl font-bold text-foreground">{formatToMillions(mockNCLData.currentValue)}</span>
-          <span className="text-lg text-muted-foreground">/ {formatToMillions(mockNCLData.targetValue)}</span>
-        </div>
-        <Progress value={nclProgress} className="h-2 mb-2" />
-        <div className="text-right">
-          <span className="text-xl font-bold text-blue-500">{nclProgress.toFixed(1)}%</span>
-        </div>
-      </Card>
-    </div>
+      </div>
+    </Card>
   );
 }

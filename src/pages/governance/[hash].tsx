@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
+import { VoteProgress } from "@/components/ui/vote-progress";
 import { VotingRecords } from "@/components/VotingRecords";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setSelectedAction } from "@/store/governanceSlice";
@@ -18,19 +18,7 @@ function formatAda(ada: string | number): string {
 }
 
 function getStatusColor(status: string): string {
-  switch (status) {
-    case "Active":
-      return "bg-success/20 text-success border-success/30";
-    case "Ratified":
-    case "Approved":
-      return "bg-primary/20 text-primary border-primary/30";
-    case "Expired":
-      return "bg-muted text-muted-foreground border-border";
-    case "Not approved":
-      return "bg-destructive/20 text-destructive border-destructive/30";
-    default:
-      return "bg-muted text-muted-foreground border-border";
-  }
+  return "text-foreground border-foreground/30 bg-transparent";
 }
 
 export default function GovernanceDetail() {
@@ -77,25 +65,31 @@ export default function GovernanceDetail() {
           </Link>
 
           {/* Header Section */}
-          <div className="mb-8">
-            <div className="flex flex-wrap gap-3 mb-4">
-              <Badge variant="outline" className={getStatusColor(selectedAction.status)}>
-                {selectedAction.status}
-              </Badge>
-              <Badge variant="outline" className="border-border">
-                {selectedAction.type}
-              </Badge>
+          <Card className="mb-8">
+            <div className="p-6">
+              <div className="flex items-start justify-between gap-4 mb-4">
+                <h1 className="text-3xl md:text-4xl font-bold flex-1">{selectedAction.title}</h1>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <Badge variant="outline" className={getStatusColor(selectedAction.status)}>
+                    {selectedAction.status}
+                  </Badge>
+                  <Badge variant="outline" className="border-border">
+                    {selectedAction.type}
+                  </Badge>
+                </div>
+              </div>
+              <div className="border-t border-border/50 pt-4">
+                <code className="text-sm text-muted-foreground bg-secondary px-3 py-1 rounded font-mono">
+                  {selectedAction.hash}
+                </code>
+                <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mt-4">
+                  <span>Submission: Epoch {selectedAction.submissionEpoch}</span>
+                  <span>•</span>
+                  <span>Expiry: Epoch {selectedAction.expiryEpoch}</span>
+                </div>
+              </div>
             </div>
-            <h1 className="text-3xl md:text-4xl font-bold mb-4">{selectedAction.title}</h1>
-            <code className="text-sm text-muted-foreground bg-secondary px-3 py-1 rounded font-mono">
-              {selectedAction.hash}
-            </code>
-            <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mt-4">
-              <span>Submission: Epoch {selectedAction.submissionEpoch}</span>
-              <span>•</span>
-              <span>Expiry: Epoch {selectedAction.expiryEpoch}</span>
-            </div>
-          </div>
+          </Card>
 
           {/* Main Grid: 2/3 Left, 1/3 Right */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -130,51 +124,25 @@ export default function GovernanceDetail() {
 
               {/* DRep Votes Card */}
               <Card className="p-6">
-                <h3 className="font-semibold mb-4">DRep Votes</h3>
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between mb-2">
-                      <span className="text-sm text-success">Yes: {selectedAction.drepYesPercent.toFixed(1)}%</span>
-                      <span className="text-sm text-muted-foreground">{formatAda(selectedAction.drepYesAda)} ₳</span>
-                    </div>
-                    <Progress value={selectedAction.drepYesPercent} className="h-3 bg-secondary" />
-                  </div>
-                  <div>
-                    <div className="flex justify-between mb-2">
-                      <span className="text-sm text-destructive">No: {selectedAction.drepNoPercent.toFixed(1)}%</span>
-                      <span className="text-sm text-muted-foreground">{formatAda(selectedAction.drepNoAda)} ₳</span>
-                    </div>
-                    <Progress value={selectedAction.drepNoPercent} className="h-3 bg-secondary" />
-                  </div>
-                </div>
+                <VoteProgress
+                  title="DRep Votes"
+                  yesPercent={selectedAction.drepYesPercent}
+                  noPercent={selectedAction.drepNoPercent}
+                  yesAda={selectedAction.drepYesAda}
+                  noAda={selectedAction.drepNoAda}
+                />
               </Card>
 
               {/* SPO Votes Card */}
               {selectedAction.spoYesPercent !== undefined && (
                 <Card className="p-6">
-                  <h3 className="font-semibold mb-4">SPO Votes</h3>
-                  <div className="space-y-4">
-                    <div>
-                      <div className="flex justify-between mb-2">
-                        <span className="text-sm text-success">Yes: {selectedAction.spoYesPercent.toFixed(1)}%</span>
-                        <span className="text-sm text-muted-foreground">
-                          {formatAda(selectedAction.spoYesAda || "0")} ₳
-                        </span>
-                      </div>
-                      <Progress value={selectedAction.spoYesPercent} className="h-3 bg-secondary" />
-                    </div>
-                    <div>
-                      <div className="flex justify-between mb-2">
-                        <span className="text-sm text-destructive">
-                          No: {selectedAction.spoNoPercent?.toFixed(1) || "0.0"}%
-                        </span>
-                        <span className="text-sm text-muted-foreground">
-                          {formatAda(selectedAction.spoNoAda || "0")} ₳
-                        </span>
-                      </div>
-                      <Progress value={selectedAction.spoNoPercent || 0} className="h-3 bg-secondary" />
-                    </div>
-                  </div>
+                  <VoteProgress
+                    title="SPO Votes"
+                    yesPercent={selectedAction.spoYesPercent}
+                    noPercent={selectedAction.spoNoPercent || 0}
+                    yesAda={selectedAction.spoYesAda || "0"}
+                    noAda={selectedAction.spoNoAda || "0"}
+                  />
                 </Card>
               )}
 
@@ -184,11 +152,11 @@ export default function GovernanceDetail() {
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Total Yes</span>
-                    <span className="text-sm font-semibold text-success">{selectedAction.totalYes}</span>
+                    <span className="text-sm font-semibold">{selectedAction.totalYes}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Total No</span>
-                    <span className="text-sm font-semibold text-destructive">{selectedAction.totalNo}</span>
+                    <span className="text-sm font-semibold">{selectedAction.totalNo}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Total Abstain</span>
