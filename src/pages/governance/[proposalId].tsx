@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { VoteProgress } from "@/components/ui/vote-progress";
 import { VotingRecords } from "@/components/VotingRecords";
+import { VotingSummary } from "@/components/VotingSummary";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setSelectedAction } from "@/store/governanceSlice";
 import { getActionByProposalId } from "@/data/mockData";
@@ -49,6 +50,12 @@ export default function GovernanceDetail() {
       </div>
     );
   }
+
+  // Combine all votes (DRep, SPO, and CC) into a single array for filtering
+  const allVotes = [
+    ...(selectedAction.votes || []),
+    ...(selectedAction.ccVotes || []),
+  ];
 
   return (
     <>
@@ -99,125 +106,61 @@ export default function GovernanceDetail() {
             </div>
           </Card>
 
-          {/* Main Grid: 2/3 Left, 1/3 Right */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left Column - Main Content */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Description Card */}
-              <Card className="p-6">
-                <h2 className="text-xl font-semibold mb-4">Description</h2>
-                <div className="text-foreground/90 whitespace-pre-wrap leading-relaxed">
-                  {selectedAction.description || "No description provided."}
-                </div>
-              </Card>
+          {/* Voting Bars - Horizontal */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            {/* DRep Votes */}
+            <Card className="p-6">
+              <VoteProgress
+                title="DRep Votes"
+                yesPercent={selectedAction.drepYesPercent}
+                noPercent={selectedAction.drepNoPercent}
+                yesAda={selectedAction.drepYesAda}
+                noAda={selectedAction.drepNoAda}
+              />
+            </Card>
 
-              {/* Rationale Card */}
-              {selectedAction.rationale && (
-                <Card className="p-6">
-                  <h2 className="text-xl font-semibold mb-4">Rationale</h2>
-                  <div className="text-foreground/90 whitespace-pre-wrap leading-relaxed">
-                    {selectedAction.rationale}
-                  </div>
-                </Card>
-              )}
-            </div>
-
-            {/* Right Column - Sidebar */}
-            <div className="space-y-6">
-              {/* Constitutionality */}
-              <Card className="p-6">
-                <h3 className="font-semibold mb-2">Constitutionality</h3>
-                <p className="text-sm text-muted-foreground">{selectedAction.constitutionality}</p>
-              </Card>
-
-              {/* DRep Votes */}
+            {/* CC Votes */}
+            {selectedAction.ccYesPercent !== undefined ? (
               <Card className="p-6">
                 <VoteProgress
-                  title="DRep Votes"
-                  yesPercent={selectedAction.drepYesPercent}
-                  noPercent={selectedAction.drepNoPercent}
-                  yesAda={selectedAction.drepYesAda}
-                  noAda={selectedAction.drepNoAda}
+                  title="CC"
+                  yesPercent={selectedAction.ccYesPercent}
+                  noPercent={selectedAction.ccNoPercent || 0}
                 />
               </Card>
+            ) : null}
 
-              {/* CC Votes */}
-              {selectedAction.ccYesPercent !== undefined && (
-                <Card className="p-6">
-                  <VoteProgress
-                    title="CC"
-                    yesPercent={selectedAction.ccYesPercent}
-                    noPercent={selectedAction.ccNoPercent || 0}
-                  />
-                </Card>
-              )}
-
-              {/* SPO Votes */}
-              {selectedAction.spoYesPercent !== undefined && (
-                <Card className="p-6">
-                  <VoteProgress
-                    title="SPO Votes"
-                    yesPercent={selectedAction.spoYesPercent}
-                    noPercent={selectedAction.spoNoPercent || 0}
-                    yesAda={selectedAction.spoYesAda || "0"}
-                    noAda={selectedAction.spoNoAda || "0"}
-                  />
-                </Card>
-              )}
-
-              {/* Vote Summary */}
+            {/* SPO Votes */}
+            {selectedAction.spoYesPercent !== undefined ? (
               <Card className="p-6">
-                <h3 className="font-semibold mb-4">Vote Summary</h3>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Total Yes</span>
-                    <span className="text-sm font-semibold">{selectedAction.totalYes}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Total No</span>
-                    <span className="text-sm font-semibold">{selectedAction.totalNo}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Total Abstain</span>
-                    <span className="text-sm font-semibold">{selectedAction.totalAbstain}</span>
-                  </div>
-                  <div className="pt-2 border-t border-border mt-2">
-                    <div className="flex justify-between">
-                      <span className="text-sm font-semibold">Total Votes</span>
-                      <span className="text-sm font-bold">
-                        {selectedAction.totalYes + selectedAction.totalNo + selectedAction.totalAbstain}
-                      </span>
-                    </div>
-                  </div>
-                </div>
+                <VoteProgress
+                  title="SPO Votes"
+                  yesPercent={selectedAction.spoYesPercent}
+                  noPercent={selectedAction.spoNoPercent || 0}
+                  yesAda={selectedAction.spoYesAda || "0"}
+                  noAda={selectedAction.spoNoAda || "0"}
+                />
               </Card>
-            </div>
+            ) : null}
           </div>
 
-          {/* Voting Records Section */}
-          {selectedAction.votes && selectedAction.votes.length > 0 && (
-            <div className="mt-12">
-              <VotingRecords votes={selectedAction.votes} />
-            </div>
+          {/* Voting Summary Section */}
+          {allVotes.length > 0 && (
+            <VotingSummary votes={allVotes} proposalTitle={selectedAction.title} />
           )}
 
-          {/* CC Voting Records */}
-          {selectedAction.ccVotes && selectedAction.ccVotes.length > 0 && (
-            <div className="mt-12">
-              <Card className="p-6">
-                <h2 className="text-xl font-semibold mb-4">CC Votes</h2>
-                <div className="space-y-2">
-                  {selectedAction.ccVotes.map((v, i) => (
-                    <div key={`${v.voterId}-${i}`} className="flex items-center justify-between py-2 border-b last:border-b-0 border-border/50">
-                      <div className="flex items-center gap-3">
-                        <span className="font-medium">{v.voterName || v.voterId}</span>
-                        <span className="text-xs text-muted-foreground font-mono">{v.voterId}</span>
-                      </div>
-                      <span className={`text-sm ${v.vote === "Yes" ? "text-foreground" : "text-foreground/60"}`}>{v.vote}</span>
-                    </div>
-                  ))}
-                </div>
-              </Card>
+          {/* Description - Full Width */}
+          <Card className="p-6 mb-6">
+            <h2 className="text-xl font-semibold mb-4">Description</h2>
+            <div className="text-foreground/90 whitespace-pre-wrap leading-relaxed">
+              {selectedAction.description || "No description provided."}
+            </div>
+          </Card>
+
+          {/* Voting Records Table */}
+          {allVotes.length > 0 && (
+            <div className="mb-6">
+              <VotingRecords votes={allVotes} />
             </div>
           )}
         </div>

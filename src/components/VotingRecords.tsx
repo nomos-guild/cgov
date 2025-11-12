@@ -42,6 +42,7 @@ function getVoteBadgeClasses(vote: VoteRecord["vote"]): string {
 export function VotingRecords({ votes }: VotingRecordsProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [voteFilter, setVoteFilter] = useState<string>("all");
+  const [roleFilter, setRoleFilter] = useState<string>("all");
 
   const filteredVotes = votes.filter((vote) => {
     const matchesSearch =
@@ -51,51 +52,26 @@ export function VotingRecords({ votes }: VotingRecordsProps) {
 
     const matchesVote = voteFilter === "all" || vote.vote.toLowerCase() === voteFilter;
 
-    return matchesSearch && matchesVote;
-  });
+    const matchesRole = roleFilter === "all" || vote.voterType === roleFilter;
 
-  const voteStats = {
-    total: votes.length,
-    yes: votes.filter((v) => v.vote === "Yes").length,
-    no: votes.filter((v) => v.vote === "No").length,
-    abstain: votes.filter((v) => v.vote === "Abstain").length,
-  };
+    return matchesSearch && matchesVote && matchesRole;
+  });
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold mb-2">Voting Records</h2>
-        <p className="text-muted-foreground">Individual DRep votes and their rationale</p>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="p-4">
-          <div className="text-2xl font-bold">{voteStats.total}</div>
-          <div className="text-sm text-muted-foreground">Total Votes</div>
-        </Card>
-        <Card className="p-4 border-border">
-          <div className="text-2xl font-bold">{voteStats.yes}</div>
-          <div className="text-sm text-muted-foreground">Yes Votes</div>
-        </Card>
-        <Card className="p-4 border-border">
-          <div className="text-2xl font-bold">{voteStats.no}</div>
-          <div className="text-sm text-muted-foreground">No Votes</div>
-        </Card>
-        <Card className="p-4">
-          <div className="text-2xl font-bold">{voteStats.abstain}</div>
-          <div className="text-sm text-muted-foreground">Abstain</div>
-        </Card>
+        <h2 className="text-2xl font-bold mb-2">Vote Details</h2>
+        <p className="text-muted-foreground">Individual votes and their rationale</p>
       </div>
 
       {/* Filters */}
       <Card className="p-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by DRep name or ID..."
+              placeholder="Search by voter name or ID..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
@@ -110,6 +86,17 @@ export function VotingRecords({ votes }: VotingRecordsProps) {
               <SelectItem value="yes">Yes</SelectItem>
               <SelectItem value="no">No</SelectItem>
               <SelectItem value="abstain">Abstain</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={roleFilter} onValueChange={setRoleFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="Filter by role" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Roles</SelectItem>
+              <SelectItem value="DRep">DRep</SelectItem>
+              <SelectItem value="SPO">SPO</SelectItem>
+              <SelectItem value="CC">CC</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -140,7 +127,12 @@ export function VotingRecords({ votes }: VotingRecordsProps) {
                   <TableRow key={`${vote.voterId}-${index}`} className="hover:bg-muted/50">
                     <TableCell>
                       <div>
-                        <div className="font-semibold">{vote.voterName || vote.voterId}</div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-semibold">{vote.voterName || vote.voterId}</span>
+                          <Badge variant="outline" className="text-xs px-1.5 py-0 border-foreground/20 bg-transparent">
+                            {vote.voterType}
+                          </Badge>
+                        </div>
                         <div className="text-xs text-muted-foreground font-mono">{vote.voterId.slice(0, 20)}...</div>
                       </div>
                     </TableCell>

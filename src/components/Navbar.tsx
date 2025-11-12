@@ -11,11 +11,11 @@ export function Navbar() {
   ];
 
   return (
-    <nav className="border-b border-border glass sticky top-0 z-50">
+    <nav className="border-b border-border bg-background sticky top-0 z-50">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           <Link href="/" className="flex items-center space-x-2">
-            <span className="text-2xl font-bold">
+            <span className="text-2xl font-bold text-foreground">
               CGOV
             </span>
           </Link>
@@ -32,8 +32,8 @@ export function Navbar() {
                   className={cn(
                     "px-4 py-2 rounded-md text-sm font-medium transition-colors",
                     isActive
-                      ? "bg-foreground/10 text-foreground"
-                      : "text-muted-foreground hover:text-foreground hover:bg-foreground/5"
+                      ? "bg-foreground text-background"
+                      : "text-foreground/60 hover:text-foreground hover:bg-foreground/10"
                   )}
                 >
                   {item.label}
