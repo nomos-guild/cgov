@@ -25,7 +25,7 @@ model GovernanceAction {
   anchorUrl          String?
   anchorHash         String?
   constitutionality  String?
-  references         String[]?
+  references         Json?
 
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
