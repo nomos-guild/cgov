@@ -39,6 +39,8 @@ export interface VoteRecord {
 export interface GovernanceActionDetail extends GovernanceAction {
   description?: string;
   rationale?: string;
+  motivation?: string;
+  references?: string[];
   votes?: VoteRecord[];
   ccVotes?: VoteRecord[];
 }
