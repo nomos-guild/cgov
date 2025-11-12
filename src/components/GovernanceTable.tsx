@@ -24,8 +24,8 @@ export function GovernanceTable() {
     return action.type === currentFilter;
   });
 
-  const handleRowClick = (hash: string) => {
-    router.push(`/governance/${hash}`);
+  const handleRowClick = (proposalId: string) => {
+    router.push(`/governance/${proposalId}`);
   };
 
   const handleTabChange = (value: string) => {
@@ -71,9 +71,9 @@ export function GovernanceTable() {
           ) : (
             filteredActions.map((action) => (
               <Card
-                key={action.hash}
+                key={action.proposalId}
                 className="hover:border-foreground/30 transition-all duration-300 cursor-pointer"
-                onClick={() => handleRowClick(action.hash)}>
+                onClick={() => handleRowClick(action.proposalId)}>
                 <div className="p-6">
                   <div className="flex items-start justify-between gap-4 mb-6">
                     <h3 className="text-lg font-semibold flex-1">{action.title}</h3>
@@ -96,6 +96,22 @@ export function GovernanceTable() {
                       showPercentages={false}
                       showAda={false}
                     />
+                    {action.ccYesPercent !== undefined ? (
+                      <VoteProgress
+                        title="CC"
+                        yesPercent={action.ccYesPercent}
+                        noPercent={action.ccNoPercent || 0}
+                        showPercentages={false}
+                        showAda={false}
+                      />
+                    ) : (
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-medium text-muted-foreground whitespace-nowrap w-24 flex-shrink-0">CC</span>
+                        <div className="flex-1">
+                          <span className="text-xs text-muted-foreground">Not applicable</span>
+                        </div>
+                      </div>
+                    )}
                     {action.spoYesPercent !== undefined ? (
                       <VoteProgress
                         title="SPO Votes"

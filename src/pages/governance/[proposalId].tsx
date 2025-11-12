@@ -9,7 +9,7 @@ import { VoteProgress } from "@/components/ui/vote-progress";
 import { VotingRecords } from "@/components/VotingRecords";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setSelectedAction } from "@/store/governanceSlice";
-import { getActionByHash } from "@/data/mockData";
+import { getActionByProposalId } from "@/data/mockData";
 import { ArrowLeft } from "lucide-react";
 import type { GovernanceAction } from "@/types/governance";
 
@@ -25,18 +25,18 @@ function getStatusColor(status: GovernanceAction["status"]): string {
 
 export default function GovernanceDetail() {
   const router = useRouter();
-  const { hash } = router.query;
+  const { proposalId } = router.query;
   const dispatch = useAppDispatch();
   const selectedAction = useAppSelector((state) => state.governance.selectedAction);
 
   useEffect(() => {
-    if (typeof hash === "string") {
-      const action = getActionByHash(hash);
+    if (typeof proposalId === "string") {
+      const action = getActionByProposalId(proposalId);
       if (action) {
         dispatch(setSelectedAction(action));
       }
     }
-  }, [hash, dispatch]);
+  }, [proposalId, dispatch]);
 
   if (!selectedAction) {
     return (
@@ -81,9 +81,15 @@ export default function GovernanceDetail() {
                 </div>
               </div>
               <div className="border-t border-border/50 pt-4">
-                <code className="text-sm text-muted-foreground bg-secondary px-3 py-1 rounded font-mono">
-                  {selectedAction.hash}
-                </code>
+                <div className="flex flex-wrap items-center gap-2">
+                  <code className="text-sm text-muted-foreground bg-secondary px-3 py-1 rounded font-mono">
+                    {selectedAction.proposalId}
+                  </code>
+                  <span className="text-muted-foreground">•</span>
+                  <code className="text-sm text-muted-foreground bg-secondary px-3 py-1 rounded font-mono">
+                    {selectedAction.txHash}
+                  </code>
+                </div>
                 <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mt-4">
                   <span>Submission: Epoch {selectedAction.submissionEpoch}</span>
                   <span>•</span>
@@ -118,13 +124,13 @@ export default function GovernanceDetail() {
 
             {/* Right Column - Sidebar */}
             <div className="space-y-6">
-              {/* Constitutionality Card */}
+              {/* Constitutionality */}
               <Card className="p-6">
                 <h3 className="font-semibold mb-2">Constitutionality</h3>
                 <p className="text-sm text-muted-foreground">{selectedAction.constitutionality}</p>
               </Card>
 
-              {/* DRep Votes Card */}
+              {/* DRep Votes */}
               <Card className="p-6">
                 <VoteProgress
                   title="DRep Votes"
@@ -135,7 +141,18 @@ export default function GovernanceDetail() {
                 />
               </Card>
 
-              {/* SPO Votes Card */}
+              {/* CC Votes */}
+              {selectedAction.ccYesPercent !== undefined && (
+                <Card className="p-6">
+                  <VoteProgress
+                    title="CC"
+                    yesPercent={selectedAction.ccYesPercent}
+                    noPercent={selectedAction.ccNoPercent || 0}
+                  />
+                </Card>
+              )}
+
+              {/* SPO Votes */}
               {selectedAction.spoYesPercent !== undefined && (
                 <Card className="p-6">
                   <VoteProgress
@@ -148,7 +165,7 @@ export default function GovernanceDetail() {
                 </Card>
               )}
 
-              {/* Vote Summary Card */}
+              {/* Vote Summary */}
               <Card className="p-6">
                 <h3 className="font-semibold mb-4">Vote Summary</h3>
                 <div className="space-y-2">
@@ -183,8 +200,30 @@ export default function GovernanceDetail() {
               <VotingRecords votes={selectedAction.votes} />
             </div>
           )}
+
+          {/* CC Voting Records */}
+          {selectedAction.ccVotes && selectedAction.ccVotes.length > 0 && (
+            <div className="mt-12">
+              <Card className="p-6">
+                <h2 className="text-xl font-semibold mb-4">CC Votes</h2>
+                <div className="space-y-2">
+                  {selectedAction.ccVotes.map((v, i) => (
+                    <div key={`${v.voterId}-${i}`} className="flex items-center justify-between py-2 border-b last:border-b-0 border-border/50">
+                      <div className="flex items-center gap-3">
+                        <span className="font-medium">{v.voterName || v.voterId}</span>
+                        <span className="text-xs text-muted-foreground font-mono">{v.voterId}</span>
+                      </div>
+                      <span className={`text-sm ${v.vote === "Yes" ? "text-foreground" : "text-foreground/60"}`}>{v.vote}</span>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            </div>
+          )}
         </div>
       </div>
     </>
   );
 }
+
+
