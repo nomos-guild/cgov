@@ -1,0 +1,126 @@
+// Prisma schema for Supabase (PostgreSQL)
+// Ensure you set DATABASE_URL in .env to your Supabase connection string
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model GovernanceAction {
+  id                 Int               @id @default(autoincrement())
+  proposalId         String            @unique
+  txHash             String
+  title              String
+  type               String
+  status             String
+  submissionEpoch    Int
+  expiryEpoch        Int
+  description        String?
+  rationale          String?
+  motivation         String?
+  anchorUrl          String?
+  anchorHash         String?
+  constitutionality  String?
+  references         String[]?
+
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  drepVotes          DrepVote[]
+  spoVotes           SpoVote[]
+  ccVotes            CcVote[]
+  statistics         VoteStatistics?
+
+  @@index([status])
+  @@index([type])
+  @@index([proposalId])
+  @@index([txHash])
+  @@index([type, status])
+}
+
+model DrepVote {
+  id                  Int               @id @default(autoincrement())
+  governanceActionId  Int
+  drepId              String
+  drepName            String?
+  vote                String
+  votingPowerAda      Decimal
+  anchorUrl           String?
+  anchorHash          String?
+  votedAt             DateTime
+
+  governanceAction    GovernanceAction  @relation(fields: [governanceActionId], references: [id], onDelete: Cascade)
+
+  @@unique([governanceActionId, drepId])
+  @@index([governanceActionId])
+  @@index([drepId])
+  @@index([vote])
+}
+
+model SpoVote {
+  id                  Int               @id @default(autoincrement())
+  governanceActionId  Int
+  poolId              String
+  poolName            String?
+  vote                String
+  votingPowerAda      Decimal
+  anchorUrl           String?
+  anchorHash          String?
+  votedAt             DateTime
+
+  governanceAction    GovernanceAction  @relation(fields: [governanceActionId], references: [id], onDelete: Cascade)
+
+  @@unique([governanceActionId, poolId])
+  @@index([governanceActionId])
+  @@index([poolId])
+}
+
+model CcVote {
+  id                  Int               @id @default(autoincrement())
+  governanceActionId  Int
+  memberId            String
+  memberName          String?
+  vote                String
+  anchorUrl           String?
+  anchorHash          String?
+  votedAt             DateTime
+
+  governanceAction    GovernanceAction  @relation(fields: [governanceActionId], references: [id], onDelete: Cascade)
+
+  @@unique([governanceActionId, memberId])
+  @@index([governanceActionId])
+  @@index([memberId])
+  @@index([vote])
+}
+
+model VoteStatistics {
+  governanceActionId Int  @id
+
+  drepYesPercent     Decimal?
+  drepNoPercent      Decimal?
+  drepYesAda         Decimal?
+  drepNoAda          Decimal?
+
+  spoYesPercent      Decimal?
+  spoNoPercent       Decimal?
+  spoYesAda          Decimal?
+  spoNoAda           Decimal?
+
+  ccYesPercent       Decimal?
+  ccNoPercent        Decimal?
+  ccYesCount         Int?
+  ccNoCount          Int?
+
+  totalYes           Int   @default(0)
+  totalNo            Int   @default(0)
+  totalAbstain       Int   @default(0)
+
+  lastUpdated        DateTime @default(now())
+
+  action             GovernanceAction @relation(fields: [governanceActionId], references: [id], onDelete: Cascade)
+}
+

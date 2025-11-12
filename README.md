@@ -32,3 +32,41 @@ With cgov, you can
 TBC
 
 ![Alt](https://repobeats.axiom.co/api/embed/783bce112387ee6ab70e24a8b31532de60d40f06.svg "Repobeats analytics image")
+
+## Database (Supabase + Prisma)
+
+This project is ready to connect to a Supabase Postgres database via Prisma using `DATABASE_URL`.
+
+Setup:
+
+1. Create a Supabase project, then copy the Postgres Connection String (URI) from Project Settings → Database.
+
+2. Create `.env` in the project root with:
+
+```
+DATABASE_URL="postgres://postgres:YOUR_PASSWORD@db.YOUR_SUPABASE_HOST.supabase.co:5432/postgres"
+```
+
+3. Install deps and generate Prisma client:
+
+```
+npm install
+npm run prisma:generate
+```
+
+4. Create tables (first time) using migrations or push:
+
+```
+npm run prisma:migrate -- --name init
+# or
+npm run db:push
+```
+
+5. Verify connection locally:
+
+```
+npm run dev
+# visit /api/db/health
+```
+
+Prisma schema lives in `prisma/schema.prisma`. A Prisma client singleton is provided at `src/lib/prisma.ts`.
