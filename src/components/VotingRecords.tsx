@@ -46,8 +46,8 @@ export function VotingRecords({ votes }: VotingRecordsProps) {
   const filteredVotes = votes.filter((vote) => {
     const matchesSearch =
       searchQuery === "" ||
-      vote.drepName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      vote.drepId.toLowerCase().includes(searchQuery.toLowerCase());
+      (vote.voterName || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      vote.voterId.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesVote = voteFilter === "all" || vote.vote.toLowerCase() === voteFilter;
 
@@ -121,7 +121,7 @@ export function VotingRecords({ votes }: VotingRecordsProps) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>DRep</TableHead>
+                <TableHead>Voter</TableHead>
                 <TableHead>Vote</TableHead>
                 <TableHead>Voting Power</TableHead>
                 <TableHead>Voted At</TableHead>
@@ -137,11 +137,11 @@ export function VotingRecords({ votes }: VotingRecordsProps) {
                 </TableRow>
               ) : (
                 filteredVotes.map((vote, index) => (
-                  <TableRow key={`${vote.drepId}-${index}`} className="hover:bg-muted/50">
+                  <TableRow key={`${vote.voterId}-${index}`} className="hover:bg-muted/50">
                     <TableCell>
                       <div>
-                        <div className="font-semibold">{vote.drepName}</div>
-                        <div className="text-xs text-muted-foreground font-mono">{vote.drepId.slice(0, 20)}...</div>
+                        <div className="font-semibold">{vote.voterName || vote.voterId}</div>
+                        <div className="text-xs text-muted-foreground font-mono">{vote.voterId.slice(0, 20)}...</div>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -151,15 +151,21 @@ export function VotingRecords({ votes }: VotingRecordsProps) {
                     </TableCell>
                     <TableCell>
                       <div>
-                        <div className="font-semibold">{formatAda(vote.votingPowerAda)}</div>
-                        <div className="text-xs text-muted-foreground">{vote.votingPower} ADA</div>
+                        {vote.voterType !== "CC" ? (
+                          <>
+                            <div className="font-semibold">{formatAda(vote.votingPowerAda || 0)}</div>
+                            <div className="text-xs text-muted-foreground">{vote.votingPower || "0"} ADA</div>
+                          </>
+                        ) : (
+                          <div className="text-xs text-muted-foreground">One member, one vote</div>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {new Date(vote.votedAt).toLocaleDateString()}
                     </TableCell>
                     <TableCell className="text-right">
-                      {vote.anchorUrl ? (
+                      {vote.anchorUrl && vote.voterType !== "CC" ? (
                         <div className="flex items-center justify-end gap-2">
                           <Dialog>
                             <DialogTrigger asChild>
@@ -170,7 +176,7 @@ export function VotingRecords({ votes }: VotingRecordsProps) {
                             </DialogTrigger>
                             <DialogContent className="max-w-3xl max-h-[80vh]">
                               <DialogHeader>
-                                <DialogTitle>Voting Rationale - {vote.drepName}</DialogTitle>
+                                <DialogTitle>Voting Rationale - {vote.voterName || vote.voterId}</DialogTitle>
                                 <DialogDescription>
                                   View the detailed reasoning for this vote
                                 </DialogDescription>
@@ -192,7 +198,7 @@ export function VotingRecords({ votes }: VotingRecordsProps) {
                                     </a>
                                   </div>
                                   <div className="text-sm text-muted-foreground whitespace-pre-wrap">
-                                    {getMockRationale(vote.drepName, vote.vote)}
+                                    {getMockRationale(vote.voterName || vote.voterId, vote.vote)}
                                   </div>
                                 </div>
                               </ScrollArea>
@@ -208,7 +214,7 @@ export function VotingRecords({ votes }: VotingRecordsProps) {
                           </a>
                         </div>
                       ) : (
-                        <span className="text-xs text-muted-foreground">No rationale</span>
+                        <span className="text-xs text-muted-foreground">{vote.voterType === "CC" ? "Not applicable" : "No rationale"}</span>
                       )}
                     </TableCell>
                   </TableRow>
@@ -223,8 +229,8 @@ export function VotingRecords({ votes }: VotingRecordsProps) {
 }
 
 // Mock rationale function - in real app, this would fetch from IPFS
-function getMockRationale(drepName: string, vote: string): string {
-  if (drepName === "SIPO") {
+function getMockRationale(voterName: string, vote: string): string {
+  if (voterName === "SIPO") {
     return `SIPO has chosen to ${vote} on this proposal.
 
 Our decision reflects both recognition of the proposal's innovation and concern for its structural implications on fairness, governance precedent, and long-term ecosystem balance.
@@ -245,7 +251,7 @@ We believe this pilot can become an educational milestone—demonstrating how a 
   }
 
   const templates = {
-    Yes: `After careful consideration, ${drepName} votes YES on this proposal.
+    Yes: `After careful consideration, ${voterName} votes YES on this proposal.
 
 We believe this initiative aligns with Cardano's long-term vision and will contribute positively to the ecosystem's growth. The proposal demonstrates:
 
@@ -255,7 +261,7 @@ We believe this initiative aligns with Cardano's long-term vision and will contr
 • Alignment with Cardano's governance principles
 
 We support this action and look forward to seeing its positive impact on the ecosystem.`,
-    No: `${drepName} votes NO on this proposal.
+    No: `${voterName} votes NO on this proposal.
 
 While we appreciate the effort behind this submission, we have concerns about:
 
@@ -265,7 +271,7 @@ While we appreciate the effort behind this submission, we have concerns about:
 • Questions about long-term sustainability
 
 We encourage the proposers to address these concerns and potentially resubmit with improvements.`,
-    Abstain: `${drepName} chooses to ABSTAIN on this proposal.
+    Abstain: `${voterName} chooses to ABSTAIN on this proposal.
 
 This decision reflects our position that while the proposal has merit, we require additional information or time for proper evaluation:
 

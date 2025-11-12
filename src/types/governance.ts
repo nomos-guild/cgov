@@ -1,5 +1,6 @@
 export interface GovernanceAction {
-  hash: string;
+  proposalId: string;
+  txHash: string;
   title: string;
   type: string;
   status: "Active" | "Ratified" | "Expired" | "Approved" | "Not approved";
@@ -12,6 +13,10 @@ export interface GovernanceAction {
   spoNoPercent?: number;
   spoYesAda?: string;
   spoNoAda?: string;
+  ccYesPercent?: number;
+  ccNoPercent?: number;
+   ccYesCount?: number;
+   ccNoCount?: number;
   totalYes: number;
   totalNo: number;
   totalAbstain: number;
@@ -20,11 +25,12 @@ export interface GovernanceAction {
 }
 
 export interface VoteRecord {
-  drepId: string;
-  drepName: string;
+  voterType: "DRep" | "SPO" | "CC";
+  voterId: string;
+  voterName?: string;
   vote: "Yes" | "No" | "Abstain";
-  votingPower: string;
-  votingPowerAda: number;
+  votingPower?: string;
+  votingPowerAda?: number;
   anchorUrl?: string;
   anchorHash?: string;
   votedAt: string;
@@ -34,6 +40,7 @@ export interface GovernanceActionDetail extends GovernanceAction {
   description?: string;
   rationale?: string;
   votes?: VoteRecord[];
+  ccVotes?: VoteRecord[];
 }
 
 export type GovernanceActionType = "All" | "Info" | "Treasury" | "Constitution";
