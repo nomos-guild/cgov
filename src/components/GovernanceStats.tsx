@@ -22,32 +22,32 @@ export function GovernanceStats() {
   };
 
   return (
-    <Card className="p-4 mb-6 border-border">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <Card className="p-3 sm:p-4 mb-6 border-border">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 sm:gap-4">
         {/* Left side - Stats */}
-        <div className="flex flex-wrap items-center gap-6 md:gap-8">
+        <div className="flex flex-wrap items-center gap-4 sm:gap-6 md:gap-8">
           <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-bold">{stats.total}</span>
-            <span className="text-sm text-muted-foreground uppercase tracking-wide">Total</span>
+            <span className="text-2xl sm:text-3xl font-bold">{stats.total}</span>
+            <span className="text-xs sm:text-sm text-muted-foreground uppercase tracking-wide">Total</span>
           </div>
           
-          <div className="h-8 w-px bg-border" />
+          <div className="h-6 sm:h-8 w-px bg-border hidden sm:block" />
           
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-semibold">{stats.active}</span>
-            <span className="text-sm text-muted-foreground">Active</span>
+            <span className="text-xl sm:text-2xl font-semibold">{stats.active}</span>
+            <span className="text-xs sm:text-sm text-muted-foreground">Active</span>
           </div>
           
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-semibold">{stats.ratified}</span>
-            <span className="text-sm text-muted-foreground">Ratified</span>
+            <span className="text-xl sm:text-2xl font-semibold">{stats.ratified}</span>
+            <span className="text-xs sm:text-sm text-muted-foreground">Ratified</span>
           </div>
           
-          <div className="h-8 w-px bg-border" />
+          <div className="h-6 sm:h-8 w-px bg-border hidden sm:block" />
           
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-semibold">{stats.expired}</span>
-            <span className="text-sm text-muted-foreground">Expired</span>
+            <span className="text-xl sm:text-2xl font-semibold">{stats.expired}</span>
+            <span className="text-xs sm:text-sm text-muted-foreground">Expired</span>
           </div>
         </div>
 

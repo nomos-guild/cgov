@@ -61,13 +61,11 @@ export function VotingRecords({ votes }: VotingRecordsProps) {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold mb-2">Vote Details</h2>
-        <p className="text-muted-foreground">Individual votes and their rationale</p>
       </div>
 
       {/* Filters */}
-      <Card className="p-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <Card className="p-3 sm:p-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -103,9 +101,10 @@ export function VotingRecords({ votes }: VotingRecordsProps) {
       </Card>
 
       {/* Voting Table */}
-      <Card>
-        <div className="overflow-x-auto">
-          <Table>
+      <Card className="overflow-hidden">
+        <div className="overflow-x-auto -mx-4 sm:-mx-6 md:mx-0">
+          <div className="inline-block min-w-full align-middle px-4 sm:px-6 md:px-0">
+            <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Voter</TableHead>
@@ -214,6 +213,7 @@ export function VotingRecords({ votes }: VotingRecordsProps) {
               )}
             </TableBody>
           </Table>
+          </div>
         </div>
       </Card>
     </div>

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";
 import Link from "next/link";
@@ -11,7 +11,15 @@ import { VotingSummary } from "@/components/VotingSummary";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setSelectedAction } from "@/store/governanceSlice";
 import { getActionByProposalId } from "@/data/mockData";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Twitter } from "lucide-react";
+import { exportToJSON, exportToMarkdown, exportToCSV, downloadFile } from "@/lib/exportRationales";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { GovernanceAction } from "@/types/governance";
 
 function getStatusColor(status: GovernanceAction["status"]): string {
@@ -57,6 +65,47 @@ export default function GovernanceDetail() {
     ...(selectedAction.ccVotes || []),
   ];
 
+  const [downloadFormat, setDownloadFormat] = useState<string>("");
+
+  const handleTwitterShare = () => {
+    const url = typeof window !== "undefined" 
+      ? `${window.location.origin}/governance/${selectedAction.proposalId}`
+      : "";
+    const text = `Check out this Cardano governance proposal: ${selectedAction.title}`;
+    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+    window.open(twitterUrl, "_blank", "noopener,noreferrer");
+  };
+
+  const handleExport = (format: "json" | "markdown" | "csv") => {
+    const sanitizedTitle = selectedAction.title.replace(/[^a-z0-9]/gi, "_").toLowerCase();
+    const timestamp = new Date().toISOString().split("T")[0];
+    
+    let content: string;
+    let filename: string;
+    let mimeType: string;
+
+    switch (format) {
+      case "json":
+        content = exportToJSON(allVotes, selectedAction.title);
+        filename = `voting-rationales-${sanitizedTitle}-${timestamp}.json`;
+        mimeType = "application/json";
+        break;
+      case "markdown":
+        content = exportToMarkdown(allVotes, selectedAction.title);
+        filename = `voting-rationales-${sanitizedTitle}-${timestamp}.md`;
+        mimeType = "text/markdown";
+        break;
+      case "csv":
+        content = exportToCSV(allVotes, selectedAction.title);
+        filename = `voting-rationales-${sanitizedTitle}-${timestamp}.csv`;
+        mimeType = "text/csv";
+        break;
+    }
+
+    downloadFile(content, filename, mimeType);
+    setTimeout(() => setDownloadFormat(""), 100);
+  };
+
   return (
     <>
       <Head>
@@ -64,7 +113,7 @@ export default function GovernanceDetail() {
         <meta name="description" content={selectedAction.description || selectedAction.title} />
       </Head>
       <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
           {/* Back Button */}
           <Link href="/">
             <Button variant="ghost" className="mb-6">
@@ -74,11 +123,35 @@ export default function GovernanceDetail() {
           </Link>
 
           {/* Header Section */}
-          <Card className="mb-8">
-            <div className="p-6">
-              <div className="flex items-start justify-between gap-4 mb-4">
-                <h1 className="text-3xl md:text-4xl font-bold flex-1">{selectedAction.title}</h1>
-                <div className="flex items-center gap-2 flex-shrink-0">
+          <Card className="mb-6 sm:mb-8">
+            <div className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold flex-1 min-w-0">{selectedAction.title}</h1>
+                <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
+                  {allVotes.length > 0 && (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleTwitterShare}
+                        className="flex items-center gap-2 whitespace-nowrap"
+                      >
+                        <Twitter className="h-4 w-4" />
+                        <span className="hidden sm:inline">Share on X</span>
+                        <span className="sm:hidden">Share</span>
+                      </Button>
+                      <Select value={downloadFormat} onValueChange={(value) => handleExport(value as "json" | "markdown" | "csv")}>
+                        <SelectTrigger className="w-full sm:w-[200px]">
+                          <SelectValue placeholder="Download rationales" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="json">Download as JSON</SelectItem>
+                          <SelectItem value="markdown">Download as Markdown</SelectItem>
+                          <SelectItem value="csv">Download as CSV</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </>
+                  )}
                   <Badge variant="outline" className={getStatusColor(selectedAction.status)}>
                     {selectedAction.status}
                   </Badge>
@@ -89,17 +162,17 @@ export default function GovernanceDetail() {
               </div>
               <div className="border-t border-border/50 pt-4">
                 <div className="flex flex-wrap items-center gap-2">
-                  <code className="text-sm text-muted-foreground bg-secondary px-3 py-1 rounded font-mono">
+                  <code className="text-xs sm:text-sm text-muted-foreground bg-secondary px-2 sm:px-3 py-1 rounded font-mono break-all">
                     {selectedAction.proposalId}
                   </code>
-                  <span className="text-muted-foreground">•</span>
-                  <code className="text-sm text-muted-foreground bg-secondary px-3 py-1 rounded font-mono">
+                  <span className="text-muted-foreground hidden sm:inline">•</span>
+                  <code className="text-xs sm:text-sm text-muted-foreground bg-secondary px-2 sm:px-3 py-1 rounded font-mono break-all">
                     {selectedAction.txHash}
                   </code>
                 </div>
-                <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mt-4">
+                <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground mt-4">
                   <span>Submission: Epoch {selectedAction.submissionEpoch}</span>
-                  <span>•</span>
+                  <span className="hidden sm:inline">•</span>
                   <span>Expiry: Epoch {selectedAction.expiryEpoch}</span>
                 </div>
               </div>
@@ -107,9 +180,9 @@ export default function GovernanceDetail() {
           </Card>
 
           {/* Voting Bars - Horizontal */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-6">
             {/* DRep Votes */}
-            <Card className="p-6">
+            <Card className="p-4 sm:p-6">
               <VoteProgress
                 title="DRep Votes"
                 yesPercent={selectedAction.drepYesPercent}
@@ -121,7 +194,7 @@ export default function GovernanceDetail() {
 
             {/* CC Votes */}
             {selectedAction.ccYesPercent !== undefined ? (
-              <Card className="p-6">
+              <Card className="p-4 sm:p-6">
                 <VoteProgress
                   title="CC"
                   yesPercent={selectedAction.ccYesPercent}
@@ -132,7 +205,7 @@ export default function GovernanceDetail() {
 
             {/* SPO Votes */}
             {selectedAction.spoYesPercent !== undefined ? (
-              <Card className="p-6">
+              <Card className="p-4 sm:p-6">
                 <VoteProgress
                   title="SPO Votes"
                   yesPercent={selectedAction.spoYesPercent}
@@ -150,9 +223,9 @@ export default function GovernanceDetail() {
           )}
 
           {/* Description - Full Width */}
-          <Card className="p-6 mb-6">
-            <h2 className="text-xl font-semibold mb-4">Description</h2>
-            <div className="text-foreground/90 whitespace-pre-wrap leading-relaxed">
+          <Card className="p-4 sm:p-6 mb-6">
+            <h2 className="text-lg sm:text-xl font-semibold mb-4">Description</h2>
+            <div className="text-sm sm:text-base text-foreground/90 whitespace-pre-wrap leading-relaxed">
               {selectedAction.description || "No description provided."}
             </div>
           </Card>

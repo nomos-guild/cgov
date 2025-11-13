@@ -74,10 +74,10 @@ export function GovernanceTable() {
                 key={action.proposalId}
                 className="hover:border-foreground/30 transition-all duration-300 cursor-pointer"
                 onClick={() => handleRowClick(action.proposalId)}>
-                <div className="p-6">
-                  <div className="flex items-start justify-between gap-4 mb-6">
-                    <h3 className="text-lg font-semibold flex-1">{action.title}</h3>
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="p-4 sm:p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
+                    <h3 className="text-base sm:text-lg font-semibold flex-1 min-w-0">{action.title}</h3>
+                    <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
                       <Badge variant="outline" className={getStatusColor(action.status)}>
                         {action.status}
                       </Badge>
@@ -106,7 +106,7 @@ export function GovernanceTable() {
                       />
                     ) : (
                       <div className="flex items-center gap-3">
-                        <span className="text-sm font-medium text-muted-foreground whitespace-nowrap w-24 flex-shrink-0">CC</span>
+                        <span className="text-xs sm:text-sm font-medium text-muted-foreground whitespace-nowrap w-16 sm:w-24 flex-shrink-0">CC</span>
                         <div className="flex-1">
                           <span className="text-xs text-muted-foreground">Not applicable</span>
                         </div>
@@ -124,7 +124,7 @@ export function GovernanceTable() {
                       />
                     ) : (
                       <div className="flex items-center gap-3">
-                        <span className="text-sm font-medium text-muted-foreground whitespace-nowrap w-24 flex-shrink-0">SPO Votes</span>
+                        <span className="text-xs sm:text-sm font-medium text-muted-foreground whitespace-nowrap w-20 sm:w-24 flex-shrink-0">SPO Votes</span>
                         <div className="flex-1">
                           <span className="text-xs text-muted-foreground">Not applicable</span>
                         </div>
