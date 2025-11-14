@@ -9,6 +9,16 @@ const MAINNET_GENESIS_UNIX = 1_506_203_091;
 const KOIOS_BASE_URL = "https://api.koios.rest/api/v1";
 const KOIOS_POOL_VP_HISTORY = `${KOIOS_BASE_URL}/pool_voting_power_history`;
 
+function getKoiosHeaders(): HeadersInit {
+  const headers: Record<string, string> = { accept: "application/json" };
+  const key = process.env.KOIOS_API_KEY;
+  if (key && key.trim().length > 0) {
+    headers["Authorization"] = `Bearer ${key}`;
+    headers["X-API-Key"] = key;
+  }
+  return headers;
+}
+
 function firstString(value: string | string[] | undefined): string | undefined {
   if (value === undefined) return undefined;
   return Array.isArray(value) ? value[0] : value;
@@ -87,7 +97,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const timeout = setTimeout(() => controller.abort(), 20_000);
     const koiosResponse = await fetch(url.toString(), {
       method: "GET",
-      headers: { accept: "application/json" },
+      headers: getKoiosHeaders(),
       signal: controller.signal,
     });
     clearTimeout(timeout);

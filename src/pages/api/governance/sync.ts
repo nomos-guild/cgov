@@ -11,6 +11,16 @@ const KOIOS_BASE_URL = "https://api.koios.rest/api/v1";
 const KOIOS_PROPOSALS_ENDPOINT = `${KOIOS_BASE_URL}/proposal_list`;
 const KOIOS_VOTES_ENDPOINT = `${KOIOS_BASE_URL}/proposal_votes`;
 
+function getKoiosHeaders(): HeadersInit {
+  const headers: Record<string, string> = { accept: "application/json" };
+  const key = process.env.KOIOS_API_KEY;
+  if (key && key.trim().length > 0) {
+    headers["Authorization"] = `Bearer ${key}`;
+    headers["X-API-Key"] = key;
+  }
+  return headers;
+}
+
 // 5 minute cooldown by default
 const DEFAULT_COOLDOWN_MS = 5 * 60 * 1000;
 
@@ -148,7 +158,7 @@ async function fetchNewProposalsSince(epochNo: number): Promise<KoiosProposal[]>
   // Fetch all proposals and filter locally by block_time to avoid relying on Koios query params
   const res = await fetchWithRetry(
     KOIOS_PROPOSALS_ENDPOINT,
-    { method: "GET", headers: { accept: "application/json" } },
+    { method: "GET", headers: getKoiosHeaders() },
     { retries: 5 }
   );
   if (!res.ok) {
@@ -237,6 +247,11 @@ function pct(part: number, total: number): number | null {
   return (part / total) * 100;
 }
 
+function nullIfZero(n?: number | null): number | null {
+  if (typeof n !== "number" || !Number.isFinite(n) || n === 0) return null;
+  return n;
+}
+
 // --- Voting power helpers (Koios) ---
 const KOIOS_DREP_VP_HISTORY = `${KOIOS_BASE_URL}/drep_voting_power_history`;
 const KOIOS_POOL_VP_HISTORY = `${KOIOS_BASE_URL}/pool_voting_power_history`;
@@ -289,7 +304,7 @@ async function getDrepVotingPowerAda(drepId: string, epochNo: number): Promise<n
   const url = new URL(KOIOS_DREP_VP_HISTORY);
   url.searchParams.set("_drep_id", drepId);
   url.searchParams.set("_epoch_no", String(epochNo));
-  const res = await fetchWithRetry(url.toString(), { method: "GET", headers: { accept: "application/json" } });
+  const res = await fetchWithRetry(url.toString(), { method: "GET", headers: getKoiosHeaders() });
   if (!res.ok) return undefined;
   const data = (await res.json()) as DrepVpRecord[] | DrepVpRecord | unknown;
   let ada: number | undefined;
@@ -308,7 +323,7 @@ async function getPoolVotingPowerAda(poolBech32: string, epochNo: number): Promi
   const url = new URL(KOIOS_POOL_VP_HISTORY);
   url.searchParams.set("_pool_bech32", poolBech32);
   url.searchParams.set("_epoch_no", String(epochNo));
-  const res = await fetchWithRetry(url.toString(), { method: "GET", headers: { accept: "application/json" } });
+  const res = await fetchWithRetry(url.toString(), { method: "GET", headers: getKoiosHeaders() });
   if (!res.ok) return undefined;
   const data = (await res.json()) as PoolVpRecord[] | PoolVpRecord | unknown;
   let ada: number | undefined;
@@ -321,12 +336,23 @@ async function getPoolVotingPowerAda(poolBech32: string, epochNo: number): Promi
   return ada;
 }
 
-async function refreshActiveVotes(): Promise<number> {
+async function refreshActiveVotes(opts?: {
+  maxActions?: number;
+  maxVotesPerAction?: number;
+  maxVpLookups?: number;
+}): Promise<number> {
+  const maxActions = typeof opts?.maxActions === "number" ? opts.maxActions : 2;
+  const maxVotesPerAction =
+    typeof opts?.maxVotesPerAction === "number" ? opts.maxVotesPerAction : 25;
+  const maxVpLookups = typeof opts?.maxVpLookups === "number" ? opts.maxVpLookups : 25;
+
   const active = await prisma.governanceAction.findMany({
     where: { status: "Active" },
-    select: { id: true, proposalId: true },
+    select: { id: true, proposalId: true, updatedAt: true },
+    orderBy: { updatedAt: "asc" },
+    take: Math.max(0, maxActions),
   });
-  if (active.length === 0) return 0;
+  if (active.length === 0 || maxActions === 0) return 0;
 
   let updated = 0;
   for (const a of active) {
@@ -335,7 +361,7 @@ async function refreshActiveVotes(): Promise<number> {
 
     const res = await fetchWithRetry(
       url.toString(),
-      { method: "GET", headers: { accept: "application/json" } },
+      { method: "GET", headers: getKoiosHeaders() },
       { retries: 5 }
     );
     if (!res.ok) {
@@ -343,33 +369,65 @@ async function refreshActiveVotes(): Promise<number> {
       await sleep(250);
       continue;
     }
-    const votes = (await res.json()) as KoiosProposalVote[];
+    const votes = ((await res.json()) as KoiosProposalVote[]).slice().sort((x, y) => {
+      const ax = typeof x.block_time === "number" ? x.block_time : 0;
+      const ay = typeof y.block_time === "number" ? y.block_time : 0;
+      return ax - ay;
+    });
 
     const all = tallyVotes(votes);
     const drep = tallyVotes(votes, "DRep");
     const spo = tallyVotes(votes, "SPO");
     const cc = tallyVotes(votes, "ConstitutionalCommittee");
 
-    // --- Persist individual votes and compute ADA-weighted sums ---
-    let drepYesAdaSum = 0;
-    let drepNoAdaSum = 0;
-    let spoYesAdaSum = 0;
-    let spoNoAdaSum = 0;
+    // Load existing votes for this action to avoid redundant work
+    const [existingDrep, existingSpo, existingCc] = await Promise.all([
+      prisma.drepVote.findMany({
+        where: { governanceActionId: a.id },
+        select: { drepId: true, vote: true, votingPowerAda: true, votedAt: true },
+      }),
+      prisma.spoVote.findMany({
+        where: { governanceActionId: a.id },
+        select: { poolId: true, vote: true, votingPowerAda: true, votedAt: true },
+      }),
+      prisma.ccVote.findMany({
+        where: { governanceActionId: a.id },
+        select: { memberId: true, vote: true, votedAt: true },
+      }),
+    ]);
+    const drepMap = new Map(
+      existingDrep.map((v) => [v.drepId, { vote: v.vote, votingPowerAda: v.votingPowerAda, votedAt: v.votedAt }])
+    );
+    const spoMap = new Map(
+      existingSpo.map((v) => [v.poolId, { vote: v.vote, votingPowerAda: v.votingPowerAda, votedAt: v.votedAt }])
+    );
+    const ccMap = new Map(existingCc.map((v) => [v.memberId, { vote: v.vote, votedAt: v.votedAt }]));
+
+    // --- Persist a limited number of individual votes and compute ADA-weighted sums via DB aggregation later ---
+    let processedForAction = 0;
+    let vpLookupsUsed = 0;
 
     for (const v of votes) {
+      if (processedForAction >= maxVotesPerAction) break;
       const votedAt = new Date((v.block_time ?? 0) * 1000);
       const epochNo = typeof v.block_time === "number" ? epochFromUnixSeconds(v.block_time) : undefined;
       if (v.voter_role === "DRep") {
+        const existing = drepMap.get(v.voter_id);
+        // Skip if identical and we already have VP
+        if (
+          existing &&
+          existing.vote === v.vote &&
+          existing.votedAt?.getTime() === votedAt.getTime() &&
+          typeof existing.votingPowerAda === "number"
+        ) {
+          continue;
+        }
         let votingPowerAda: number | undefined = undefined;
-        if (typeof epochNo === "number") {
+        if (typeof epochNo === "number" && vpLookupsUsed < maxVpLookups) {
           votingPowerAda = await getDrepVotingPowerAda(v.voter_id, epochNo);
+          vpLookupsUsed++;
           // Gentle pacing with upstream
           await sleep(40);
-        }
-        // Track ADA sums by vote choice
-        if (typeof votingPowerAda === "number") {
-          if (v.vote === "Yes") drepYesAdaSum += votingPowerAda;
-          else if (v.vote === "No") drepNoAdaSum += votingPowerAda;
         }
         // Upsert DRep vote
         await prisma.drepVote.upsert({
@@ -396,15 +454,22 @@ async function refreshActiveVotes(): Promise<number> {
             votedAt,
           },
         });
+        processedForAction++;
       } else if (v.voter_role === "SPO") {
-        let votingPowerAda: number | undefined = undefined;
-        if (typeof epochNo === "number") {
-          votingPowerAda = await getPoolVotingPowerAda(v.voter_id, epochNo);
-          await sleep(40);
+        const existing = spoMap.get(v.voter_id);
+        if (
+          existing &&
+          existing.vote === v.vote &&
+          existing.votedAt?.getTime() === votedAt.getTime() &&
+          typeof existing.votingPowerAda === "number"
+        ) {
+          continue;
         }
-        if (typeof votingPowerAda === "number") {
-          if (v.vote === "Yes") spoYesAdaSum += votingPowerAda;
-          else if (v.vote === "No") spoNoAdaSum += votingPowerAda;
+        let votingPowerAda: number | undefined = undefined;
+        if (typeof epochNo === "number" && vpLookupsUsed < maxVpLookups) {
+          votingPowerAda = await getPoolVotingPowerAda(v.voter_id, epochNo);
+          vpLookupsUsed++;
+          await sleep(40);
         }
         await prisma.spoVote.upsert({
           where: {
@@ -430,7 +495,12 @@ async function refreshActiveVotes(): Promise<number> {
             votedAt,
           },
         });
+        processedForAction++;
       } else if (v.voter_role === "ConstitutionalCommittee") {
+        const existing = ccMap.get(v.voter_id);
+        if (existing && existing.vote === v.vote && existing.votedAt?.getTime() === votedAt.getTime()) {
+          continue;
+        }
         await prisma.ccVote.upsert({
           where: {
             governanceActionId_memberId: {
@@ -453,8 +523,33 @@ async function refreshActiveVotes(): Promise<number> {
             votedAt,
           },
         });
+        processedForAction++;
       }
     }
+
+    // Aggregate ADA-weighted sums from DB so stats reflect total work done so far
+    const [drepYesAgg, drepNoAgg, spoYesAgg, spoNoAgg] = await Promise.all([
+      prisma.drepVote.aggregate({
+        where: { governanceActionId: a.id, vote: "Yes" },
+        _sum: { votingPowerAda: true },
+      }),
+      prisma.drepVote.aggregate({
+        where: { governanceActionId: a.id, vote: "No" },
+        _sum: { votingPowerAda: true },
+      }),
+      prisma.spoVote.aggregate({
+        where: { governanceActionId: a.id, vote: "Yes" },
+        _sum: { votingPowerAda: true },
+      }),
+      prisma.spoVote.aggregate({
+        where: { governanceActionId: a.id, vote: "No" },
+        _sum: { votingPowerAda: true },
+      }),
+    ]);
+    const drepYesAdaSum = Number(drepYesAgg._sum.votingPowerAda ?? 0);
+    const drepNoAdaSum = Number(drepNoAgg._sum.votingPowerAda ?? 0);
+    const spoYesAdaSum = Number(spoYesAgg._sum.votingPowerAda ?? 0);
+    const spoNoAdaSum = Number(spoNoAgg._sum.votingPowerAda ?? 0);
 
     // Persist in VoteStatistics (count-based percentages + ADA-weighted sums)
     await prisma.voteStatistics.upsert({
@@ -462,13 +557,13 @@ async function refreshActiveVotes(): Promise<number> {
       update: {
         drepYesPercent: drep.total ? pct(drep.yes, drep.total) : null,
         drepNoPercent: drep.total ? pct(drep.no, drep.total) : null,
-        drepYesAda: drepYesAdaSum || null,
-        drepNoAda: drepNoAdaSum || null,
+        drepYesAda: nullIfZero(drepYesAdaSum),
+        drepNoAda: nullIfZero(drepNoAdaSum),
 
         spoYesPercent: spo.total ? pct(spo.yes, spo.total) : null,
         spoNoPercent: spo.total ? pct(spo.no, spo.total) : null,
-        spoYesAda: spoYesAdaSum || null,
-        spoNoAda: spoNoAdaSum || null,
+        spoYesAda: nullIfZero(spoYesAdaSum),
+        spoNoAda: nullIfZero(spoNoAdaSum),
 
         ccYesPercent: cc.total ? pct(cc.yes, cc.total) : null,
         ccNoPercent: cc.total ? pct(cc.no, cc.total) : null,
@@ -484,13 +579,13 @@ async function refreshActiveVotes(): Promise<number> {
         governanceActionId: a.id,
         drepYesPercent: drep.total ? pct(drep.yes, drep.total) : null,
         drepNoPercent: drep.total ? pct(drep.no, drep.total) : null,
-        drepYesAda: drepYesAdaSum || null,
-        drepNoAda: drepNoAdaSum || null,
+        drepYesAda: nullIfZero(drepYesAdaSum),
+        drepNoAda: nullIfZero(drepNoAdaSum),
 
         spoYesPercent: spo.total ? pct(spo.yes, spo.total) : null,
         spoNoPercent: spo.total ? pct(spo.no, spo.total) : null,
-        spoYesAda: spoYesAdaSum || null,
-        spoNoAda: spoNoAdaSum || null,
+        spoYesAda: nullIfZero(spoYesAdaSum),
+        spoNoAda: nullIfZero(spoNoAdaSum),
 
         ccYesPercent: cc.total ? pct(cc.yes, cc.total) : null,
         ccNoPercent: cc.total ? pct(cc.no, cc.total) : null,
@@ -563,9 +658,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
 
+    // work-limiting params (keep small defaults to be gentle)
+    const maxNewProposals = parseIntParam(req.query.max_new_proposals, 5, 0, 100);
+    const maxActions = parseIntParam(req.query.max_actions, 2, 0, 100);
+    const maxVotesPerAction = parseIntParam(req.query.max_votes_per_action, 25, 0, 2000);
+    const maxVpLookups = parseIntParam(req.query.max_vp_lookups, 25, 0, 2000);
+
     // discover new proposals
     const sinceEpoch = await getSinceEpoch();
-    const newProposals = await fetchNewProposalsSince(sinceEpoch);
+    const newProposalsAll = await fetchNewProposalsSince(sinceEpoch);
+    const newProposals = newProposalsAll
+      .slice()
+      .sort((a, b) => (a.block_time ?? 0) - (b.block_time ?? 0))
+      .slice(0, Math.max(0, maxNewProposals));
 
     let createdCount = 0;
     for (const p of newProposals) {
@@ -575,7 +680,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // refresh votes for active actions
-    const updatedVotes = await refreshActiveVotes();
+    const updatedVotes = await refreshActiveVotes({
+      maxActions,
+      maxVotesPerAction,
+      maxVpLookups,
+    });
 
     res.setHeader("Cache-Control", "no-store");
     return res.status(200).json({

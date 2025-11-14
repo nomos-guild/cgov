@@ -18,6 +18,16 @@ type KoiosProposalVote = {
 const KOIOS_BASE_URL = "https://api.koios.rest/api/v1";
 const KOIOS_VOTES_ENDPOINT = `${KOIOS_BASE_URL}/proposal_votes`;
 
+function getKoiosHeaders(): HeadersInit {
+  const headers: Record<string, string> = { accept: "application/json" };
+  const key = process.env.KOIOS_API_KEY;
+  if (key && key.trim().length > 0) {
+    headers["Authorization"] = `Bearer ${key}`;
+    headers["X-API-Key"] = key;
+  }
+  return headers;
+}
+
 const ALLOWED_ROLES: ReadonlySet<KoiosVoterRole> = new Set<KoiosVoterRole>([
   "ConstitutionalCommittee",
   "DRep",
@@ -104,9 +114,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const timeout = setTimeout(() => controller.abort(), 20_000);
     const koiosResponse = await fetch(url.toString(), {
       method: "GET",
-      headers: {
-        accept: "application/json",
-      },
+      headers: getKoiosHeaders(),
       signal: controller.signal,
     });
     clearTimeout(timeout);

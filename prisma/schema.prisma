@@ -11,29 +11,29 @@ datasource db {
 }
 
 model GovernanceAction {
-  id                 Int               @id @default(autoincrement())
-  proposalId         String            @unique
-  txHash             String
-  title              String
-  type               String
-  status             String
-  submissionEpoch    Int
-  expiryEpoch        Int
-  description        String?
-  rationale          String?
-  motivation         String?
-  anchorUrl          String?
-  anchorHash         String?
-  constitutionality  String?
-  references         Json?
+  id                Int     @id @default(autoincrement())
+  proposalId        String  @unique
+  txHash            String
+  title             String
+  type              String
+  status            String
+  submissionEpoch   Int
+  expiryEpoch       Int
+  description       String?
+  rationale         String?
+  motivation        String?
+  anchorUrl         String?
+  anchorHash        String?
+  constitutionality String?
+  references        Json?
 
-  createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  drepVotes          DrepVote[]
-  spoVotes           SpoVote[]
-  ccVotes            CcVote[]
-  statistics         VoteStatistics?
+  drepVotes  DrepVote[]
+  spoVotes   SpoVote[]
+  ccVotes    CcVote[]
+  statistics VoteStatistics?
 
   @@index([status])
   @@index([type])
@@ -43,17 +43,17 @@ model GovernanceAction {
 }
 
 model DrepVote {
-  id                  Int               @id @default(autoincrement())
-  governanceActionId  Int
-  drepId              String
-  drepName            String?
-  vote                String
-  votingPowerAda      Decimal
-  anchorUrl           String?
-  anchorHash          String?
-  votedAt             DateTime
+  id                 Int      @id @default(autoincrement())
+  governanceActionId Int
+  drepId             String
+  drepName           String?
+  vote               String
+  votingPowerAda     Decimal
+  anchorUrl          String?
+  anchorHash         String?
+  votedAt            DateTime
 
-  governanceAction    GovernanceAction  @relation(fields: [governanceActionId], references: [id], onDelete: Cascade)
+  governanceAction GovernanceAction @relation(fields: [governanceActionId], references: [id], onDelete: Cascade)
 
   @@unique([governanceActionId, drepId])
   @@index([governanceActionId])
@@ -62,17 +62,17 @@ model DrepVote {
 }
 
 model SpoVote {
-  id                  Int               @id @default(autoincrement())
-  governanceActionId  Int
-  poolId              String
-  poolName            String?
-  vote                String
-  votingPowerAda      Decimal
-  anchorUrl           String?
-  anchorHash          String?
-  votedAt             DateTime
+  id                 Int      @id @default(autoincrement())
+  governanceActionId Int
+  poolId             String
+  poolName           String?
+  vote               String
+  votingPowerAda     Decimal
+  anchorUrl          String?
+  anchorHash         String?
+  votedAt            DateTime
 
-  governanceAction    GovernanceAction  @relation(fields: [governanceActionId], references: [id], onDelete: Cascade)
+  governanceAction GovernanceAction @relation(fields: [governanceActionId], references: [id], onDelete: Cascade)
 
   @@unique([governanceActionId, poolId])
   @@index([governanceActionId])
@@ -80,16 +80,16 @@ model SpoVote {
 }
 
 model CcVote {
-  id                  Int               @id @default(autoincrement())
-  governanceActionId  Int
-  memberId            String
-  memberName          String?
-  vote                String
-  anchorUrl           String?
-  anchorHash          String?
-  votedAt             DateTime
+  id                 Int      @id @default(autoincrement())
+  governanceActionId Int
+  memberId           String
+  memberName         String?
+  vote               String
+  anchorUrl          String?
+  anchorHash         String?
+  votedAt            DateTime
 
-  governanceAction    GovernanceAction  @relation(fields: [governanceActionId], references: [id], onDelete: Cascade)
+  governanceAction GovernanceAction @relation(fields: [governanceActionId], references: [id], onDelete: Cascade)
 
   @@unique([governanceActionId, memberId])
   @@index([governanceActionId])
@@ -98,29 +98,28 @@ model CcVote {
 }
 
 model VoteStatistics {
-  governanceActionId Int  @id
+  governanceActionId Int @id
 
-  drepYesPercent     Decimal?
-  drepNoPercent      Decimal?
-  drepYesAda         Decimal?
-  drepNoAda          Decimal?
+  drepYesPercent Decimal?
+  drepNoPercent  Decimal?
+  drepYesAda     Decimal?
+  drepNoAda      Decimal?
 
-  spoYesPercent      Decimal?
-  spoNoPercent       Decimal?
-  spoYesAda          Decimal?
-  spoNoAda           Decimal?
+  spoYesPercent Decimal?
+  spoNoPercent  Decimal?
+  spoYesAda     Decimal?
+  spoNoAda      Decimal?
 
-  ccYesPercent       Decimal?
-  ccNoPercent        Decimal?
-  ccYesCount         Int?
-  ccNoCount          Int?
+  ccYesPercent Decimal?
+  ccNoPercent  Decimal?
+  ccYesCount   Int?
+  ccNoCount    Int?
 
-  totalYes           Int   @default(0)
-  totalNo            Int   @default(0)
-  totalAbstain       Int   @default(0)
+  totalYes     Int @default(0)
+  totalNo      Int @default(0)
+  totalAbstain Int @default(0)
 
-  lastUpdated        DateTime @default(now())
+  lastUpdated DateTime @default(now())
 
-  action             GovernanceAction @relation(fields: [governanceActionId], references: [id], onDelete: Cascade)
+  action GovernanceAction @relation(fields: [governanceActionId], references: [id], onDelete: Cascade)
 }
-

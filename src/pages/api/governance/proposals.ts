@@ -22,6 +22,16 @@ type KoiosProposal = {
 const KOIOS_BASE_URL = "https://api.koios.rest/api/v1";
 const KOIOS_PROPOSALS_ENDPOINT = `${KOIOS_BASE_URL}/proposal_list`;
 
+function getKoiosHeaders(): HeadersInit {
+  const headers: Record<string, string> = { accept: "application/json" };
+  const key = process.env.KOIOS_API_KEY;
+  if (key && key.trim().length > 0) {
+    headers["Authorization"] = `Bearer ${key}`;
+    headers["X-API-Key"] = key;
+  }
+  return headers;
+}
+
 const ALLOWED_TYPES: ReadonlySet<KoiosProposalType> = new Set<KoiosProposalType>([
   "ParameterChange",
   "HardForkInitiation",
@@ -93,9 +103,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const koiosResponse = await fetch(KOIOS_PROPOSALS_ENDPOINT, {
       method: "GET",
-      headers: {
-        accept: "application/json",
-      },
+      headers: getKoiosHeaders(),
       signal: controller.signal,
       // Next.js/node will handle gzip automatically
     });

@@ -12,10 +12,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 	}
 
 	try {
-		// Prefer an unsafe raw to bypass binding if driver/env has issues with template tags
-		const rows = (await prisma.$queryRawUnsafe(
-			"SELECT 1 AS one"
-		)) as Array<{ one: number }>;
+		const rows = await prisma.$queryRaw<Array<{ one: number }>>`SELECT 1 AS one`;
 		return res.status(200).json({
 			status: "ok",
 			ok: rows?.[0]?.one === 1,
