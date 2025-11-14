@@ -48,9 +48,12 @@ model DrepVote {
   drepId             String
   drepName           String?
   vote               String
-  votingPowerAda     Decimal
+  voteTxHash         String?  @map("vote_tx_hash")
+  epochNo            Int?     @map("epoch_no")
+  votingPowerAda     Decimal?
   anchorUrl          String?
   anchorHash         String?
+  metaJson           Json?    @map("meta_json")
   votedAt            DateTime
 
   governanceAction GovernanceAction @relation(fields: [governanceActionId], references: [id], onDelete: Cascade)
@@ -67,9 +70,12 @@ model SpoVote {
   poolId             String
   poolName           String?
   vote               String
-  votingPowerAda     Decimal
+  voteTxHash         String?  @map("vote_tx_hash")
+  epochNo            Int?     @map("epoch_no")
+  votingPowerAda     Decimal?
   anchorUrl          String?
   anchorHash         String?
+  metaJson           Json?    @map("meta_json")
   votedAt            DateTime
 
   governanceAction GovernanceAction @relation(fields: [governanceActionId], references: [id], onDelete: Cascade)
@@ -85,8 +91,11 @@ model CcVote {
   memberId           String
   memberName         String?
   vote               String
+  voteTxHash         String?  @map("vote_tx_hash")
+  epochNo            Int?     @map("epoch_no")
   anchorUrl          String?
   anchorHash         String?
+  metaJson           Json?    @map("meta_json")
   votedAt            DateTime
 
   governanceAction GovernanceAction @relation(fields: [governanceActionId], references: [id], onDelete: Cascade)
