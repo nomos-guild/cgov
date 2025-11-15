@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { VoteProgress } from "@/components/ui/vote-progress";
 import { VotingRecords } from "@/components/VotingRecords";
-import { VotingSummary } from "@/components/VotingSummary";
+import { BubbleMap } from "@/components/BubbleMap";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setSelectedAction } from "@/store/governanceSlice";
 import { getActionByProposalId } from "@/data/mockData";
@@ -20,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import type { GovernanceAction } from "@/types/governance";
 
 function getStatusColor(status: GovernanceAction["status"]): string {
@@ -37,6 +38,8 @@ export default function GovernanceDetail() {
   const { proposalId } = router.query;
   const dispatch = useAppDispatch();
   const selectedAction = useAppSelector((state) => state.governance.selectedAction);
+
+  const [downloadFormat, setDownloadFormat] = useState<string>("");
 
   useEffect(() => {
     if (typeof proposalId === "string") {
@@ -64,8 +67,6 @@ export default function GovernanceDetail() {
     ...(selectedAction.votes || []),
     ...(selectedAction.ccVotes || []),
   ];
-
-  const [downloadFormat, setDownloadFormat] = useState<string>("");
 
   const handleTwitterShare = () => {
     const url = typeof window !== "undefined" 
@@ -125,9 +126,9 @@ export default function GovernanceDetail() {
           {/* Header Section */}
           <Card className="mb-6 sm:mb-8">
             <div className="p-4 sm:p-6">
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
-                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold flex-1 min-w-0">{selectedAction.title}</h1>
-                <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
+              <div className="mb-4">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4">{selectedAction.title}</h1>
+                <div className="flex flex-wrap items-center gap-2">
                   {allVotes.length > 0 && (
                     <>
                       <Button
@@ -160,79 +161,91 @@ export default function GovernanceDetail() {
                   </Badge>
                 </div>
               </div>
-              <div className="border-t border-border/50 pt-4">
-                <div className="flex flex-wrap items-center gap-2">
-                  <code className="text-xs sm:text-sm text-muted-foreground bg-secondary px-2 sm:px-3 py-1 rounded font-mono break-all">
-                    {selectedAction.proposalId}
-                  </code>
-                  <span className="text-muted-foreground hidden sm:inline">•</span>
-                  <code className="text-xs sm:text-sm text-muted-foreground bg-secondary px-2 sm:px-3 py-1 rounded font-mono break-all">
-                    {selectedAction.txHash}
-                  </code>
+              {selectedAction.description && (
+                <div className="mt-4 pt-4 border-t border-border/50">
+                  <div className="text-sm sm:text-base text-foreground/90 whitespace-pre-wrap leading-relaxed">
+                    {selectedAction.description}
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground mt-4">
-                  <span>Submission: Epoch {selectedAction.submissionEpoch}</span>
-                  <span className="hidden sm:inline">•</span>
-                  <span>Expiry: Epoch {selectedAction.expiryEpoch}</span>
-                </div>
-              </div>
+              )}
             </div>
           </Card>
 
-          {/* Voting Bars - Horizontal */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-6">
-            {/* DRep Votes */}
-            <Card className="p-4 sm:p-6">
-              <VoteProgress
-                title="DRep Votes"
-                yesPercent={selectedAction.drepYesPercent}
-                noPercent={selectedAction.drepNoPercent}
-                yesAda={selectedAction.drepYesAda}
-                noAda={selectedAction.drepNoAda}
-              />
-            </Card>
-
-            {/* CC Votes */}
-            {selectedAction.ccYesPercent !== undefined ? (
-              <Card className="p-4 sm:p-6">
-                <VoteProgress
-                  title="CC"
-                  yesPercent={selectedAction.ccYesPercent}
-                  noPercent={selectedAction.ccNoPercent || 0}
-                />
-              </Card>
-            ) : null}
-
-            {/* SPO Votes */}
-            {selectedAction.spoYesPercent !== undefined ? (
-              <Card className="p-4 sm:p-6">
-                <VoteProgress
-                  title="SPO Votes"
-                  yesPercent={selectedAction.spoYesPercent}
-                  noPercent={selectedAction.spoNoPercent || 0}
-                  yesAda={selectedAction.spoYesAda || "0"}
-                  noAda={selectedAction.spoNoAda || "0"}
-                />
-              </Card>
-            ) : null}
-          </div>
-
-          {/* Voting Summary Section */}
-          {allVotes.length > 0 && (
-            <VotingSummary votes={allVotes} proposalTitle={selectedAction.title} />
-          )}
-
-          {/* Description - Full Width */}
-          <Card className="p-4 sm:p-6 mb-6">
-            <h2 className="text-lg sm:text-xl font-semibold mb-4">Description</h2>
-            <div className="text-sm sm:text-base text-foreground/90 whitespace-pre-wrap leading-relaxed">
-              {selectedAction.description || "No description provided."}
+          {/* New Section */}
+          <Card className="mb-6 sm:mb-8">
+            <div className="p-4 sm:p-6">
+              <Tabs defaultValue="bubble-map" className="w-full">
+                <TabsList>
+                  <TabsTrigger value="bubble-map">Bubble Map</TabsTrigger>
+                  <TabsTrigger value="statistics">Statistics</TabsTrigger>
+                  <TabsTrigger value="curves">Curves</TabsTrigger>
+                  <TabsTrigger value="details">Details</TabsTrigger>
+                </TabsList>
+                <TabsContent value="bubble-map">
+                  <BubbleMap votes={allVotes} />
+                </TabsContent>
+                <TabsContent value="statistics">
+                  {/* Statistics content */}
+                </TabsContent>
+                <TabsContent value="curves">
+                  {/* Curves content */}
+                </TabsContent>
+                <TabsContent value="details">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-xs sm:text-sm text-muted-foreground mb-2 block">Governance Action ID</label>
+                      <code className="text-xs sm:text-sm text-muted-foreground bg-secondary px-2 sm:px-3 py-1 rounded font-mono break-all block">
+                        {selectedAction.proposalId}
+                      </code>
+                    </div>
+                    <div>
+                      <label className="text-xs sm:text-sm text-muted-foreground mb-2 block">Transaction Hash</label>
+                      <code className="text-xs sm:text-sm text-muted-foreground bg-secondary px-2 sm:px-3 py-1 rounded font-mono break-all block">
+                        {selectedAction.txHash}
+                      </code>
+                    </div>
+                    <div>
+                      <label className="text-xs sm:text-sm text-muted-foreground mb-2 block">Submission Epoch</label>
+                      <div className="text-xs sm:text-sm text-foreground">Epoch {selectedAction.submissionEpoch}</div>
+                    </div>
+                    <div>
+                      <label className="text-xs sm:text-sm text-muted-foreground mb-2 block">Expiry Epoch</label>
+                      <div className="text-xs sm:text-sm text-foreground">Epoch {selectedAction.expiryEpoch}</div>
+                    </div>
+                  </div>
+                </TabsContent>
+              </Tabs>
             </div>
           </Card>
 
           {/* Voting Records Table */}
           {allVotes.length > 0 && (
-            <div className="mb-6">
+            <div className="mb-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+                <VoteProgress
+                  title="DRep Votes"
+                  yesPercent={selectedAction.drepYesPercent}
+                  noPercent={selectedAction.drepNoPercent}
+                  yesAda={selectedAction.drepYesAda}
+                  noAda={selectedAction.drepNoAda}
+                />
+                {selectedAction.ccYesPercent !== undefined ? (
+                  <VoteProgress
+                    title="CC"
+                    yesPercent={selectedAction.ccYesPercent}
+                    noPercent={selectedAction.ccNoPercent || 0}
+                  />
+                ) : null}
+                {selectedAction.spoYesPercent !== undefined ? (
+                  <VoteProgress
+                    title="SPO Votes"
+                    yesPercent={selectedAction.spoYesPercent}
+                    noPercent={selectedAction.spoNoPercent || 0}
+                    yesAda={selectedAction.spoYesAda || "0"}
+                    noAda={selectedAction.spoNoAda || "0"}
+                  />
+                ) : null}
+              </div>
               <VotingRecords votes={allVotes} />
             </div>
           )}
