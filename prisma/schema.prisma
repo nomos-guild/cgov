@@ -134,7 +134,7 @@ model SpoVote {
   votedAt            DateTime
 
   governanceAction GovernanceAction @relation(fields: [governanceActionId], references: [id], onDelete: Cascade)
-  spo              Spo?            @relation(fields: [poolId], references: [poolId], onDelete: Cascade)
+  spo              Spo?             @relation(fields: [poolId], references: [poolId], onDelete: Cascade)
 
   @@unique([governanceActionId, poolId])
   @@index([governanceActionId])

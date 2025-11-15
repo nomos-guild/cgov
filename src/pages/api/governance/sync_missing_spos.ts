@@ -112,26 +112,57 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: "Method Not Allowed" });
   }
 
-  // limit: max number of distinct SPO poolIds to inspect from votes
+  // limit: max number of Koios pools to upsert in this run (after de-dup)
   // dry_run: if true, do not write to DB, only report counts
-  const limit = parseIntParam(req.query.limit, 200, 1, 2000);
+  const limit = parseIntParam(req.query.limit, 2000, 1, 10_000);
   const dryRun = parseBooleanParam(req.query.dry_run, false);
 
   try {
-    // 1) Get distinct poolIds referenced in SPO votes
-    const distinctVotes = await prisma.spoVote.findMany({
-      select: { poolId: true },
-      distinct: ["poolId"],
-      take: limit,
+    // 1) Fetch Koios pool_list (authoritative SPO set)
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20_000);
+    const koiosResponse = await fetch(KOIOS_POOL_LIST_ENDPOINT, {
+      method: "GET",
+      headers: getKoiosHeaders(),
+      signal: controller.signal,
     });
-    const votePoolIds = distinctVotes
-      .map((v) => v.poolId)
-      .filter((id) => id && id.trim().length > 0);
+    clearTimeout(timeout);
 
-    if (votePoolIds.length === 0) {
+    if (!koiosResponse.ok) {
+      return res.status(502).json({
+        error: "Upstream error from Koios",
+        status: koiosResponse.status,
+      });
+    }
+
+    const json = (await koiosResponse.json()) as unknown;
+    if (!Array.isArray(json)) {
+      return res.status(502).json({
+        error: "Unexpected response shape from Koios pool_list",
+      });
+    }
+
+    const pools = json as KoiosPoolListItem[];
+
+    // Normalize and de-duplicate Koios pools by bech32 id
+    const poolMap = new Map<string, KoiosPoolListItem>();
+    for (const p of pools) {
+      if (!p || typeof p.pool_id_bech32 !== "string") continue;
+      const id = p.pool_id_bech32.trim();
+      if (!id) continue;
+      if (!poolMap.has(id)) {
+        poolMap.set(id, p);
+      }
+    }
+
+    const allPoolIds = Array.from(poolMap.keys());
+    const totalKoiosPools = allPoolIds.length;
+
+    if (totalKoiosPools === 0) {
       res.setHeader("Cache-Control", "no-store");
       return res.status(200).json({
-        totalVotePools: 0,
+        totalKoiosPools: 0,
+        processedPools: 0,
         existingPools: 0,
         missingPools: 0,
         createdPools: 0,
@@ -139,70 +170,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
+    // Restrict how many we process in this run
+    const targetPoolIds = allPoolIds.slice(0, limit);
+
     // 2) Determine which of those are already present in Spo table
     const existing = await prisma.spo.findMany({
-      where: { poolId: { in: votePoolIds } },
+      where: { poolId: { in: targetPoolIds } },
       select: { poolId: true },
     });
     const existingSet = new Set(existing.map((s) => s.poolId));
-    const missingIds = votePoolIds.filter((id) => !existingSet.has(id));
-
-    if (missingIds.length === 0) {
-      res.setHeader("Cache-Control", "no-store");
-      return res.status(200).json({
-        totalVotePools: votePoolIds.length,
-        existingPools: existingSet.size,
-        missingPools: 0,
-        createdPools: 0,
-        dryRun,
-      });
-    }
+    const missingIds = targetPoolIds.filter((id) => !existingSet.has(id));
 
     let created = 0;
 
     if (!dryRun) {
-      // 3) Fetch Koios pool_list and upsert matching pools into Spo table
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 20_000);
-      const koiosResponse = await fetch(KOIOS_POOL_LIST_ENDPOINT, {
-        method: "GET",
-        headers: getKoiosHeaders(),
-        signal: controller.signal,
-      });
-      clearTimeout(timeout);
-
-      if (!koiosResponse.ok) {
-        return res.status(502).json({
-          error: "Upstream error from Koios",
-          status: koiosResponse.status,
-        });
-      }
-
-      const json = (await koiosResponse.json()) as unknown;
-      if (!Array.isArray(json)) {
-        return res.status(502).json({
-          error: "Unexpected response shape from Koios pool_list",
-        });
-      }
-
-      const pools = json as KoiosPoolListItem[];
-
-      // Build a lookup for quicker access by bech32 pool id
-      const poolMap = new Map<string, KoiosPoolListItem>();
-      for (const p of pools) {
-        if (!p || typeof p.pool_id_bech32 !== "string") continue;
-        const id = p.pool_id_bech32.trim();
-        if (!id) continue;
-        if (!poolMap.has(id)) {
-          poolMap.set(id, p);
-        }
-      }
-
-      for (const id of missingIds) {
+      // 3) Upsert all selected Koios pools into Spo table
+      for (const id of targetPoolIds) {
         const trimmedId = id.trim();
         if (!trimmedId) continue;
         const p = poolMap.get(trimmedId);
-        if (!p) continue; // Koios doesn't know about this poolId
+        if (!p) continue;
 
         const activeEpochNo = toOptionalInt(p.active_epoch_no);
         const margin = toOptionalDecimalInput(p.margin);
@@ -217,6 +204,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const metaUrl = asOptionalString(p.meta_url);
         const metaHash = asOptionalString(p.meta_hash);
         const rewardAddr = asOptionalString(p.reward_addr);
+
+        const wasExisting = existingSet.has(trimmedId);
 
         await prisma.spo.upsert({
           where: { poolId: trimmedId },
@@ -258,14 +247,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             retiringEpoch,
           },
         });
-        created++;
+
+        if (!wasExisting) {
+          created++;
+        }
       }
     }
 
     res.setHeader("Cache-Control", "no-store");
     return res.status(200).json({
-      totalVotePools: votePoolIds.length,
-      existingPools: existingSet.size,
+      totalKoiosPools,
+      processedPools: targetPoolIds.length,
+      existingPools: targetPoolIds.length - missingIds.length,
       missingPools: missingIds.length,
       createdPools: dryRun ? 0 : created,
       dryRun,
@@ -280,6 +273,3 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 }
-
-
-
