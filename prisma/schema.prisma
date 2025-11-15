@@ -42,6 +42,60 @@ model GovernanceAction {
   @@index([type, status])
 }
 
+model Drep {
+  id             Int      @id @default(autoincrement())
+  drepId         String   @unique
+  hex            String?
+  hasScript      Boolean?
+  registered     Boolean?
+  deposit        Decimal? // raw deposit amount in lovelace, if provided
+  active         Boolean?
+  expiresEpochNo Int?
+  amount         Decimal? // total delegated amount in lovelace, as reported by Koios
+  metaUrl        String?
+  metaHash       String?
+  metaJson       Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  drepVotes DrepVote[]
+
+  @@index([drepId])
+  @@index([active])
+  @@index([registered])
+}
+
+model Spo {
+  id            Int      @id @default(autoincrement())
+  poolId        String   @unique
+  poolIdHex     String?
+  status        String?
+  ticker        String?
+  poolGroup     String?
+  metaUrl       String?
+  metaHash      String?
+  activeEpochNo Int?
+  margin        Decimal?
+  fixedCost     Decimal?
+  pledge        Decimal?
+  deposit       Decimal?
+  rewardAddr    String?
+  owners        Json?
+  relays        Json?
+  activeStake   Decimal?
+  retiringEpoch Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  spoVotes SpoVote[]
+
+  @@index([poolId])
+  @@index([ticker])
+  @@index([status])
+}
+
 model DrepVote {
   id                 Int      @id @default(autoincrement())
   governanceActionId Int
@@ -57,6 +111,7 @@ model DrepVote {
   votedAt            DateTime
 
   governanceAction GovernanceAction @relation(fields: [governanceActionId], references: [id], onDelete: Cascade)
+  drep             Drep?            @relation(fields: [drepId], references: [drepId], onDelete: Cascade)
 
   @@unique([governanceActionId, drepId])
   @@index([governanceActionId])
@@ -79,6 +134,7 @@ model SpoVote {
   votedAt            DateTime
 
   governanceAction GovernanceAction @relation(fields: [governanceActionId], references: [id], onDelete: Cascade)
+  spo              Spo?            @relation(fields: [poolId], references: [poolId], onDelete: Cascade)
 
   @@unique([governanceActionId, poolId])
   @@index([governanceActionId])
