@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 
 const KOIOS_BASE_URL = "https://api.koios.rest/api/v1";
 const KOIOS_DREP_LIST_ENDPOINT = `${KOIOS_BASE_URL}/drep_list`;
+const KOIOS_DREP_INFO_ENDPOINT = `${KOIOS_BASE_URL}/drep_info`;
 
 type KoiosDrepInfo = {
   drep_id: string;
@@ -17,6 +18,16 @@ type KoiosDrepInfo = {
   meta_hash?: unknown;
   meta_json?: unknown;
   [key: string]: unknown;
+};
+
+type DrepInfoFetchDebug = {
+  totalRequested: number;
+  totalBatches: number;
+  okBatches: number;
+  errorBatches: number;
+  lastErrorStatus?: number;
+  lastErrorBodySnippet?: string;
+  lastNonArrayBodySnippet?: string;
 };
 
 function getKoiosHeaders(): HeadersInit {
@@ -59,7 +70,7 @@ function parseBooleanParam(value: string | string[] | undefined, fallback = fals
   return fallback;
 }
 
-function toOptionalDecimalInput(value: unknown): string | undefined {
+function toOptionalDecimalInputPrimitive(value: unknown): string | undefined {
   if (value === null || value === undefined) return undefined;
   if (typeof value === "number") {
     if (!Number.isFinite(value)) return undefined;
@@ -83,6 +94,26 @@ function toOptionalDecimalInput(value: unknown): string | undefined {
   return undefined;
 }
 
+function toOptionalDecimalInput(value: unknown): string | undefined {
+  // Handle primitive-like values first
+  const primitive = toOptionalDecimalInputPrimitive(value);
+  if (primitive !== undefined) return primitive;
+
+  // Koios sometimes encodes numeric fields as objects; try common nested keys.
+  if (value && typeof value === "object") {
+    const obj = value as Record<string, unknown>;
+    const candidateKeys = ["value", "quantity", "amount", "lovelace", "int", "decimal"];
+    for (const key of candidateKeys) {
+      if (key in obj) {
+        const nested = toOptionalDecimalInputPrimitive(obj[key]);
+        if (nested !== undefined) return nested;
+      }
+    }
+  }
+
+  return undefined;
+}
+
 function toOptionalInt(value: unknown): number | undefined {
   if (value === null || value === undefined) return undefined;
   if (typeof value === "number" && Number.isInteger(value)) return value;
@@ -90,13 +121,127 @@ function toOptionalInt(value: unknown): number | undefined {
     const n = Number.parseInt(value, 10);
     return Number.isFinite(n) ? n : undefined;
   }
+  if (value && typeof value === "object") {
+    const obj = value as Record<string, unknown>;
+    const candidateKeys = ["value", "epoch", "int"];
+    for (const key of candidateKeys) {
+      if (key in obj) {
+        const nested = toOptionalInt(obj[key]);
+        if (nested !== undefined) return nested;
+      }
+    }
+  }
   return undefined;
 }
 
 function asOptionalString(value: unknown): string | undefined {
-  if (typeof value !== "string") return undefined;
-  const s = value.trim();
-  return s.length > 0 ? s : undefined;
+  if (typeof value === "string") {
+    const s = value.trim();
+    return s.length > 0 ? s : undefined;
+  }
+
+  if (value && typeof value === "object") {
+    const obj = value as Record<string, unknown>;
+    // Common patterns for URL / hash wrapper objects
+    const candidateKeys = ["url", "href", "value", "hex"];
+    for (const key of candidateKeys) {
+      if (key in obj && typeof obj[key] === "string") {
+        const s = (obj[key] as string).trim();
+        if (s.length > 0) return s;
+      }
+    }
+  }
+
+  return undefined;
+}
+
+async function fetchDrepInfoMap(
+  drepIds: string[]
+): Promise<{ infoMap: Map<string, KoiosDrepInfo>; debug: DrepInfoFetchDebug }> {
+  const infoMap = new Map<string, KoiosDrepInfo>();
+
+  const debug: DrepInfoFetchDebug = {
+    totalRequested: drepIds.length,
+    totalBatches: 0,
+    okBatches: 0,
+    errorBatches: 0,
+  };
+
+  if (drepIds.length === 0) {
+    return { infoMap, debug };
+  }
+
+  // Koios has a 5KB body limit on this endpoint; keep batches small enough to stay under it.
+  // With bech32 DRep IDs, 20 per batch keeps us comfortably below the limit.
+  const BATCH_SIZE = 20;
+
+  const trimmedIds = drepIds
+    .map((id) => id.trim())
+    .filter((id) => id.length > 0);
+
+  for (let i = 0; i < trimmedIds.length; i += BATCH_SIZE) {
+    const batch = trimmedIds.slice(i, i + BATCH_SIZE);
+    if (batch.length === 0) continue;
+
+    debug.totalBatches += 1;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20_000);
+    try {
+      const headers: HeadersInit = {
+        ...getKoiosHeaders(),
+        "content-type": "application/json",
+      };
+
+      const response = await fetch(KOIOS_DREP_INFO_ENDPOINT, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ _drep_ids: batch }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+
+      if (!response.ok) {
+        // If drep_info fails, skip this batch but continue with others & fallback to drep_list data.
+        debug.errorBatches += 1;
+        debug.lastErrorStatus = response.status;
+        try {
+          const text = await response.text();
+          debug.lastErrorBodySnippet = text.slice(0, 500);
+        } catch {
+          // ignore
+        }
+        continue;
+      }
+
+      const json = (await response.json()) as unknown;
+      if (!Array.isArray(json)) {
+        debug.okBatches += 1;
+        try {
+          debug.lastNonArrayBodySnippet = JSON.stringify(json).slice(0, 500);
+        } catch {
+          // ignore
+        }
+        continue;
+      }
+
+      debug.okBatches += 1;
+
+      const infos = json as KoiosDrepInfo[];
+
+      for (const info of infos) {
+        if (!info || typeof info.drep_id !== "string") continue;
+        const id = info.drep_id.trim();
+        if (!id) continue;
+        infoMap.set(id, info);
+      }
+    } catch {
+      clearTimeout(timeout);
+      // On error, just skip this batch and continue; we'll fall back to drep_list-only data.
+    }
+  }
+
+  return { infoMap, debug };
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -138,17 +283,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const dreps = json as KoiosDrepInfo[];
 
     // Normalize and de-duplicate DReps by drep_id
-    const drepMap = new Map<string, KoiosDrepInfo>();
+    const drepListMap = new Map<string, KoiosDrepInfo>();
     for (const d of dreps) {
       if (!d || typeof d.drep_id !== "string") continue;
       const id = d.drep_id.trim();
       if (!id) continue;
-      if (!drepMap.has(id)) {
-        drepMap.set(id, d);
+      if (!drepListMap.has(id)) {
+        drepListMap.set(id, d);
       }
     }
 
-    const allDrepIds = Array.from(drepMap.keys());
+    const allDrepIds = Array.from(drepListMap.keys());
     const totalKoiosDreps = allDrepIds.length;
 
     if (totalKoiosDreps === 0) {
@@ -166,6 +311,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Restrict how many we process in this run
     const targetDrepIds = allDrepIds.slice(0, limit);
 
+    // Fetch enriched DRep info from Koios for the target IDs
+    const { infoMap: drepInfoMap, debug: drepInfoFetchDebug } = await fetchDrepInfoMap(
+      targetDrepIds
+    );
+
     // 2) Determine which of those are already present in Drep table
     const existing = await prisma.drep.findMany({
       where: { drepId: { in: targetDrepIds } },
@@ -181,7 +331,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       for (const id of targetDrepIds) {
         const trimmedId = id.trim();
         if (!trimmedId) continue;
-        const d = drepMap.get(trimmedId);
+
+        // Prefer detailed /drep_info data when available, fall back to /drep_list.
+        const d = drepInfoMap.get(trimmedId) ?? drepListMap.get(trimmedId);
         if (!d) continue;
 
         const deposit = toOptionalDecimalInput(d.deposit);
@@ -227,6 +379,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
 
+    // Prepare some lightweight debug info about /drep_info usage in the response
+    const drepInfoIdsSample = Array.from(drepInfoMap.keys()).slice(0, 5);
+    const drepInfoMissingSample = targetDrepIds
+      .filter((id) => !drepInfoMap.has(id.trim()))
+      .slice(0, 5);
+
     res.setHeader("Cache-Control", "no-store");
     return res.status(200).json({
       totalKoiosDreps,
@@ -234,6 +392,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       existingDreps: targetDrepIds.length - missingIds.length,
       missingDreps: missingIds.length,
       createdDreps: dryRun ? 0 : created,
+      drepInfoRequested: targetDrepIds.length,
+      drepInfoReceived: drepInfoMap.size,
+      drepInfoDebug: {
+        receivedIdsSample: drepInfoIdsSample,
+        missingIdsSample: drepInfoMissingSample,
+        fetch: drepInfoFetchDebug,
+      },
       dryRun,
     });
   } catch (error: unknown) {
