@@ -19,7 +19,7 @@ export default function App({ Component, pageProps }: AppProps) {
           </Head>
           <div className="flex flex-col min-h-screen">
             <Navbar />
-            <main className="flex-1">
+            <main className="flex-1 page-transition">
               <Component {...pageProps} />
             </main>
             <Footer />

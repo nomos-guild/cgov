@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";
 import Link from "next/link";
@@ -11,17 +11,23 @@ import { BubbleMap } from "@/components/BubbleMap";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setSelectedAction } from "@/store/governanceSlice";
 import { useGovernanceApi } from "@/contexts/GovernanceApiContext";
-import { ArrowLeft, Twitter } from "lucide-react";
-import { exportToJSON, exportToMarkdown, exportToCSV, downloadFile } from "@/lib/exportRationales";
+import { ArrowLeft, Twitter, ChevronDown, ChevronRight, ChevronUp } from "lucide-react";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  Legend,
+} from "recharts";
+import type { TooltipProps } from "recharts";
+import { exportToJSON, exportToMarkdown, exportToCSV, downloadFile } from "@/lib/exportRationales";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import type { GovernanceAction } from "@/types/governance";
+import type { GovernanceAction, VoterType } from "@/types/governance";
+import { parseNumeric, deriveCcAbstainCount } from "@/lib/voteMath";
+import { canRoleVoteOnAction, getEligibleRoles } from "@/lib/governanceVotingEligibility";
 
 function getStatusColor(status: GovernanceAction["status"]): string {
   switch (status) {
@@ -33,6 +39,33 @@ function getStatusColor(status: GovernanceAction["status"]): string {
   }
 }
 
+const formatAdaValue = (value: number) => {
+  if (!value || Number.isNaN(value)) return "0 ₳";
+  if (value >= 1_000_000) {
+    return `${(value / 1_000_000).toFixed(1)}M ₳`;
+  }
+  if (value >= 1_000) {
+    return `${(value / 1_000).toFixed(1)}k ₳`;
+  }
+  return `${value.toLocaleString()} ₳`;
+};
+
+const VOTE_COLORS = {
+  yes: "#0d9488",
+  no: "#5b21b6",
+  abstain: "#000000",
+};
+
+type TimelinePoint = {
+  label: string;
+  yesCount: number;
+  noCount: number;
+  abstainCount: number;
+  yesPower: number;
+  noPower: number;
+  abstainPower: number;
+};
+
 export default function GovernanceDetail() {
   const router = useRouter();
   const { proposalId } = router.query;
@@ -41,6 +74,8 @@ export default function GovernanceDetail() {
 
   const [downloadFormat, setDownloadFormat] = useState<string>("");
   const [loading, setLoading] = useState(true);
+  const [selectedTab, setSelectedTab] = useState<string | null>("live-voting");
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState<boolean>(false);
   const api = useGovernanceApi();
 
   useEffect(() => {
@@ -51,6 +86,8 @@ export default function GovernanceDetail() {
           const action = await api.getProposalById(proposalId);
           if (action) {
             dispatch(setSelectedAction(action));
+            // Small delay to ensure smooth transition
+            await new Promise((resolve) => setTimeout(resolve, 100));
           }
         } catch (error) {
           console.error("Error loading proposal:", error);
@@ -63,11 +100,179 @@ export default function GovernanceDetail() {
     loadProposal();
   }, [proposalId, dispatch, api]);
 
+  const allVotes = useMemo(() => {
+    if (!selectedAction) return [];
+    return [...(selectedAction.votes || []), ...(selectedAction.ccVotes || [])];
+  }, [selectedAction]);
+
+  const descriptionPreview = useMemo(() => {
+    if (!selectedAction?.description) return null;
+    const description = selectedAction.description;
+    const maxPreviewLength = 150;
+    const shouldTruncate = description.length > maxPreviewLength;
+    return {
+      full: description,
+      preview: shouldTruncate ? description.substring(0, maxPreviewLength) + "..." : description,
+      shouldTruncate,
+    };
+  }, [selectedAction?.description]);
+
+  const drepAbstainStats = useMemo(() => {
+    const drepVotes = allVotes.filter((v) => v.voterType === "DRep");
+    const totalPower = drepVotes.reduce((sum, v) => sum + (v.votingPowerAda || 0), 0);
+    if (totalPower <= 0) {
+      return { percent: 0, power: 0 };
+    }
+    const abstainPower = drepVotes
+      .filter((v) => v.vote === "Abstain")
+      .reduce((sum, v) => sum + (v.votingPowerAda || 0), 0);
+    return {
+      percent: (abstainPower / totalPower) * 100,
+      power: abstainPower,
+    };
+  }, [allVotes]);
+
+  const spoAbstainStats = useMemo(() => {
+    const spoVotes = allVotes.filter((v) => v.voterType === "SPO");
+    const totalPower = spoVotes.reduce((sum, v) => sum + (v.votingPowerAda || 0), 0);
+    if (totalPower <= 0) {
+      return { percent: 0, power: 0 };
+    }
+    const abstainPower = spoVotes
+      .filter((v) => v.vote === "Abstain")
+      .reduce((sum, v) => sum + (v.votingPowerAda || 0), 0);
+    return {
+      percent: (abstainPower / totalPower) * 100,
+      power: abstainPower,
+    };
+  }, [allVotes]);
+
+  const ccAbstainStats = useMemo(() => {
+    const ccVotes = allVotes.filter((v) => v.voterType === "CC");
+
+    if (ccVotes.length === 0) {
+      const yesCount = selectedAction?.cc?.yesCount ?? 0;
+      const noCount = selectedAction?.cc?.noCount ?? 0;
+      const percent = selectedAction?.cc?.abstainPercent ?? 0;
+      const derivedAbstain =
+        deriveCcAbstainCount(
+          yesCount,
+          noCount,
+          selectedAction?.cc?.yesPercent,
+          selectedAction?.cc?.noPercent,
+          percent
+        ) ?? 0;
+
+      return { percent, count: derivedAbstain, yesCount, noCount };
+    }
+
+    const yesCount = ccVotes.filter((v) => v.vote === "Yes").length;
+    const noCount = ccVotes.filter((v) => v.vote === "No").length;
+    const abstainCount = ccVotes.filter((v) => v.vote === "Abstain").length;
+
+    return {
+      percent: (abstainCount / ccVotes.length) * 100,
+      count: abstainCount,
+      yesCount,
+      noCount,
+    };
+  }, [allVotes, selectedAction?.cc]);
+
+  type RoleFilter = "All" | VoterType;
+
+  const eligibleRoles = useMemo<VoterType[]>(() => {
+    if (!selectedAction) return [];
+    return getEligibleRoles(selectedAction.type);
+  }, [selectedAction]);
+
+  const [curveRoleFilter, setCurveRoleFilter] = useState<RoleFilter>("All");
+  const curveRoleOptions = useMemo<RoleFilter[]>(() => ["All", ...eligibleRoles], [eligibleRoles]);
+
+  useEffect(() => {
+    if (!curveRoleOptions.includes(curveRoleFilter)) {
+      setCurveRoleFilter("All");
+    }
+  }, [curveRoleOptions, curveRoleFilter]);
+
+  const voteTimelineData = useMemo<TimelinePoint[]>(() => {
+    const roleFilteredVotes =
+      curveRoleFilter === "All" ? allVotes : allVotes.filter((vote) => vote.voterType === curveRoleFilter);
+
+    if (!roleFilteredVotes.length) return [];
+    const votesWithDates = roleFilteredVotes
+      .map((vote, index) => ({
+        ...vote,
+        date: vote.votedAt ? new Date(vote.votedAt) : null,
+        fallbackIndex: index,
+      }))
+      .sort((a, b) => {
+        if (a.date && b.date) return a.date.getTime() - b.date.getTime();
+        if (a.date) return -1;
+        if (b.date) return 1;
+        return a.fallbackIndex - b.fallbackIndex;
+      });
+
+    let yesCount = 0;
+    let noCount = 0;
+    let abstainCount = 0;
+    let yesPower = 0;
+    let noPower = 0;
+    let abstainPower = 0;
+
+    return votesWithDates.map((vote, index) => {
+      const power = vote.votingPowerAda || 0;
+
+      switch (vote.vote) {
+        case "Yes":
+          yesCount += 1;
+          yesPower += power;
+          break;
+        case "No":
+          noCount += 1;
+          noPower += power;
+          break;
+        default:
+          abstainCount += 1;
+          abstainPower += power;
+          break;
+      }
+
+      const label =
+        vote.date && !Number.isNaN(vote.date.getTime())
+          ? vote.date.toLocaleString(undefined, {
+              month: "short",
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          : `Vote ${index + 1}`;
+
+      return {
+        label,
+        yesCount,
+        noCount,
+        abstainCount,
+        yesPower,
+        noPower,
+        abstainPower,
+      };
+    });
+  }, [allVotes, curveRoleFilter]);
+
+  const shouldShowPower = curveRoleFilter === "DRep" || curveRoleFilter === "SPO";
+  const renderVoteTrendTooltip = useCallback(
+    (tooltipProps: TooltipProps<number, string>) => (
+      <VoteTrendTooltip {...tooltipProps} showPower={shouldShowPower} />
+    ),
+    [shouldShowPower]
+  );
+  const useDashedPowerLines = shouldShowPower && curveRoleFilter !== "DRep";
+
   if (loading || !selectedAction) {
     return (
       <div className="min-h-screen bg-background">
         <div className="container mx-auto py-8 px-4">
-          <div className="text-center">
+          <div className="text-center animate-fade-in">
             <p className="text-muted-foreground">
               {loading ? "Loading governance action..." : "Governance action not found"}
             </p>
@@ -77,11 +282,20 @@ export default function GovernanceDetail() {
     );
   }
 
-  // Combine all votes (DRep, SPO, and CC) into a single array for filtering
-  const allVotes = [
-    ...(selectedAction.votes || []),
-    ...(selectedAction.ccVotes || []),
-  ];
+  const allowDRep = canRoleVoteOnAction(selectedAction.type, "DRep");
+  const allowSPO = canRoleVoteOnAction(selectedAction.type, "SPO");
+  const allowCC = canRoleVoteOnAction(selectedAction.type, "CC");
+
+  const drepInfo = allowDRep ? selectedAction.drep : undefined;
+  const spoInfo = allowSPO ? selectedAction.spo : undefined;
+  const ccInfo = allowCC ? selectedAction.cc : undefined;
+
+  const drepYesAda = parseNumeric(drepInfo?.yesAda);
+  const drepNoAda = parseNumeric(drepInfo?.noAda);
+  const spoYesAda = parseNumeric(spoInfo?.yesAda);
+  const spoNoAda = parseNumeric(spoInfo?.noAda);
+  const ccYesCount = ccAbstainStats.yesCount ?? ccInfo?.yesCount ?? 0;
+  const ccNoCount = ccAbstainStats.noCount ?? ccInfo?.noCount ?? 0;
 
   const handleTwitterShare = () => {
     const url = typeof window !== "undefined" 
@@ -129,23 +343,37 @@ export default function GovernanceDetail() {
         <meta name="description" content={selectedAction.description || selectedAction.title} />
       </Head>
       <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
-          {/* Back Button */}
-          <Link href="/">
-            <Button variant="ghost" className="mb-6">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Dashboard
-            </Button>
-          </Link>
+        {/* Fixed Back Button */}
+        <div className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border/50 animate-fade-in">
+          <div className="container mx-auto px-4 sm:px-6 py-3">
+            <div className="rounded-2xl border border-white/8 bg-[#faf9f6] px-4 py-2 shadow-[0_12px_30px_rgba(15,23,42,0.25)] inline-block">
+              <Link href="/">
+                <Button variant="ghost" className="h-auto p-0 hover:bg-transparent">
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back to Dashboard
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+        <div className="container mx-auto px-4 sm:px-6 pt-20 pb-6 sm:pb-8 animate-slide-in-bottom">
 
           {/* Header Section */}
           <Card className="mb-6 sm:mb-8">
             <div className="p-4 sm:p-6">
               <div className="mb-4">
-                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4">{selectedAction.title}</h1>
-                <div className="flex flex-wrap items-center gap-2">
-                  {allVotes.length > 0 && (
-                    <>
+                <div className="flex flex-wrap items-center gap-2 mb-4">
+                  <Badge variant="outline" className={getStatusColor(selectedAction.status)}>
+                    {selectedAction.status}
+                  </Badge>
+                  <Badge variant="outline" className="border-border">
+                    {selectedAction.type}
+                  </Badge>
+                </div>
+                <div className="border-t border-border/50 pt-4 mb-4">
+                  <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4">{selectedAction.title}</h1>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {allVotes.length > 0 && (
                       <Button
                         variant="outline"
                         size="sm"
@@ -156,119 +384,468 @@ export default function GovernanceDetail() {
                         <span className="hidden sm:inline">Share on X</span>
                         <span className="sm:hidden">Share</span>
                       </Button>
-                      <Select value={downloadFormat} onValueChange={(value) => handleExport(value as "json" | "markdown" | "csv")}>
-                        <SelectTrigger className="w-full sm:w-[200px]">
-                          <SelectValue placeholder="Download rationales" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="json">Download as JSON</SelectItem>
-                          <SelectItem value="markdown">Download as Markdown</SelectItem>
-                          <SelectItem value="csv">Download as CSV</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </>
-                  )}
-                  <Badge variant="outline" className={getStatusColor(selectedAction.status)}>
-                    {selectedAction.status}
-                  </Badge>
-                  <Badge variant="outline" className="border-border">
-                    {selectedAction.type}
-                  </Badge>
+                    )}
+                  </div>
                 </div>
               </div>
-              {selectedAction.description && (
+              {descriptionPreview && (
                 <div className="mt-4 pt-4 border-t border-border/50">
                   <div className="text-sm sm:text-base text-foreground/90 whitespace-pre-wrap leading-relaxed">
-                    {selectedAction.description}
+                    {isDescriptionExpanded ? descriptionPreview.full : descriptionPreview.preview}
                   </div>
+                  {descriptionPreview.shouldTruncate && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+                      className="mt-3"
+                    >
+                      {isDescriptionExpanded ? (
+                        <>
+                          <ChevronUp className="h-4 w-4 mr-1" />
+                          Show Less
+                        </>
+                      ) : (
+                        <>
+                          <ChevronDown className="h-4 w-4 mr-1" />
+                          Show More
+                        </>
+                      )}
+                    </Button>
+                  )}
                 </div>
               )}
             </div>
           </Card>
 
-          {/* New Section */}
-          <Card className="mb-6 sm:mb-8">
-            <div className="p-4 sm:p-6">
-              <Tabs defaultValue="bubble-map" className="w-full">
-                <TabsList>
-                  <TabsTrigger value="bubble-map">Bubble Map</TabsTrigger>
-                  <TabsTrigger value="statistics">Statistics</TabsTrigger>
-                  <TabsTrigger value="curves">Curves</TabsTrigger>
-                  <TabsTrigger value="details">Details</TabsTrigger>
-                </TabsList>
-                <TabsContent value="bubble-map">
-                  <BubbleMap votes={allVotes} />
-                </TabsContent>
-                <TabsContent value="statistics">
-                  {/* Statistics content */}
-                </TabsContent>
-                <TabsContent value="curves">
-                  {/* Curves content */}
-                </TabsContent>
-                <TabsContent value="details">
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-xs sm:text-sm text-muted-foreground mb-2 block">Governance Action ID</label>
-                      <code className="text-xs sm:text-sm text-muted-foreground bg-secondary px-2 sm:px-3 py-1 rounded font-mono break-all block">
-                        {selectedAction.id}
-                      </code>
-                    </div>
-                    <div>
-                      <label className="text-xs sm:text-sm text-muted-foreground mb-2 block">Transaction Hash</label>
-                      <code className="text-xs sm:text-sm text-muted-foreground bg-secondary px-2 sm:px-3 py-1 rounded font-mono break-all block">
-                        {selectedAction.txHash}
-                      </code>
-                    </div>
-                    <div>
-                      <label className="text-xs sm:text-sm text-muted-foreground mb-2 block">Submission Epoch</label>
-                      <div className="text-xs sm:text-sm text-foreground">Epoch {selectedAction.submissionEpoch}</div>
-                    </div>
-                    <div>
-                      <label className="text-xs sm:text-sm text-muted-foreground mb-2 block">Expiry Epoch</label>
-                      <div className="text-xs sm:text-sm text-foreground">Epoch {selectedAction.expiryEpoch}</div>
-                    </div>
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </div>
-          </Card>
+          <div className="mb-6 sm:mb-8">
+            <Tabs value={selectedTab || undefined} onValueChange={setSelectedTab} className="w-full">
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <TabsList className="flex-1 flex-wrap justify-start gap-1 bg-transparent p-0">
+                    <TabsTrigger value="live-voting">Live Voting</TabsTrigger>
+                    <TabsTrigger value="bubble-map">Bubble Map</TabsTrigger>
+                    <TabsTrigger value="statistics">Statistics</TabsTrigger>
+                    <TabsTrigger value="curves">Curves</TabsTrigger>
+                    <TabsTrigger value="details">Details</TabsTrigger>
+                  </TabsList>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      if (selectedTab) {
+                        setSelectedTab(null);
+                      } else {
+                        setSelectedTab("live-voting");
+                      }
+                    }}
+                    className="flex-shrink-0"
+                  >
+                    {selectedTab ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                  </Button>
+                </div>
+
+                {selectedTab && (
+                  <>
+                    <TabsContent value="live-voting" className="mt-0">
+                      {allVotes.length > 0 ? (
+                        <div className="flex flex-wrap items-start gap-4 sm:gap-6" style={{ overflow: "visible" }}>
+                          <div className="flex flex-col items-center gap-3">
+                            {allowDRep ? (
+                              drepInfo ? (
+                                <>
+                                  <VoteProgress
+                                    title="DRep Votes"
+                                    yesPercent={drepInfo.yesPercent}
+                                    noPercent={drepInfo.noPercent}
+                                    abstainPercent={drepAbstainStats.percent}
+                                    yesValue={drepYesAda}
+                                    noValue={drepNoAda}
+                                    abstainValue={drepAbstainStats.power}
+                                    valueUnit="ada"
+                                    className="scale-90 md:scale-100 origin-center"
+                                  />
+                                  <RoleLegend
+                                    role="DRep"
+                                    yesLabel={formatAdaValue(drepYesAda || 0)}
+                                    noLabel={formatAdaValue(drepNoAda || 0)}
+                                    abstainLabel={formatAdaValue(drepAbstainStats.power)}
+                                    unit="ADA"
+                                  />
+                                </>
+                              ) : (
+                                <RolePlaceholder role="DRep" message="No on-chain data yet" />
+                              )
+                            ) : (
+                              <RolePlaceholder role="DRep" message="Not eligible for this action" />
+                            )}
+                          </div>
+                          <div className="flex flex-col items-center gap-3">
+                            {allowCC ? (
+                              ccInfo ? (
+                                <>
+                                  <VoteProgress
+                                    title="CC"
+                                    yesPercent={ccInfo.yesPercent}
+                                    noPercent={ccInfo.noPercent || 0}
+                                    abstainPercent={ccInfo.abstainPercent ?? ccAbstainStats.percent}
+                                    yesValue={ccYesCount}
+                                    noValue={ccNoCount}
+                                    abstainValue={ccAbstainStats.count}
+                                    valueUnit="count"
+                                    className="scale-90 md:scale-100 origin-center"
+                                  />
+                                  <RoleLegend
+                                    role="CC"
+                                    yesLabel={`${ccYesCount}`}
+                                    noLabel={`${ccNoCount}`}
+                                    abstainLabel={`${ccAbstainStats.count ?? 0}`}
+                                    unit="votes"
+                                  />
+                                </>
+                              ) : (
+                                <RolePlaceholder role="CC" message="No on-chain data yet" />
+                              )
+                            ) : (
+                              <RolePlaceholder role="CC" message="Not eligible for this action" />
+                            )}
+                          </div>
+                          <div className="flex flex-col items-center gap-3">
+                            {allowSPO ? (
+                              spoInfo ? (
+                                <>
+                                  <VoteProgress
+                                    title="SPO Votes"
+                                    yesPercent={spoInfo.yesPercent}
+                                    noPercent={spoInfo.noPercent || 0}
+                                    abstainPercent={spoAbstainStats.percent}
+                                    yesValue={spoYesAda}
+                                    noValue={spoNoAda}
+                                    abstainValue={spoAbstainStats.power}
+                                    valueUnit="ada"
+                                    className="scale-90 md:scale-100 origin-center"
+                                  />
+                                  <RoleLegend
+                                    role="SPO"
+                                    yesLabel={formatAdaValue(spoYesAda || 0)}
+                                    noLabel={formatAdaValue(spoNoAda || 0)}
+                                    abstainLabel={formatAdaValue(spoAbstainStats.power)}
+                                    unit="ADA"
+                                  />
+                                </>
+                              ) : (
+                                <RolePlaceholder role="SPO" message="No on-chain data yet" />
+                              )
+                            ) : (
+                              <RolePlaceholder role="SPO" message="Not eligible for this action" />
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center py-6 text-sm text-muted-foreground">
+                          No voting activity yet.
+                        </div>
+                      )}
+                    </TabsContent>
+                    <TabsContent value="bubble-map" className="mt-0">
+                      <BubbleMap votes={allVotes} />
+                    </TabsContent>
+                    <TabsContent value="statistics" className="mt-0">
+                      {/* Statistics content */}
+                    </TabsContent>
+                    <TabsContent value="curves" className="mt-0">
+                      <Card className="p-4 sm:p-6">
+                        <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="space-y-1">
+                            <h3 className="text-lg font-semibold">Voting trend</h3>
+                            <p className="text-sm text-muted-foreground">
+                              {shouldShowPower
+                                ? "Cumulative voting power (ADA)"
+                                : "Cumulative yes / no / abstain votes"}{" "}
+                              · {curveRoleFilter === "All" ? "All roles" : `${curveRoleFilter} only`}
+                            </p>
+                            <div className="flex flex-wrap gap-2 pt-1">
+                              {curveRoleOptions.map((role) => {
+                                const isActive = curveRoleFilter === role;
+                                return (
+                                  <button
+                                    key={role}
+                                    type="button"
+                                    onClick={() => setCurveRoleFilter(role)}
+                                    className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide transition-colors ${
+                                      isActive
+                                        ? "bg-foreground text-background border-foreground"
+                                        : "border-border text-muted-foreground hover:text-foreground"
+                                    }`}
+                                  >
+                                    {role === "All" ? "All Roles" : role}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                          {voteTimelineData.length > 0 && (
+                            <div className="text-xs text-muted-foreground">
+                              Updated {voteTimelineData[voteTimelineData.length - 1].label}
+                            </div>
+                          )}
+                        </div>
+                        {voteTimelineData.length > 0 ? (
+                          <div className="h-[320px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <LineChart data={voteTimelineData} margin={{ top: 10, right: 24, left: 0, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" className="stroke-border/60" />
+                                <XAxis dataKey="label" tick={{ fontSize: 12 }} minTickGap={24} />
+                                <YAxis
+                                  yAxisId="primary"
+                                  allowDecimals={false}
+                                  tick={{ fontSize: 12 }}
+                                  tickFormatter={
+                                    shouldShowPower
+                                      ? (value) => formatAdaValue(value).replace(" ₳", "")
+                                      : undefined
+                                  }
+                                />
+                                <RechartsTooltip content={renderVoteTrendTooltip} />
+                                <Legend />
+                                {shouldShowPower ? (
+                                  <>
+                                    <Line
+                                      type="monotone"
+                                      dataKey="yesPower"
+                                      stroke={VOTE_COLORS.yes}
+                                      strokeWidth={2}
+                                      strokeDasharray={useDashedPowerLines ? "5 4" : undefined}
+                                      dot={false}
+                                      name="Yes Power"
+                                      yAxisId="primary"
+                                    />
+                                    <Line
+                                      type="monotone"
+                                      dataKey="noPower"
+                                      stroke={VOTE_COLORS.no}
+                                      strokeWidth={2}
+                                      strokeDasharray={useDashedPowerLines ? "5 4" : undefined}
+                                      dot={false}
+                                      name="No Power"
+                                      yAxisId="primary"
+                                    />
+                                    <Line
+                                      type="monotone"
+                                      dataKey="abstainPower"
+                                      stroke={VOTE_COLORS.abstain}
+                                      strokeOpacity={0.9}
+                                      strokeWidth={2}
+                                      strokeDasharray={useDashedPowerLines ? "5 4" : undefined}
+                                      dot={false}
+                                      name="Abstain Power"
+                                      yAxisId="primary"
+                                    />
+                                  </>
+                                ) : (
+                                  <>
+                                    <Line
+                                      type="monotone"
+                                      dataKey="yesCount"
+                                      stroke={VOTE_COLORS.yes}
+                                      strokeWidth={2}
+                                      dot={false}
+                                      name="Yes Votes"
+                                      yAxisId="primary"
+                                    />
+                                    <Line
+                                      type="monotone"
+                                      dataKey="noCount"
+                                      stroke={VOTE_COLORS.no}
+                                      strokeWidth={2}
+                                      dot={false}
+                                      name="No Votes"
+                                      yAxisId="primary"
+                                    />
+                                    <Line
+                                      type="monotone"
+                                      dataKey="abstainCount"
+                                      stroke={VOTE_COLORS.abstain}
+                                      strokeOpacity={0.9}
+                                      strokeWidth={2}
+                                      dot={false}
+                                      name="Abstain Votes"
+                                      yAxisId="primary"
+                                    />
+                                  </>
+                                )}
+                              </LineChart>
+                            </ResponsiveContainer>
+                          </div>
+                        ) : (
+                          <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground">
+                            Not enough voting data yet.
+                          </div>
+                        )}
+                      </Card>
+                    </TabsContent>
+                    <TabsContent value="details" className="mt-0">
+                      <div className="space-y-4">
+                        <div>
+                          <label className="text-xs sm:text-sm text-muted-foreground mb-2 block">Governance Action ID</label>
+                          <code className="text-xs sm:text-sm text-muted-foreground bg-secondary px-2 sm:px-3 py-1 rounded font-mono break-all block">
+                            {selectedAction.id}
+                          </code>
+                        </div>
+                        <div>
+                          <label className="text-xs sm:text-sm text-muted-foreground mb-2 block">Transaction Hash</label>
+                          <code className="text-xs sm:text-sm text-muted-foreground bg-secondary px-2 sm:px-3 py-1 rounded font-mono break-all block">
+                            {selectedAction.txHash}
+                          </code>
+                        </div>
+                        <div>
+                          <label className="text-xs sm:text-sm text-muted-foreground mb-2 block">Submission Epoch</label>
+                          <div className="text-xs sm:text-sm text-foreground">Epoch {selectedAction.submissionEpoch}</div>
+                        </div>
+                        <div>
+                          <label className="text-xs sm:text-sm text-muted-foreground mb-2 block">Expiry Epoch</label>
+                          <div className="text-xs sm:text-sm text-foreground">Epoch {selectedAction.expiryEpoch}</div>
+                        </div>
+                      </div>
+                    </TabsContent>
+                  </>
+                )}
+              </div>
+            </Tabs>
+          </div>
 
           {/* Voting Records Table */}
           {allVotes.length > 0 && (
-            <div className="mb-6 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-                {selectedAction.drep && (
-                  <VoteProgress
-                    title="DRep Votes"
-                    yesPercent={selectedAction.drep.yesPercent}
-                    noPercent={selectedAction.drep.noPercent}
-                    yesAda={selectedAction.drep.yesAda}
-                    noAda={selectedAction.drep.noAda}
-                  />
-                )}
-                {selectedAction.cc && (
-                  <VoteProgress
-                    title="CC"
-                    yesPercent={selectedAction.cc.yesPercent}
-                    noPercent={selectedAction.cc.noPercent}
-                  />
-                )}
-                {selectedAction.spo && (
-                  <VoteProgress
-                    title="SPO Votes"
-                    yesPercent={selectedAction.spo.yesPercent}
-                    noPercent={selectedAction.spo.noPercent}
-                    yesAda={selectedAction.spo.yesAda || "0"}
-                    noAda={selectedAction.spo.noAda || "0"}
-                  />
-                )}
-              </div>
-              <VotingRecords votes={allVotes} />
+            <div className="mb-6" style={{ overflow: "visible" }}>
+              <VotingRecords
+                votes={allVotes}
+                proposalId={selectedAction.id}
+                showDownload={allVotes.length > 0}
+                downloadFormat={downloadFormat}
+                onDownloadFormatChange={(value) => handleExport(value)}
+              />
             </div>
           )}
         </div>
       </div>
     </>
+  );
+}
+
+function VoteTrendTooltip({
+  active,
+  payload,
+  label,
+  showPower,
+}: {
+  active?: boolean;
+  payload?: Array<{
+    payload?: unknown;
+    [key: string]: unknown;
+  }>;
+  label?: string;
+  showPower: boolean;
+}) {
+  if (!active || !payload?.length) {
+    return null;
+  }
+
+  const point = payload[0]?.payload as TimelinePoint | undefined;
+  if (!point) {
+    return null;
+  }
+
+  const rows = [
+    {
+      label: "Yes",
+      value: showPower ? formatAdaValue(point.yesPower) : `${point.yesCount.toLocaleString()} votes`,
+      color: VOTE_COLORS.yes,
+      border: "transparent",
+    },
+    {
+      label: "No",
+      value: showPower ? formatAdaValue(point.noPower) : `${point.noCount.toLocaleString()} votes`,
+      color: VOTE_COLORS.no,
+      border: "transparent",
+    },
+    {
+      label: "Abstain",
+      value: showPower ? formatAdaValue(point.abstainPower) : `${point.abstainCount.toLocaleString()} votes`,
+      color: VOTE_COLORS.abstain,
+      border: "rgba(148, 163, 184, 0.85)",
+    },
+  ];
+
+  return (
+    <div className="rounded-md border bg-background/95 px-3 py-2 text-xs shadow-md">
+      <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="mt-2 space-y-1.5">
+        {rows.map((row) => (
+          <div key={row.label} className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <span
+                className="h-2.5 w-2.5 rounded-full border"
+                style={{ backgroundColor: row.color, borderColor: row.border }}
+              />
+              <span className="font-semibold text-foreground">{row.label}</span>
+            </div>
+            <div className="font-mono text-[11px] text-muted-foreground">{row.value}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function RoleLegend({
+  role,
+  yesLabel,
+  noLabel,
+  abstainLabel,
+  unit,
+}: {
+  role: string;
+  yesLabel: string;
+  noLabel: string;
+  abstainLabel: string;
+  unit: string;
+}) {
+  const items = [
+    { label: "Yes", value: yesLabel, color: VOTE_COLORS.yes, border: "transparent" },
+    { label: "No", value: noLabel, color: VOTE_COLORS.no, border: "transparent" },
+    { label: "Abstain", value: abstainLabel, color: VOTE_COLORS.abstain, border: "rgba(148, 163, 184, 0.85)" },
+  ];
+
+  return (
+    <div className="w-full max-w-[200px] rounded-xl border border-border/60 bg-card/40 px-3 py-2 text-xs shadow-sm">
+      <div className="mb-2 flex items-center justify-between text-[11px] uppercase tracking-wide text-muted-foreground">
+        <span className="font-semibold">{role}</span>
+        <span>{unit}</span>
+      </div>
+      <div className="space-y-1.5">
+        {items.map((item) => (
+          <div key={item.label} className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span
+                className="h-2.5 w-2.5 rounded-full border"
+                style={{ backgroundColor: item.color, borderColor: item.border }}
+              />
+              <span className="font-semibold text-foreground">{item.label}</span>
+            </div>
+            <span className="font-mono text-[11px] text-muted-foreground">{item.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function RolePlaceholder({ role, message }: { role: string; message: string }) {
+  return (
+    <div className="flex h-full min-h-[180px] w-full max-w-[220px] flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-card/30 px-4 py-6 text-center text-xs text-muted-foreground">
+      <span className="mb-1 font-semibold text-foreground">{role}</span>
+      <span>{message}</span>
+    </div>
   );
 }
 

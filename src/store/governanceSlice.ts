@@ -1,11 +1,21 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import type { GovernanceAction, GovernanceActionDetail, GovernanceActionType, VoteType } from "@/types/governance";
+import type {
+  GovernanceAction,
+  GovernanceActionDetail,
+  ProposalType,
+  ProposalStatus,
+  VoteType,
+} from "@/types/governance";
+import { PROPOSAL_TYPES } from "@/types/governance";
+
+const STATUS_OPTIONS: ProposalStatus[] = ["Active", "Ratified", "Expired", "Not approved"];
 
 interface GovernanceState {
   actions: GovernanceAction[];
   selectedAction: GovernanceActionDetail | null;
   filters: {
-    type: GovernanceActionType;
+    selectedTypes: ProposalType[];
+    selectedStatuses: ProposalStatus[];
     searchQuery: string;
     voteFilter: VoteType;
   };
@@ -15,7 +25,8 @@ const initialState: GovernanceState = {
   actions: [],
   selectedAction: null,
   filters: {
-    type: "All",
+    selectedTypes: PROPOSAL_TYPES,
+    selectedStatuses: STATUS_OPTIONS,
     searchQuery: "",
     voteFilter: "All",
   },
@@ -31,8 +42,11 @@ const governanceSlice = createSlice({
     setSelectedAction: (state, action: PayloadAction<GovernanceActionDetail | null>) => {
       state.selectedAction = action.payload;
     },
-    setTypeFilter: (state, action: PayloadAction<GovernanceActionType>) => {
-      state.filters.type = action.payload;
+    setSelectedTypes: (state, action: PayloadAction<ProposalType[]>) => {
+      state.filters.selectedTypes = Array.from(new Set(action.payload));
+    },
+    setSelectedStatuses: (state, action: PayloadAction<ProposalStatus[]>) => {
+      state.filters.selectedStatuses = Array.from(new Set(action.payload));
     },
     setSearchQuery: (state, action: PayloadAction<string>) => {
       state.filters.searchQuery = action.payload;
@@ -49,10 +63,13 @@ const governanceSlice = createSlice({
 export const {
   setActions,
   setSelectedAction,
-  setTypeFilter,
+  setSelectedTypes,
+  setSelectedStatuses,
   setSearchQuery,
   setVoteFilter,
   resetFilters,
 } = governanceSlice.actions;
+
+export { STATUS_OPTIONS };
 
 export default governanceSlice.reducer;

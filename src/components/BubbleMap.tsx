@@ -1,36 +1,53 @@
-import { useMemo } from "react";
-import type { Vote } from "@/types/governance";
+﻿import { useMemo, useState, useRef } from "react";
+import type { VoteRecord } from "@/types/governance";
 
 interface BubbleMapProps {
-  votes: Vote[];
+  votes: VoteRecord[];
 }
 
 interface Bubble {
   x: number;
   y: number;
   radius: number;
-  vote: Vote;
+  vote: VoteRecord;
+  fillColor: string;
+  borderColor: string;
 }
 
-function getVoteBorderColor(vote: Vote["vote"]): string {
+interface VoteColors {
+  fill: string;
+  border: string;
+}
+
+function getVoteColors(vote: VoteRecord["vote"]): VoteColors {
+  // Soft, elegant colors matching donut chart colors
   switch (vote) {
     case "Yes":
-      return "rgb(22, 163, 74)"; // dark green
+      return {
+        fill: "rgba(13, 148, 136, 0.15)", // Soft green-teal fill
+        border: "rgba(255, 255, 255, 0.08)", // border-white/8
+      };
     case "No":
-      return "rgb(185, 28, 28)"; // dark red
+      return {
+        fill: "rgba(91, 33, 182, 0.15)", // Soft dark purple fill
+        border: "rgba(255, 255, 255, 0.08)", // border-white/8
+      };
     case "Abstain":
-      return "rgb(107, 114, 128)"; // grey
     default:
-      return "rgb(107, 114, 128)";
+      return {
+        fill: "#faf9f6", // Cream fill
+        border: "rgba(255, 255, 255, 0.08)", // border-white/8
+      };
   }
 }
 
+
 function formatAda(ada: number): string {
-  if (ada >= 1000000) {
-    return `${(ada / 1000000).toFixed(1)}M`;
+  if (ada >= 1_000_000) {
+    return `${(ada / 1_000_000).toFixed(1)}M`;
   }
-  if (ada >= 1000) {
-    return `${(ada / 1000).toFixed(1)}K`;
+  if (ada >= 1_000) {
+    return `${(ada / 1_000).toFixed(1)}K`;
   }
   return ada.toFixed(0);
 }
@@ -40,31 +57,46 @@ function checkOverlap(newBubble: Bubble, existingBubbles: Bubble[]): boolean {
     const dx = newBubble.x - b.x;
     const dy = newBubble.y - b.y;
     const distance = Math.sqrt(dx * dx + dy * dy);
-    return distance < newBubble.radius + b.radius + 2;
+    const minDistance = newBubble.radius + b.radius + 2;
+    return distance < minDistance;
   });
 }
 
-function placeBubbleNearCluster(
-  vote: Vote,
+function placeBubbleInCircle(
+  vote: VoteRecord,
   radius: number,
-  clusterCenterX: number,
-  clusterCenterY: number,
-  clusterRadius: number,
-  placedBubbles: Bubble[]
+  centerX: number,
+  centerY: number,
+  circleRadius: number,
+  angle: number,
+  placedBubbles: Bubble[],
+  fillColor: string,
+  borderColor: string,
+  containerWidth: number,
+  containerHeight: number
 ): Bubble | null {
-  const maxAttempts = 300;
+  const x = centerX + Math.cos(angle) * circleRadius;
+  const y = centerY + Math.sin(angle) * circleRadius;
 
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const angle = Math.random() * Math.PI * 2;
-    const distance = Math.random() * clusterRadius;
-    const x = clusterCenterX + Math.cos(angle) * distance;
-    const y = clusterCenterY + Math.sin(angle) * distance;
+  const minX = radius + 10;
+  const maxX = containerWidth - radius - 10;
+  const minY = radius + 10;
+  const maxY = containerHeight - radius - 10;
 
-    const bubble: Bubble = { x, y, radius, vote };
+  const clampedX = Math.max(minX, Math.min(maxX, x));
+  const clampedY = Math.max(minY, Math.min(maxY, y));
 
-    if (!checkOverlap(bubble, placedBubbles)) {
-      return bubble;
-    }
+  const bubble: Bubble = {
+    x: clampedX,
+    y: clampedY,
+    radius,
+    vote,
+    fillColor,
+    borderColor,
+  };
+
+  if (!checkOverlap(bubble, placedBubbles)) {
+    return bubble;
   }
 
   return null;
@@ -74,28 +106,16 @@ export function BubbleMap({ votes }: BubbleMapProps) {
   const bubbles = useMemo(() => {
     if (votes.length === 0) return [];
 
-    const validVotes = votes.filter(
-      (v) => v.votingPowerAda !== undefined && v.votingPowerAda > 0
-    );
-    const zeroPowerVotes = votes.filter(
-      (v) => !v.votingPowerAda || v.votingPowerAda === 0
-    );
-
+    const validVotes = votes.filter((v) => v.votingPowerAda && v.votingPowerAda > 0);
+    const zeroPowerVotes = votes.filter((v) => !v.votingPowerAda || v.votingPowerAda === 0);
     const allVotesToPlace = [...validVotes, ...zeroPowerVotes];
-
     if (allVotesToPlace.length === 0) return [];
 
-    const validVotesWithPower = validVotes.filter(
-      (v) => (v.votingPowerAda || 0) > 0
-    );
+    const validVotesWithPower = validVotes.filter((v) => (v.votingPowerAda || 0) > 0);
     const maxPower =
-      validVotesWithPower.length > 0
-        ? Math.max(...validVotesWithPower.map((v) => v.votingPowerAda || 0))
-        : 1;
+      validVotesWithPower.length > 0 ? Math.max(...validVotesWithPower.map((v) => v.votingPowerAda || 0)) : 1;
     const minPower =
-      validVotesWithPower.length > 0
-        ? Math.min(...validVotesWithPower.map((v) => v.votingPowerAda || 0))
-        : 1;
+      validVotesWithPower.length > 0 ? Math.min(...validVotesWithPower.map((v) => v.votingPowerAda || 0)) : 1;
     const powerRange = maxPower - minPower || 1;
 
     const minRadius = 8;
@@ -104,30 +124,31 @@ export function BubbleMap({ votes }: BubbleMapProps) {
 
     const containerWidth = 800;
     const containerHeight = 600;
-    const margin = 100;
 
     const yesVotes = allVotesToPlace.filter((v) => v.vote === "Yes");
     const noVotes = allVotesToPlace.filter((v) => v.vote === "No");
     const abstainVotes = allVotesToPlace.filter((v) => v.vote === "Abstain");
+
+    const maxClusterRadius = Math.min(containerWidth * 0.35, containerHeight * 0.35);
 
     const clusters = [
       {
         votes: yesVotes,
         centerX: containerWidth * 0.25,
         centerY: containerHeight * 0.5,
-        clusterRadius: 150,
+        clusterRadius: Math.min(Math.max(120, Math.sqrt(yesVotes.length) * 18), maxClusterRadius),
       },
       {
         votes: noVotes,
         centerX: containerWidth * 0.75,
         centerY: containerHeight * 0.5,
-        clusterRadius: 150,
+        clusterRadius: Math.min(Math.max(120, Math.sqrt(noVotes.length) * 18), maxClusterRadius),
       },
       {
         votes: abstainVotes,
         centerX: containerWidth * 0.5,
-        centerY: containerHeight * 0.8,
-        clusterRadius: 120,
+        centerY: containerHeight * 0.75,
+        clusterRadius: Math.min(Math.max(100, Math.sqrt(abstainVotes.length) * 18), maxClusterRadius),
       },
     ];
 
@@ -135,29 +156,64 @@ export function BubbleMap({ votes }: BubbleMapProps) {
     const placedBubbles: Bubble[] = [];
 
     clusters.forEach((cluster) => {
-      const sortedVotes = [...cluster.votes].sort(
-        (a, b) => (b.votingPowerAda || 0) - (a.votingPowerAda || 0)
-      );
+      const sortedVotes = [...cluster.votes].sort((a, b) => (b.votingPowerAda || 0) - (a.votingPowerAda || 0));
 
-      sortedVotes.forEach((vote) => {
+      sortedVotes.forEach((vote, index) => {
         const power = vote.votingPowerAda || 0;
-        let radius: number;
+        const radius = power > 0 ? minRadius + ((power - minPower) / powerRange) * radiusRange : 10;
 
-        if (power > 0) {
-          const normalizedPower = (power - minPower) / powerRange;
-          radius = minRadius + normalizedPower * radiusRange;
-        } else {
-          radius = 10;
-        }
+        const palette = getVoteColors(vote.vote);
+        const angleStep = cluster.votes.length > 0 ? (Math.PI * 2) / cluster.votes.length : 0;
+        const angle = index * angleStep;
+        const circleRadius = cluster.clusterRadius * 0.6;
 
-        const bubble = placeBubbleNearCluster(
+        let bubble = placeBubbleInCircle(
           vote,
           radius,
           cluster.centerX,
           cluster.centerY,
-          cluster.clusterRadius,
-          placedBubbles
+          circleRadius,
+          angle,
+          placedBubbles,
+          palette.fill,
+          palette.border,
+          containerWidth,
+          containerHeight
         );
+
+        if (!bubble) {
+          let attempts = 0;
+          let maxRadius = cluster.clusterRadius;
+          let spiralAngle = angle;
+          let spiralRadius = circleRadius;
+
+          while (!bubble && attempts < 500) {
+            spiralAngle += 0.3;
+            if (attempts % 20 === 0) {
+              spiralRadius += 5;
+            }
+
+            if (spiralRadius > maxRadius) {
+              maxRadius += 10;
+              spiralRadius = circleRadius;
+            }
+
+            bubble = placeBubbleInCircle(
+              vote,
+              radius,
+              cluster.centerX,
+              cluster.centerY,
+              spiralRadius,
+              spiralAngle,
+              placedBubbles,
+              palette.fill,
+              palette.border,
+              containerWidth,
+              containerHeight
+            );
+            attempts++;
+          }
+        }
 
         if (bubble) {
           bubbles.push(bubble);
@@ -169,20 +225,41 @@ export function BubbleMap({ votes }: BubbleMapProps) {
     return bubbles;
   }, [votes]);
 
+  const [hoveredBubble, setHoveredBubble] = useState<{ bubble: Bubble; x: number; y: number } | null>(null);
+  const [hoveredBadge, setHoveredBadge] = useState<"Yes" | "No" | "Abstain" | null>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const handleMouseEnter = (bubble: Bubble, event: React.MouseEvent<SVGCircleElement>) => {
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      setHoveredBubble({
+        bubble,
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top,
+      });
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setHoveredBubble(null);
+  };
+
   if (votes.length === 0) {
     return (
-      <div className="flex items-center justify-center h-96 text-muted-foreground">
+      <div className="rounded-2xl border border-white/8 bg-[#faf9f6] p-12 shadow-[0_12px_30px_rgba(15,23,42,0.25)] flex h-96 items-center justify-center text-muted-foreground">
         No votes available
       </div>
     );
   }
 
-  const containerWidth = 800;
-  const containerHeight = 600;
-
   const yesVotes = votes.filter((v) => v.vote === "Yes");
   const noVotes = votes.filter((v) => v.vote === "No");
   const abstainVotes = votes.filter((v) => v.vote === "Abstain");
+
+  const containerWidth = 800;
+  const containerHeight = 600;
+  const maxClusterRadius = Math.min(containerWidth * 0.35, containerHeight * 0.35);
 
   const clusters = [
     {
@@ -191,6 +268,7 @@ export function BubbleMap({ votes }: BubbleMapProps) {
       centerX: containerWidth * 0.25,
       centerY: containerHeight * 0.5,
       color: "rgb(34, 197, 94)",
+      radius: Math.min(Math.max(120, Math.sqrt(yesVotes.length) * 18), maxClusterRadius),
     },
     {
       label: "No",
@@ -198,94 +276,186 @@ export function BubbleMap({ votes }: BubbleMapProps) {
       centerX: containerWidth * 0.75,
       centerY: containerHeight * 0.5,
       color: "rgb(239, 68, 68)",
+      radius: Math.min(Math.max(120, Math.sqrt(noVotes.length) * 18), maxClusterRadius),
     },
     {
       label: "Abstain",
       count: abstainVotes.length,
       centerX: containerWidth * 0.5,
-      centerY: containerHeight * 0.8,
+      centerY: containerHeight * 0.75,
       color: "rgb(156, 163, 175)",
+      radius: Math.min(Math.max(100, Math.sqrt(abstainVotes.length) * 18), maxClusterRadius),
     },
   ];
 
   return (
-    <div className="w-full overflow-auto">
-      <div className="flex items-center justify-center p-4">
-        <svg
-          width="800"
-          height="600"
-          viewBox="0 0 800 600"
-          className="border border-border rounded-lg bg-background">
-          {clusters.map((cluster) => (
-            <g key={cluster.label}>
-              <circle
-                cx={cluster.centerX}
-                cy={cluster.centerY}
-                r={cluster.label === "Abstain" ? 120 : 150}
-                fill={cluster.color}
-                opacity={0.05}
-              />
-            </g>
-          ))}
+    <div className="rounded-2xl border border-white/8 bg-[#faf9f6] p-3 shadow-[0_12px_30px_rgba(15,23,42,0.25)] overflow-visible">
+      <div className="mb-2 flex items-center justify-center gap-3 px-4 py-2 pb-4 text-sm overflow-visible">
+        <div
+          className="rounded-2xl border border-white/8 bg-[#faf9f6] px-4 py-2 shadow-[0_12px_30px_rgba(15,23,42,0.25)] cursor-pointer transition-all hover:shadow-[0_16px_40px_rgba(15,23,42,0.35)]"
+          onMouseEnter={() => setHoveredBadge("Yes")}
+          onMouseLeave={() => setHoveredBadge(null)}
+        >
+          <LegendSwatch color="rgba(13, 148, 136, 0.15)" stroke="rgba(255, 255, 255, 0.08)" label={`Yes (${yesVotes.length})`} />
+        </div>
+        <div
+          className="rounded-2xl border border-white/8 bg-[#faf9f6] px-4 py-2 shadow-[0_12px_30px_rgba(15,23,42,0.25)] cursor-pointer transition-all hover:shadow-[0_16px_40px_rgba(15,23,42,0.35)]"
+          onMouseEnter={() => setHoveredBadge("No")}
+          onMouseLeave={() => setHoveredBadge(null)}
+        >
+          <LegendSwatch color="rgba(91, 33, 182, 0.15)" stroke="rgba(255, 255, 255, 0.08)" label={`No (${noVotes.length})`} />
+        </div>
+        <div
+          className="rounded-2xl border border-white/8 bg-[#faf9f6] px-4 py-2 shadow-[0_12px_30px_rgba(15,23,42,0.25)] cursor-pointer transition-all hover:shadow-[0_16px_40px_rgba(15,23,42,0.35)]"
+          onMouseEnter={() => setHoveredBadge("Abstain")}
+          onMouseLeave={() => setHoveredBadge(null)}
+        >
+          <LegendSwatch color="#faf9f6" stroke="rgba(255, 255, 255, 0.08)" label={`Abstain (${abstainVotes.length})`} />
+        </div>
+      </div>
+      <div ref={containerRef} className="w-full overflow-auto relative">
+        <div className="flex items-center justify-center p-2">
+          <svg
+            ref={svgRef}
+            id="bubble-map-svg"
+            width="800"
+            height="600"
+            viewBox="0 0 800 600"
+            className="rounded-lg bg-background"
+          >
+            <defs>
+              <filter id="bubble-shadow" x="-100%" y="-100%" width="300%" height="300%">
+                <feGaussianBlur in="SourceAlpha" stdDeviation="10"/>
+                <feOffset dx="0" dy="12" result="offsetblur"/>
+                <feComponentTransfer>
+                  <feFuncA type="linear" slope="0.35"/>
+                </feComponentTransfer>
+                <feMerge>
+                  <feMergeNode/>
+                  <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+              </filter>
+              <filter id="bubble-glow-yes" x="-200%" y="-200%" width="500%" height="500%">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="coloredBlur"/>
+                <feFlood floodColor="rgba(13, 148, 136, 0.6)" result="glowColor"/>
+                <feComposite in="glowColor" in2="coloredBlur" operator="in" result="glow"/>
+                <feMerge>
+                  <feMergeNode in="glow"/>
+                  <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+              </filter>
+              <filter id="bubble-glow-no" x="-200%" y="-200%" width="500%" height="500%">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="coloredBlur"/>
+                <feFlood floodColor="rgba(91, 33, 182, 0.6)" result="glowColor"/>
+                <feComposite in="glowColor" in2="coloredBlur" operator="in" result="glow"/>
+                <feMerge>
+                  <feMergeNode in="glow"/>
+                  <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+              </filter>
+              <filter id="bubble-glow-abstain" x="-200%" y="-200%" width="500%" height="500%">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="coloredBlur"/>
+                <feFlood floodColor="rgba(148, 163, 184, 0.6)" result="glowColor"/>
+                <feComposite in="glowColor" in2="coloredBlur" operator="in" result="glow"/>
+                <feMerge>
+                  <feMergeNode in="glow"/>
+                  <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+              </filter>
+            </defs>
           {bubbles.map((bubble, index) => {
-            const borderColor = getVoteBorderColor(bubble.vote.vote);
             const power = bubble.vote.votingPowerAda || 0;
+            const palette = getVoteColors(bubble.vote.vote);
+            const isHighlighted = hoveredBadge === bubble.vote.vote;
+            const scale = isHighlighted ? 1.15 : 1;
+            let filters = "url(#bubble-shadow)";
+            if (isHighlighted) {
+              const glowFilter = bubble.vote.vote === "Yes" ? "bubble-glow-yes" : bubble.vote.vote === "No" ? "bubble-glow-no" : "bubble-glow-abstain";
+              filters = `url(#bubble-shadow) url(#${glowFilter})`;
+            }
 
             return (
-              <g key={`${bubble.vote.voterId}-${index}`}>
+              <g
+                key={`${bubble.vote.voterId}-${index}`}
+                transform={`translate(${bubble.x}, ${bubble.y}) scale(${scale}) translate(${-bubble.x}, ${-bubble.y})`}
+                style={{ transition: "transform 0.3s ease" }}
+              >
                 <circle
                   cx={bubble.x}
                   cy={bubble.y}
                   r={bubble.radius}
-                  fill="rgb(0, 0, 0)"
-                  stroke={borderColor}
+                  fill={palette.fill}
+                  stroke={palette.border}
                   strokeWidth="2"
-                  className="cursor-pointer hover:opacity-80 transition-opacity">
-                  <title>
-                    {bubble.vote.voterName || bubble.vote.voterId}
-                    {`\nVote: ${bubble.vote.vote}`}
-                    {power > 0
-                      ? `\nPower: ${formatAda(power)} ADA`
-                      : "\nCC Member"}
-                  </title>
-                </circle>
+                  filter={filters}
+                  className="cursor-pointer transition-all duration-300 hover:opacity-80"
+                  onMouseEnter={(e) => handleMouseEnter(bubble, e)}
+                  onMouseLeave={handleMouseLeave}
+                />
                 {bubble.radius > 15 && (
                   <text
                     x={bubble.x}
                     y={bubble.y}
                     textAnchor="middle"
                     dominantBaseline="middle"
-                    className="text-xs fill-white font-semibold pointer-events-none">
+                    fill="#0f172a"
+                    className="pointer-events-none text-xs font-semibold"
+                  >
                     {bubble.vote.voterName
-                      ? bubble.vote.voterName.slice(
-                          0,
-                          Math.floor(bubble.radius / 4)
-                        )
-                      : bubble.vote.voterId.slice(
-                          0,
-                          Math.floor(bubble.radius / 6)
-                        )}
+                      ? bubble.vote.voterName.slice(0, Math.floor(bubble.radius / 4))
+                      : bubble.vote.voterId.slice(0, Math.floor(bubble.radius / 6))}
                   </text>
                 )}
               </g>
             );
           })}
-        </svg>
+          </svg>
+        </div>
+        {hoveredBubble && (
+          <div
+            className="absolute z-50 rounded-2xl border border-white/8 bg-[#faf9f6] px-4 py-3 text-xs shadow-[0_12px_30px_rgba(15,23,42,0.25)] pointer-events-none"
+            style={{
+              left: `${hoveredBubble.x + 15}px`,
+              top: `${hoveredBubble.y - 10}px`,
+              transform: "translateY(-100%)",
+            }}
+          >
+            <div className="font-semibold text-foreground">
+              {hoveredBubble.bubble.vote.voterName || hoveredBubble.bubble.vote.voterId}
+            </div>
+            <div className="mt-1 text-muted-foreground">
+              <span className="font-medium">Vote:</span> {hoveredBubble.bubble.vote.vote}
+            </div>
+            {hoveredBubble.bubble.vote.votingPowerAda && hoveredBubble.bubble.vote.votingPowerAda > 0 ? (
+              <div className="mt-1 text-muted-foreground">
+                <span className="font-medium">Power:</span> {formatAda(hoveredBubble.bubble.vote.votingPowerAda)} ADA
+              </div>
+            ) : (
+              <div className="mt-1 text-muted-foreground">
+                <span className="font-medium">Role:</span> CC Member
+              </div>
+            )}
+          </div>
+        )}
       </div>
-      <div className="flex items-center justify-center gap-6 mt-4 text-sm">
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded-full bg-black border-2 border-green-700"></div>
-          <span className="text-muted-foreground">Yes</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded-full bg-black border-2 border-red-700"></div>
-          <span className="text-muted-foreground">No</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded-full bg-black border-2 border-gray-500"></div>
-          <span className="text-muted-foreground">Abstain</span>
-        </div>
-      </div>
+    </div>
+  );
+}
+
+function LegendSwatch({ color, stroke, label }: { color: string; stroke: string; label: string }) {
+  return (
+    <div className="flex items-center gap-2">
+      <svg width="16" height="16" className="flex-shrink-0">
+        <circle
+          cx="8"
+          cy="8"
+          r="6"
+          fill={color}
+          stroke={stroke}
+          strokeWidth="1.5"
+        />
+      </svg>
+      <span className="text-muted-foreground">{label}</span>
     </div>
   );
 }

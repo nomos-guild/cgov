@@ -11,7 +11,7 @@ export default function Document() {
               (function() {
                 const savedTheme = localStorage.getItem('theme');
                 const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                const theme = savedTheme || 'system';
+                const theme = savedTheme || 'light';
                 const resolvedTheme = theme === 'system' ? (prefersDark ? 'dark' : 'light') : theme;
                 if (resolvedTheme === 'dark') {
                   document.documentElement.classList.add('dark');

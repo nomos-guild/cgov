@@ -1,5 +1,5 @@
 // Proposal status from API
-export type ProposalStatus = 
+export type ProposalStatus =
   | "Active"
   | "Ratified"
   | "Expired"
@@ -7,7 +7,7 @@ export type ProposalStatus =
   | "Not approved";
 
 // Proposal type from API
-export type ProposalType = 
+export type ProposalType =
   | "InfoAction"
   | "HardForkInitiation"
   | "ParameterChange"
@@ -15,6 +15,16 @@ export type ProposalType =
   | "UpdateCommittee"
   | "NewConstitution"
   | "Treasury";
+
+export const PROPOSAL_TYPES: ProposalType[] = [
+  "NoConfidence",
+  "UpdateCommittee",
+  "NewConstitution",
+  "HardForkInitiation",
+  "ParameterChange",
+  "Treasury",
+  "InfoAction",
+];
 
 // Voter type
 export type VoterType = "DRep" | "SPO" | "CC";
@@ -26,7 +36,7 @@ export type VoteChoice = "Yes" | "No" | "Abstain";
 export interface VotingInfo {
   yesPercent: number;
   noPercent: number;
-  abstainPercent: number;
+  abstainPercent?: number;
   yesAda?: string;
   noAda?: string;
   abstainAda?: string;
@@ -47,6 +57,8 @@ export interface Vote {
   anchorHash?: string;
   votedAt?: string;
 }
+
+export type VoteRecord = Vote;
 
 // Basic governance action (list view)
 export interface GovernanceAction {
@@ -73,7 +85,7 @@ export interface GovernanceActionDetail extends GovernanceAction {
 }
 
 // Filter types for UI
-export type GovernanceActionType = "All" | "Info" | "Treasury" | "Constitution";
+export type GovernanceActionType = "All" | ProposalType;
 export type VoteType = "All" | "Yes" | "No" | "Abstain";
 
 export interface NCLData {

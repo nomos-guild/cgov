@@ -17,6 +17,8 @@ export default function Home() {
         setLoading(true);
         const proposals = await api.getProposals();
         dispatch(setActions(proposals));
+        // Small delay to ensure smooth transition
+        await new Promise((resolve) => setTimeout(resolve, 100));
       } catch (error) {
         console.error("Error loading proposals:", error);
       } finally {
@@ -31,30 +33,25 @@ export default function Home() {
     <>
       <Head>
         <title>CGOV - Cardano Governance Platform</title>
-        <meta
-          name="description"
-          content="Integrated Cardano on-chain platform"
-        />
+        <meta name="description" content="Integrated Cardano on-chain platform" />
       </Head>
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
-          <div className="mb-8 text-center">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              Cardano Governance
-            </h1>
-            <p className="text-muted-foreground text-lg">
-              Track and monitor on-chain governance actions
-            </p>
-          </div>
           {loading ? (
-            <div className="text-center py-12">
+            <div className="py-12 text-center animate-fade-in">
               <p className="text-muted-foreground">Loading proposals...</p>
             </div>
           ) : (
-            <>
-              <GovernanceStats />
-              <GovernanceTable />
-            </>
+            <div className="space-y-8 lg:space-y-10 animate-slide-in-bottom">
+              <section className="w-full">
+                <div className="w-full max-w-2xl">
+                  <GovernanceStats />
+                </div>
+              </section>
+              <section>
+                <GovernanceTable />
+              </section>
+            </div>
           )}
         </div>
       </div>

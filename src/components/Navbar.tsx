@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { cn } from "@/lib/utils";
-import { ThemeToggle } from "@/components/ThemeToggle";
 
 export function Navbar() {
   const router = useRouter();
@@ -40,7 +39,6 @@ export function Navbar() {
                 </Link>
               );
             })}
-            <ThemeToggle />
           </div>
         </div>
       </div>
