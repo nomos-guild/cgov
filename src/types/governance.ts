@@ -5,23 +5,32 @@ export interface GovernanceAction {
   type: string;
   status: "Active" | "Ratified" | "Expired" | "Approved" | "Not approved";
   constitutionality: string;
-  drepYesPercent: number;
-  drepNoPercent: number;
-  drepYesAda: string;
-  drepNoAda: string;
-  spoYesPercent?: number;
-  spoNoPercent?: number;
-  spoYesAda?: string;
-  spoNoAda?: string;
-  ccYesPercent?: number;
-  ccNoPercent?: number;
-   ccYesCount?: number;
-   ccNoCount?: number;
+  drep: GovernanceActionVoteInfo;
+  spo?: GovernanceActionVoteInfo;
+  cc?: CCGovernanceActionVoteInfo;
   totalYes: number;
   totalNo: number;
   totalAbstain: number;
   submissionEpoch: number;
   expiryEpoch: number;
+}
+
+export interface GovernanceActionVoteInfo {
+  yesPercent: number;
+  noPercent: number;
+  abstainPercent: number;
+  yesAda: string;
+  noAda: string;
+  abstainAda: string;
+}
+
+export interface CCGovernanceActionVoteInfo {
+  yesPercent: number;
+  noPercent: number;
+  abstainPercent: number;
+  yesCount: number;
+  noCount: number;
+  abstainCount: number;
 }
 
 export interface VoteRecord {
