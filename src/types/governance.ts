@@ -1,57 +1,78 @@
-export interface GovernanceAction {
-  proposalId: string;
-  txHash: string;
-  title: string;
-  type: string;
-  status: "Active" | "Ratified" | "Expired" | "Approved" | "Not approved";
-  constitutionality: string;
-  drep: GovernanceActionVoteInfo;
-  spo?: GovernanceActionVoteInfo;
-  cc?: CCGovernanceActionVoteInfo;
-  totalYes: number;
-  totalNo: number;
-  totalAbstain: number;
-  submissionEpoch: number;
-  expiryEpoch: number;
-}
+// Proposal status from API
+export type ProposalStatus = 
+  | "Active"
+  | "Ratified"
+  | "Expired"
+  | "Approved"
+  | "Not approved";
 
-export interface GovernanceActionVoteInfo {
+// Proposal type from API
+export type ProposalType = 
+  | "InfoAction"
+  | "HardForkInitiation"
+  | "ParameterChange"
+  | "NoConfidence"
+  | "UpdateCommittee"
+  | "NewConstitution"
+  | "Treasury";
+
+// Voter type
+export type VoterType = "DRep" | "SPO" | "CC";
+
+// Vote choice
+export type VoteChoice = "Yes" | "No" | "Abstain";
+
+// Unified voting info for DRep, SPO, and CC
+export interface VotingInfo {
   yesPercent: number;
   noPercent: number;
   abstainPercent: number;
-  yesAda: string;
-  noAda: string;
-  abstainAda: string;
+  yesAda?: string;
+  noAda?: string;
+  abstainAda?: string;
+  yesCount?: number;
+  noCount?: number;
+  abstainCount?: number;
 }
 
-export interface CCGovernanceActionVoteInfo {
-  yesPercent: number;
-  noPercent: number;
-  abstainPercent: number;
-  yesCount: number;
-  noCount: number;
-  abstainCount: number;
-}
-
-export interface VoteRecord {
-  voterType: "DRep" | "SPO" | "CC";
+// Individual vote record
+export interface Vote {
+  voterType: VoterType;
   voterId: string;
   voterName?: string;
-  vote: "Yes" | "No" | "Abstain";
-  votingPower?: string;
-  votingPowerAda?: number;
+  vote: VoteChoice;
+  votingPower?: string; // Voting power in lovelace (string)
+  votingPowerAda?: number; // Voting power in ADA (number, calculated for UI)
   anchorUrl?: string;
   anchorHash?: string;
-  votedAt: string;
+  votedAt?: string;
 }
 
+// Basic governance action (list view)
+export interface GovernanceAction {
+  id: string;
+  txHash: string;
+  certIndex: number;
+  type: ProposalType | string;
+  title: string;
+  status: ProposalStatus;
+  constitutionality?: string;
+  drep?: VotingInfo;
+  spo?: VotingInfo;
+  cc?: VotingInfo;
+  submissionEpoch: number;
+  expiryEpoch?: number;
+}
+
+// Detailed governance action (detail view)
 export interface GovernanceActionDetail extends GovernanceAction {
   description?: string;
   rationale?: string;
-  votes?: VoteRecord[];
-  ccVotes?: VoteRecord[];
+  votes?: Vote[];
+  ccVotes?: Vote[];
 }
 
+// Filter types for UI
 export type GovernanceActionType = "All" | "Info" | "Treasury" | "Constitution";
 export type VoteType = "All" | "Yes" | "No" | "Abstain";
 

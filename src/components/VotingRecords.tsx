@@ -1,6 +1,13 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,11 +27,11 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { VoteRecord } from "@/types/governance";
+import type { Vote } from "@/types/governance";
 import { Search, ExternalLink, FileText } from "lucide-react";
 
 interface VotingRecordsProps {
-  votes: VoteRecord[];
+  votes: Vote[];
 }
 
 function formatAda(ada: number): string {
@@ -33,7 +40,7 @@ function formatAda(ada: number): string {
   }).format(ada);
 }
 
-function getVoteBadgeClasses(vote: VoteRecord["vote"]): string {
+function getVoteBadgeClasses(vote: Vote["vote"]): string {
   return vote === "Yes"
     ? "text-foreground border-foreground/40 bg-foreground/5"
     : "text-foreground/60 border-foreground/20 bg-transparent";
@@ -47,10 +54,13 @@ export function VotingRecords({ votes }: VotingRecordsProps) {
   const filteredVotes = votes.filter((vote) => {
     const matchesSearch =
       searchQuery === "" ||
-      (vote.voterName || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (vote.voterName || "")
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase()) ||
       vote.voterId.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesVote = voteFilter === "all" || vote.vote.toLowerCase() === voteFilter;
+    const matchesVote =
+      voteFilter === "all" || vote.vote.toLowerCase() === voteFilter;
 
     const matchesRole = roleFilter === "all" || vote.voterType === roleFilter;
 
@@ -60,14 +70,13 @@ export function VotingRecords({ votes }: VotingRecordsProps) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-      </div>
+      <div></div>
 
       {/* Filters */}
       <Card className="p-3 sm:p-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-3">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-muted-foreground" />
             <Input
               placeholder="Search by voter name or ID..."
               value={searchQuery}
@@ -102,117 +111,154 @@ export function VotingRecords({ votes }: VotingRecordsProps) {
 
       {/* Voting Table */}
       <Card className="overflow-hidden">
-        <div className="overflow-x-auto -mx-4 sm:-mx-6 md:mx-0">
-          <div className="inline-block min-w-full align-middle px-4 sm:px-6 md:px-0">
+        <div className="-mx-4 overflow-x-auto sm:-mx-6 md:mx-0">
+          <div className="inline-block min-w-full px-4 align-middle sm:px-6 md:px-0">
             <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Voter</TableHead>
-                <TableHead>Vote</TableHead>
-                <TableHead>Voting Power</TableHead>
-                <TableHead>Voted At</TableHead>
-                <TableHead className="text-right">Rationale</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredVotes.length === 0 ? (
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-12">
-                    No voting records found
-                  </TableCell>
+                  <TableHead>Voter</TableHead>
+                  <TableHead>Vote</TableHead>
+                  <TableHead>Voting Power</TableHead>
+                  <TableHead>Voted At</TableHead>
+                  <TableHead className="text-right">Rationale</TableHead>
                 </TableRow>
-              ) : (
-                filteredVotes.map((vote, index) => (
-                  <TableRow key={`${vote.voterId}-${index}`} className="hover:bg-muted/50">
-                    <TableCell>
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-semibold">{vote.voterName || vote.voterId}</span>
-                          <Badge variant="outline" className="text-xs px-1.5 py-0 border-foreground/20 bg-transparent">
-                            {vote.voterType}
-                          </Badge>
-                        </div>
-                        <div className="text-xs text-muted-foreground font-mono">{vote.voterId.slice(0, 20)}...</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={getVoteBadgeClasses(vote.vote)}>
-                        {vote.vote}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        {vote.voterType !== "CC" ? (
-                          <>
-                            <div className="font-semibold">{formatAda(vote.votingPowerAda || 0)}</div>
-                            <div className="text-xs text-muted-foreground">{vote.votingPower || "0"} ADA</div>
-                          </>
-                        ) : (
-                          <div className="text-xs text-muted-foreground">One member, one vote</div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {new Date(vote.votedAt).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {vote.anchorUrl && vote.voterType !== "CC" ? (
-                        <div className="flex items-center justify-end gap-2">
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button size="sm" variant="ghost">
-                                <FileText className="h-4 w-4 mr-1" />
-                                View
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-3xl max-h-[80vh]">
-                              <DialogHeader>
-                                <DialogTitle>Voting Rationale - {vote.voterName || vote.voterId}</DialogTitle>
-                                <DialogDescription>
-                                  View the detailed reasoning for this vote
-                                </DialogDescription>
-                              </DialogHeader>
-                              <ScrollArea className="h-[500px] w-full rounded-md border p-4">
-                                <div className="space-y-4">
-                                  <div className="flex items-center justify-between mb-4">
-                                    <Badge variant="outline" className={getVoteBadgeClasses(vote.vote)}>
-                                      {vote.vote}
-                                    </Badge>
-                                    <a
-                                      href={vote.anchorUrl}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="text-foreground hover:underline text-sm flex items-center gap-1"
-                                    >
-                                      <ExternalLink className="h-3 w-3" />
-                                      Open on IPFS
-                                    </a>
-                                  </div>
-                                  <div className="text-sm text-muted-foreground whitespace-pre-wrap">
-                                    {getMockRationale(vote.voterName || vote.voterId, vote.vote)}
-                                  </div>
-                                </div>
-                              </ScrollArea>
-                            </DialogContent>
-                          </Dialog>
-                          <a
-                            href={vote.anchorUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-foreground hover:underline"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </a>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">{vote.voterType === "CC" ? "Not applicable" : "No rationale"}</span>
-                      )}
+              </TableHeader>
+              <TableBody>
+                {filteredVotes.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={5}
+                      className="py-12 text-center text-muted-foreground"
+                    >
+                      No voting records found
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : (
+                  filteredVotes.map((vote, index) => (
+                    <TableRow
+                      key={`${vote.voterId}-${index}`}
+                      className="hover:bg-muted/50"
+                    >
+                      <TableCell>
+                        <div>
+                          <div className="mb-1 flex items-center gap-2">
+                            <span className="font-semibold">
+                              {vote.voterName || vote.voterId}
+                            </span>
+                            <Badge
+                              variant="outline"
+                              className="border-foreground/20 bg-transparent px-1.5 py-0 text-xs"
+                            >
+                              {vote.voterType}
+                            </Badge>
+                          </div>
+                          <div className="font-mono text-xs text-muted-foreground">
+                            {vote.voterId.slice(0, 20)}...
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={getVoteBadgeClasses(vote.vote)}
+                        >
+                          {vote.vote}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          {vote.voterType !== "CC" ? (
+                            <>
+                              <div className="font-semibold">
+                                {formatAda(vote.votingPowerAda || 0)}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {vote.votingPower || "0"} ADA
+                              </div>
+                            </>
+                          ) : (
+                            <div className="text-xs text-muted-foreground">
+                              One member, one vote
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {new Date(vote.votedAt!).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {vote.anchorUrl && vote.voterType !== "CC" ? (
+                          <div className="flex items-center justify-end gap-2">
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button size="sm" variant="ghost">
+                                  <FileText className="mr-1 h-4 w-4" />
+                                  View
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-h-[80vh] max-w-3xl">
+                                <DialogHeader>
+                                  <DialogTitle>
+                                    Voting Rationale -{" "}
+                                    {vote.voterName || vote.voterId}
+                                  </DialogTitle>
+                                  <DialogDescription>
+                                    View the detailed reasoning for this vote
+                                  </DialogDescription>
+                                </DialogHeader>
+                                <ScrollArea className="h-[500px] w-full rounded-md border p-4">
+                                  <div className="space-y-4">
+                                    <div className="mb-4 flex items-center justify-between">
+                                      <Badge
+                                        variant="outline"
+                                        className={getVoteBadgeClasses(
+                                          vote.vote
+                                        )}
+                                      >
+                                        {vote.vote}
+                                      </Badge>
+                                      <a
+                                        href={vote.anchorUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-1 text-sm text-foreground hover:underline"
+                                      >
+                                        <ExternalLink className="h-3 w-3" />
+                                        Open on IPFS
+                                      </a>
+                                    </div>
+                                    <div className="whitespace-pre-wrap text-sm text-muted-foreground">
+                                      {getMockRationale(
+                                        vote.voterName || vote.voterId,
+                                        vote.vote
+                                      )}
+                                    </div>
+                                  </div>
+                                </ScrollArea>
+                              </DialogContent>
+                            </Dialog>
+                            <a
+                              href={vote.anchorUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-foreground hover:underline"
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                            </a>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">
+                            {vote.voterType === "CC"
+                              ? "Not applicable"
+                              : "No rationale"}
+                          </span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
           </div>
         </div>
       </Card>

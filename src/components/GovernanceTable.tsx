@@ -24,8 +24,8 @@ export function GovernanceTable() {
     return action.type === currentFilter;
   });
 
-  const handleRowClick = (proposalId: string) => {
-    router.push(`/governance/${proposalId}`);
+  const handleRowClick = (id: string) => {
+    router.push(`/governance/${id}`);
   };
 
   const handleTabChange = (value: string) => {
@@ -71,9 +71,9 @@ export function GovernanceTable() {
           ) : (
             filteredActions.map((action) => (
               <Card
-                key={action.proposalId}
+                key={action.id}
                 className="hover:border-foreground/30 transition-all duration-300 cursor-pointer"
-                onClick={() => handleRowClick(action.proposalId)}>
+                onClick={() => handleRowClick(action.id)}>
                 <div className="p-4 sm:p-6">
                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
                     <h3 className="text-base sm:text-lg font-semibold flex-1 min-w-0">{action.title}</h3>
@@ -87,20 +87,22 @@ export function GovernanceTable() {
                     </div>
                   </div>
                   <div className="space-y-4">
-                    <VoteProgress
-                      title="DRep Votes"
-                      yesPercent={action.drepYesPercent}
-                      noPercent={action.drepNoPercent}
-                      yesAda={action.drepYesAda}
-                      noAda={action.drepNoAda}
-                      showPercentages={false}
-                      showAda={false}
-                    />
-                    {action.ccYesPercent !== undefined ? (
+                    {action.drep && (
+                      <VoteProgress
+                        title="DRep Votes"
+                        yesPercent={action.drep.yesPercent}
+                        noPercent={action.drep.noPercent}
+                        yesAda={action.drep.yesAda}
+                        noAda={action.drep.noAda}
+                        showPercentages={false}
+                        showAda={false}
+                      />
+                    )}
+                    {action.cc ? (
                       <VoteProgress
                         title="CC"
-                        yesPercent={action.ccYesPercent}
-                        noPercent={action.ccNoPercent || 0}
+                        yesPercent={action.cc.yesPercent}
+                        noPercent={action.cc.noPercent}
                         showPercentages={false}
                         showAda={false}
                       />
@@ -112,13 +114,13 @@ export function GovernanceTable() {
                         </div>
                       </div>
                     )}
-                    {action.spoYesPercent !== undefined ? (
+                    {action.spo ? (
                       <VoteProgress
                         title="SPO Votes"
-                        yesPercent={action.spoYesPercent}
-                        noPercent={action.spoNoPercent || 0}
-                        yesAda={action.spoYesAda || "0"}
-                        noAda={action.spoNoAda || "0"}
+                        yesPercent={action.spo.yesPercent}
+                        noPercent={action.spo.noPercent}
+                        yesAda={action.spo.yesAda || "0"}
+                        noAda={action.spo.noAda || "0"}
                         showPercentages={false}
                         showAda={false}
                       />

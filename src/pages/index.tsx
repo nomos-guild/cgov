@@ -1,17 +1,31 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Head from "next/head";
 import { GovernanceStats } from "@/components/GovernanceStats";
 import { GovernanceTable } from "@/components/GovernanceTable";
 import { useAppDispatch } from "@/store/hooks";
 import { setActions } from "@/store/governanceSlice";
-import { mockGovernanceActions } from "@/data/mockData";
+import { useGovernanceApi } from "@/contexts/GovernanceApiContext";
 
 export default function Home() {
   const dispatch = useAppDispatch();
+  const [loading, setLoading] = useState(true);
+  const api = useGovernanceApi();
 
   useEffect(() => {
-    dispatch(setActions(mockGovernanceActions));
-  }, [dispatch]);
+    const loadProposals = async () => {
+      try {
+        setLoading(true);
+        const proposals = await api.getProposals();
+        dispatch(setActions(proposals));
+      } catch (error) {
+        console.error("Error loading proposals:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProposals();
+  }, [dispatch, api]);
 
   return (
     <>
@@ -32,8 +46,16 @@ export default function Home() {
               Track and monitor on-chain governance actions
             </p>
           </div>
-          <GovernanceStats />
-          <GovernanceTable />
+          {loading ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">Loading proposals...</p>
+            </div>
+          ) : (
+            <>
+              <GovernanceStats />
+              <GovernanceTable />
+            </>
+          )}
         </div>
       </div>
     </>

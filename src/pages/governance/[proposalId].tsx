@@ -10,7 +10,7 @@ import { VotingRecords } from "@/components/VotingRecords";
 import { BubbleMap } from "@/components/BubbleMap";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setSelectedAction } from "@/store/governanceSlice";
-import { getActionByProposalId } from "@/data/mockData";
+import { useGovernanceApi } from "@/contexts/GovernanceApiContext";
 import { ArrowLeft, Twitter } from "lucide-react";
 import { exportToJSON, exportToMarkdown, exportToCSV, downloadFile } from "@/lib/exportRationales";
 import {
@@ -40,22 +40,37 @@ export default function GovernanceDetail() {
   const selectedAction = useAppSelector((state) => state.governance.selectedAction);
 
   const [downloadFormat, setDownloadFormat] = useState<string>("");
+  const [loading, setLoading] = useState(true);
+  const api = useGovernanceApi();
 
   useEffect(() => {
-    if (typeof proposalId === "string") {
-      const action = getActionByProposalId(proposalId);
-      if (action) {
-        dispatch(setSelectedAction(action));
+    const loadProposal = async () => {
+      if (typeof proposalId === "string") {
+        try {
+          setLoading(true);
+          const action = await api.getProposalById(proposalId);
+          if (action) {
+            dispatch(setSelectedAction(action));
+          }
+        } catch (error) {
+          console.error("Error loading proposal:", error);
+        } finally {
+          setLoading(false);
+        }
       }
-    }
-  }, [proposalId, dispatch]);
+    };
 
-  if (!selectedAction) {
+    loadProposal();
+  }, [proposalId, dispatch, api]);
+
+  if (loading || !selectedAction) {
     return (
       <div className="min-h-screen bg-background">
         <div className="container mx-auto py-8 px-4">
           <div className="text-center">
-            <p className="text-muted-foreground">Loading governance action...</p>
+            <p className="text-muted-foreground">
+              {loading ? "Loading governance action..." : "Governance action not found"}
+            </p>
           </div>
         </div>
       </div>
@@ -70,7 +85,7 @@ export default function GovernanceDetail() {
 
   const handleTwitterShare = () => {
     const url = typeof window !== "undefined" 
-      ? `${window.location.origin}/governance/${selectedAction.proposalId}`
+      ? `${window.location.origin}/governance/${selectedAction.id}`
       : "";
     const text = `Check out this Cardano governance proposal: ${selectedAction.title}`;
     const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
@@ -195,7 +210,7 @@ export default function GovernanceDetail() {
                     <div>
                       <label className="text-xs sm:text-sm text-muted-foreground mb-2 block">Governance Action ID</label>
                       <code className="text-xs sm:text-sm text-muted-foreground bg-secondary px-2 sm:px-3 py-1 rounded font-mono break-all block">
-                        {selectedAction.proposalId}
+                        {selectedAction.id}
                       </code>
                     </div>
                     <div>
@@ -222,29 +237,31 @@ export default function GovernanceDetail() {
           {allVotes.length > 0 && (
             <div className="mb-6 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-                <VoteProgress
-                  title="DRep Votes"
-                  yesPercent={selectedAction.drepYesPercent}
-                  noPercent={selectedAction.drepNoPercent}
-                  yesAda={selectedAction.drepYesAda}
-                  noAda={selectedAction.drepNoAda}
-                />
-                {selectedAction.ccYesPercent !== undefined ? (
+                {selectedAction.drep && (
+                  <VoteProgress
+                    title="DRep Votes"
+                    yesPercent={selectedAction.drep.yesPercent}
+                    noPercent={selectedAction.drep.noPercent}
+                    yesAda={selectedAction.drep.yesAda}
+                    noAda={selectedAction.drep.noAda}
+                  />
+                )}
+                {selectedAction.cc && (
                   <VoteProgress
                     title="CC"
-                    yesPercent={selectedAction.ccYesPercent}
-                    noPercent={selectedAction.ccNoPercent || 0}
+                    yesPercent={selectedAction.cc.yesPercent}
+                    noPercent={selectedAction.cc.noPercent}
                   />
-                ) : null}
-                {selectedAction.spoYesPercent !== undefined ? (
+                )}
+                {selectedAction.spo && (
                   <VoteProgress
                     title="SPO Votes"
-                    yesPercent={selectedAction.spoYesPercent}
-                    noPercent={selectedAction.spoNoPercent || 0}
-                    yesAda={selectedAction.spoYesAda || "0"}
-                    noAda={selectedAction.spoNoAda || "0"}
+                    yesPercent={selectedAction.spo.yesPercent}
+                    noPercent={selectedAction.spo.noPercent}
+                    yesAda={selectedAction.spo.yesAda || "0"}
+                    noAda={selectedAction.spo.noAda || "0"}
                   />
-                ) : null}
+                )}
               </div>
               <VotingRecords votes={allVotes} />
             </div>
