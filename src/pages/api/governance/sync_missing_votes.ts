@@ -336,8 +336,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // - offset: offset into proposals list
   // - dry_run: fetch/count but do not write
   // - epoch_from / epoch_to: inclusive epoch range filter for Koios vote_list
-  const proposalIdParam = parseStringParam(req.query.proposal_id) ?? parseStringParam(req.query._proposal_id);
-  const limit = parseIntParam(req.query.limit, 50, 1, 500);
+  const proposalIdParam =
+    parseStringParam(req.query.proposal_id) ?? parseStringParam(req.query._proposal_id);
+  const limit = parseIntParam(req.query.limit, 200, 1, 500);
   const offset = parseIntParam(req.query.offset, 0, 0);
   const dryRun = parseBooleanParam(req.query.dry_run, false);
   const epochFrom = parseOptionalIntParam(req.query.epoch_from);

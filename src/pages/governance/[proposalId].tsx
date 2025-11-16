@@ -11,7 +11,7 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setSelectedAction } from "@/store/governanceSlice";
 import { getActionByProposalId } from "@/data/mockData";
 import { ArrowLeft } from "lucide-react";
-import type { GovernanceAction } from "@/types/governance";
+import type { GovernanceAction, GovernanceActionDetail } from "@/types/governance";
 
 function getStatusColor(status: GovernanceAction["status"]): string {
   switch (status) {
@@ -27,16 +27,129 @@ export default function GovernanceDetail() {
   const router = useRouter();
   const { proposalId } = router.query;
   const dispatch = useAppDispatch();
+  const actions = useAppSelector((state) => state.governance.actions);
   const selectedAction = useAppSelector((state) => state.governance.selectedAction);
 
   useEffect(() => {
-    if (typeof proposalId === "string") {
-      const action = getActionByProposalId(proposalId);
-      if (action) {
-        dispatch(setSelectedAction(action));
+    if (typeof proposalId !== "string") return;
+
+    const pid = proposalId;
+    const baseAction = actions.find((a) => a.proposalId === pid);
+
+    type DbAction = {
+      proposalId: string;
+      txHash: string;
+      title: string;
+      type: string;
+      status: string;
+      submissionEpoch?: number;
+      expiryEpoch?: number;
+      constitutionality?: string | null;
+      description?: string | null;
+      rationale?: string | null;
+      motivation?: string | null;
+      references?: unknown;
+      statistics?: Record<string, unknown> | null;
+    };
+
+    const toNum = (v: unknown): number | undefined => {
+      if (v === null || v === undefined) return undefined;
+      const n = typeof v === "string" ? Number(v) : (v as number);
+      return Number.isFinite(n) ? (n as number) : undefined;
+    };
+
+    const hydrateDetailFromDb = (a: DbAction | undefined): GovernanceActionDetail | null => {
+      if (!a) return null;
+      const s = (a.statistics ?? {}) as Record<string, unknown>;
+      const drepYesPercent = toNum(s.drepYesPercent) ?? 0;
+      const drepNoPercent = toNum(s.drepNoPercent) ?? 0;
+      const spoYesPercent = toNum(s.spoYesPercent);
+      const spoNoPercent = toNum(s.spoNoPercent);
+      const ccYesPercent = toNum(s.ccYesPercent);
+      const ccNoPercent = toNum(s.ccNoPercent);
+
+      const core: GovernanceAction = {
+        proposalId: a.proposalId,
+        txHash: a.txHash,
+        title: a.title,
+        type: a.type,
+        status: a.status as GovernanceAction["status"],
+        constitutionality: a.constitutionality ?? "Constitutional",
+        drepYesPercent,
+        drepNoPercent,
+        drepYesAda: (s.drepYesAda ?? "0").toString(),
+        drepNoAda: (s.drepNoAda ?? "0").toString(),
+        spoYesPercent,
+        spoNoPercent,
+        spoYesAda: s.spoYesAda ? String(s.spoYesAda) : undefined,
+        spoNoAda: s.spoNoAda ? String(s.spoNoAda) : undefined,
+        ccYesPercent,
+        ccNoPercent,
+        ccYesCount: typeof s.ccYesCount === "number" ? s.ccYesCount : undefined,
+        ccNoCount: typeof s.ccNoCount === "number" ? s.ccNoCount : undefined,
+        totalYes: typeof s.totalYes === "number" ? s.totalYes : 0,
+        totalNo: typeof s.totalNo === "number" ? s.totalNo : 0,
+        totalAbstain: typeof s.totalAbstain === "number" ? s.totalAbstain : 0,
+        submissionEpoch: a.submissionEpoch ?? 0,
+        expiryEpoch: a.expiryEpoch ?? a.submissionEpoch ?? 0,
+      };
+
+      return {
+        ...core,
+        description: a.description ?? undefined,
+        rationale: a.rationale ?? undefined,
+        motivation: a.motivation ?? undefined,
+        references: Array.isArray(a.references) ? (a.references as string[]) : undefined,
+        votes: undefined,
+        ccVotes: undefined,
+      };
+    };
+
+    // 1) If the action is already in Redux (loaded on the dashboard), use it as a fast
+    //    initial value while we hydrate full details from the DB.
+    if (baseAction && !selectedAction) {
+      const detailFromState: GovernanceActionDetail = {
+        ...baseAction,
+        description: undefined,
+        rationale: undefined,
+        motivation: undefined,
+        references: undefined,
+        votes: undefined,
+        ccVotes: undefined,
+      };
+      dispatch(setSelectedAction(detailFromState));
+    }
+
+    // 2) Fetch from the DB API and normalize to get full description/rationale, etc.
+    let cancelled = false;
+
+    async function loadFromDb() {
+      try {
+        const res = await fetch(`/api/db/actions?limit=5&search=${encodeURIComponent(pid)}`);
+        if (!res.ok) throw new Error(`DB actions error: ${res.status}`);
+        const payload = await res.json();
+        const items = Array.isArray(payload?.data) ? (payload.data as DbAction[]) : [];
+        const exact = items.find((a) => a.proposalId === pid) ?? items[0];
+        const detail = hydrateDetailFromDb(exact);
+        if (!cancelled && detail) {
+          dispatch(setSelectedAction(detail));
+          return;
+        }
+      } catch {
+        // fall back to mock data in development if DB lookup fails
+        const mock = getActionByProposalId(pid);
+        if (!cancelled) {
+          dispatch(setSelectedAction(mock ?? null));
+        }
       }
     }
-  }, [proposalId, dispatch]);
+
+    loadFromDb();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [proposalId, actions, dispatch]);
 
   if (!selectedAction) {
     return (

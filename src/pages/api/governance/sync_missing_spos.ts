@@ -113,36 +113,97 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   // limit: max number of Koios pools to upsert in this run (after de-dup)
+  // Default is high enough to cover all current SPOs, but bounded to avoid runaway loops.
   // dry_run: if true, do not write to DB, only report counts
-  const limit = parseIntParam(req.query.limit, 2000, 1, 10_000);
+  const maxPoolsToSync = parseIntParam(req.query.limit, 50_000, 1, 100_000);
   const dryRun = parseBooleanParam(req.query.dry_run, false);
+  // koiosPageSize: per-request page size for Koios pool_list (batch size).
+  // Koios typically caps this at 1000; we clamp to [1, 1000].
+  const koiosPageSize = parseIntParam(
+    (req.query.batch_size ?? req.query.page_size) as string | string[] | undefined,
+    1000,
+    1,
+    1000
+  );
 
   try {
-    // 1) Fetch Koios pool_list (authoritative SPO set)
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 20_000);
-    const koiosResponse = await fetch(KOIOS_POOL_LIST_ENDPOINT, {
-      method: "GET",
-      headers: getKoiosHeaders(),
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
+    // 1) Fetch Koios pool_list (authoritative SPO set), handling Koios pagination.
+    // Koios returns up to 1000 rows per page, so we loop with limit/offset until we've
+    // gathered all rows.
+    const pools: KoiosPoolListItem[] = [];
+    let offset = 0;
+    let done = false;
 
-    if (!koiosResponse.ok) {
-      return res.status(502).json({
-        error: "Upstream error from Koios",
-        status: koiosResponse.status,
-      });
+    while (!done) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 20_000);
+
+      try {
+        const url = new URL(KOIOS_POOL_LIST_ENDPOINT);
+        url.searchParams.set("limit", koiosPageSize.toString());
+        url.searchParams.set("offset", offset.toString());
+
+        const response = await fetch(url.toString(), {
+          method: "GET",
+          headers: getKoiosHeaders(),
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+
+        if (!response.ok) {
+          let bodySnippet: string | undefined;
+          try {
+            const text = await response.text();
+            bodySnippet = text.slice(0, 500);
+          } catch {
+            // ignore
+          }
+          return res.status(502).json({
+            error: "Upstream error from Koios",
+            status: response.status,
+            pageSize: koiosPageSize,
+            offset,
+            poolsSoFar: pools.length,
+            bodySnippet,
+          });
+        }
+
+        const json = (await response.json()) as unknown;
+        if (!Array.isArray(json)) {
+          let bodySnippet: string | undefined;
+          try {
+            bodySnippet = JSON.stringify(json).slice(0, 500);
+          } catch {
+            // ignore
+          }
+          return res.status(502).json({
+            error: "Unexpected response shape from Koios pool_list",
+            pageSize: koiosPageSize,
+            offset,
+            poolsSoFar: pools.length,
+            bodySnippet,
+          });
+        }
+
+        const batch = json as KoiosPoolListItem[];
+        if (batch.length === 0) {
+          done = true;
+          break;
+        }
+
+        pools.push(...batch);
+
+        if (batch.length < koiosPageSize) {
+          // Last page
+          done = true;
+        } else {
+          offset += batch.length;
+        }
+      } catch (error) {
+        clearTimeout(timeout);
+        throw error;
+      }
     }
-
-    const json = (await koiosResponse.json()) as unknown;
-    if (!Array.isArray(json)) {
-      return res.status(502).json({
-        error: "Unexpected response shape from Koios pool_list",
-      });
-    }
-
-    const pools = json as KoiosPoolListItem[];
 
     // Normalize and de-duplicate Koios pools by bech32 id
     const poolMap = new Map<string, KoiosPoolListItem>();
@@ -171,7 +232,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Restrict how many we process in this run
-    const targetPoolIds = allPoolIds.slice(0, limit);
+    const targetPoolIds = allPoolIds.slice(0, maxPoolsToSync);
 
     // 2) Determine which of those are already present in Spo table
     const existing = await prisma.spo.findMany({

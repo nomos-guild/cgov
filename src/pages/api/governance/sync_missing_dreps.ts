@@ -250,37 +250,98 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: "Method Not Allowed" });
   }
 
-  // limit: max number of Koios DReps to upsert in this run (after de-dup)
+  // maxDrepsToSync: optional max number of Koios DReps to sync in this run (after de-dup)
+  // Default is high enough to cover all current DReps, but bounded to avoid runaway loops.
+  const maxDrepsToSync = parseIntParam(req.query.limit, 50_000, 1, 100_000);
+
+  // koiosPageSize: optional per-request page size for Koios drep_list (batch size).
+  // Koios typically caps this at 1000; we clamp to [1, 1000].
+  const koiosPageSize = parseIntParam(req.query.batch_size ?? req.query.page_size, 1000, 1, 1000);
+
   // dry_run: if true, do not write to DB, only report counts
-  const limit = parseIntParam(req.query.limit, 2000, 1, 10_000);
   const dryRun = parseBooleanParam(req.query.dry_run, false);
 
   try {
-    // 1) Fetch full DRep list from Koios (authoritative DRep set)
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 20_000);
-    const koiosResponse = await fetch(KOIOS_DREP_LIST_ENDPOINT, {
-      method: "GET",
-      headers: getKoiosHeaders(),
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
+    // 1) Fetch full DRep list from Koios (authoritative DRep set), handling Koios pagination.
+    // Koios returns up to 1000 rows per page, so we loop with limit/offset until we've
+    // gathered either all rows or hit our configured `maxDrepsToSync`.
+    const dreps: KoiosDrepInfo[] = [];
+    let offset = 0;
+    let done = false;
 
-    if (!koiosResponse.ok) {
-      return res.status(502).json({
-        error: "Upstream error from Koios",
-        status: koiosResponse.status,
-      });
+    while (!done && dreps.length < maxDrepsToSync) {
+      const remaining = maxDrepsToSync - dreps.length;
+      const pageSize = Math.min(koiosPageSize, remaining);
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 20_000);
+
+      try {
+        const url = new URL(KOIOS_DREP_LIST_ENDPOINT);
+        url.searchParams.set("limit", pageSize.toString());
+        url.searchParams.set("offset", offset.toString());
+
+        const response = await fetch(url.toString(), {
+          method: "GET",
+          headers: getKoiosHeaders(),
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+
+        if (!response.ok) {
+          let bodySnippet: string | undefined;
+          try {
+            const text = await response.text();
+            bodySnippet = text.slice(0, 500);
+          } catch {
+            // ignore
+          }
+          return res.status(502).json({
+            error: "Upstream error from Koios",
+            status: response.status,
+            pageSize,
+            offset,
+            drepsSoFar: dreps.length,
+            bodySnippet,
+          });
+        }
+
+        const json = (await response.json()) as unknown;
+        if (!Array.isArray(json)) {
+          let bodySnippet: string | undefined;
+          try {
+            bodySnippet = JSON.stringify(json).slice(0, 500);
+          } catch {
+            // ignore
+          }
+          return res.status(502).json({
+            error: "Unexpected response shape from Koios drep_list",
+            pageSize,
+            offset,
+            drepsSoFar: dreps.length,
+            bodySnippet,
+          });
+        }
+
+        const batch = json as KoiosDrepInfo[];
+        if (batch.length === 0) {
+          done = true;
+          break;
+        }
+
+        dreps.push(...batch);
+
+        if (batch.length < pageSize) {
+          // Last page
+          done = true;
+        } else {
+          offset += batch.length;
+        }
+      } catch (error) {
+        clearTimeout(timeout);
+        throw error;
+      }
     }
-
-    const json = (await koiosResponse.json()) as unknown;
-    if (!Array.isArray(json)) {
-      return res.status(502).json({
-        error: "Unexpected response shape from Koios drep_list",
-      });
-    }
-
-    const dreps = json as KoiosDrepInfo[];
 
     // Normalize and de-duplicate DReps by drep_id
     const drepListMap = new Map<string, KoiosDrepInfo>();
@@ -308,7 +369,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    // Restrict how many we process in this run
+    // limit: optional max number of Koios DReps to upsert in this run (after de-dup).
+    // By default, process all DReps returned by Koios.
+    const limit = parseIntParam(req.query.limit, totalKoiosDreps, 1, totalKoiosDreps);
+
+    // Restrict how many we process in this run (default: all)
     const targetDrepIds = allDrepIds.slice(0, limit);
 
     // Fetch enriched DRep info from Koios for the target IDs

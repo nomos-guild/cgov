@@ -84,7 +84,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: "Method Not Allowed" });
   }
 
-  const limit = parseIntParam(req.query.limit, 50, 1, 500);
+  const limit = parseIntParam(req.query.limit, 200, 1, 500);
   const offset = parseIntParam(req.query.offset, 0, 0);
   const since = parseNumberParam(req.query.since); // UNIX seconds (block_time)
   const until = parseNumberParam(req.query.until); // UNIX seconds (block_time)
