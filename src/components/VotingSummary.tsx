@@ -1,8 +1,8 @@
 import { Card } from "@/components/ui/card";
-import type { VoteRecord } from "@/types/governance";
+import type { Vote } from "@/types/governance";
 
 interface VotingSummaryProps {
-  votes: VoteRecord[];
+  votes: Vote[];
   proposalTitle?: string;
 }
 

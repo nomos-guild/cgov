@@ -1,4 +1,4 @@
-import type { VoteRecord } from "@/types/governance";
+import type { Vote } from "@/types/governance";
 
 // Mock rationale function - matches the one in VotingRecords
 function getRationale(voterName: string | undefined, voterId: string, vote: string): string {
@@ -60,7 +60,7 @@ We remain engaged and will continue monitoring the proposal's progress.`,
   return templates[vote as keyof typeof templates] || "No rationale provided.";
 }
 
-export function exportToJSON(votes: VoteRecord[], proposalTitle: string): string {
+export function exportToJSON(votes: Vote[], proposalTitle: string): string {
   const data = {
     proposalTitle,
     exportedAt: new Date().toISOString(),
@@ -82,7 +82,7 @@ export function exportToJSON(votes: VoteRecord[], proposalTitle: string): string
   return JSON.stringify(data, null, 2);
 }
 
-export function exportToMarkdown(votes: VoteRecord[], proposalTitle: string): string {
+export function exportToMarkdown(votes: Vote[], proposalTitle: string): string {
   let markdown = `# Voting Rationales: ${proposalTitle}\n\n`;
   markdown += `**Exported:** ${new Date().toLocaleString()}\n`;
   markdown += `**Total Votes:** ${votes.length}\n\n`;
@@ -97,7 +97,9 @@ export function exportToMarkdown(votes: VoteRecord[], proposalTitle: string): st
       markdown += `**Voting Power:** ${vote.votingPowerAda.toLocaleString()} ADA\n\n`;
     }
     
-    markdown += `**Voted At:** ${new Date(vote.votedAt).toLocaleString()}\n\n`;
+    if (vote.votedAt) {
+      markdown += `**Voted At:** ${new Date(vote.votedAt).toLocaleString()}\n\n`;
+    }
     
     if (vote.anchorUrl) {
       markdown += `**Rationale Link:** [${vote.anchorUrl}](${vote.anchorUrl})\n\n`;
@@ -111,8 +113,9 @@ export function exportToMarkdown(votes: VoteRecord[], proposalTitle: string): st
   return markdown;
 }
 
-export function exportToCSV(votes: VoteRecord[], proposalTitle: string): string {
+export function exportToCSV(votes: Vote[], proposalTitle: string): string {
   const headers = [
+    "Proposal",
     "Voter Type",
     "Voter ID",
     "Voter Name",
@@ -129,12 +132,13 @@ export function exportToCSV(votes: VoteRecord[], proposalTitle: string): string 
       .replace(/\n/g, " "); // Replace newlines with spaces
     
     return [
+      proposalTitle,
       vote.voterType,
       vote.voterId,
       vote.voterName || "",
       vote.vote,
       vote.votingPowerAda?.toLocaleString() || "",
-      new Date(vote.votedAt).toLocaleString(),
+      vote.votedAt ? new Date(vote.votedAt).toLocaleString() : "",
       `"${rationale}"`,
       vote.anchorUrl || "",
     ];

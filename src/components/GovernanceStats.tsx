@@ -1,10 +1,14 @@
+import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useAppSelector } from "@/store/hooks";
-import { mockNCLData } from "@/data/mockData";
+import { useGovernanceApi } from "@/contexts/GovernanceApiContext";
+import type { NCLData } from "@/types/governance";
 
 export function GovernanceStats() {
   const actions = useAppSelector((state) => state.governance.actions);
+  const [nclData, setNclData] = useState<NCLData | null>(null);
+  const api = useGovernanceApi();
 
   const stats = {
     total: actions.length,
@@ -13,8 +17,23 @@ export function GovernanceStats() {
     expired: actions.filter((a) => a.status === "Expired").length,
   };
 
+  useEffect(() => {
+    const loadNCLData = async () => {
+      try {
+        const data = await api.getNCLData();
+        setNclData(data);
+      } catch (error) {
+        console.error("Error loading NCL data:", error);
+      }
+    };
+
+    loadNCLData();
+  }, [api]);
+
   // Calculate NCL progress percentage
-  const nclProgress = (mockNCLData.currentValue / mockNCLData.targetValue) * 100;
+  const nclProgress = nclData
+    ? (nclData.currentValue / nclData.targetValue) * 100
+    : 0;
 
   // Format large numbers to M (millions)
   const formatToMillions = (value: number): string => {
@@ -52,19 +71,21 @@ export function GovernanceStats() {
         </div>
 
         {/* Right side - NCL Progress */}
-        <div className="flex-1 md:max-w-md md:ml-auto">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-muted-foreground uppercase tracking-wide">
-              {mockNCLData.year} NCL
-            </span>
-            <span className="text-sm font-semibold">{nclProgress.toFixed(1)}%</span>
+        {nclData && (
+          <div className="flex-1 md:max-w-md md:ml-auto">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-muted-foreground uppercase tracking-wide">
+                {nclData.year} NCL
+              </span>
+              <span className="text-sm font-semibold">{nclProgress.toFixed(1)}%</span>
+            </div>
+            <div className="flex items-baseline gap-2 mb-2">
+              <span className="text-lg font-bold">{formatToMillions(nclData.currentValue)}</span>
+              <span className="text-sm text-muted-foreground">/ {formatToMillions(nclData.targetValue)}</span>
+            </div>
+            <Progress value={nclProgress} className="h-1.5" />
           </div>
-          <div className="flex items-baseline gap-2 mb-2">
-            <span className="text-lg font-bold">{formatToMillions(mockNCLData.currentValue)}</span>
-            <span className="text-sm text-muted-foreground">/ {formatToMillions(mockNCLData.targetValue)}</span>
-          </div>
-          <Progress value={nclProgress} className="h-1.5" />
-        </div>
+        )}
       </div>
     </Card>
   );

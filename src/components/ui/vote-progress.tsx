@@ -14,7 +14,7 @@ interface VoteProgressProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
-  ({ className, yesPercent, noPercent, title, ...props }, ref) => {
+  ({ className, yesPercent, noPercent, title, yesLabel, noLabel, yesAda, noAda, showPercentages, showAda, ...props }, ref) => {
     const totalPercent = yesPercent + noPercent;
     const yesWidth = totalPercent > 0 ? (yesPercent / totalPercent) * 100 : yesPercent;
     const noWidth = totalPercent > 0 ? (noPercent / totalPercent) * 100 : noPercent;

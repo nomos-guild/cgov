@@ -20,11 +20,11 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { VoteRecord } from "@/types/governance";
+import type { Vote } from "@/types/governance";
 import { Search, ExternalLink, FileText } from "lucide-react";
 
 interface VotingRecordsProps {
-  votes: VoteRecord[];
+  votes: Vote[];
 }
 
 function formatAda(ada: number): string {
@@ -33,7 +33,7 @@ function formatAda(ada: number): string {
   }).format(ada);
 }
 
-function getVoteBadgeClasses(vote: VoteRecord["vote"]): string {
+function getVoteBadgeClasses(vote: Vote["vote"]): string {
   return vote === "Yes"
     ? "text-foreground border-foreground/40 bg-foreground/5"
     : "text-foreground/60 border-foreground/20 bg-transparent";

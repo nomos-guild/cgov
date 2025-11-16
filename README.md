@@ -29,6 +29,46 @@ With cgov, you can
 
 ## For Dev / Maintainers
 
-TBC
+### Quick Start
+
+```bash
+npm install
+npm run dev
+```
+
+Application runs on `http://localhost:3001` with **mock data by default**.
+
+### Switching Mock / Real API
+
+By default uses **mock data** (no API server needed).
+
+**Option 1: Use pre-configured files**
+
+```bash
+# Production API (https://api.cgov.io)
+cp config/env.production .env.local
+npm run dev
+
+# Mock data (default)
+cp config/env.mock .env.local
+npm run dev
+
+# Local development API
+cp config/env.local .env.local
+npm run dev
+```
+
+**Option 2: Manual configuration**
+
+Create `.env.local`:
+
+```bash
+# For mock data
+NEXT_PUBLIC_API_MODE=mock
+
+# For real API
+NEXT_PUBLIC_API_MODE=real
+NEXT_PUBLIC_API_BASE_URL=https://api.cgov.io
+```
 
 ![Alt](https://repobeats.axiom.co/api/embed/783bce112387ee6ab70e24a8b31532de60d40f06.svg "Repobeats analytics image")

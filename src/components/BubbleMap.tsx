@@ -1,18 +1,18 @@
 import { useMemo } from "react";
-import type { VoteRecord } from "@/types/governance";
+import type { Vote } from "@/types/governance";
 
 interface BubbleMapProps {
-  votes: VoteRecord[];
+  votes: Vote[];
 }
 
 interface Bubble {
   x: number;
   y: number;
   radius: number;
-  vote: VoteRecord;
+  vote: Vote;
 }
 
-function getVoteBorderColor(vote: VoteRecord["vote"]): string {
+function getVoteBorderColor(vote: Vote["vote"]): string {
   switch (vote) {
     case "Yes":
       return "rgb(22, 163, 74)"; // dark green
@@ -45,7 +45,7 @@ function checkOverlap(newBubble: Bubble, existingBubbles: Bubble[]): boolean {
 }
 
 function placeBubbleNearCluster(
-  vote: VoteRecord,
+  vote: Vote,
   radius: number,
   clusterCenterX: number,
   clusterCenterY: number,
