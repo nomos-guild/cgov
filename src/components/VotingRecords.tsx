@@ -1,10 +1,10 @@
 import { useState, useMemo } from "react";
-import Link from "next/link";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { VotingRationaleModal } from "@/components/VotingRationaleModal";
 import type { VoteRecord } from "@/types/governance";
 import { Search } from "lucide-react";
 
@@ -41,6 +41,8 @@ export function VotingRecords({
   const [timeSort, setTimeSort] = useState<string>("newest");
   const [powerSort, setPowerSort] = useState<string>("none");
   const [rationaleFilter, setRationaleFilter] = useState<string>("all");
+  const [selectedVote, setSelectedVote] = useState<VoteRecord | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const voteIdMap = useMemo(() => {
     const map = new Map<VoteRecord, number>();
@@ -55,9 +57,9 @@ export function VotingRecords({
     return index !== undefined ? index.toString() : "0";
   };
 
-  const getRationaleUrl = (vote: VoteRecord): string => {
-    const voteId = getVoteId(vote);
-    return proposalId ? `/governance/${proposalId}/rationale/${voteId}` : "#";
+  const handleOpenRationale = (vote: VoteRecord) => {
+    setSelectedVote(vote);
+    setIsModalOpen(true);
   };
 
   const filteredVotes = useMemo(() => {
@@ -255,15 +257,17 @@ export function VotingRecords({
                           {vote.votedAt ? new Date(vote.votedAt).toLocaleDateString() : "—"}
                         </TableCell>
                         <TableCell className="text-right">
-                          {vote.anchorUrl && vote.voterType !== "CC" ? (
-                            <Link href={getRationaleUrl(vote)}>
-                              <Button size="sm" variant="outline">
-                                View
-                              </Button>
-                            </Link>
+                          {vote.voterType !== "CC" ? (
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => handleOpenRationale(vote)}
+                            >
+                              View
+                            </Button>
                           ) : (
                             <span className="text-xs text-muted-foreground">
-                              {vote.voterType === "CC" ? "Not applicable" : "No rationale"}
+                              Not applicable
                             </span>
                           )}
                         </TableCell>
@@ -276,6 +280,11 @@ export function VotingRecords({
           </div>
         </div>
       </div>
+      <VotingRationaleModal 
+        vote={selectedVote} 
+        open={isModalOpen} 
+        onOpenChange={setIsModalOpen}
+      />
     </div>
   );
 }

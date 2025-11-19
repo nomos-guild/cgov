@@ -347,8 +347,8 @@ export function GovernanceTable() {
                     className="group cursor-pointer"
                     onClick={() => handleRowClick(action.id)}>
                     <div className="py-4 sm:py-6 transition-transform duration-300 group-hover:scale-[1.01]">
-                      <div className="mb-4 flex flex-col gap-6 sm:mb-6 lg:flex-row lg:items-center lg:gap-8">
-                        <div className="order-2 flex flex-wrap items-center gap-4 sm:gap-6 lg:order-1" style={{ overflow: "visible", background: "transparent", border: "none" }}>
+                      <div className="mb-4 flex flex-col gap-6 sm:mb-6 sm:flex-row sm:items-center sm:gap-8">
+                        <div className="flex flex-wrap items-center gap-4 sm:gap-6" style={{ overflow: "visible", background: "transparent", border: "none" }}>
                           {drepInfo ? (
                             <VoteProgress
                               title="DRep"
@@ -392,7 +392,7 @@ export function GovernanceTable() {
                             />
                           ) : null}
                         </div>
-                        <div className="order-1 flex-1 space-y-3 lg:order-2">
+                        <div className="flex-1 space-y-3">
                           <h3 className="min-w-0 flex-1 rounded-2xl border border-white/8 bg-[#faf9f6] px-4 py-3 text-base font-semibold sm:text-lg shadow-[0_12px_30px_rgba(15,23,42,0.25)]">
                             {action.title}
                           </h3>

@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setSelectedAction } from "@/store/governanceSlice";
-import { getActionByProposalId } from "@/data/mockData";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import type { VoteRecord } from "@/types/governance";
 
@@ -205,9 +204,7 @@ export default function VotingRationale() {
                 )}
                 <div>
                   <div className="text-xs text-muted-foreground mb-0.5">Voted At</div>
-                  <div className="font-medium">
-                    {vote.votedAt ? new Date(vote.votedAt).toLocaleDateString() : "Unknown"}
-                  </div>
+                  <div className="font-medium">{new Date(vote.votedAt).toLocaleDateString()}</div>
                 </div>
               </div>
             </div>

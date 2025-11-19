@@ -303,4 +303,20 @@
   .page-transition {
     animation: fadeIn 0.3s ease-in-out;
   }
+
+  /* Custom scrollbar for VotingRationaleModal */
+  .modal-scrollbar [data-radix-scroll-area-scrollbar] {
+    background: transparent !important;
+  }
+
+  .modal-scrollbar [data-radix-scroll-area-thumb] {
+    background: white !important;
+    border-radius: 9999px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+  }
+
+  .modal-scrollbar [data-radix-scroll-area-scrollbar]:hover [data-radix-scroll-area-thumb] {
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.2), 0 2px 4px rgba(0, 0, 0, 0.15) !important;
+  }
+
 }

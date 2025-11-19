@@ -6,12 +6,13 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { VoteProgress } from "@/components/ui/vote-progress";
+import { Progress } from "@/components/ui/progress";
 import { VotingRecords } from "@/components/VotingRecords";
 import { BubbleMap } from "@/components/BubbleMap";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setSelectedAction } from "@/store/governanceSlice";
 import { useGovernanceApi } from "@/contexts/GovernanceApiContext";
-import { ArrowLeft, Twitter, ChevronDown, ChevronRight, ChevronUp } from "lucide-react";
+import { Twitter, ChevronDown, ChevronRight, ChevronUp } from "lucide-react";
 import {
   ResponsiveContainer,
   LineChart,
@@ -74,31 +75,36 @@ export default function GovernanceDetail() {
 
   const [downloadFormat, setDownloadFormat] = useState<string>("");
   const [loading, setLoading] = useState(true);
+  const [contentVisible, setContentVisible] = useState(false);
   const [selectedTab, setSelectedTab] = useState<string | null>("live-voting");
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState<boolean>(false);
   const api = useGovernanceApi();
 
   useEffect(() => {
     const loadProposal = async () => {
-      if (typeof proposalId === "string") {
-        try {
-          setLoading(true);
-          const action = await api.getProposalById(proposalId);
-          if (action) {
-            dispatch(setSelectedAction(action));
-            // Small delay to ensure smooth transition
-            await new Promise((resolve) => setTimeout(resolve, 100));
-          }
-        } catch (error) {
-          console.error("Error loading proposal:", error);
-        } finally {
-          setLoading(false);
+      if (!router.isReady || typeof proposalId !== "string") {
+        return;
+      }
+      
+      try {
+        setLoading(true);
+        setContentVisible(false);
+        const action = await api.getProposalById(proposalId);
+        if (action) {
+          dispatch(setSelectedAction(action));
+          // Small delay for smooth transition
+          await new Promise((resolve) => setTimeout(resolve, 150));
+          setContentVisible(true);
         }
+      } catch (error) {
+        console.error("Error loading proposal:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
     loadProposal();
-  }, [proposalId, dispatch, api]);
+  }, [router.isReady, proposalId, dispatch, api]);
 
   const allVotes = useMemo(() => {
     if (!selectedAction) return [];
@@ -268,7 +274,7 @@ export default function GovernanceDetail() {
   );
   const useDashedPowerLines = shouldShowPower && curveRoleFilter !== "DRep";
 
-  if (loading || !selectedAction) {
+  if (!router.isReady || loading || !selectedAction) {
     return (
       <div className="min-h-screen bg-background">
         <div className="container mx-auto py-8 px-4">
@@ -343,33 +349,12 @@ export default function GovernanceDetail() {
         <meta name="description" content={selectedAction.description || selectedAction.title} />
       </Head>
       <div className="min-h-screen bg-background">
-        {/* Fixed Back Button */}
-        <div className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border/50 animate-fade-in">
-          <div className="container mx-auto px-4 sm:px-6 py-3">
-            <div className="rounded-2xl border border-white/8 bg-[#faf9f6] px-4 py-2 shadow-[0_12px_30px_rgba(15,23,42,0.25)] inline-block">
-              <Link href="/">
-                <Button variant="ghost" className="h-auto p-0 hover:bg-transparent">
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Back to Dashboard
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-        <div className="container mx-auto px-4 sm:px-6 pt-20 pb-6 sm:pb-8 animate-slide-in-bottom">
+        <div className={`container mx-auto px-4 sm:px-6 py-6 sm:py-8 transition-opacity duration-300 ${contentVisible ? "opacity-100" : "opacity-0"}`}>
 
           {/* Header Section */}
-          <Card className="mb-6 sm:mb-8">
+          <Card className={`mb-6 sm:mb-8 animate-slide-in-bottom`}>
             <div className="p-4 sm:p-6">
               <div className="mb-4">
-                <div className="flex flex-wrap items-center gap-2 mb-4">
-                  <Badge variant="outline" className={getStatusColor(selectedAction.status)}>
-                    {selectedAction.status}
-                  </Badge>
-                  <Badge variant="outline" className="border-border">
-                    {selectedAction.type}
-                  </Badge>
-                </div>
                 <div className="border-t border-border/50 pt-4 mb-4">
                   <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4">{selectedAction.title}</h1>
                   <div className="flex flex-wrap items-center gap-2">
@@ -418,14 +403,13 @@ export default function GovernanceDetail() {
             </div>
           </Card>
 
-          <div className="mb-6 sm:mb-8">
+          <div className={`mb-6 sm:mb-8 transition-opacity duration-300 delay-75 ${contentVisible ? "opacity-100" : "opacity-0"}`}>
             <Tabs value={selectedTab || undefined} onValueChange={setSelectedTab} className="w-full">
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <TabsList className="flex-1 flex-wrap justify-start gap-1 bg-transparent p-0">
                     <TabsTrigger value="live-voting">Live Voting</TabsTrigger>
                     <TabsTrigger value="bubble-map">Bubble Map</TabsTrigger>
-                    <TabsTrigger value="statistics">Statistics</TabsTrigger>
                     <TabsTrigger value="curves">Curves</TabsTrigger>
                     <TabsTrigger value="details">Details</TabsTrigger>
                   </TabsList>
@@ -449,7 +433,16 @@ export default function GovernanceDetail() {
                   <>
                     <TabsContent value="live-voting" className="mt-0">
                       {allVotes.length > 0 ? (
-                        <div className="flex flex-wrap items-start gap-4 sm:gap-6" style={{ overflow: "visible" }}>
+                        <div className="space-y-4">
+                          <div className="flex flex-wrap items-center gap-2 justify-center">
+                            <Badge variant="outline" className={getStatusColor(selectedAction.status)}>
+                              {selectedAction.status}
+                            </Badge>
+                            <Badge variant="outline" className="border-border">
+                              {selectedAction.type}
+                            </Badge>
+                          </div>
+                          <div className="flex flex-wrap items-start gap-4 sm:gap-6" style={{ overflow: "visible" }}>
                           <div className="flex flex-col items-center gap-3">
                             {allowDRep ? (
                               drepInfo ? (
@@ -540,6 +533,7 @@ export default function GovernanceDetail() {
                               <RolePlaceholder role="SPO" message="Not eligible for this action" />
                             )}
                           </div>
+                          </div>
                         </div>
                       ) : (
                         <div className="flex items-center justify-center py-6 text-sm text-muted-foreground">
@@ -549,9 +543,6 @@ export default function GovernanceDetail() {
                     </TabsContent>
                     <TabsContent value="bubble-map" className="mt-0">
                       <BubbleMap votes={allVotes} />
-                    </TabsContent>
-                    <TabsContent value="statistics" className="mt-0">
-                      {/* Statistics content */}
                     </TabsContent>
                     <TabsContent value="curves" className="mt-0">
                       <Card className="p-4 sm:p-6">
@@ -686,25 +677,75 @@ export default function GovernanceDetail() {
                     </TabsContent>
                     <TabsContent value="details" className="mt-0">
                       <div className="space-y-4">
+                        {/* Time Until Expiry */}
+                        {selectedAction && (() => {
+                          const submissionEpoch = selectedAction.submissionEpoch;
+                          const expiryEpoch = selectedAction.expiryEpoch || submissionEpoch + 6;
+                          // Estimate current epoch (in real app, fetch from API)
+                          // Using a mock current epoch for now - submissionEpoch + some days
+                          const mockCurrentEpoch = submissionEpoch + 2; // Example: 2 epochs passed
+                          const epochsRemaining = Math.max(0, expiryEpoch - mockCurrentEpoch);
+                          const daysRemaining = epochsRemaining * 5; // 5 days per epoch
+                          const totalEpochs = 6;
+                          const epochsPassed = Math.min(totalEpochs, totalEpochs - epochsRemaining);
+                          const progressPercent = (epochsPassed / totalEpochs) * 100;
+
+                          return (
+                            <>
+                              <div>
+                                <label className="text-xs sm:text-sm text-muted-foreground mb-2 block">Time Until Expiry</label>
+                                <div className="text-xs sm:text-sm text-foreground mb-3">
+                                  {epochsRemaining > 0 ? (
+                                    <>
+                                      {epochsRemaining} {epochsRemaining === 1 ? "epoch" : "epochs"} ({daysRemaining} {daysRemaining === 1 ? "day" : "days"}) remaining
+                                    </>
+                                  ) : (
+                                    <span className="text-destructive">Expired</span>
+                                  )}
+                                </div>
+                                <Progress 
+                                  value={progressPercent} 
+                                  className="h-2 mb-3"
+                                  variant={epochsRemaining === 0 ? "no" : epochsRemaining <= 2 ? "no" : "default"}
+                                />
+                                <div className="grid grid-cols-3 gap-4 text-center text-xs">
+                                  <div>
+                                    <div className="text-muted-foreground mb-1">Submission</div>
+                                    <div className="font-semibold">Epoch {submissionEpoch}</div>
+                                  </div>
+                                  <div>
+                                    <div className="text-muted-foreground mb-1">Current</div>
+                                    <div className="font-semibold">Epoch {mockCurrentEpoch}</div>
+                                  </div>
+                                  <div>
+                                    <div className="text-muted-foreground mb-1">Expiry</div>
+                                    <div className="font-semibold">Epoch {expiryEpoch}</div>
+                                  </div>
+                                </div>
+                              </div>
+                            </>
+                          );
+                        })()}
+                        {/* Vote Metric */}
                         <div>
-                          <label className="text-xs sm:text-sm text-muted-foreground mb-2 block">Governance Action ID</label>
-                          <code className="text-xs sm:text-sm text-muted-foreground bg-secondary px-2 sm:px-3 py-1 rounded font-mono break-all block">
-                            {selectedAction.id}
-                          </code>
+                          <label className="text-xs sm:text-sm text-muted-foreground mb-2 block">Vote</label>
+                          <div className="flex flex-col gap-1">
+                            <div className="text-xs sm:text-sm text-foreground">Yes</div>
+                            <div className="text-xs sm:text-sm text-foreground">No</div>
+                            <div className="text-xs sm:text-sm text-foreground">Abstain</div>
+                          </div>
                         </div>
+                          <div>
+                            <label className="text-xs sm:text-sm text-muted-foreground mb-2 block">Governance Action ID</label>
+                            <code className="text-xs sm:text-sm text-muted-foreground bg-secondary px-2 sm:px-3 py-1 rounded font-mono break-all block">
+                              {selectedAction.id}
+                            </code>
+                          </div>
                         <div>
                           <label className="text-xs sm:text-sm text-muted-foreground mb-2 block">Transaction Hash</label>
                           <code className="text-xs sm:text-sm text-muted-foreground bg-secondary px-2 sm:px-3 py-1 rounded font-mono break-all block">
                             {selectedAction.txHash}
                           </code>
-                        </div>
-                        <div>
-                          <label className="text-xs sm:text-sm text-muted-foreground mb-2 block">Submission Epoch</label>
-                          <div className="text-xs sm:text-sm text-foreground">Epoch {selectedAction.submissionEpoch}</div>
-                        </div>
-                        <div>
-                          <label className="text-xs sm:text-sm text-muted-foreground mb-2 block">Expiry Epoch</label>
-                          <div className="text-xs sm:text-sm text-foreground">Epoch {selectedAction.expiryEpoch}</div>
                         </div>
                       </div>
                     </TabsContent>
@@ -716,7 +757,7 @@ export default function GovernanceDetail() {
 
           {/* Voting Records Table */}
           {allVotes.length > 0 && (
-            <div className="mb-6" style={{ overflow: "visible" }}>
+            <div className={`mb-6 transition-opacity duration-300 delay-150 ${contentVisible ? "opacity-100" : "opacity-0"}`} style={{ overflow: "visible" }}>
               <VotingRecords
                 votes={allVotes}
                 proposalId={selectedAction.id}
