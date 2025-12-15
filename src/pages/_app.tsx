@@ -8,22 +8,19 @@ import { MeshProvider } from "@meshsdk/react";
 import { Header } from "@/components/layout";
 import { Footer } from "@/components/Footer";
 import { ThemeProvider } from "@/lib/theme";
-import { GovernanceApiProvider } from "@/contexts/GovernanceApiContext";
 
 export default function App({ Component, pageProps }: AppProps) {
   return (
     <ThemeProvider>
       <MeshProvider>
-      <Provider store={store}>
-        <GovernanceApiProvider>
+        <Provider store={store}>
           <Head>
             <link rel="icon" href="/favicon.ico?v=2" />
           </Head>
-          <Header />    
-              <Component {...pageProps} />      
-            <Footer />    
-        </GovernanceApiProvider>
-      </Provider>
+          <Header />
+          <Component {...pageProps} />
+          <Footer />
+        </Provider>
       </MeshProvider>
     </ThemeProvider>
   );

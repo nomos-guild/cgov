@@ -1,42 +1,27 @@
-import { useEffect, useState } from "react";
 import { Progress } from "@/components/ui/progress";
 import { useAppSelector } from "@/store/hooks";
-import { useGovernanceApi } from "@/contexts/GovernanceApiContext";
-import type { NCLData } from "@/types/governance";
 
 export function GovernanceStats() {
-  const actions = useAppSelector((state) => state.governance.actions);
-  const [nclData, setNclData] = useState<NCLData | null>(null);
-  const api = useGovernanceApi();
+  const { actions, nclData } = useAppSelector((state) => state.governance);
 
   const stats = {
     total: actions.length,
     active: actions.filter((a) => a.status === "Active").length,
-    ratified: actions.filter((a) => a.status === "Ratified" || a.status === "Approved").length,
-    expired: actions.filter((a) => a.status === "Expired").length,
+    // Treat "Enacted" as successfully ratified and "Closed" as an expired outcome
+    ratified: actions.filter(
+      (a) => a.status === "Ratified" || a.status === "Enacted"
+    ).length,
+    expired: actions.filter(
+      (a) => a.status === "Expired" || a.status === "Closed"
+    ).length,
   };
 
-  useEffect(() => {
-    const loadNCLData = async () => {
-      try {
-        const data = await api.getNCLData();
-        setNclData(data);
-      } catch (error) {
-        console.error("Error loading NCL data:", error);
-      }
-    };
+  // Calculate NCL progress percentage from Redux-managed display data
+  const nclProgress = nclData ? nclData.percentUsed : 0;
 
-    loadNCLData();
-  }, [api]);
-
-  // Calculate NCL progress percentage
-  const nclProgress = nclData
-    ? (nclData.currentValue / nclData.targetValue) * 100
-    : 0;
-
-  // Format large numbers to M (millions)
+  // Format large numbers of ADA to millions of ADA (e.g. 290,000,000 → "290M")
   const formatToMillions = (value: number): string => {
-    return `${(value / 1000000).toFixed(0)}M`;
+    return `${(value / 1_000_000).toFixed(0)}M`;
   };
 
   return (
@@ -46,26 +31,40 @@ export function GovernanceStats() {
         <div className="flex flex-wrap items-center gap-4 sm:gap-6 md:gap-8">
           <div className="flex items-baseline gap-2">
             <span className="text-2xl sm:text-3xl font-bold">{stats.total}</span>
-            <span className="text-xs sm:text-sm text-muted-foreground uppercase tracking-wide">Total</span>
+            <span className="text-xs sm:text-sm text-muted-foreground uppercase tracking-wide">
+              Total
+            </span>
           </div>
-          
+
           <div className="h-6 sm:h-8 w-px bg-border hidden sm:block" />
-          
+
           <div className="flex items-baseline gap-2">
-            <span className="text-xl sm:text-2xl font-semibold">{stats.active}</span>
-            <span className="text-xs sm:text-sm text-muted-foreground">Active</span>
+            <span className="text-xl sm:text-2xl font-semibold">
+              {stats.active}
+            </span>
+            <span className="text-xs sm:text-sm text-muted-foreground">
+              Active
+            </span>
           </div>
-          
+
           <div className="flex items-baseline gap-2">
-            <span className="text-xl sm:text-2xl font-semibold">{stats.ratified}</span>
-            <span className="text-xs sm:text-sm text-muted-foreground">Ratified</span>
+            <span className="text-xl sm:text-2xl font-semibold">
+              {stats.ratified}
+            </span>
+            <span className="text-xs sm:text-sm text-muted-foreground">
+              Ratified
+            </span>
           </div>
-          
+
           <div className="h-6 sm:h-8 w-px bg-border hidden sm:block" />
-          
+
           <div className="flex items-baseline gap-2">
-            <span className="text-xl sm:text-2xl font-semibold">{stats.expired}</span>
-            <span className="text-xs sm:text-sm text-muted-foreground">Expired</span>
+            <span className="text-xl sm:text-2xl font-semibold">
+              {stats.expired}
+            </span>
+            <span className="text-xs sm:text-sm text-muted-foreground">
+              Expired
+            </span>
           </div>
         </div>
       </div>
@@ -77,11 +76,17 @@ export function GovernanceStats() {
             <span className="text-xs text-muted-foreground uppercase tracking-wide">
               {nclData.year} NCL
             </span>
-            <span className="text-sm font-semibold">{nclProgress.toFixed(1)}%</span>
+            <span className="text-sm font-semibold">
+              {nclProgress.toFixed(1)}%
+            </span>
           </div>
           <div className="flex items-baseline gap-2 mb-2">
-            <span className="text-lg font-bold">{formatToMillions(nclData.currentValue)}</span>
-            <span className="text-sm text-muted-foreground">/ {formatToMillions(nclData.targetValue)}</span>
+            <span className="text-lg font-bold">
+              {formatToMillions(nclData.currentValueAda)}
+            </span>
+            <span className="text-sm text-muted-foreground">
+              / {formatToMillions(nclData.targetValueAda)}
+            </span>
           </div>
           <Progress value={nclProgress} className="h-1.5" />
         </div>

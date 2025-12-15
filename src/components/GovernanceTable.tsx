@@ -153,10 +153,13 @@ export function GovernanceTable() {
       return list.filter((action) => action.title.toLowerCase().includes(q));
     };
 
-    // Filter by status first
-    const statusFiltered = sortedActions.filter((action) =>
-      statusSet.has(action.status)
-    );
+    // Filter by status first.
+    // When all statuses are selected (default), don't filter by status so that
+    // any new/unknown statuses from the API (e.g. "Enacted", "Closed") are still shown.
+    const statusFiltered =
+      isAllStatusesSelected || selectedStatuses.length === 0
+        ? sortedActions
+        : sortedActions.filter((action) => statusSet.has(action.status));
 
     const prioritized = SHOWCASE_ORDER.filter((type) =>
       selectionSet.has(type)
