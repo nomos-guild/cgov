@@ -106,6 +106,12 @@ export async function fetchCurrentYearNCL(): Promise<NCLDisplayData | null> {
 export async function fetchGovernanceActions(): Promise<GovernanceAction[]> {
   const data = await fetchApi<GovernanceAction[]>(API_ENDPOINTS.proposals);
 
+  // Dev-only logging of raw API payload (pre-transform)
+  if (process.env.NODE_ENV !== "production") {
+    // eslint-disable-next-line no-console
+    console.log("[API] /proposals raw response", data);
+  }
+
   // Transform API response to match frontend expected format
   return data.map(transformGovernanceAction);
 }
@@ -122,6 +128,16 @@ export async function fetchGovernanceActionDetail(
     const data = await fetchApi<GovernanceActionDetail>(
       API_ENDPOINTS.proposalDetail(proposalId)
     );
+
+    // Dev-only logging of raw detail payload (pre-transform)
+    if (process.env.NODE_ENV !== "production") {
+      // eslint-disable-next-line no-console
+      console.log("[API] /proposal detail raw response", {
+        proposalId,
+        data,
+      });
+    }
+
     return transformGovernanceActionDetail(data);
   } catch (error) {
     console.error(`Failed to fetch proposal ${proposalId}:`, error);
@@ -130,12 +146,13 @@ export async function fetchGovernanceActionDetail(
 }
 
 /**
- * Convert lovelace string to formatted ADA string (divide by 1,000,000, round to integer, add commas)
+ * Convert lovelace string to ADA number (divide by 1,000,000).
+ * Returns 0 for missing or invalid values.
  */
-function lovelaceToAdaString(lovelace: string | undefined): string {
-  if (!lovelace) return "0";
-  const adaValue = Math.round(Number(lovelace) / 1_000_000);
-  return adaValue.toLocaleString();
+function lovelaceToAdaNumber(lovelace: string | undefined): number {
+  if (!lovelace) return 0;
+  const adaValue = Number(lovelace) / 1_000_000;
+  return Number.isFinite(adaValue) ? adaValue : 0;
 }
 
 /**
@@ -144,15 +161,21 @@ function lovelaceToAdaString(lovelace: string | undefined): string {
  * Converts lovelace values to ADA for display
  */
 function transformGovernanceAction(action: GovernanceAction): GovernanceAction {
-  // Convert lovelace to ADA for DRep
-  const drepYesAda = lovelaceToAdaString(action.drep?.yesLovelace);
-  const drepNoAda = lovelaceToAdaString(action.drep?.noLovelace);
-  const drepAbstainAda = lovelaceToAdaString(action.drep?.abstainLovelace);
+  // Convert lovelace to ADA numbers for DRep
+  const drepYesAda = lovelaceToAdaNumber(action.drep?.yesLovelace);
+  const drepNoAda = lovelaceToAdaNumber(action.drep?.noLovelace);
+  const drepAbstainAda = lovelaceToAdaNumber(action.drep?.abstainLovelace);
 
-  // Convert lovelace to ADA for SPO
-  const spoYesAda = action.spo ? lovelaceToAdaString(action.spo.yesLovelace) : undefined;
-  const spoNoAda = action.spo ? lovelaceToAdaString(action.spo.noLovelace) : undefined;
-  const spoAbstainAda = action.spo ? lovelaceToAdaString(action.spo.abstainLovelace) : undefined;
+  // Convert lovelace to ADA numbers for SPO
+  const spoYesAda = action.spo
+    ? lovelaceToAdaNumber(action.spo.yesLovelace)
+    : undefined;
+  const spoNoAda = action.spo
+    ? lovelaceToAdaNumber(action.spo.noLovelace)
+    : undefined;
+  const spoAbstainAda = action.spo
+    ? lovelaceToAdaNumber(action.spo.abstainLovelace)
+    : undefined;
 
   return {
     // Keep original hash (txHash:certIndex format) for voting transactions
@@ -198,9 +221,27 @@ function transformGovernanceAction(action: GovernanceAction): GovernanceAction {
     submissionEpoch: action.submissionEpoch ?? 0,
     expiryEpoch: action.expiryEpoch ?? 0,
 
-    // Pass through raw API data for completeness
-    drep: action.drep,
-    spo: action.spo,
+    // Thresholds and voting status (passed through from backend when present)
+    threshold: action.threshold,
+    votingStatus: action.votingStatus,
+
+    // Pass through raw API data, augmenting with ADA values
+    drep: action.drep
+      ? {
+          ...action.drep,
+          yesAda: drepYesAda,
+          noAda: drepNoAda,
+          abstainAda: drepAbstainAda,
+        }
+      : undefined,
+    spo: action.spo
+      ? {
+          ...action.spo,
+          yesAda: spoYesAda,
+          noAda: spoNoAda,
+          abstainAda: spoAbstainAda,
+        }
+      : undefined,
     cc: action.cc,
   };
 }

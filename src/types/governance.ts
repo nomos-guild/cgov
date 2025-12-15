@@ -11,9 +11,9 @@ export interface GovernanceActionVoteInfo {
   noLovelace?: string;
   abstainLovelace?: string;
   // Frontend uses ADA values for display
-  yesAda: string;
-  noAda: string;
-  abstainAda: string;
+  yesAda?: number;
+  noAda?: number;
+  abstainAda?: number;
 }
 
 /**
@@ -48,17 +48,17 @@ export interface GovernanceAction {
   drepYesPercent: number;
   drepNoPercent: number;
   drepAbstainPercent?: number;
-  drepYesAda: string;
-  drepNoAda: string;
-  drepAbstainAda?: string;
+  drepYesAda: number;
+  drepNoAda: number;
+  drepAbstainAda?: number;
 
   // SPO voting data (optional - not all actions require SPO votes)
   spoYesPercent?: number;
   spoNoPercent?: number;
   spoAbstainPercent?: number;
-  spoYesAda?: string;
-  spoNoAda?: string;
-  spoAbstainAda?: string;
+  spoYesAda?: number;
+  spoNoAda?: number;
+  spoAbstainAda?: number;
 
   // CC voting data (optional - not all actions require CC votes)
   ccYesPercent?: number;
@@ -76,6 +76,20 @@ export interface GovernanceAction {
   // Epoch information
   submissionEpoch: number;
   expiryEpoch: number;
+
+  // Thresholds for each voter group (optional, provided by backend)
+  threshold?: {
+    ccThreshold: number | null;
+    drepThreshold: number | null;
+    spoThreshold: number | null;
+  };
+
+  // Passing status for each voter group (optional, provided by backend)
+  votingStatus?: {
+    ccPassing: boolean | null;
+    drepPassing: boolean | null;
+    spoPassing: boolean | null;
+  };
 
   // Raw API vote info objects (for advanced use)
   drep?: GovernanceActionVoteInfo;
@@ -170,3 +184,48 @@ export interface NCLDisplayData {
   epoch: number;
   updatedAt: string;
 }
+
+/**
+ * High–level vote type used by UI components
+ */
+export type Vote = VoteRecord;
+
+/**
+ * Proposal status values used across the app
+ */
+export type ProposalStatus =
+  | "Active"
+  | "Ratified"
+  | "Expired"
+  | "Approved"
+  | "Not approved";
+
+/**
+ * Proposal type values used across the app
+ */
+export type ProposalType =
+  | "InfoAction"
+  | "HardForkInitiation"
+  | "ParameterChange"
+  | "NoConfidence"
+  | "UpdateCommittee"
+  | "NewConstitution"
+  | "Treasury";
+
+/**
+ * Convenience list of all proposal types, in a stable order
+ */
+export const PROPOSAL_TYPES: ProposalType[] = [
+  "NoConfidence",
+  "UpdateCommittee",
+  "NewConstitution",
+  "HardForkInitiation",
+  "ParameterChange",
+  "Treasury",
+  "InfoAction",
+];
+
+/**
+ * Voter roles
+ */
+export type VoterType = "DRep" | "SPO" | "CC";

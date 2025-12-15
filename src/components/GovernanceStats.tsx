@@ -1,125 +1,91 @@
-import { Card } from "@/components/ui/card";
+import { useEffect, useState } from "react";
 import { Progress } from "@/components/ui/progress";
 import { useAppSelector } from "@/store/hooks";
-
-/**
- * Format ADA value with commas for readability
- */
-function formatAda(value: number): string {
-  return value.toLocaleString(undefined, { maximumFractionDigits: 0 });
-}
+import { useGovernanceApi } from "@/contexts/GovernanceApiContext";
+import type { NCLData } from "@/types/governance";
 
 export function GovernanceStats() {
   const actions = useAppSelector((state) => state.governance.actions);
-  const overview = useAppSelector((state) => state.governance.overview);
-  const nclData = useAppSelector((state) => state.governance.nclData);
+  const [nclData, setNclData] = useState<NCLData | null>(null);
+  const api = useGovernanceApi();
 
-  // Calculate stats from actions if overview not available
-  const stats = overview
-    ? {
-        total: overview.totalProposals,
-        active: overview.activeProposals,
-        ratified: overview.ratifiedProposals,
-        enacted: overview.enactedProposals,
-        expired: overview.expiredProposals,
-        closed: overview.closedProposals,
+  const stats = {
+    total: actions.length,
+    active: actions.filter((a) => a.status === "Active").length,
+    ratified: actions.filter((a) => a.status === "Ratified" || a.status === "Approved").length,
+    expired: actions.filter((a) => a.status === "Expired").length,
+  };
+
+  useEffect(() => {
+    const loadNCLData = async () => {
+      try {
+        const data = await api.getNCLData();
+        setNclData(data);
+      } catch (error) {
+        console.error("Error loading NCL data:", error);
       }
-    : {
-        total: actions.length,
-        active: actions.filter((a) => a.status === "Active").length,
-        ratified: actions.filter((a) => a.status === "Ratified").length,
-        enacted: actions.filter((a) => a.status === "Enacted").length,
-        expired: actions.filter((a) => a.status === "Expired").length,
-        closed: actions.filter((a) => a.status === "Closed").length,
-      };
+    };
 
-  // Calculate progress percentage (active / total)
-  const activePercent =
-    stats.total > 0 ? (stats.active / stats.total) * 100 : 0;
+    loadNCLData();
+  }, [api]);
+
+  // Calculate NCL progress percentage
+  const nclProgress = nclData
+    ? (nclData.currentValue / nclData.targetValue) * 100
+    : 0;
+
+  // Format large numbers to M (millions)
+  const formatToMillions = (value: number): string => {
+    return `${(value / 1000000).toFixed(0)}M`;
+  };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-      {/* Left card: Total Governance Actions + Active Proposals */}
-      <Card className="p-6 bg-gradient-to-br from-primary/20 to-primary/5 border-primary/30">
-        <div className="text-5xl font-bold text-primary mb-2">
-          {stats.total}
+    <div className="flex flex-col md:flex-row gap-4 mb-6">
+      {/* Proposal Counter Box */}
+      <div className="rounded-2xl border border-white/8 bg-[#faf9f6] p-3 sm:p-4 shadow-[0_12px_30px_rgba(15,23,42,0.25)]">
+        <div className="flex flex-wrap items-center gap-4 sm:gap-6 md:gap-8">
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl sm:text-3xl font-bold">{stats.total}</span>
+            <span className="text-xs sm:text-sm text-muted-foreground uppercase tracking-wide">Total</span>
+          </div>
+          
+          <div className="h-6 sm:h-8 w-px bg-border hidden sm:block" />
+          
+          <div className="flex items-baseline gap-2">
+            <span className="text-xl sm:text-2xl font-semibold">{stats.active}</span>
+            <span className="text-xs sm:text-sm text-muted-foreground">Active</span>
+          </div>
+          
+          <div className="flex items-baseline gap-2">
+            <span className="text-xl sm:text-2xl font-semibold">{stats.ratified}</span>
+            <span className="text-xs sm:text-sm text-muted-foreground">Ratified</span>
+          </div>
+          
+          <div className="h-6 sm:h-8 w-px bg-border hidden sm:block" />
+          
+          <div className="flex items-baseline gap-2">
+            <span className="text-xl sm:text-2xl font-semibold">{stats.expired}</span>
+            <span className="text-xs sm:text-sm text-muted-foreground">Expired</span>
+          </div>
         </div>
-        <div className="text-sm text-muted-foreground uppercase tracking-wide mb-4">
-          Total Governance Actions
-        </div>
-        <div className="border-t border-primary/20 pt-4">
+      </div>
+
+      {/* NCL Progress Box */}
+      {nclData && (
+        <div className="rounded-2xl border border-white/8 bg-[#faf9f6] p-3 sm:p-4 shadow-[0_12px_30px_rgba(15,23,42,0.25)] md:flex-1 md:max-w-md">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs text-muted-foreground uppercase tracking-wide">
+              {nclData.year} NCL
+            </span>
+            <span className="text-sm font-semibold">{nclProgress.toFixed(1)}%</span>
+          </div>
           <div className="flex items-baseline gap-2 mb-2">
-            <span className="text-2xl font-bold text-foreground">
-              {stats.active}
-            </span>
-            <span className="text-sm text-muted-foreground">
-              / {stats.total} total
-            </span>
+            <span className="text-lg font-bold">{formatToMillions(nclData.currentValue)}</span>
+            <span className="text-sm text-muted-foreground">/ {formatToMillions(nclData.targetValue)}</span>
           </div>
-          <Progress value={activePercent} className="h-2 mb-2" />
-          <div className="text-right">
-            <span className="text-lg font-bold text-success">
-              {activePercent.toFixed(1)}% active
-            </span>
-          </div>
+          <Progress value={nclProgress} className="h-1.5" />
         </div>
-      </Card>
-
-      {/* Middle card: Status Breakdown */}
-      <Card className="p-6 border-border/50">
-        <div className="text-2xl font-semibold text-foreground mb-3">
-          Status Breakdown
-        </div>
-        <div className="space-y-2">
-          <div className="flex justify-between items-center">
-            <span className="text-muted-foreground">Active</span>
-            <span className="text-success font-semibold">{stats.active}</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-muted-foreground">Ratified</span>
-            <span className="text-primary font-semibold">{stats.ratified}</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-muted-foreground">Enacted</span>
-            <span className="text-blue-500 font-semibold">{stats.enacted}</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-muted-foreground">Expired/Closed</span>
-            <span className="text-muted-foreground font-semibold">
-              {stats.expired + stats.closed}
-            </span>
-          </div>
-        </div>
-      </Card>
-
-      {/* Right card: NCL Data */}
-      <Card className="p-6 bg-gradient-to-br from-amber-500/20 to-amber-500/5 border-amber-500/30">
-        <div className="text-sm text-muted-foreground uppercase tracking-wide mb-2">
-          NCL {nclData?.year || new Date().getFullYear()}
-        </div>
-        {nclData ? (
-          <>
-            <div className="mb-3">
-              <span className="text-2xl font-bold text-foreground">
-                {formatAda(nclData.currentValueAda)} / {formatAda(nclData.targetValueAda)} ADA
-              </span>
-            </div>
-            <div className="flex items-center gap-3">
-              <Progress
-                value={Math.min(nclData.percentUsed, 100)}
-                className="h-2 flex-1"
-              />
-              <span className="text-sm text-amber-500 font-semibold">
-                {nclData.percentUsed.toFixed(1)}%
-              </span>
-            </div>
-          </>
-        ) : (
-          <div className="text-muted-foreground text-sm">
-            NCL data not available
-          </div>
-        )}
-      </Card>
+      )}
     </div>
   );
 }

@@ -1,357 +1,135 @@
-import { useState, useEffect } from "react";
-import { Card } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { useState, useMemo } from "react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { VotingRationaleModal } from "@/components/VotingRationaleModal";
 import type { VoteRecord } from "@/types/governance";
-import { Search, ExternalLink, FileText } from "lucide-react";
+import { Search } from "lucide-react";
 
 interface VotingRecordsProps {
   votes: VoteRecord[];
-  ccVotes?: VoteRecord[];
-  proposalStatus?: "Active" | "Ratified" | "Enacted" | "Expired" | "Closed";
+  proposalId?: string;
+  showDownload?: boolean;
+  downloadFormat?: string;
+  onDownloadFormatChange?: (format: "json" | "markdown" | "csv") => void;
 }
 
-/**
- * Convert lovelace string to formatted ADA string
- * 1 ADA = 1,000,000 lovelace
- */
-function lovelaceToAda(lovelace: string | number): string {
-  const lovelaceNum =
-    typeof lovelace === "string" ? Number(lovelace) : lovelace;
-  if (isNaN(lovelaceNum) || lovelaceNum === 0) return "0";
-  const adaValue = Math.round(lovelaceNum / 1_000_000);
+function formatAda(ada: number): string {
   return new Intl.NumberFormat("en-US", {
     maximumFractionDigits: 0,
-  }).format(adaValue);
+  }).format(ada);
 }
 
 function getVoteBadgeClasses(vote: VoteRecord["vote"]): string {
-  switch (vote) {
-    case "Yes":
-      return "bg-emerald-500/20 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/30";
-    case "No":
-      return "bg-red-500/20 text-red-400 border-red-500/30 hover:bg-red-500/30";
-    case "Abstain":
-      return "bg-gray-500/20 text-gray-400 border-gray-500/30 hover:bg-gray-500/30";
-    default:
-      return "bg-gray-500/20 text-gray-400 border-gray-500/30";
-  }
+  return vote === "Yes"
+    ? "text-foreground border-foreground/40 bg-foreground/5"
+    : "text-foreground/60 border-foreground/20 bg-transparent";
 }
 
-function getVoterTypeBadgeClasses(voterType: string): string {
-  switch (voterType) {
-    case "DRep":
-      return "bg-blue-500/20 text-blue-400 border-blue-500/30";
-    case "SPO":
-      return "bg-purple-500/20 text-purple-400 border-purple-500/30";
-    case "CC":
-      return "bg-amber-500/20 text-amber-400 border-amber-500/30";
-    default:
-      return "bg-gray-500/20 text-gray-400 border-gray-500/30";
-  }
-}
-
-/**
- * Extract readable text from a JSON object
- * Looks for common text fields and concatenates them
- */
-function extractTextFromObject(obj: Record<string, unknown>): string {
-  // Priority fields that typically contain the main rationale text
-  const textFields = [
-    "comment",
-    "rationale",
-    "reason",
-    "motivation",
-    "body",
-    "text",
-    "content",
-    "description",
-    "summary",
-  ];
-
-  for (const field of textFields) {
-    if (obj[field] && typeof obj[field] === "string") {
-      return obj[field] as string;
-    }
-  }
-
-  // If no text field found, try to find any string value
-  for (const value of Object.values(obj)) {
-    if (typeof value === "string" && value.length > 50) {
-      return value;
-    }
-  }
-
-  // Fallback: return a formatted representation
-  return "Unable to extract rationale text from the source.";
-}
-
-/**
- * Convert IPFS URL to HTTP gateway URL
- * Handles ipfs:// protocol URLs and converts them to a public gateway
- */
-function toFetchableUrl(url: string): string {
-  if (url.startsWith("ipfs://")) {
-    const cid = url.replace("ipfs://", "");
-    return `https://ipfs.io/ipfs/${cid}`;
-  }
-  return url;
-}
-
-/**
- * Convert URL to a viewable format for external links
- * For ipfs:// URLs, converts to gateway URL
- */
-function toViewableUrl(url: string): string {
-  return toFetchableUrl(url);
-}
-
-/**
- * Component to fetch and display rationale content from anchor URL
- */
-function RationaleContent({ anchorUrl }: { anchorUrl: string }) {
-  const [content, setContent] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    async function fetchRationale() {
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const fetchUrl = toFetchableUrl(anchorUrl);
-        const response = await fetch(fetchUrl);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch rationale: ${response.status}`);
-        }
-
-        const rawText = await response.text();
-        let text: string;
-
-        // Try to parse as JSON first
-        try {
-          const json = JSON.parse(rawText);
-
-          // Extract the rationale text from common JSON formats
-          if (typeof json === "string") {
-            text = json;
-          } else if (json.body?.comment) {
-            // CIP-100 format with nested comment
-            text = json.body.comment;
-          } else if (json.body) {
-            text = typeof json.body === "string" ? json.body : extractTextFromObject(json.body);
-          } else if (json.comment) {
-            text = json.comment;
-          } else if (json.rationale) {
-            text = json.rationale;
-          } else if (json.reason) {
-            text = json.reason;
-          } else if (json.motivation) {
-            text = json.motivation;
-          } else {
-            // Try to extract any text-like field from the object
-            text = extractTextFromObject(json);
-          }
-        } catch {
-          // Not JSON, use raw text
-          text = rawText;
-        }
-
-        // Clean up the text: convert \n to actual line breaks
-        text = text.replace(/\\n/g, "\n");
-
-        setContent(text);
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Failed to load rationale"
-        );
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    fetchRationale();
-  }, [anchorUrl]);
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        <span className="ml-3 text-muted-foreground">Loading rationale...</span>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-destructive py-4">
-        <p className="font-medium">Unable to load rationale</p>
-        <p className="text-sm text-muted-foreground mt-1">{error}</p>
-        <p className="text-xs text-muted-foreground mt-2">
-          You can try opening the link directly using the external link button.
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="text-sm text-muted-foreground whitespace-pre-wrap">
-      {content || "No rationale content available."}
-    </div>
-  );
-}
-
-export function VotingRecords({ votes, ccVotes = [], proposalStatus }: VotingRecordsProps) {
+export function VotingRecords({
+  votes,
+  proposalId,
+  showDownload,
+  downloadFormat,
+  onDownloadFormatChange,
+}: VotingRecordsProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [voteFilter, setVoteFilter] = useState<string>("all");
-  const [voterTypeFilter, setVoterTypeFilter] = useState<string>("all");
+  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [timeSort, setTimeSort] = useState<string>("newest");
+  const [powerSort, setPowerSort] = useState<string>("none");
+  const [rationaleFilter, setRationaleFilter] = useState<string>("all");
+  const [selectedVote, setSelectedVote] = useState<VoteRecord | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Note: proposalStatus is available for future use (e.g., showing that votes
-  // on expired proposals are historical)
-  // Currently not used in the UI
-  void proposalStatus; // Suppress unused variable warning
+  const voteIdMap = useMemo(() => {
+    const map = new Map<VoteRecord, number>();
+    votes.forEach((vote, index) => {
+      map.set(vote, index);
+    });
+    return map;
+  }, [votes]);
 
-  // Combine all votes into a single array
-  const allVotes = [...votes, ...ccVotes];
+  const getVoteId = (vote: VoteRecord): string => {
+    const index = voteIdMap.get(vote);
+    return index !== undefined ? index.toString() : "0";
+  };
 
-  // Get unique voter types from the data
-  const availableVoterTypes = Array.from(
-    new Set(allVotes.map((v) => v.voterType).filter(Boolean))
-  ) as string[];
+  const handleOpenRationale = (vote: VoteRecord) => {
+    setSelectedVote(vote);
+    setIsModalOpen(true);
+  };
 
-  const filteredVotes = allVotes
-    .filter((vote) => {
+  const filteredVotes = useMemo(() => {
+    let filtered = votes.filter((vote) => {
       const matchesSearch =
         searchQuery === "" ||
-        vote.drepName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        vote.drepId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        vote.voterId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        vote.voterName?.toLowerCase().includes(searchQuery.toLowerCase());
+        (vote.voterName || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+        vote.voterId.toLowerCase().includes(searchQuery.toLowerCase());
 
-      const matchesVote =
-        voteFilter === "all" || vote.vote.toLowerCase() === voteFilter;
+      const matchesVote = voteFilter === "all" || vote.vote.toLowerCase() === voteFilter;
+      const matchesRole = roleFilter === "all" || vote.voterType === roleFilter;
+      const matchesRationale =
+        rationaleFilter === "all" || (rationaleFilter === "with" && Boolean(vote.anchorUrl));
 
-      const matchesVoterType =
-        voterTypeFilter === "all" || vote.voterType === voterTypeFilter;
-
-      return matchesSearch && matchesVote && matchesVoterType;
-    })
-    // Sort by votedAt descending (latest first)
-    .sort((a, b) => {
-      const dateA = a.votedAt ? new Date(a.votedAt).getTime() : 0;
-      const dateB = b.votedAt ? new Date(b.votedAt).getTime() : 0;
-      return dateB - dateA;
+      return matchesSearch && matchesVote && matchesRole && matchesRationale;
     });
 
-  const voteStats = {
-    total: allVotes.length,
-    yes: allVotes.filter((v) => v.vote === "Yes").length,
-    no: allVotes.filter((v) => v.vote === "No").length,
-    abstain: allVotes.filter((v) => v.vote === "Abstain").length,
-  };
+    const getDateTimestamp = (dateString?: string): number => {
+      if (!dateString) return 0;
+      const timestamp = new Date(dateString).getTime();
+      return Number.isNaN(timestamp) ? 0 : timestamp;
+    };
 
-  // Get display name and ID for a vote record
-  const getVoterDisplayName = (vote: VoteRecord): string => {
-    return (
-      vote.voterName ||
-      vote.drepName ||
-      vote.voterId ||
-      vote.drepId ||
-      "Unknown"
-    );
-  };
+    const sortByTime = (list: VoteRecord[]) => {
+      return [...list].sort((a, b) => {
+        const dateA = getDateTimestamp(a.votedAt);
+        const dateB = getDateTimestamp(b.votedAt);
+        return timeSort === "newest" ? dateB - dateA : dateA - dateB;
+      });
+    };
 
-  const getVoterDisplayId = (vote: VoteRecord): string => {
-    return vote.voterId || vote.drepId || "";
-  };
+    if (powerSort === "high" || powerSort === "low") {
+      const ccMembers = filtered.filter((v) => v.voterType === "CC");
+      const nonCCMembers = filtered.filter((v) => v.voterType !== "CC");
+
+      const sortedNonCC = [...nonCCMembers].sort((a, b) => {
+        const powerA = a.votingPowerAda || 0;
+        const powerB = b.votingPowerAda || 0;
+        if (powerA !== powerB) {
+          return powerSort === "high" ? powerB - powerA : powerA - powerB;
+        }
+        const dateA = getDateTimestamp(a.votedAt);
+        const dateB = getDateTimestamp(b.votedAt);
+        return timeSort === "newest" ? dateB - dateA : dateA - dateB;
+      });
+
+      const sortedCC = sortByTime(ccMembers);
+      filtered = [...sortedNonCC, ...sortedCC];
+    } else {
+      filtered = sortByTime(filtered);
+    }
+
+    return filtered;
+  }, [votes, searchQuery, voteFilter, roleFilter, rationaleFilter, timeSort, powerSort]);
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h2 className="text-2xl font-bold mb-2">Voting Records</h2>
-        <p className="text-muted-foreground">
-          Individual votes and their rationale
-        </p>
-      </div>
+      <div />
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="p-4">
-          <div className="text-2xl font-bold">{voteStats.total}</div>
-          <div className="text-sm text-muted-foreground">Total Votes</div>
-        </Card>
-        <Card className="p-4 border-success/30">
-          <div className="text-2xl font-bold text-success">{voteStats.yes}</div>
-          <div className="text-sm text-muted-foreground">Yes Votes</div>
-        </Card>
-        <Card className="p-4 border-destructive/30">
-          <div className="text-2xl font-bold text-destructive">
-            {voteStats.no}
-          </div>
-          <div className="text-sm text-muted-foreground">No Votes</div>
-        </Card>
-        <Card className="p-4">
-          <div className="text-2xl font-bold">{voteStats.abstain}</div>
-          <div className="text-sm text-muted-foreground">Abstain</div>
-        </Card>
-      </div>
-
-      {/* Filters */}
-      <Card className="p-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="rounded-2xl border border-white/8 bg-[#faf9f6] p-3 sm:p-4 shadow-[0_12px_30px_rgba(15,23,42,0.25)]">
+        <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-6">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-muted-foreground" />
             <Input
-              placeholder="Search by name or ID..."
+              placeholder="Search by voter name or ID..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
             />
           </div>
-          <Select value={voterTypeFilter} onValueChange={setVoterTypeFilter}>
-            <SelectTrigger>
-              <SelectValue placeholder="Filter by voter type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Voter Types</SelectItem>
-              {availableVoterTypes.includes("DRep") && (
-                <SelectItem value="DRep">DRep</SelectItem>
-              )}
-              {availableVoterTypes.includes("SPO") && (
-                <SelectItem value="SPO">SPO</SelectItem>
-              )}
-              {availableVoterTypes.includes("CC") && (
-                <SelectItem value="CC">CC</SelectItem>
-              )}
-            </SelectContent>
-          </Select>
           <Select value={voteFilter} onValueChange={setVoteFilter}>
             <SelectTrigger>
               <SelectValue placeholder="Filter by vote" />
@@ -363,154 +141,150 @@ export function VotingRecords({ votes, ccVotes = [], proposalStatus }: VotingRec
               <SelectItem value="abstain">Abstain</SelectItem>
             </SelectContent>
           </Select>
+          <Select value={roleFilter} onValueChange={setRoleFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="Filter by role" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Roles</SelectItem>
+              <SelectItem value="DRep">DRep</SelectItem>
+              <SelectItem value="SPO">SPO</SelectItem>
+              <SelectItem value="CC">CC</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={timeSort} onValueChange={setTimeSort}>
+            <SelectTrigger>
+              <SelectValue placeholder="Sort by time" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest">Newest First</SelectItem>
+              <SelectItem value="oldest">Oldest First</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={rationaleFilter} onValueChange={setRationaleFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="Filter by rationale" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All records</SelectItem>
+              <SelectItem value="with">Only votes with rationale</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={powerSort} onValueChange={setPowerSort}>
+            <SelectTrigger>
+              <SelectValue placeholder="Sort by voting power" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">No Sort</SelectItem>
+              <SelectItem value="high">Highest Voting Power</SelectItem>
+              <SelectItem value="low">Lowest Voting Power</SelectItem>
+            </SelectContent>
+          </Select>
+          {showDownload ? (
+            <Select
+              value={downloadFormat || ""}
+              onValueChange={(value) =>
+                onDownloadFormatChange?.(value as "json" | "markdown" | "csv")
+              }>
+              <SelectTrigger>
+                <SelectValue placeholder="Download rationales" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="json">Download as JSON</SelectItem>
+                <SelectItem value="markdown">Download as Markdown</SelectItem>
+                <SelectItem value="csv">Download as CSV</SelectItem>
+              </SelectContent>
+            </Select>
+          ) : (
+            <div className="hidden lg:block" />
+          )}
         </div>
-      </Card>
+      </div>
 
-      {/* Voting Table */}
-      <Card>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Voter</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Vote</TableHead>
-                <TableHead>Live Voting Power</TableHead>
-                <TableHead>Voted At</TableHead>
-                <TableHead className="text-right">Rationale</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredVotes.length === 0 ? (
+      <div className="rounded-2xl border border-white/8 bg-[#faf9f6] overflow-hidden shadow-[0_12px_30px_rgba(15,23,42,0.25)]">
+        <div className="-mx-4 overflow-x-auto sm:-mx-6 md:mx-0">
+          <div className="inline-block min-w-full px-4 align-middle sm:px-6 md:px-0">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell
-                    colSpan={6}
-                    className="text-center text-muted-foreground py-12"
-                  >
-                    No voting records found
-                  </TableCell>
+                  <TableHead>Voter</TableHead>
+                  <TableHead>Vote</TableHead>
+                  <TableHead>Voting Power</TableHead>
+                  <TableHead>Voted At</TableHead>
+                  <TableHead className="text-right">Rationale</TableHead>
                 </TableRow>
-              ) : (
-                filteredVotes.map((vote, index) => {
-                  const isCC = vote.voterType === "CC";
-                  const voterName = getVoterDisplayName(vote);
-                  const voterId = getVoterDisplayId(vote);
-
-                  return (
-                    <TableRow
-                      key={`${voterId}-${index}`}
-                      className="hover:bg-muted/50"
-                    >
-                      <TableCell>
-                        <div>
-                          <div className="font-semibold">{voterName}</div>
-                          <div className="text-xs text-muted-foreground font-mono">
-                            {voterId.slice(0, 20)}...
+              </TableHeader>
+              <TableBody>
+                {filteredVotes.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="py-12 text-center text-muted-foreground">
+                      No voting records found
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredVotes.map((vote) => {
+                    const voteId = getVoteId(vote);
+                    return (
+                      <TableRow key={voteId} className="hover:bg-muted/50">
+                        <TableCell>
+                          <div>
+                            <div className="mb-1 flex items-center gap-2">
+                              <span className="font-semibold">{vote.voterName || vote.voterId}</span>
+                              <Badge variant="outline" className="border-foreground/20 bg-transparent px-1.5 py-0 text-xs">
+                                {vote.voterType}
+                              </Badge>
+                            </div>
+                            <div className="font-mono text-xs text-muted-foreground">
+                              {vote.voterId.slice(0, 20)}...
+                            </div>
                           </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={getVoterTypeBadgeClasses(
-                            vote.voterType || ""
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={getVoteBadgeClasses(vote.vote)}>
+                            {vote.vote}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {vote.voterType !== "CC" ? (
+                            <div className="font-semibold">
+                              {formatAda(vote.votingPowerAda || 0)} ADA
+                            </div>
+                          ) : (
+                            <div className="text-xs text-muted-foreground">One member, one vote</div>
                           )}
-                        >
-                          {vote.voterType || "Unknown"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={getVoteBadgeClasses(vote.vote)}
-                        >
-                          {vote.vote}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {!isCC ? (
-                          <div className="font-semibold">
-                            {lovelaceToAda(vote.votingPower)} ADA
-                          </div>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">
-                            N/A
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {new Date(vote.votedAt).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {vote.anchorUrl ? (
-                          <div className="flex items-center justify-end gap-2">
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <Button size="sm" variant="ghost">
-                                  <FileText className="h-4 w-4 mr-1" />
-                                  View
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent className="max-w-3xl max-h-[80vh]">
-                                <DialogHeader>
-                                  <DialogTitle>
-                                    Voting Rationale - {voterName}
-                                  </DialogTitle>
-                                  <DialogDescription>
-                                    View the detailed reasoning for this vote
-                                  </DialogDescription>
-                                </DialogHeader>
-                                <ScrollArea className="h-[500px] w-full rounded-md border p-4">
-                                  <div className="space-y-4">
-                                    <div className="flex items-center justify-between mb-4">
-                                      <Badge
-                                        variant="outline"
-                                        className={getVoteBadgeClasses(
-                                          vote.vote
-                                        )}
-                                      >
-                                        {vote.vote}
-                                      </Badge>
-                                      <a
-                                        href={toViewableUrl(vote.anchorUrl!)}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-primary hover:underline text-sm flex items-center gap-1"
-                                      >
-                                        <ExternalLink className="h-3 w-3" />
-                                        Original Source
-                                      </a>
-                                    </div>
-                                    <RationaleContent
-                                      anchorUrl={vote.anchorUrl!}
-                                    />
-                                  </div>
-                                </ScrollArea>
-                              </DialogContent>
-                            </Dialog>
-                            <a
-                              href={toViewableUrl(vote.anchorUrl!)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-primary hover:underline"
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {vote.votedAt ? new Date(vote.votedAt).toLocaleDateString() : "—"}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {vote.voterType !== "CC" ? (
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => handleOpenRationale(vote)}
                             >
-                              <ExternalLink className="h-4 w-4" />
-                            </a>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">
-                            No rationale
-                          </span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
+                              View
+                            </Button>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">
+                              Not applicable
+                            </span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </div>
-      </Card>
+      </div>
+      <VotingRationaleModal 
+        vote={selectedVote} 
+        open={isModalOpen} 
+        onOpenChange={setIsModalOpen}
+      />
     </div>
   );
 }

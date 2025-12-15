@@ -187,13 +187,21 @@ export function ConnectWalletModal({
                     disabled={isLoading}
                   >
                     {detectedWallet.icon ? (
-                      <Image
-                        src={detectedWallet.icon}
-                        alt={detectedWallet.name}
-                        width={40}
-                        height={40}
-                        className="rounded-lg"
-                      />
+                      detectedWallet.icon.startsWith("chrome-extension://") ? (
+                        <img
+                          src={detectedWallet.icon}
+                          alt={detectedWallet.name}
+                          className="w-10 h-10 rounded-lg"
+                        />
+                      ) : (
+                        <Image
+                          src={detectedWallet.icon}
+                          alt={detectedWallet.name}
+                          width={40}
+                          height={40}
+                          className="rounded-lg"
+                        />
+                      )
                     ) : (
                       <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
                         <WalletIcon className="h-5 w-5 text-muted-foreground" />

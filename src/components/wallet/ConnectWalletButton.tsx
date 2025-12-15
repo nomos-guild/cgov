@@ -70,13 +70,21 @@ export function ConnectWalletButton() {
         ) : connected ? (
           <>
             {walletIcon ? (
-              <Image
-                src={walletIcon}
-                alt={name || "wallet"}
-                width={20}
-                height={20}
-                className="rounded"
-              />
+              walletIcon.startsWith("chrome-extension://") ? (
+                <img
+                  src={walletIcon}
+                  alt={name || "wallet"}
+                  className="h-5 w-5 rounded"
+                />
+              ) : (
+                <Image
+                  src={walletIcon}
+                  alt={name || "wallet"}
+                  width={20}
+                  height={20}
+                  className="rounded"
+                />
+              )
             ) : (
               <Wallet className="h-4 w-4" />
             )}
