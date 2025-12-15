@@ -3,18 +3,17 @@
  * Allows switching between real API and mock data
  */
 
+import type { GovernanceActionDetail, NCLData } from "@/types/governance";
 import type {
-  GovernanceAction,
-  GovernanceActionDetail,
-  NCLData,
-} from "@/types/governance";
-import type { ProposalsQueryParams } from "./cgov-api-types";
+  ProposalsQueryParams,
+  ProposalListItem,
+} from "./cgov-api-types";
 
 export interface IGovernanceApiClient {
   /**
    * Get list of governance proposals
    */
-  getProposals(params?: ProposalsQueryParams): Promise<GovernanceAction[]>;
+  getProposals(params?: ProposalsQueryParams): Promise<ProposalListItem[]>;
 
   /**
    * Get detailed proposal by ID
@@ -32,10 +31,10 @@ export interface IGovernanceApiClient {
   signIn?(walletAddress: string): Promise<{ success: boolean; token?: string }>;
 }
 
-export type ApiMode = "real" | "mock";
+export type ApiMode = "real";
 
 export interface GovernanceApiConfig {
-  mode: ApiMode;
+  mode?: ApiMode;
   baseUrl?: string;
   headers?: Record<string, string>;
 }

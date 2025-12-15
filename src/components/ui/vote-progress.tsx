@@ -3,7 +3,6 @@ import {
   PieChart,
   Pie,
   Cell,
-  ResponsiveContainer,
   Tooltip,
   type TooltipProps,
 } from "recharts";

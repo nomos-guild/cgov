@@ -32,13 +32,31 @@ const buttonVariants = cva(
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
+  /**
+   * When true, render the underlying Slot instead of a native button element.
+   */
   asChild?: boolean;
+  /**
+   * Explicitly expose the `size` variant so TypeScript recognizes it
+   * when using the `Button` component in JSX (e.g. `size="sm"`).
+   */
+  size?: "default" | "sm" | "lg" | "icon";
+  /**
+   * Explicitly expose the `variant` variant for the same reason as `size`.
+   */
+  variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";
-    return <Comp className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props} />;
+    return (
+      <Comp
+        className={cn(buttonVariants({ variant, size }), className)}
+        ref={ref}
+        {...props}
+      />
+    );
   }
 );
 Button.displayName = "Button";

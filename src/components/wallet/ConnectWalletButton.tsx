@@ -34,7 +34,7 @@ export function ConnectWalletButton() {
               }
             ).cardano;
             if (cardano && cardano[name]?.icon) {
-              setWalletIcon(cardano[name].icon);
+              setWalletIcon(cardano[name]?.icon || "");
             }
           }
         } catch (err) {

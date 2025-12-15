@@ -113,6 +113,8 @@ export interface VoteRecord {
   votingPowerAda: number;
   anchorUrl?: string;
   anchorHash?: string;
+  // Optional textual rationale provided directly by the backend (e.g. resolved from IPFS)
+  rationale?: string;
   votedAt: string;
 }
 
@@ -159,6 +161,16 @@ export interface OverviewSummary {
   enactedProposals: number;
   expiredProposals: number;
   closedProposals: number;
+}
+
+/**
+ * Raw NCL data as returned by the legacy Cgov API client
+ * Kept for backwards compatibility with older API wrappers
+ */
+export interface NCLData {
+  year: number;
+  currentValue: number;
+  targetValue: number;
 }
 
 /**

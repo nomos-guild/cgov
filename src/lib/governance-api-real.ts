@@ -4,14 +4,11 @@
  */
 
 import type { IGovernanceApiClient } from "./governance-api-interface";
+import type { GovernanceActionDetail, NCLData } from "@/types/governance";
 import type {
-  GovernanceAction,
-  GovernanceActionDetail,
-  NCLData,
-} from "@/types/governance";
-import type { 
   GetProposalListReponse,
   GetProposalInfoResponse,
+  ProposalListItem,
 } from "./cgov-api-types";
 import { CgovApiClient } from "./cgov-api-client";
 
@@ -24,10 +21,10 @@ export class RealGovernanceApiClient implements IGovernanceApiClient {
 
   /**
    * Get list of governance proposals from real API
-   * Note: params not yet implemented in API client
    */
-  async getProposals(): Promise<GovernanceAction[]> {
+  async getProposals(): Promise<ProposalListItem[]> {
     try {
+      // Note: current Cgov API client does not support params yet
       const response = await this.client.getProposalsList();
       return this.convertProposalsList(response);
     } catch (error) {
@@ -92,7 +89,7 @@ export class RealGovernanceApiClient implements IGovernanceApiClient {
    */
   private convertProposalsList(
     response: GetProposalListReponse
-  ): GovernanceAction[] {
+  ): ProposalListItem[] {
     // Validate response structure
     if (!response || !Array.isArray(response.proposals)) {
       console.error("Invalid proposals list response:", response);
@@ -109,10 +106,9 @@ export class RealGovernanceApiClient implements IGovernanceApiClient {
 
       return {
         ...proposal,
-        id: proposal.proposalId, // Map proposalId to id
-        certIndex, // Add parsed certIndex
+        certIndex,
       };
-    }) as GovernanceAction[];
+    });
   }
 
   /**
@@ -150,7 +146,7 @@ export class RealGovernanceApiClient implements IGovernanceApiClient {
       certIndex: response.certIndex || 0,
       votes,
       ccVotes,
-    } as GovernanceActionDetail;
+    } as unknown as GovernanceActionDetail;
   }
 
   /**

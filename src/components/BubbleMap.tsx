@@ -427,37 +427,6 @@ export function BubbleMap({ votes }: BubbleMapProps) {
           const noVotes = filteredVotes.filter((v) => v.vote === "No");
           const abstainVotes = filteredVotes.filter((v) => v.vote === "Abstain");
 
-  const containerWidth = 800;
-  const containerHeight = 600;
-  const maxClusterRadius = Math.min(containerWidth * 0.35, containerHeight * 0.35);
-
-  const clusters = [
-    {
-      label: "Yes",
-      count: yesVotes.length,
-      centerX: containerWidth * 0.25,
-      centerY: containerHeight * 0.45,
-      color: "rgb(34, 197, 94)",
-      radius: Math.min(Math.max(120, Math.sqrt(yesVotes.length) * 18), maxClusterRadius),
-    },
-    {
-      label: "No",
-      count: noVotes.length,
-      centerX: containerWidth * 0.75,
-      centerY: containerHeight * 0.45,
-      color: "rgb(239, 68, 68)",
-      radius: Math.min(Math.max(120, Math.sqrt(noVotes.length) * 18), maxClusterRadius),
-    },
-    {
-      label: "Abstain",
-      count: abstainVotes.length,
-      centerX: containerWidth * 0.5,
-      centerY: containerHeight * 0.65,
-      color: "rgb(156, 163, 175)",
-      radius: Math.min(Math.max(100, Math.sqrt(abstainVotes.length) * 18), maxClusterRadius),
-    },
-  ];
-
   return (
     <div className="rounded-2xl border border-white/8 bg-[#faf9f6] p-3 shadow-[0_12px_30px_rgba(15,23,42,0.25)] overflow-visible">
       <div className="mb-2 flex flex-col sm:flex-row items-center justify-center gap-3 px-4 py-2 pb-4 text-sm overflow-visible">
@@ -486,7 +455,10 @@ export function BubbleMap({ votes }: BubbleMapProps) {
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground whitespace-nowrap">Filter:</span>
-          <Select value={voterFilter} onValueChange={(value) => setVoterFilter(value as VoterFilter)}>
+          <Select
+            value={voterFilter}
+            onValueChange={(value: string) => setVoterFilter(value as VoterFilter)}
+          >
             <SelectTrigger className="w-[120px] h-9 rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)]">
               <SelectValue />
             </SelectTrigger>
@@ -572,7 +544,6 @@ export function BubbleMap({ votes }: BubbleMapProps) {
               </pattern>
             </defs>
           {bubbles.map((bubble, index) => {
-            const power = getVotingPowerAda(bubble.vote);
             const palette = getVoteColors(bubble.vote.vote, bubble.vote.voterType);
             const isCC = bubble.vote.voterType === "CC";
             const isHighlighted = hoveredBadge === bubble.vote.vote;
@@ -689,7 +660,10 @@ export function BubbleMap({ votes }: BubbleMapProps) {
                   >
                     {bubble.vote.voterName
                       ? bubble.vote.voterName.slice(0, Math.floor(bubble.radius / 4))
-                      : bubble.vote.voterId.slice(0, Math.floor(bubble.radius / 6))}
+                      : (bubble.vote.voterId ?? bubble.vote.drepId).slice(
+                          0,
+                          Math.floor(bubble.radius / 6)
+                        )}
                   </text>
                 )}
               </g>

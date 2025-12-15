@@ -426,7 +426,7 @@ export function VoteOnProposal({
       {/* Vote Confirmation Modal */}
       <Dialog
         open={isModalOpen}
-        onOpenChange={(open) => {
+        onOpenChange={(open: boolean) => {
           console.log(
             `[Vote Sync] Dialog onOpenChange called with: ${open}, isPolling: ${syncState.isPolling}, isSuccess: ${voteState.isSuccess}`
           );

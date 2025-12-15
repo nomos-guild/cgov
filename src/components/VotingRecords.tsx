@@ -30,7 +30,6 @@ function getVoteBadgeClasses(vote: VoteRecord["vote"]): string {
 
 export function VotingRecords({
   votes,
-  proposalId,
   showDownload,
   downloadFormat,
   onDownloadFormatChange,
@@ -67,7 +66,7 @@ export function VotingRecords({
       const matchesSearch =
         searchQuery === "" ||
         (vote.voterName || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-        vote.voterId.toLowerCase().includes(searchQuery.toLowerCase());
+        (vote.voterId || "").toLowerCase().includes(searchQuery.toLowerCase());
 
       const matchesVote = voteFilter === "all" || vote.vote.toLowerCase() === voteFilter;
       const matchesRole = roleFilter === "all" || vote.voterType === roleFilter;
@@ -183,7 +182,7 @@ export function VotingRecords({
           {showDownload ? (
             <Select
               value={downloadFormat || ""}
-              onValueChange={(value) =>
+              onValueChange={(value: string) =>
                 onDownloadFormatChange?.(value as "json" | "markdown" | "csv")
               }>
               <SelectTrigger>
@@ -229,13 +228,15 @@ export function VotingRecords({
                         <TableCell>
                           <div>
                             <div className="mb-1 flex items-center gap-2">
-                              <span className="font-semibold">{vote.voterName || vote.voterId}</span>
+                              <span className="font-semibold">
+                                {vote.voterName || vote.voterId || "Unknown voter"}
+                              </span>
                               <Badge variant="outline" className="border-foreground/20 bg-transparent px-1.5 py-0 text-xs">
                                 {vote.voterType}
                               </Badge>
                             </div>
                             <div className="font-mono text-xs text-muted-foreground">
-                              {vote.voterId.slice(0, 20)}...
+                              {vote.voterId ? `${vote.voterId.slice(0, 20)}...` : "—"}
                             </div>
                           </div>
                         </TableCell>

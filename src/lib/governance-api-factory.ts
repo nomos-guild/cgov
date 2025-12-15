@@ -5,11 +5,9 @@
 
 import type {
   IGovernanceApiClient,
-  ApiMode,
   GovernanceApiConfig,
 } from "./governance-api-interface";
 import { RealGovernanceApiClient } from "./governance-api-real";
-import { MockGovernanceApiClient } from "./governance-api-mock";
 
 /**
  * Create a Governance API client based on configuration
@@ -17,25 +15,17 @@ import { MockGovernanceApiClient } from "./governance-api-mock";
 export function createGovernanceApiClient(
   config: GovernanceApiConfig
 ): IGovernanceApiClient {
-  if (config.mode === "mock") {
-    return new MockGovernanceApiClient();
-  }
-
   return new RealGovernanceApiClient(config.baseUrl, config.headers);
 }
 
 /**
  * Create a Governance API client based on environment
- * Defaults to mock mode (no API server required)
+ * Currently always uses the real API implementation
  */
 export function createGovernanceApiClientFromEnv(): IGovernanceApiClient {
-  const mode: ApiMode =
-    process.env.NEXT_PUBLIC_API_MODE === "real" ? "real" : "mock";
-
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000";
 
   return createGovernanceApiClient({
-    mode,
     baseUrl,
   });
 }
@@ -69,7 +59,6 @@ export function setGovernanceApiClient(client: IGovernanceApiClient): void {
   defaultClient = client;
 }
 
-// Export convenience functions
-export { MockGovernanceApiClient } from "./governance-api-mock";
+// Export convenience function
 export { RealGovernanceApiClient } from "./governance-api-real";
 

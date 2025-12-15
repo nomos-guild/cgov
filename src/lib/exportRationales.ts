@@ -1,63 +1,16 @@
 import type { Vote } from "@/types/governance";
 
-// Mock rationale function - matches the one in VotingRecords
-function getRationale(voterName: string | undefined, voterId: string, vote: string): string {
-  const name = voterName || voterId;
-  
-  if (name === "SIPO") {
-    return `SIPO has chosen to ${vote} on this proposal.
-
-Our decision reflects both recognition of the proposal's innovation and concern for its structural implications on fairness, governance precedent, and long-term ecosystem balance.
-
-On the Loan-Based Treasury Model
-SIPO deeply appreciates the innovation behind this proposal—the introduction of a repayable, interest-bearing treasury loan.
-This marks a significant step toward treating Cardano's treasury not merely as a grant pool, but as a public revolving fund—a self-sustaining capital engine for ecosystem growth.
-
-Such a model introduces accountability and enables the treasury to recycle its funds through investment, repayment, and reinvestment, strengthening Cardano's financial autonomy and maturity as a decentralized system.
-
-Why SIPO ${vote}s
-SIPO supports the spirit and direction of this proposal:
-• Introducing a repayable, audited, legally binding treasury mechanism;
-• Enhancing visibility and liquidity for Cardano Native Tokens;
-• And promoting sustainable financial governance.
-
-We believe this pilot can become an educational milestone—demonstrating how a decentralized treasury can evolve from "funding" to responsible capital management, if built with transparency and replicability in mind.`;
+/**
+ * Returns the rationale text coming from the backend, or a clear
+ * message that no rationale data was provided.
+ *
+ * We intentionally do NOT generate any synthetic or template content here.
+ */
+function getRationale(rationale: string | undefined): string {
+  if (rationale && rationale.trim().length > 0) {
+    return rationale;
   }
-
-  const templates = {
-    Yes: `After careful consideration, ${name} votes YES on this proposal.
-
-We believe this initiative aligns with Cardano's long-term vision and will contribute positively to the ecosystem's growth. The proposal demonstrates:
-
-• Clear objectives and measurable outcomes
-• Responsible use of treasury funds
-• Strong community support and engagement
-• Alignment with Cardano's governance principles
-
-We support this action and look forward to seeing its positive impact on the ecosystem.`,
-    No: `${name} votes NO on this proposal.
-
-While we appreciate the effort behind this submission, we have concerns about:
-
-• The current structure and implementation plan
-• Potential risks to the treasury and ecosystem
-• Lack of sufficient detail in certain areas
-• Questions about long-term sustainability
-
-We encourage the proposers to address these concerns and potentially resubmit with improvements.`,
-    Abstain: `${name} chooses to ABSTAIN on this proposal.
-
-This decision reflects our position that while the proposal has merit, we require additional information or time for proper evaluation:
-
-• Further community discussion needed
-• Awaiting clarification on specific technical details
-• Observing how governance precedent develops
-• Maintaining neutrality on this particular matter
-
-We remain engaged and will continue monitoring the proposal's progress.`,
-  };
-
-  return templates[vote as keyof typeof templates] || "No rationale provided.";
+  return "No rationale data provided.";
 }
 
 export function exportToJSON(votes: Vote[], proposalTitle: string): string {
@@ -72,7 +25,7 @@ export function exportToJSON(votes: Vote[], proposalTitle: string): string {
       vote: vote.vote,
       votingPower: vote.votingPower || null,
       votingPowerAda: vote.votingPowerAda || null,
-      rationale: getRationale(vote.voterName, vote.voterId, vote.vote),
+      rationale: getRationale(vote.rationale),
       anchorUrl: vote.anchorUrl || null,
       anchorHash: vote.anchorHash || null,
       votedAt: vote.votedAt,
@@ -106,7 +59,7 @@ export function exportToMarkdown(votes: Vote[], proposalTitle: string): string {
     }
     
     markdown += `### Rationale\n\n`;
-    markdown += `${getRationale(vote.voterName, vote.voterId, vote.vote)}\n\n`;
+    markdown += `${getRationale(vote.rationale)}\n\n`;
     markdown += "---\n\n";
   });
 
@@ -127,7 +80,7 @@ export function exportToCSV(votes: Vote[], proposalTitle: string): string {
   ];
 
   const rows = votes.map((vote) => {
-    const rationale = getRationale(vote.voterName, vote.voterId, vote.vote)
+    const rationale = getRationale(vote.rationale)
       .replace(/"/g, '""') // Escape quotes for CSV
       .replace(/\n/g, " "); // Replace newlines with spaces
     
