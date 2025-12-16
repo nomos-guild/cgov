@@ -43,12 +43,40 @@ const SHOWCASE_ORDER: ProposalType[] = [
   "InfoAction",
 ];
 
+/**
+ * Map API type labels (e.g. "Update Committee", "Info Action") to the
+ * internal ProposalType keys used by filters and eligibility logic.
+ */
+function mapTypeLabelToProposalType(typeLabel: string): ProposalType | null {
+  const normalized = typeLabel.trim().toLowerCase();
+
+  switch (normalized) {
+    case "no confidence":
+      return "NoConfidence";
+    case "update committee":
+      return "UpdateCommittee";
+    case "new constitution":
+      return "NewConstitution";
+    case "hard fork initiation":
+      return "HardForkInitiation";
+    case "protocol parameter change":
+      return "ParameterChange";
+    case "treasury withdrawals":
+    case "treasury withdrawal":
+      return "Treasury";
+    case "info action":
+      return "InfoAction";
+    default:
+      return null;
+  }
+}
+
 const STATUS_LABELS: Record<ProposalStatus, string> = {
   Active: "Active",
   Ratified: "Ratified",
+  Enacted: "Enacted",
   Expired: "Expired",
-  "Not approved": "Rejected",
-  Approved: "Approved",
+  Closed: "Closed",
 };
 
 function getStatusColor(status: GovernanceAction["status"]): string {
@@ -84,9 +112,18 @@ function parseProposalHash(
 }
 
 function getTypeLabel(type: GovernanceAction["type"]): string {
+  // Prefer mapping from API label → internal key → display label
+  const mapped = mapTypeLabelToProposalType(type as string);
+  if (mapped && mapped in TYPE_LABELS) {
+    return TYPE_LABELS[mapped];
+  }
+
+  // Fallback: if we already have an internal key, use that
   if (type in TYPE_LABELS) {
     return TYPE_LABELS[type as ProposalType];
   }
+
+  // Last resort: show whatever the backend sent
   return type;
 }
 
@@ -161,34 +198,26 @@ export function GovernanceTable() {
         ? sortedActions
         : sortedActions.filter((action) => statusSet.has(action.status));
 
-    const prioritized = SHOWCASE_ORDER.filter((type) =>
-      selectionSet.has(type)
-    ).map((type) => statusFiltered.find((action) => action.type === type));
-
-    const dedupedPrioritized = prioritized.filter(
-      (action): action is GovernanceAction => Boolean(action)
-    );
-
-    if (dedupedPrioritized.length) {
-      if (selectionSet.size === PROPOSAL_TYPES.length) {
-        const extras = statusFiltered.filter(
-          (action) => !SHOWCASE_ORDER.includes(action.type as ProposalType)
-        );
-        return applySearch([...dedupedPrioritized, ...extras]);
-      }
-      return applySearch(dedupedPrioritized);
-    }
-
-    const baseFiltered = statusFiltered.filter((action) => {
-      const actionType = action.type as ProposalType;
-      if (!SHOWCASE_ORDER.includes(actionType)) {
+    // Then filter by proposal type.
+    // When all types are selected, include unknown / new types as well.
+    const typeFiltered = statusFiltered.filter((action) => {
+      const actionType = mapTypeLabelToProposalType(action.type as string);
+      if (!actionType || !SHOWCASE_ORDER.includes(actionType)) {
         return selectionSet.size === PROPOSAL_TYPES.length;
       }
       return selectionSet.has(actionType);
     });
 
-    return applySearch(baseFiltered);
-  }, [sortedActions, selectedTypes, selectedStatuses, searchQuery]);
+    // Finally, apply search over the remaining list.
+    // This returns *all* matching proposals (no per-type limiting).
+    return applySearch(typeFiltered);
+  }, [
+    sortedActions,
+    selectedTypes,
+    selectedStatuses,
+    searchQuery,
+    isAllStatusesSelected,
+  ]);
 
   const handleToggleType = (type: ProposalType) => {
     const isChecked = selectedTypes.includes(type);

@@ -208,9 +208,9 @@ export type Vote = VoteRecord;
 export type ProposalStatus =
   | "Active"
   | "Ratified"
+  | "Enacted"
   | "Expired"
-  | "Approved"
-  | "Not approved";
+  | "Closed";
 
 /**
  * Proposal type values used across the app

@@ -17,13 +17,19 @@ import {
   fetchCurrentYearNCL,
 } from "@/services/api";
 
-// Status filter options used by the table and filters
+// Status filter options used by the table and filters.
+// These mirror the backend's derived status values:
+// - Active: voting ongoing
+// - Ratified: passed voting, waiting for enactment (non-Info actions)
+// - Enacted: applied to the chain (non-Info actions)
+// - Expired: voting ended without ratification/approval (non-Info actions)
+// - Closed: expired/dropped Info actions (Info actions never become Ratified/Enacted)
 const STATUS_OPTIONS: ProposalStatus[] = [
   "Active",
   "Ratified",
+  "Enacted",
   "Expired",
-  "Approved",
-  "Not approved",
+  "Closed",
 ];
 
 // Filters slice of state – keeps old table filters and new filters together
