@@ -162,6 +162,16 @@ function lovelaceToAdaNumber(lovelace: string | undefined): number {
  * Converts lovelace values to ADA for display
  */
 function transformGovernanceAction(action: GovernanceAction): GovernanceAction {
+  // Derive txHash from hash when backend doesn't send it explicitly.
+  // The upstream API typically encodes the transaction hash and certificate
+  // index together in the `hash` field as `txHash:certIndex` (or `txHash#certIndex`).
+  // We still prefer an explicit txHash field from the API when present.
+  const derivedTxHash =
+    action.txHash ||
+    (action.hash
+      ? action.hash.split(/[:#]/)[0] // supports both "txHash:certIndex" and "txHash#certIndex"
+      : undefined);
+
   // Convert lovelace to ADA numbers for DRep
   const drepYesAda = lovelaceToAdaNumber(action.drep?.yesLovelace);
   const drepNoAda = lovelaceToAdaNumber(action.drep?.noLovelace);
@@ -183,7 +193,7 @@ function transformGovernanceAction(action: GovernanceAction): GovernanceAction {
     // Use proposalId for display/routing (gov_action bech32 format)
     hash: action.hash,
     proposalId: action.proposalId,
-    txHash: action.txHash,
+    txHash: derivedTxHash,
     title: action.title || "Untitled Proposal",
     type: action.type,
     status: action.status,

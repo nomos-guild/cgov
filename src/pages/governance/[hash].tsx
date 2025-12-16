@@ -1162,7 +1162,7 @@ export default function GovernanceDetail() {
                                 Governance Action ID
                               </label>
                               <code className="block break-all rounded bg-secondary px-2 py-1 font-mono text-xs text-muted-foreground sm:px-3 sm:text-sm">
-                                {selectedAction.hash}
+                                {selectedAction.proposalId}
                               </code>
                             </div>
                             <div>
@@ -1225,131 +1225,6 @@ export default function GovernanceDetail() {
                   {selectedAction.constitutionality}
                 </p>
               </Card>
-
-              {/* DRep Votes Card */}
-              <Card
-                className={`p-6 ${
-                  !allowDRep ? "opacity-30 blur-[1px]" : ""
-                }`}
-              >
-                <h3 className="mb-4 font-semibold">DRep Votes</h3>
-                <div className="space-y-4">
-                  <div>
-                    <div className="mb-2 flex justify-between">
-                      <span className="text-sm text-success">
-                        Yes: {selectedAction.drepYesPercent.toFixed(1)}%
-                      </span>
-                      <span className="text-sm text-muted-foreground">
-                        {selectedAction.drepYesAda} ₳
-                      </span>
-                    </div>
-                    <Progress
-                      value={selectedAction.drepYesPercent}
-                      className="h-3 bg-secondary"
-                    />
-                  </div>
-                  <div>
-                    <div className="mb-2 flex justify-between">
-                      <span className="text-sm text-destructive">
-                        No: {selectedAction.drepNoPercent.toFixed(1)}%
-                      </span>
-                      <span className="text-sm text-muted-foreground">
-                        {selectedAction.drepNoAda} ₳
-                      </span>
-                    </div>
-                    <Progress
-                      value={selectedAction.drepNoPercent}
-                      className="h-3 bg-secondary"
-                    />
-                  </div>
-                </div>
-              </Card>
-
-              {/* SPO Votes Card */}
-              {selectedAction.spoYesPercent !== undefined && (
-                <Card
-                  className={`p-6 ${
-                    !allowSPO ? "opacity-30 blur-[1px]" : ""
-                  }`}
-                >
-                  <h3 className="mb-4 font-semibold">SPO Votes</h3>
-                  <div className="space-y-4">
-                    <div>
-                      <div className="mb-2 flex justify-between">
-                        <span className="text-sm text-success">
-                          Yes: {selectedAction.spoYesPercent.toFixed(1)}%
-                        </span>
-                        <span className="text-sm text-muted-foreground">
-                          {selectedAction.spoYesAda || "0"} ₳
-                        </span>
-                      </div>
-                      <Progress
-                        value={selectedAction.spoYesPercent}
-                        className="h-3 bg-secondary"
-                      />
-                    </div>
-                    <div>
-                      <div className="mb-2 flex justify-between">
-                        <span className="text-sm text-destructive">
-                          No:{" "}
-                          {selectedAction.spoNoPercent?.toFixed(1) || "0.0"}%
-                        </span>
-                        <span className="text-sm text-muted-foreground">
-                          {selectedAction.spoNoAda || "0"} ₳
-                        </span>
-                      </div>
-                      <Progress
-                        value={selectedAction.spoNoPercent || 0}
-                        className="h-3 bg-secondary"
-                      />
-                    </div>
-                  </div>
-                </Card>
-              )}
-
-              {/* CC Votes Card */}
-              {selectedAction.ccYesPercent !== undefined && (
-                <Card
-                  className={`p-6 ${
-                    !allowCC ? "opacity-30 blur-[1px]" : ""
-                  }`}
-                >
-                  <h3 className="mb-4 font-semibold">
-                    Constitutional Committee Votes
-                  </h3>
-                  <div className="space-y-4">
-                    <div>
-                      <div className="mb-2 flex justify-between">
-                        <span className="text-sm text-success">
-                          Yes: {selectedAction.ccYesPercent.toFixed(1)}%
-                        </span>
-                        <span className="text-sm text-muted-foreground">
-                          {selectedAction.ccYesCount || 0} votes
-                        </span>
-                      </div>
-                      <Progress
-                        value={selectedAction.ccYesPercent}
-                        className="h-3 bg-secondary"
-                      />
-                    </div>
-                    <div>
-                      <div className="mb-2 flex justify-between">
-                        <span className="text-sm text-destructive">
-                          No:{" "}
-                          {selectedAction.ccNoPercent?.toFixed(1) || "0.0"}%
-                        </span>
-                        <span className="text-sm text-muted-foreground">
-                          {selectedAction.ccNoCount || 0} votes
-                        </span>
-                      </div>
-                      <Progress
-                        value={selectedAction.ccNoPercent || 0}
-                        className="h-3 bg-secondary"
-                      />
-                    </div>
-                  </div>
-                </Card>
-              )}
 
               {/* Vote Summary Card */}
               <Card className="p-6">
