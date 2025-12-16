@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -14,7 +15,112 @@ interface VotingRationaleModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function VotingRationaleModal({ vote, open, onOpenChange }: VotingRationaleModalProps) {
+function resolveAnchorUrl(anchorUrl: string): string {
+  if (!anchorUrl) return anchorUrl;
+
+  // Handle ipfs://<cid> or ipfs://ipfs/<cid> formats
+  if (anchorUrl.startsWith("ipfs://")) {
+    const withoutScheme = anchorUrl.replace("ipfs://", "");
+    const path = withoutScheme.startsWith("ipfs/")
+      ? withoutScheme.replace("ipfs/", "")
+      : withoutScheme;
+    return `https://ipfs.io/ipfs/${path}`;
+  }
+
+  return anchorUrl;
+}
+
+function extractRationaleText(raw: string): string {
+  if (!raw) return "";
+
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+
+    if (parsed && typeof parsed === "object") {
+      const obj = parsed as {
+        body?: { comment?: string };
+        comment?: string;
+      };
+
+      // Prefer CIP-100 body.comment
+      if (obj.body && typeof obj.body.comment === "string") {
+        return obj.body.comment;
+      }
+
+      // Fallback: top-level comment field
+      if (typeof obj.comment === "string") {
+        return obj.comment;
+      }
+    }
+  } catch {
+    // Not JSON – fall through and return raw text
+  }
+
+  return raw;
+}
+
+export function VotingRationaleModal({
+  vote,
+  open,
+  onOpenChange,
+}: VotingRationaleModalProps) {
+  // We do not rely on backend-provided rationale; always derive it from anchorUrl when present.
+  const [resolvedRationale, setResolvedRationale] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Reset local state when the vote changes
+  useEffect(() => {
+    setResolvedRationale(null);
+    setError(null);
+    setIsLoading(false);
+  }, [vote]);
+
+  // Fetch rationale from anchor URL on demand
+  useEffect(() => {
+    if (!open || !vote || !vote.anchorUrl || resolvedRationale) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const fetchRationale = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        const url = resolveAnchorUrl(vote.anchorUrl!);
+        const response = await fetch(url);
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const rawText = await response.text();
+        const text = extractRationaleText(rawText).trim();
+
+        if (!cancelled) {
+          setResolvedRationale(text || null);
+        }
+      } catch {
+        if (!cancelled) {
+          setError("Unable to load rationale from anchor link.");
+          setResolvedRationale(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchRationale();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, vote, resolvedRationale]);
+
   if (!vote) return null;
 
   return (
@@ -60,7 +166,7 @@ export function VotingRationaleModal({ vote, open, onOpenChange }: VotingRationa
               <h2 className="text-xl font-semibold">Rationale</h2>
               {vote.anchorUrl && (
                 <a
-                  href={vote.anchorUrl}
+                  href={resolveAnchorUrl(vote.anchorUrl)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-foreground hover:underline text-sm flex items-center gap-1"
@@ -72,11 +178,19 @@ export function VotingRationaleModal({ vote, open, onOpenChange }: VotingRationa
             </div>
             <div className="modal-scrollbar">
               <ScrollArea className="h-[500px] w-full rounded-md border p-4">
-                <div className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                  {vote.rationale && vote.rationale.trim().length > 0
-                    ? vote.rationale
-                    : "No rationale data provided."}
-                </div>
+                {isLoading ? (
+                  <div className="text-sm text-muted-foreground">
+                    Loading rationale from anchor link...
+                  </div>
+                ) : error ? (
+                  <div className="text-sm text-destructive">{error}</div>
+                ) : (
+                  <div className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                    {resolvedRationale && resolvedRationale.trim().length > 0
+                      ? resolvedRationale
+                      : "No rationale data provided."}
+                  </div>
+                )}
               </ScrollArea>
             </div>
           </div>

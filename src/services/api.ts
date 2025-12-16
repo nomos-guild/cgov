@@ -278,6 +278,13 @@ function transformGovernanceActionDetail(
  * Transform API vote record to frontend format
  */
 function transformVoteRecord(vote: VoteRecord): VoteRecord {
+  // Prefer explicit ADA value when provided; otherwise derive it from
+  // the raw lovelace votingPower string from the API.
+  const votingPowerAda =
+    vote.votingPowerAda !== undefined
+      ? vote.votingPowerAda
+      : lovelaceToAdaNumber(vote.votingPower);
+
   return {
     voterType: vote.voterType,
     voterId: vote.voterId,
@@ -286,9 +293,10 @@ function transformVoteRecord(vote: VoteRecord): VoteRecord {
     drepName: vote.voterName || vote.voterId || vote.drepName,
     vote: vote.vote,
     votingPower: vote.votingPower ?? "0",
-    votingPowerAda: vote.votingPowerAda ?? 0,
+    votingPowerAda,
     anchorUrl: vote.anchorUrl,
     anchorHash: vote.anchorHash,
+    rationale: vote.rationale,
     votedAt: vote.votedAt,
   };
 }
