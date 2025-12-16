@@ -1,24 +1,22 @@
 /**
  * API Configuration
  * Centralizes API endpoint configuration for the frontend
+ *
+ * All API calls are routed through Next.js API routes to keep
+ * the backend API key secure on the server side.
  */
 
-// API base URL - defaults to localhost:3001 for development
-export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-
-// API key for authentication
-export const API_KEY = process.env.NEXT_PUBLIC_API_KEY || "";
-
-// API endpoints
+// API endpoints - these point to local Next.js API routes
+// The actual backend URL and API key are configured via server-side
+// environment variables (BACKEND_API_URL and BACKEND_API_KEY)
 export const API_ENDPOINTS = {
   // Overview endpoints
-  overview: `${API_BASE_URL}/overview`,
-  proposals: `${API_BASE_URL}/overview/proposals`,
-  ncl: `${API_BASE_URL}/overview/ncl`,
-  nclByYear: (year: number) => `${API_BASE_URL}/overview/ncl/${year}`,
+  overview: "/api/overview",
+  proposals: "/api/overview/proposals",
+  ncl: "/api/overview/ncl",
+  nclByYear: (year: number) => `/api/overview/ncl/${year}`,
 
   // Proposal detail endpoint (requires proposal_id parameter)
   proposalDetail: (proposalId: string) =>
-    `${API_BASE_URL}/proposal/${encodeURIComponent(proposalId)}`,
+    `/api/proposal/${encodeURIComponent(proposalId)}`,
 } as const;

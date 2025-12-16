@@ -1,9 +1,12 @@
 /**
  * API Service
  * Handles all API calls to the backend for governance data
+ *
+ * All calls go through Next.js API routes which handle authentication
+ * server-side, keeping any backend API keys secure.
  */
 
-import { API_ENDPOINTS, API_KEY } from "@/config/api";
+import { API_ENDPOINTS } from "@/config/api";
 import type {
   GovernanceAction,
   GovernanceActionDetail,
@@ -14,21 +17,19 @@ import type {
 } from "@/types/governance";
 
 /**
- * Generic fetch wrapper with error handling and API key authentication
+ * Generic fetch wrapper with error handling.
+ *
+ * NOTE: We only ever call our own Next.js API routes here. Those routes are
+ * responsible for talking to the upstream Cgov API and adding any required
+ * authentication (API keys, etc.) on the server side, so no secrets are
+ * exposed in the browser.
  */
 async function fetchApi<T>(url: string): Promise<T> {
-  const headers: HeadersInit = {
-    "Content-Type": "application/json",
-  };
-
-  // Add API key header if configured
-  if (API_KEY) {
-    headers["X-API-Key"] = API_KEY;
-  }
-
   const response = await fetch(url, {
     method: "GET",
-    headers,
+    headers: {
+      "Content-Type": "application/json",
+    },
   });
 
   if (!response.ok) {
