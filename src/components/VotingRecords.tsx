@@ -28,6 +28,33 @@ function getVoteBadgeClasses(vote: VoteRecord["vote"]): string {
     : "text-foreground/60 border-foreground/20 bg-transparent";
 }
 
+function shortenFallbackId(id: string): string {
+  const prefixLength = 8;
+  const suffixLength = 6;
+
+  if (id.length <= prefixLength + suffixLength + 3) {
+    return id;
+  }
+
+  return `${id.slice(0, prefixLength)}...${id.slice(-suffixLength)}`;
+}
+
+function formatVoterDisplayName(vote: VoteRecord): string {
+  const base = vote.voterName || vote.voterId || "Unknown voter";
+
+  if (base === "Unknown voter") {
+    return base;
+  }
+
+  const lower = base.toLowerCase();
+
+  if (lower.startsWith("drep") || lower.startsWith("pool")) {
+    return shortenFallbackId(base);
+  }
+
+  return base;
+}
+
 export function VotingRecords({
   votes,
   showDownload,
@@ -229,7 +256,7 @@ export function VotingRecords({
                           <div>
                             <div className="mb-1 flex items-center gap-2">
                               <span className="font-semibold">
-                                {vote.voterName || vote.voterId || "Unknown voter"}
+                                {formatVoterDisplayName(vote)}
                               </span>
                               <Badge variant="outline" className="border-foreground/20 bg-transparent px-1.5 py-0 text-xs">
                                 {vote.voterType}

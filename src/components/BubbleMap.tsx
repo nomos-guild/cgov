@@ -93,8 +93,8 @@ function getVoteColors(vote: VoteRecord["vote"], voterType?: VoteRecord["voterTy
     case "Abstain":
     default:
       return {
-        fill: "#faf9f6", // Cream fill
-        border: "rgba(255, 255, 255, 0.3)", // More visible border
+        fill: "rgba(148, 163, 184, 0.7)", // Neutral gray fill for better contrast
+        border: "rgba(148, 163, 184, 0.9)", // Stronger gray border
       };
   }
 }
@@ -450,7 +450,11 @@ export function BubbleMap({ votes }: BubbleMapProps) {
             onMouseEnter={() => setHoveredBadge("Abstain")}
             onMouseLeave={() => setHoveredBadge(null)}
           >
-            <LegendSwatch color="#faf9f6" stroke="rgba(255, 255, 255, 0.08)" label={`Abstain (${abstainVotes.length})`} />
+            <LegendSwatch
+              color="rgba(148, 163, 184, 0.7)"
+              stroke="rgba(148, 163, 184, 0.9)"
+              label={`Abstain (${abstainVotes.length})`}
+            />
           </div>
         </div>
         <div className="flex items-center gap-2">
