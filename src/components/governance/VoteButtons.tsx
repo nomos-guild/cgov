@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import type { ChangeEvent, MouseEvent } from "react";
 import { useWallet } from "@meshsdk/react";
 import { MeshTxBuilder, hashDrepAnchor } from "@meshsdk/core";
 import { Button } from "@/components/ui/button";
@@ -60,7 +61,7 @@ export function VoteButtons({
 
   const isActive = status === "Active";
 
-  const handleVoteClick = (vote: VoteChoice, e: React.MouseEvent) => {
+  const handleVoteClick = (vote: VoteChoice, e: MouseEvent) => {
     e.stopPropagation(); // Prevent card click
     if (!connected) return;
     setSelectedVote(vote);
@@ -203,7 +204,7 @@ export function VoteButtons({
       <>
         <div
           className="flex items-center gap-2"
-          onClick={(e) => e.stopPropagation()}
+          onClick={(e: MouseEvent) => e.stopPropagation()}
         >
           {!connected ? (
             <ConnectWalletButton />
@@ -213,7 +214,7 @@ export function VoteButtons({
                 size="sm"
                 variant="outline"
                 className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border-emerald-500/30"
-                onClick={(e) => handleVoteClick("Yes", e)}
+                onClick={(e: MouseEvent) => handleVoteClick("Yes", e)}
               >
                 <ThumbsUp className="h-4 w-4 mr-1" />
                 Yes
@@ -222,7 +223,7 @@ export function VoteButtons({
                 size="sm"
                 variant="outline"
                 className="bg-red-500/20 hover:bg-red-500/30 text-red-400 border-red-500/30"
-                onClick={(e) => handleVoteClick("No", e)}
+                onClick={(e: MouseEvent) => handleVoteClick("No", e)}
               >
                 <ThumbsDown className="h-4 w-4 mr-1" />
                 No
@@ -231,7 +232,7 @@ export function VoteButtons({
                 size="sm"
                 variant="outline"
                 className="bg-gray-500/20 hover:bg-gray-500/30 text-gray-400 border-gray-500/30"
-                onClick={(e) => handleVoteClick("Abstain", e)}
+                onClick={(e: MouseEvent) => handleVoteClick("Abstain", e)}
               >
                 <MinusCircle className="h-4 w-4 mr-1" />
                 Abstain
@@ -244,7 +245,7 @@ export function VoteButtons({
         <Dialog open={isModalOpen} onOpenChange={closeModal}>
           <DialogContent
             className="sm:max-w-md"
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e: MouseEvent) => e.stopPropagation()}
           >
             <DialogHeader>
               <DialogTitle>Confirm Your Vote</DialogTitle>
@@ -293,7 +294,6 @@ export function VoteButtons({
 
                 <div className="flex justify-center">
                   <Badge
-                    variant="outline"
                     className={
                       selectedVote === "Yes"
                         ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-lg px-6 py-2"
@@ -312,7 +312,9 @@ export function VoteButtons({
                     id="anchorUrl"
                     placeholder="https://... or ipfs://..."
                     value={anchorUrl}
-                    onChange={(e) => setAnchorUrl(e.target.value)}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                      setAnchorUrl(e.target.value)
+                    }
                     disabled={voteState.isSubmitting}
                   />
                   <p className="text-xs text-muted-foreground">

@@ -6,13 +6,43 @@ import type {
   VoteType,
   OverviewSummary,
   NCLDisplayData,
+  ProposalType,
+  ProposalStatus,
 } from "@/types/governance";
+import { PROPOSAL_TYPES } from "@/types/governance";
 import {
   fetchGovernanceActions,
   fetchGovernanceActionDetail,
   fetchOverviewSummary,
   fetchCurrentYearNCL,
 } from "@/services/api";
+
+// Status filter options used by the table and filters.
+// These mirror the backend's derived status values:
+// - Active: voting ongoing
+// - Ratified: passed voting, waiting for enactment (non-Info actions)
+// - Enacted: applied to the chain (non-Info actions)
+// - Expired: voting ended without ratification/approval (non-Info actions)
+// - Closed: expired/dropped Info actions (Info actions never become Ratified/Enacted)
+const STATUS_OPTIONS: ProposalStatus[] = [
+  "Active",
+  "Ratified",
+  "Enacted",
+  "Expired",
+  "Closed",
+];
+
+// Filters slice of state – keeps old table filters and new filters together
+interface GovernanceFilters {
+  // Existing filters used by GovernanceTable and related components
+  selectedTypes: ProposalType[];
+  selectedStatuses: ProposalStatus[];
+
+  // New filters from the async/thunk-based design
+  type: GovernanceActionType;
+  searchQuery: string;
+  voteFilter: VoteType;
+}
 
 interface GovernanceState {
   // Data
@@ -22,11 +52,7 @@ interface GovernanceState {
   nclData: NCLDisplayData | null;
 
   // Filters
-  filters: {
-    type: GovernanceActionType;
-    searchQuery: string;
-    voteFilter: VoteType;
-  };
+  filters: GovernanceFilters;
 
   // Loading states
   isLoadingActions: boolean;
@@ -47,6 +73,11 @@ const initialState: GovernanceState = {
   overview: null,
   nclData: null,
   filters: {
+    // Keep existing filters used by components
+    selectedTypes: PROPOSAL_TYPES,
+    selectedStatuses: STATUS_OPTIONS,
+
+    // New filters
     type: "All",
     searchQuery: "",
     voteFilter: "All",
@@ -122,9 +153,7 @@ export const loadNCLData = createAsyncThunk(
       return data;
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error
-          ? error.message
-          : "Failed to load NCL data"
+        error instanceof Error ? error.message : "Failed to load NCL data"
       );
     }
   }
@@ -134,6 +163,7 @@ const governanceSlice = createSlice({
   name: "governance",
   initialState,
   reducers: {
+    // Data setters
     setActions: (state, action: PayloadAction<GovernanceAction[]>) => {
       state.actions = action.payload;
       state.actionsError = null;
@@ -153,6 +183,16 @@ const governanceSlice = createSlice({
       state.nclData = action.payload;
       state.nclError = null;
     },
+
+    // Existing table filters
+    setSelectedTypes: (state, action: PayloadAction<ProposalType[]>) => {
+      state.filters.selectedTypes = Array.from(new Set(action.payload));
+    },
+    setSelectedStatuses: (state, action: PayloadAction<ProposalStatus[]>) => {
+      state.filters.selectedStatuses = Array.from(new Set(action.payload));
+    },
+
+    // New filters
     setTypeFilter: (state, action: PayloadAction<GovernanceActionType>) => {
       state.filters.type = action.payload;
     },
@@ -162,6 +202,7 @@ const governanceSlice = createSlice({
     setVoteFilter: (state, action: PayloadAction<VoteType>) => {
       state.filters.voteFilter = action.payload;
     },
+
     resetFilters: (state) => {
       state.filters = initialState.filters;
     },
@@ -181,6 +222,10 @@ const governanceSlice = createSlice({
       })
       .addCase(loadGovernanceActions.fulfilled, (state, action) => {
         state.isLoadingActions = false;
+        if (process.env.NODE_ENV !== "production") {
+          // eslint-disable-next-line no-console
+          console.log("[governanceSlice] loaded actions", action.payload);
+        }
         state.actions = action.payload;
       })
       .addCase(loadGovernanceActions.rejected, (state, action) => {
@@ -240,11 +285,15 @@ export const {
   setSelectedAction,
   setOverview,
   setNCLData,
+  setSelectedTypes,
+  setSelectedStatuses,
   setTypeFilter,
   setSearchQuery,
   setVoteFilter,
   resetFilters,
   clearErrors,
 } = governanceSlice.actions;
+
+export { STATUS_OPTIONS };
 
 export default governanceSlice.reducer;

@@ -11,9 +11,9 @@ export interface GovernanceActionVoteInfo {
   noLovelace?: string;
   abstainLovelace?: string;
   // Frontend uses ADA values for display
-  yesAda: string;
-  noAda: string;
-  abstainAda: string;
+  yesAda?: number;
+  noAda?: number;
+  abstainAda?: number;
 }
 
 /**
@@ -48,17 +48,17 @@ export interface GovernanceAction {
   drepYesPercent: number;
   drepNoPercent: number;
   drepAbstainPercent?: number;
-  drepYesAda: string;
-  drepNoAda: string;
-  drepAbstainAda?: string;
+  drepYesAda: number;
+  drepNoAda: number;
+  drepAbstainAda?: number;
 
   // SPO voting data (optional - not all actions require SPO votes)
   spoYesPercent?: number;
   spoNoPercent?: number;
   spoAbstainPercent?: number;
-  spoYesAda?: string;
-  spoNoAda?: string;
-  spoAbstainAda?: string;
+  spoYesAda?: number;
+  spoNoAda?: number;
+  spoAbstainAda?: number;
 
   // CC voting data (optional - not all actions require CC votes)
   ccYesPercent?: number;
@@ -76,6 +76,20 @@ export interface GovernanceAction {
   // Epoch information
   submissionEpoch: number;
   expiryEpoch: number;
+
+  // Thresholds for each voter group (optional, provided by backend)
+  threshold?: {
+    ccThreshold: number | null;
+    drepThreshold: number | null;
+    spoThreshold: number | null;
+  };
+
+  // Passing status for each voter group (optional, provided by backend)
+  votingStatus?: {
+    ccPassing: boolean | null;
+    drepPassing: boolean | null;
+    spoPassing: boolean | null;
+  };
 
   // Raw API vote info objects (for advanced use)
   drep?: GovernanceActionVoteInfo;
@@ -99,6 +113,8 @@ export interface VoteRecord {
   votingPowerAda: number;
   anchorUrl?: string;
   anchorHash?: string;
+  // Optional textual rationale provided directly by the backend (e.g. resolved from IPFS)
+  rationale?: string;
   votedAt: string;
 }
 
@@ -148,6 +164,16 @@ export interface OverviewSummary {
 }
 
 /**
+ * Raw NCL data as returned by the legacy Cgov API client
+ * Kept for backwards compatibility with older API wrappers
+ */
+export interface NCLData {
+  year: number;
+  currentValue: number;
+  targetValue: number;
+}
+
+/**
  * NCL (Net Change Limit) data for treasury withdrawal tracking
  * Values are in lovelace (1 ADA = 1,000,000 lovelace)
  */
@@ -170,3 +196,48 @@ export interface NCLDisplayData {
   epoch: number;
   updatedAt: string;
 }
+
+/**
+ * High–level vote type used by UI components
+ */
+export type Vote = VoteRecord;
+
+/**
+ * Proposal status values used across the app
+ */
+export type ProposalStatus =
+  | "Active"
+  | "Ratified"
+  | "Enacted"
+  | "Expired"
+  | "Closed";
+
+/**
+ * Proposal type values used across the app
+ */
+export type ProposalType =
+  | "InfoAction"
+  | "HardForkInitiation"
+  | "ParameterChange"
+  | "NoConfidence"
+  | "UpdateCommittee"
+  | "NewConstitution"
+  | "Treasury";
+
+/**
+ * Convenience list of all proposal types, in a stable order
+ */
+export const PROPOSAL_TYPES: ProposalType[] = [
+  "NoConfidence",
+  "UpdateCommittee",
+  "NewConstitution",
+  "HardForkInitiation",
+  "ParameterChange",
+  "Treasury",
+  "InfoAction",
+];
+
+/**
+ * Voter roles
+ */
+export type VoterType = "DRep" | "SPO" | "CC";
