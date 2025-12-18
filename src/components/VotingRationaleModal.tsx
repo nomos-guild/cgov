@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -64,64 +63,14 @@ export function VotingRationaleModal({
   open,
   onOpenChange,
 }: VotingRationaleModalProps) {
-  // We do not rely on backend-provided rationale; always derive it from anchorUrl when present.
-  const [resolvedRationale, setResolvedRationale] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Reset local state when the vote changes
-  useEffect(() => {
-    setResolvedRationale(null);
-    setError(null);
-    setIsLoading(false);
-  }, [vote]);
-
-  // Fetch rationale from anchor URL on demand
-  useEffect(() => {
-    if (!open || !vote || !vote.anchorUrl || resolvedRationale) {
-      return;
-    }
-
-    let cancelled = false;
-
-    const fetchRationale = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-
-        const url = resolveAnchorUrl(vote.anchorUrl!);
-        const response = await fetch(url);
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-
-        const rawText = await response.text();
-        const text = extractRationaleText(rawText).trim();
-
-        if (!cancelled) {
-          setResolvedRationale(text || null);
-        }
-      } catch {
-        if (!cancelled) {
-          setError("Unable to load rationale from anchor link.");
-          setResolvedRationale(null);
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    fetchRationale();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [open, vote, resolvedRationale]);
-
   if (!vote) return null;
+
+  // Prefer rationale text returned directly from the backend/database.
+  // This may contain either plain text or a CIP-100-style JSON structure.
+  const rationaleText =
+    vote.rationale && vote.rationale.trim().length > 0
+      ? extractRationaleText(vote.rationale).trim()
+      : "";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -178,19 +127,11 @@ export function VotingRationaleModal({
             </div>
             <div className="modal-scrollbar">
               <ScrollArea className="h-[500px] w-full rounded-md border p-4">
-                {isLoading ? (
-                  <div className="text-sm text-muted-foreground">
-                    Loading rationale from anchor link...
-                  </div>
-                ) : error ? (
-                  <div className="text-sm text-destructive">{error}</div>
-                ) : (
-                  <div className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                    {resolvedRationale && resolvedRationale.trim().length > 0
-                      ? resolvedRationale
-                      : "No rationale data provided."}
-                  </div>
-                )}
+                <div className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                  {rationaleText.length > 0
+                    ? rationaleText
+                    : "No rationale data provided."}
+                </div>
               </ScrollArea>
             </div>
           </div>

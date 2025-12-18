@@ -95,10 +95,13 @@ export function VotingRecords({
         (vote.voterName || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
         (vote.voterId || "").toLowerCase().includes(searchQuery.toLowerCase());
 
+      const hasRationale =
+        Boolean(vote.rationale && vote.rationale.trim().length > 0);
+
       const matchesVote = voteFilter === "all" || vote.vote.toLowerCase() === voteFilter;
       const matchesRole = roleFilter === "all" || vote.voterType === roleFilter;
       const matchesRationale =
-        rationaleFilter === "all" || (rationaleFilter === "with" && Boolean(vote.anchorUrl));
+        rationaleFilter === "all" || (rationaleFilter === "with" && hasRationale);
 
       return matchesSearch && matchesVote && matchesRole && matchesRationale;
     });
