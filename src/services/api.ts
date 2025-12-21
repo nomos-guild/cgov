@@ -269,6 +269,7 @@ function transformGovernanceActionDetail(
     ...base,
     description: detail.description,
     rationale: detail.rationale,
+    references: detail.references,
     votes: detail.votes?.map(transformVoteRecord) ?? [],
     ccVotes: detail.ccVotes?.map(transformVoteRecord) ?? [],
   };
@@ -298,5 +299,6 @@ function transformVoteRecord(vote: VoteRecord): VoteRecord {
     anchorHash: vote.anchorHash,
     rationale: vote.rationale,
     votedAt: vote.votedAt,
+    txHash: vote.txHash,
   };
 }

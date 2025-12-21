@@ -36,3 +36,10 @@ TBC
 Run the thing
 
 ```npm run dev```
+
+## Theming
+
+- Built-in presets: `light`, `dark`. Tokens live in `src/styles/globals.css` under `[data-theme="..."]` blocks (defaults also set on `:root`). Core set: `--background`, `--surface`, `--foreground`, `--card`, `--popover`, `--primary`, `--secondary`, `--muted`, `--accent`, `--destructive`, `--success`, `--border`, `--input`, `--ring`, `--radius`, `--shadow-*`, `--motion-*`.
+- Tailwind maps these CSS variables in `tailwind.config.ts` (colors, radii, shadows, motion, fonts) so components inherit the active theme automatically.
+- Runtime: `ThemeProvider` writes `data-theme` to `<html>` and toggles `.dark` for dark presets; UI switcher is `ThemeToggle` in the header.
+- To add your own preset later: (1) add a `[data-theme="newId"]` token block in `globals.css`; (2) add `{ id: "newId", label: "Readable name", isDark: true|false }` to `THEME_PRESETS` in `src/lib/theme.tsx`; (3) adjust optional tokens like `--shadow-*` or `--motion-*` for shape/density.

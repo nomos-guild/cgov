@@ -13,7 +13,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { ConnectWalletButton } from "@/components/wallet";
 import {
   ThumbsUp,
   ThumbsDown,
@@ -200,45 +199,44 @@ export function VoteButtons({
 
   // Compact version for landing page
   if (compact) {
+    // Only show vote buttons when wallet is connected
+    if (!connected) {
+      return null;
+    }
+
     return (
       <>
         <div
           className="flex items-center gap-2"
           onClick={(e: MouseEvent) => e.stopPropagation()}
         >
-          {!connected ? (
-            <ConnectWalletButton />
-          ) : (
-            <>
-              <Button
-                size="sm"
-                variant="outline"
-                className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border-emerald-500/30"
-                onClick={(e: MouseEvent) => handleVoteClick("Yes", e)}
-              >
-                <ThumbsUp className="h-4 w-4 mr-1" />
-                Yes
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="bg-red-500/20 hover:bg-red-500/30 text-red-400 border-red-500/30"
-                onClick={(e: MouseEvent) => handleVoteClick("No", e)}
-              >
-                <ThumbsDown className="h-4 w-4 mr-1" />
-                No
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="bg-gray-500/20 hover:bg-gray-500/30 text-gray-400 border-gray-500/30"
-                onClick={(e: MouseEvent) => handleVoteClick("Abstain", e)}
-              >
-                <MinusCircle className="h-4 w-4 mr-1" />
-                Abstain
-              </Button>
-            </>
-          )}
+          <Button
+            size="sm"
+            variant="outline"
+            className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border-emerald-500/30"
+            onClick={(e: MouseEvent) => handleVoteClick("Yes", e)}
+          >
+            <ThumbsUp className="h-4 w-4 mr-1" />
+            Yes
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="bg-red-500/20 hover:bg-red-500/30 text-red-400 border-red-500/30"
+            onClick={(e: MouseEvent) => handleVoteClick("No", e)}
+          >
+            <ThumbsDown className="h-4 w-4 mr-1" />
+            No
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="bg-gray-500/20 hover:bg-gray-500/30 text-gray-400 border-gray-500/30"
+            onClick={(e: MouseEvent) => handleVoteClick("Abstain", e)}
+          >
+            <MinusCircle className="h-4 w-4 mr-1" />
+            Abstain
+          </Button>
         </div>
 
         {/* Vote Confirmation Modal */}

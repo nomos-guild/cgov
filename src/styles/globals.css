@@ -24,55 +24,108 @@
 
 @layer base {
   :root {
-    /* Light mode - cream background, black text */
+    color-scheme: light;
+    --font-sans: "Inter", "SF Pro Display", "Segoe UI", system-ui, -apple-system,
+      sans-serif;
+    --font-heading: "Space Grotesk", "Inter", "Segoe UI", system-ui, -apple-system,
+      sans-serif;
+
+    --radius: 0.9rem;
+
+    --shadow-soft: 0 12px 35px rgba(15, 23, 42, 0.08);
+    --shadow-strong: 0 24px 70px rgba(15, 23, 42, 0.16);
+    --shadow-card: 0 16px 40px rgba(15, 23, 42, 0.12);
+    --shadow-popover: 0 20px 60px rgba(15, 23, 42, 0.16);
+
+    --motion-fast: 150ms;
+    --motion-normal: 240ms;
+    --motion-slow: 360ms;
+
+    /* Default to light tokens for initial paint */
     --background: 40 15% 98%;
-    --foreground: 0 0% 0%;
+    --surface: 40 12% 96.5%;
+    --foreground: 24 10% 12%;
     --card: 40 12% 97%;
-    --card-foreground: 0 0% 0%;
+    --card-foreground: 24 10% 12%;
     --popover: 40 15% 98%;
-    --popover-foreground: 0 0% 0%;
+    --popover-foreground: 24 10% 12%;
     --primary: 0 0% 0%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 96%;
-    --secondary-foreground: 0 0% 0%;
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 45%;
-    --accent: 0 0% 0%;
+    --secondary: 35 30% 92%;
+    --secondary-foreground: 24 10% 18%;
+    --muted: 35 24% 90%;
+    --muted-foreground: 24 8% 40%;
+    --accent: 210 90% 45%;
     --accent-foreground: 0 0% 100%;
-    --destructive: 0 0% 20%;
+    --destructive: 0 78% 52%;
     --destructive-foreground: 0 0% 100%;
-    --success: 0 0% 20%;
+    --success: 146 51% 40%;
     --success-foreground: 0 0% 100%;
-    --border: 0 0% 90%;
-    --input: 0 0% 90%;
-    --ring: 0 0% 0%;
-    --radius: 0.5rem;
+    --border: 40 10% 86%;
+    --input: 40 10% 86%;
+    --ring: 24 92% 45%;
   }
 
-  .dark {
-    /* Dark mode - black background, white text */
-    --background: 0 0% 0%;
-    --foreground: 0 0% 100%;
-    --card: 0 0% 3%;
-    --card-foreground: 0 0% 100%;
-    --popover: 0 0% 3%;
-    --popover-foreground: 0 0% 100%;
-    --primary: 0 0% 100%;
-    --primary-foreground: 0 0% 0%;
-    --secondary: 0 0% 8%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 0 0% 8%;
-    --muted-foreground: 0 0% 65%;
-    --accent: 0 0% 100%;
-    --accent-foreground: 0 0% 0%;
-    --destructive: 0 0% 80%;
-    --destructive-foreground: 0 0% 0%;
-    --success: 0 0% 80%;
-    --success-foreground: 0 0% 0%;
-    --border: 0 0% 20%;
-    --input: 0 0% 20%;
-    --ring: 0 0% 100%;
+  [data-theme="light"] {
+    color-scheme: light;
+    --background: 40 15% 98%;
+    --surface: 40 12% 96.5%;
+    --foreground: 24 10% 12%;
+    --card: 40 12% 97%;
+    --card-foreground: 24 10% 12%;
+    --popover: 40 15% 98%;
+    --popover-foreground: 24 10% 12%;
+    --primary: 0 0% 0%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 35 30% 92%;
+    --secondary-foreground: 24 10% 18%;
+    --muted: 35 24% 90%;
+    --muted-foreground: 24 8% 40%;
+    --accent: 210 90% 45%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 78% 52%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 146 51% 40%;
+    --success-foreground: 0 0% 100%;
+    --border: 40 10% 86%;
+    --input: 40 10% 86%;
+    --ring: 24 92% 45%;
+    --radius: 0.9rem;
   }
+
+  [data-theme="dark"] {
+    color-scheme: dark;
+    --font-sans: "JetBrains Mono", "Fira Code", "Cascadia Code", "Consolas", "Menlo", "Monaco", monospace;
+    --font-heading: "JetBrains Mono", "Fira Code", "Cascadia Code", "Consolas", "Menlo", "Monaco", monospace;
+    --background: 230 18% 8%;
+    --surface: 230 16% 12%;
+    --foreground: 220 30% 96%;
+    --card: 230 16% 10%;
+    --card-foreground: 220 30% 96%;
+    --popover: 230 16% 10%;
+    --popover-foreground: 220 30% 96%;
+    --primary: 210 90% 66%;
+    --primary-foreground: 220 35% 12%;
+    --secondary: 230 14% 22%;
+    --secondary-foreground: 220 30% 92%;
+    --muted: 230 12% 26%;
+    --muted-foreground: 220 15% 65%;
+    --accent: 280 75% 70%;
+    --accent-foreground: 230 35% 12%;
+    --destructive: 0 70% 58%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 150 60% 50%;
+    --success-foreground: 220 30% 10%;
+    --border: 230 12% 28%;
+    --input: 230 12% 28%;
+    --ring: 210 90% 66%;
+    --radius: 1rem;
+    --shadow-soft: 0 12px 35px rgba(0, 0, 0, 0.35);
+    --shadow-strong: 0 24px 70px rgba(0, 0, 0, 0.5);
+    --shadow-card: 0 18px 50px rgba(0, 0, 0, 0.35);
+    --shadow-popover: 0 30px 80px rgba(0, 0, 0, 0.6);
+  }
+
 }
 
 @layer base {
@@ -80,12 +133,26 @@
     @apply border-border;
   }
   body {
-    @apply text-foreground;
-    transition: background-color 0.3s ease, color 0.3s ease;
+    @apply text-foreground bg-background;
+    font-family: var(--font-sans);
+    transition: background-color var(--motion-normal) ease,
+      color var(--motion-normal) ease;
     background: 
-      radial-gradient(circle at 20% 30%, rgba(0, 0, 0, 0.01) 0%, transparent 50%),
-      radial-gradient(circle at 80% 70%, rgba(0, 0, 0, 0.015) 0%, transparent 50%),
-      linear-gradient(135deg, hsl(40, 15%, 98%) 0%, hsl(40, 12%, 96.5%) 100%);
+      radial-gradient(
+        circle at 20% 30%,
+        hsla(var(--primary), 0.08) 0%,
+        transparent 45%
+      ),
+      radial-gradient(
+        circle at 80% 70%,
+        hsla(var(--accent), 0.08) 0%,
+        transparent 45%
+      ),
+      linear-gradient(
+        135deg,
+        hsl(var(--background)) 0%,
+        hsl(var(--surface)) 100%
+      );
     background-attachment: fixed;
     position: relative;
   }
@@ -100,11 +167,11 @@
     pointer-events: none;
     z-index: 0;
     box-shadow: 
-      inset 0 4px 12px rgba(0, 0, 0, 0.03),
-      inset 0 2px 6px rgba(0, 0, 0, 0.04),
-      inset 0 1px 3px rgba(0, 0, 0, 0.05),
-      inset 0 -2px 6px rgba(0, 0, 0, 0.02),
-      inset 0 -4px 12px rgba(0, 0, 0, 0.01);
+      inset 0 4px 12px hsla(var(--foreground), 0.03),
+      inset 0 2px 6px hsla(var(--foreground), 0.05),
+      inset 0 1px 3px hsla(var(--foreground), 0.06),
+      inset 0 -2px 6px hsla(var(--foreground), 0.02),
+      inset 0 -4px 12px hsla(var(--foreground), 0.015);
   }
 
   body::after {
@@ -121,15 +188,15 @@
         0deg,
         transparent,
         transparent 2px,
-        rgba(0, 0, 0, 0.008) 2px,
-        rgba(0, 0, 0, 0.008) 4px
+        hsla(var(--foreground), 0.02) 2px,
+        hsla(var(--foreground), 0.02) 4px
       ),
       repeating-linear-gradient(
         90deg,
         transparent,
         transparent 2px,
-        rgba(0, 0, 0, 0.008) 2px,
-        rgba(0, 0, 0, 0.008) 4px
+        hsla(var(--foreground), 0.02) 2px,
+        hsla(var(--foreground), 0.02) 4px
       );
     opacity: 0.6;
   }
@@ -149,55 +216,50 @@
   }
 
   ::-webkit-scrollbar-track {
-    background: hsl(40, 15%, 98%);
+    background: hsl(var(--background));
     border-radius: 12px;
     box-shadow: 
-      inset 0 2px 4px rgba(0, 0, 0, 0.05),
-      inset 0 1px 2px rgba(0, 0, 0, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+      inset 0 2px 4px hsla(var(--foreground), 0.05),
+      inset 0 1px 2px hsla(var(--foreground), 0.08);
+    border: 1px solid hsla(var(--foreground), 0.06);
   }
 
   ::-webkit-scrollbar-thumb {
-    background: #b8b0a6;
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: hsl(var(--muted-foreground));
+    border: 1px solid hsla(var(--foreground), 0.08);
     border-radius: 12px;
     box-shadow: 
-      0 2px 4px rgba(0, 0, 0, 0.1),
-      0 4px 8px rgba(0, 0, 0, 0.08),
-      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      0 2px 4px hsla(var(--foreground), 0.12),
+      0 4px 8px hsla(var(--foreground), 0.1),
+      inset 0 1px 0 hsla(var(--background), 0.4);
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: #a89f93;
+    background: hsl(var(--foreground));
     box-shadow: 
-      0 3px 6px rgba(0, 0, 0, 0.15),
-      0 6px 12px rgba(0, 0, 0, 0.12),
-      inset 0 1px 0 rgba(255, 255, 255, 0.25);
+      0 3px 6px hsla(var(--foreground), 0.18),
+      0 6px 12px hsla(var(--foreground), 0.12),
+      inset 0 1px 0 hsla(var(--background), 0.25);
   }
 
   ::-webkit-scrollbar-thumb:active {
-    background: #9a9083;
+    background: hsl(var(--primary));
   }
 
   /* Firefox */
   * {
     scrollbar-width: auto;
-    scrollbar-color: #b8b0a6 hsl(40, 15%, 98%);
+    scrollbar-color: hsl(var(--muted-foreground)) hsl(var(--background));
   }
 }
 
 /* Simple modern glass effect */
 @layer utilities {
   .glass {
-    background: rgba(0, 0, 0, 0.03);
+    background: hsla(var(--foreground), 0.04);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(0, 0, 0, 0.1);
-  }
-
-  .dark .glass {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid hsla(var(--foreground), 0.08);
   }
 
   .glass-button {
@@ -219,10 +281,11 @@
   .glass-card {
     backdrop-filter: blur(16px) saturate(180%);
     -webkit-backdrop-filter: blur(16px) saturate(180%);
+    box-shadow: var(--shadow-card);
   }
 
   .progress-yes {
-    background: hsl(0, 0%, 0%);
+    background: hsl(var(--primary));
     position: relative;
   }
 
@@ -233,20 +296,16 @@
     right: 0;
     bottom: 0;
     left: 0;
-    background: linear-gradient(to right, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+    background: linear-gradient(
+      to right,
+      hsla(var(--primary-foreground), 0.16) 0%,
+      transparent 55%
+    );
     pointer-events: none;
   }
 
-  .dark .progress-yes {
-    background: hsl(0, 0%, 100%);
-  }
-
-  .dark .progress-yes::after {
-    background: linear-gradient(to right, rgba(0, 0, 0, 0.1) 0%, transparent 50%);
-  }
-
   .progress-no {
-    background: hsl(0, 0%, 70%);
+    background: hsl(var(--muted));
     position: relative;
   }
 
@@ -257,16 +316,12 @@
     right: 0;
     bottom: 0;
     left: 0;
-    background: linear-gradient(to left, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+    background: linear-gradient(
+      to left,
+      hsla(var(--foreground), 0.12) 0%,
+      transparent 55%
+    );
     pointer-events: none;
-  }
-
-  .dark .progress-no {
-    background: hsl(0, 0%, 30%);
-  }
-
-  .dark .progress-no::after {
-    background: linear-gradient(to left, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
   }
 
   /* Remove boxes from Recharts components */
@@ -319,4 +374,41 @@
     box-shadow: 0 3px 12px rgba(0, 0, 0, 0.2), 0 2px 4px rgba(0, 0, 0, 0.15) !important;
   }
 
+}
+
+/* Dark mode overrides for hardcoded light card backgrounds */
+[data-theme="dark"] .bg-\[\#faf9f6\] {
+  background-color: hsl(var(--card)) !important;
+}
+
+/* Dark mode card styling – squared corners and green borders */
+[data-theme="dark"] .rounded-lg.border.bg-card {
+  border-color: #0bd1a2 !important;
+  border-radius: 0 !important;
+}
+
+/* Dark mode buttons - neon green outline, squared, no shadow */
+[data-theme="dark"] .btn-neon {
+  background-color: transparent !important;
+  color: #0bd1a2 !important;
+  border: 1px solid #0bd1a2 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+[data-theme="dark"] .btn-neon:hover {
+  background-color: rgba(11, 209, 162, 0.08) !important;
+  color: #0bd1a2 !important;
+  border-color: #0bd1a2 !important;
+}
+
+/* Dark mode search input in filters */
+[data-theme="dark"] .filter-input {
+  background-color: transparent !important;
+  color: #0bd1a2 !important;
+  border: 1px solid #0bd1a2 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+[data-theme="dark"] .filter-input::placeholder {
+  color: rgba(11, 209, 162, 0.7) !important;
 }

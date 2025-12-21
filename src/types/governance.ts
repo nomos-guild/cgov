@@ -116,6 +116,8 @@ export interface VoteRecord {
   // Optional textual rationale provided directly by the backend (e.g. resolved from IPFS)
   rationale?: string;
   votedAt: string;
+  // Transaction hash of the vote transaction
+  txHash?: string;
 }
 
 /**
@@ -125,6 +127,7 @@ export interface VoteRecord {
 export interface GovernanceActionDetail extends GovernanceAction {
   description?: string;
   rationale?: string;
+  references?: string[]; // References/links from proposal metadata
   votes?: VoteRecord[]; // DRep and SPO votes
   ccVotes?: VoteRecord[]; // Constitutional Committee votes
 }

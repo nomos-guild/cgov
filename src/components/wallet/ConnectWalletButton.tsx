@@ -60,7 +60,11 @@ export function ConnectWalletButton() {
         variant={connected ? "outline" : "default"}
         onClick={() => setIsModalOpen(true)}
         disabled={connecting}
-        className="flex items-center gap-2"
+        className={`flex items-center gap-2 transition-colors btn-neon ${
+          connected
+            ? "hover:bg-black hover:text-white"
+            : "bg-white text-black hover:bg-black hover:text-white shadow-[0_12px_30px_rgba(15,23,42,0.25)]"
+        }`}
       >
         {connecting ? (
           <>
@@ -71,11 +75,14 @@ export function ConnectWalletButton() {
           <>
             {walletIcon ? (
               walletIcon.startsWith("chrome-extension://") ? (
-                <img
-                  src={walletIcon}
-                  alt={name || "wallet"}
-                  className="h-5 w-5 rounded"
-                />
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={walletIcon}
+                    alt={name || "wallet"}
+                    className="h-5 w-5 rounded"
+                  />
+                </>
               ) : (
                 <Image
                   src={walletIcon}
