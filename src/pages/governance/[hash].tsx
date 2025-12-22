@@ -20,7 +20,11 @@ import { VoteOnProposal } from "@/components/governance";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { loadGovernanceActionDetail } from "@/store/governanceSlice";
 import { ArrowLeft, Twitter, Copy, Check } from "lucide-react";
-import type { GovernanceActionDetail, VoterType } from "@/types/governance";
+import type {
+  GovernanceActionDetail,
+  VoterType,
+  ProposalReferenceObject,
+} from "@/types/governance";
 import {
   ResponsiveContainer,
   LineChart,
@@ -261,35 +265,76 @@ export default function GovernanceDetail() {
 
   const contentPreview = useMemo(() => {
     if (!selectedAction) return null;
-    
+
     // Use exact data from API - no modifications
     const description = selectedAction.description || "";
     const rationale = selectedAction.rationale || "";
-    
+
     // Combine description and rationale exactly as they come from API
     const fullContent = [description, rationale]
       .filter(Boolean)
       .join("\n\n");
-    
-    if (!fullContent) return null;
-    
+
     // Get references from API metadata (if available)
-    const apiReferences = selectedAction.references || [];
-    
-    // Extract URLs from the actual content text
+    const apiReferences: ProposalReferenceObject[] =
+      selectedAction.references || [];
+
+    // Extract URLs from the actual content text (when present)
     const urlRegex = /(https?:\/\/[^\s]+)/g;
-    const urlsFromContent = fullContent.match(urlRegex) || [];
-    
-    // Combine API references with URLs found in content, removing duplicates
-    const allReferences = Array.from(new Set([...apiReferences, ...urlsFromContent]));
-    
+    const urlsFromContent = fullContent
+      ? fullContent.match(urlRegex) || []
+      : [];
+
+    // Build a map keyed by URI to avoid duplicates when combining API
+    // references with URLs we detect in the content body.
+    const referenceMap = new Map<string, ProposalReferenceObject>();
+
+    for (const ref of apiReferences) {
+      if (!ref) continue;
+      const uri =
+        (typeof ref.uri === "string" && ref.uri) ||
+        (typeof ref.label === "string" && ref.label);
+      if (!uri) continue;
+
+      const key = uri;
+      if (!referenceMap.has(key)) {
+        referenceMap.set(key, {
+          uri,
+          label: ref.label || uri,
+          type: ref.type,
+        });
+      }
+    }
+
+    for (const url of urlsFromContent) {
+      const trimmed = url.trim();
+      if (!trimmed) continue;
+      if (!referenceMap.has(trimmed)) {
+        referenceMap.set(trimmed, {
+          uri: trimmed,
+          label: trimmed,
+        });
+      }
+    }
+
+    const allReferences = Array.from(referenceMap.values());
+
+    // If we have neither content nor references, don't render a preview section.
+    if (!fullContent && allReferences.length === 0) {
+      return null;
+    }
+
     const maxPreviewLength = 200;
-    const shouldTruncate = fullContent.length > maxPreviewLength;
+    const shouldTruncate =
+      !!fullContent && fullContent.length > maxPreviewLength;
+
     return {
       full: fullContent, // Exact content from API, unmodified
-      preview: shouldTruncate
-        ? fullContent.substring(0, maxPreviewLength) + "..."
-        : fullContent,
+      preview: fullContent
+        ? shouldTruncate
+          ? fullContent.substring(0, maxPreviewLength) + "..."
+          : fullContent
+        : "",
       shouldTruncate,
       hasDescription: !!description,
       hasRationale: !!rationale,
@@ -734,51 +779,57 @@ export default function GovernanceDetail() {
             </div>
             {contentPreview && (
               <div className="border-t border-border/50 pt-4">
-                {!isContentExpanded && (
+                {contentPreview.preview && !isContentExpanded && (
                   <ProposalContent
                     content={contentPreview.preview}
                     className="text-sm sm:text-base"
                   />
                 )}
-                <div
-                  className={cn(
-                    "mt-4 overflow-hidden transition-all duration-500 ease-in-out",
-                    isContentExpanded
-                      ? "max-h-[4000px] opacity-100 translate-y-0"
-                      : "max-h-0 opacity-0 -translate-y-1 pointer-events-none"
-                  )}
-                >
-                  <div className="space-y-4 pt-2">
-                    <div className="overflow-x-auto">
-                      <ProposalContent
-                        content={contentPreview.full}
-                        className="px-1 pr-6"
-                        headingLevels={[1, 2, 3, 4]}
-                      />
+                {contentPreview.full && (
+                  <div
+                    className={cn(
+                      "mt-4 overflow-hidden transition-all duration-500 ease-in-out",
+                      isContentExpanded
+                        ? "max-h-[4000px] opacity-100 translate-y-0"
+                        : "max-h-0 opacity-0 -translate-y-1 pointer-events-none"
+                    )}
+                  >
+                    <div className="space-y-4 pt-2">
+                      <div className="overflow-x-auto">
+                        <ProposalContent
+                          content={contentPreview.full}
+                          className="px-1 pr-6"
+                          headingLevels={[1, 2, 3, 4]}
+                        />
+                      </div>
                     </div>
-                    {contentPreview.references &&
-                      contentPreview.references.length > 0 && (
-                        <div className="border-t border-border/50 pt-4">
-                          <h4 className="mb-3 text-sm font-semibold text-foreground">
-                            References
-                          </h4>
-                          <div className="space-y-2">
-                            {contentPreview.references.map((url, index) => (
-                              <a
-                                key={index}
-                                href={url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="block break-all text-sm text-primary hover:underline"
-                              >
-                                {url}
-                              </a>
-                            ))}
-                          </div>
-                        </div>
-                      )}
                   </div>
-                </div>
+                )}
+                {contentPreview.references &&
+                  contentPreview.references.length > 0 && (
+                    <div className="mt-4 border-t border-border/50 pt-4">
+                      <h4 className="mb-3 text-sm font-semibold text-foreground">
+                        References
+                      </h4>
+                      <div className="space-y-2">
+                        {contentPreview.references.map((ref, index) => {
+                          const href = ref.uri || ref.label || "#";
+                          const label = ref.label || ref.uri || href;
+                          return (
+                            <a
+                              key={index}
+                              href={href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block break-all text-sm text-primary hover:underline"
+                            >
+                              {label}
+                            </a>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
               </div>
             )}
           </Card>

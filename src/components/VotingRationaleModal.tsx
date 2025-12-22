@@ -37,13 +37,28 @@ function extractRationaleText(raw: string): string {
 
     if (parsed && typeof parsed === "object") {
       const obj = parsed as {
-        body?: { comment?: string };
+        body?: {
+          comment?: string;
+          rationaleStatement?: string;
+          conclusion?: string;
+        };
         comment?: string;
       };
 
       // Prefer CIP-100 body.comment
       if (obj.body && typeof obj.body.comment === "string") {
         return obj.body.comment;
+      }
+
+      // CIP-136: body.rationaleStatement (optionally with conclusion)
+      if (obj.body && typeof obj.body.rationaleStatement === "string") {
+        const rationale = obj.body.rationaleStatement;
+        const conclusion =
+          typeof obj.body.conclusion === "string" ? obj.body.conclusion : "";
+
+        return conclusion.trim().length > 0
+          ? `${rationale}\n\n${conclusion}`
+          : rationale;
       }
 
       // Fallback: top-level comment field

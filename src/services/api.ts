@@ -14,6 +14,7 @@ import type {
   VoteRecord,
   NCLYearData,
   NCLDisplayData,
+  ProposalReferenceObject,
 } from "@/types/governance";
 
 /**
@@ -265,11 +266,78 @@ function transformGovernanceActionDetail(
 ): GovernanceActionDetail {
   const base = transformGovernanceAction(detail);
 
+  // Normalise references coming from the upstream API so that the rest of the
+  // app can treat them as structured objects with uri/label/type fields.
+  const normalisedReferences: ProposalReferenceObject[] | undefined =
+    Array.isArray(detail.references)
+      ? (detail.references as Array<string | ProposalReferenceObject>)
+          .map((ref) => {
+            if (!ref) return null;
+
+            // Simple string → treat as both uri and label.
+            if (typeof ref === "string") {
+              const value = ref.trim();
+              if (!value) return null;
+              return {
+                uri: value,
+                label: value,
+              } as ProposalReferenceObject;
+            }
+
+            if (typeof ref === "object") {
+              const raw = ref as ProposalReferenceObject;
+
+              const uri =
+                raw.uri ||
+                // Some schemas might use different keys; keep this defensive.
+                (raw as Record<string, unknown>).url?.toString?.() ||
+                (raw as Record<string, unknown>).href?.toString?.();
+
+              const label =
+                raw.label && typeof raw.label === "string"
+                  ? raw.label
+                  : typeof uri === "string"
+                  ? uri
+                  : undefined;
+
+              // Map upstream "@type" to our "type" field when present.
+              const upstreamType = (raw as Record<string, unknown>)["@type"];
+              const type =
+                typeof raw.type === "string"
+                  ? raw.type
+                  : typeof upstreamType === "string"
+                  ? upstreamType
+                  : undefined;
+
+              if (!uri && !label) {
+                return null;
+              }
+
+              const normalised: ProposalReferenceObject = {
+                ...raw,
+                uri: typeof uri === "string" ? uri : undefined,
+                label,
+              };
+
+              if (type) {
+                normalised.type = type;
+              }
+
+              return normalised;
+            }
+
+            return null;
+          })
+          .filter(
+            (value): value is ProposalReferenceObject => value !== null
+          )
+      : undefined;
+
   return {
     ...base,
     description: detail.description,
     rationale: detail.rationale,
-    references: detail.references,
+    references: normalisedReferences,
     votes: detail.votes?.map(transformVoteRecord) ?? [],
     ccVotes: detail.ccVotes?.map(transformVoteRecord) ?? [],
   };
