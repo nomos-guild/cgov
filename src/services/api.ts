@@ -237,6 +237,9 @@ function transformGovernanceAction(action: GovernanceAction): GovernanceAction {
     threshold: action.threshold,
     votingStatus: action.votingStatus,
 
+    // Raw voting power values (passed through for advanced UI use)
+    rawVotingPowerValues: action.rawVotingPowerValues,
+
     // Pass through raw API data, augmenting with ADA values
     drep: action.drep
       ? {

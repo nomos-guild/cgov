@@ -234,17 +234,25 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
             {title}
           </span>
         )}
-         <div
-           className="recharts-no-box relative overflow-visible"
-           style={{ width: 132, height: 132, minWidth: 132, minHeight: 132 }}
-           onMouseLeave={(e) => {
-             // Ensure we're actually leaving the container, not just moving to a child
-             const relatedTarget = e.relatedTarget as Node | null;
-             if (!relatedTarget || !e.currentTarget.contains(relatedTarget)) {
-               onPieLeave();
-             }
-           }}
-         >
+        <div
+          className="recharts-no-box relative overflow-visible"
+          style={{ width: 132, height: 132, minWidth: 132, minHeight: 132 }}
+          onMouseLeave={(e) => {
+            // Ensure we're actually leaving the container, not just moving to a child.
+            // In some edge cases, relatedTarget may be a non-Node (e.g. window), which
+            // would cause Node.contains to throw, so we guard against that here.
+            const relatedTarget = e.relatedTarget;
+            const currentTarget = e.currentTarget;
+
+            if (
+              !relatedTarget ||
+              !(relatedTarget instanceof Node) ||
+              !currentTarget.contains(relatedTarget)
+            ) {
+              onPieLeave();
+            }
+          }}
+        >
           {title && titlePosition === "center" && (
             <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-xs font-semibold text-foreground">
               {title}

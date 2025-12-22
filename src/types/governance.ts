@@ -29,6 +29,26 @@ export interface CCGovernanceActionVoteInfo {
 }
 
 /**
+ * Raw voting power values by voter group and status as returned by the API.
+ * All values are stringified lovelace amounts for maximum precision.
+ */
+export interface RawVotingPowerValues {
+  drep_active_abstain_vote_power?: string;
+  drep_active_no_vote_power?: string;
+  drep_active_yes_vote_power?: string;
+  drep_always_abstain_vote_power?: string;
+  drep_always_no_confidence_power?: string;
+  drep_inactive_vote_power?: string;
+  drep_total_vote_power?: string;
+  spo_active_abstain_vote_power?: string;
+  spo_active_no_vote_power?: string;
+  spo_active_yes_vote_power?: string;
+  spo_always_abstain_vote_power?: string;
+  spo_always_no_confidence_power?: string;
+  spo_total_vote_power?: string;
+}
+
+/**
  * Main governance action interface
  * Matches the API response from /overview/proposals
  */
@@ -95,6 +115,13 @@ export interface GovernanceAction {
   drep?: GovernanceActionVoteInfo;
   spo?: GovernanceActionVoteInfo;
   cc?: CCGovernanceActionVoteInfo;
+
+  /**
+   * Raw voting power values grouped by voter role and activity status.
+   * These are kept as raw lovelace strings for advanced analytics and
+   * precise display in the UI.
+   */
+  rawVotingPowerValues?: RawVotingPowerValues;
 }
 
 /**
