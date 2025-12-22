@@ -7,6 +7,7 @@ import {
   type TooltipProps,
 } from "recharts";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/lib/theme";
 
 interface VoteProgressProps extends React.HTMLAttributes<HTMLDivElement> {
   yesPercent: number;
@@ -18,19 +19,22 @@ interface VoteProgressProps extends React.HTMLAttributes<HTMLDivElement> {
   noValue?: number;
   abstainValue?: number;
   valueUnit?: "ada" | "count";
+  showTooltip?: boolean;
+  animate?: boolean;
+  interactive?: boolean;
 }
 
 const COLORS = {
   yes: {
-    active: "rgba(13, 148, 136, 0.95)",
-    inactive: "rgba(13, 148, 136, 0.45)",
+    active: "rgb(11, 140, 48)",
+    inactive: "rgba(11, 140, 48, 0.45)",
   },
   no: {
-    active: "rgba(91, 33, 182, 0.95)",
-    inactive: "rgba(91, 33, 182, 0.45)",
+    active: "rgb(140, 32, 11)",
+    inactive: "rgba(140, 32, 11, 0.45)",
   },
   abstain: {
-    active: "rgba(226, 232, 240, 0.98)",
+    active: "rgb(226, 232, 240)",
     inactive: "rgba(226, 232, 240, 0.65)",
   },
 };
@@ -64,14 +68,17 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
       noValue,
       abstainValue,
       valueUnit,
+      showTooltip = true,
+      animate = true,
+      interactive = true,
       style,
       ...props
     },
     ref
   ) => {
+    const { theme } = useTheme();
+    const isDark = theme === "dark";
     const [activeIndex, setActiveIndex] = React.useState<number | null>(null);
-    const [tooltipVisible, setTooltipVisible] = React.useState(false);
-    const hoverTimeout = React.useRef<NodeJS.Timeout | null>(null);
 
     const totalPercent = yesPercent + noPercent + abstainPercent;
 
@@ -111,29 +118,18 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
       abstainValue,
     ]);
 
-    const clearHoverTimeout = React.useCallback(() => {
-      if (hoverTimeout.current) {
-        clearTimeout(hoverTimeout.current);
-        hoverTimeout.current = null;
-      }
-    }, []);
-
     const onPieEnter = React.useCallback(
       (_: SliceData, index: number) => {
-        clearHoverTimeout();
+        if (!interactive) return;
         setActiveIndex(index);
-        setTooltipVisible(true);
       },
-      [clearHoverTimeout]
+      [interactive]
     );
 
     const onPieLeave = React.useCallback(() => {
-      clearHoverTimeout();
-      hoverTimeout.current = setTimeout(() => {
-        setActiveIndex(null);
-        setTooltipVisible(false);
-      }, 80);
-    }, [clearHoverTimeout]);
+      if (!interactive) return;
+      setActiveIndex(null);
+    }, [interactive]);
 
     const getColor = (type: string, index: number) => {
       if (activeIndex === index) {
@@ -167,7 +163,8 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
           payload?: ReadonlyArray<{ payload: SliceData }>;
         };
 
-        if (!tooltipVisible || !extended.active || !extended.payload?.length) {
+        // Only show tooltip if actively hovering (activeIndex is set) and Recharts says it's active
+        if (activeIndex === null || !extended.active || !extended.payload?.length) {
           return null;
         }
 
@@ -175,7 +172,7 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
         const displayValue = formatDisplayValue(slice.displayValue);
 
         return (
-          <div className="rounded-md border bg-background/95 px-3 py-2 text-xs shadow-md">
+          <div className="rounded-md border bg-background/95 px-3 py-2 text-xs shadow-md pointer-events-none">
             <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
               {title || "Votes"}
             </div>
@@ -188,16 +185,11 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
           </div>
         );
       },
-      [formatDisplayValue, title, tooltipVisible]
+      [formatDisplayValue, title, activeIndex]
     );
-
-    const emptyTooltip = React.useCallback(() => null, []);
-    const tooltipContent = tooltipVisible ? renderTooltip : emptyTooltip;
 
     const cardStyle = React.useMemo<React.CSSProperties>(
       () => ({
-        borderRadius: "1.5rem",
-        padding: "16px 18px 18px",
         overflow: "visible",
         ...style,
       }),
@@ -209,7 +201,7 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
         <div
           ref={ref}
           className={cn(
-            "border-white/8 flex flex-col items-center gap-2 border bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)]",
+            "border-white/8 flex flex-col items-center gap-2 border bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] rounded-3xl px-[14px] pt-[12px] pb-[14px] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none",
             className
           )}
           style={cardStyle}
@@ -231,7 +223,7 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
       <div
         ref={ref}
         className={cn(
-          "border-white/8 flex flex-col items-center gap-2 border bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)]",
+          "border-white/8 flex flex-col items-center gap-2 border bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] rounded-3xl px-[14px] pt-[12px] pb-[14px] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none",
           className
         )}
         {...props}
@@ -242,11 +234,17 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
             {title}
           </span>
         )}
-        <div
-          className="recharts-no-box relative overflow-visible"
-          style={{ width: 132, height: 132, minWidth: 132, minHeight: 132 }}
-          onMouseLeave={onPieLeave}
-        >
+         <div
+           className="recharts-no-box relative overflow-visible"
+           style={{ width: 132, height: 132, minWidth: 132, minHeight: 132 }}
+           onMouseLeave={(e) => {
+             // Ensure we're actually leaving the container, not just moving to a child
+             const relatedTarget = e.relatedTarget as Node | null;
+             if (!relatedTarget || !e.currentTarget.contains(relatedTarget)) {
+               onPieLeave();
+             }
+           }}
+         >
           {title && titlePosition === "center" && (
             <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-xs font-semibold text-foreground">
               {title}
@@ -264,26 +262,16 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
             margin={{ top: 4, right: 4, bottom: 4, left: 4 }}
             onMouseLeave={onPieLeave}
           >
-            <defs>
-              <radialGradient
-                id="slice-edge-overlay"
-                cx="0.5"
-                cy="0.5"
-                r="0.95"
-              >
-                <stop offset="65%" stopColor="rgba(0,0,0,0)" />
-                <stop offset="85%" stopColor="rgba(15,23,42,0.08)" />
-                <stop offset="95%" stopColor="rgba(15,23,42,0.15)" />
-                <stop offset="100%" stopColor="rgba(15,23,42,0.2)" />
-              </radialGradient>
-            </defs>
-            <Tooltip
-              content={tooltipContent}
-              cursor={false}
-              wrapperClassName="recharts-no-box"
-              active={tooltipVisible}
-              wrapperStyle={{ pointerEvents: "none" }}
-            />
+            {showTooltip && (
+              <Tooltip
+                content={renderTooltip}
+                cursor={false}
+                wrapperClassName="recharts-no-box"
+                wrapperStyle={{ pointerEvents: "none" }}
+                animationDuration={0}
+                isAnimationActive={false}
+              />
+            )}
             <Pie
               data={data}
               cx="50%"
@@ -295,42 +283,33 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
               onMouseEnter={onPieEnter}
               onMouseLeave={onPieLeave}
               stroke="none"
+              isAnimationActive={animate}
             >
               {data.map((entry, index) => {
                 const isAbstain = entry.type === "abstain";
+                const baseColor = getColor(entry.type, index);
+                const strokeColor = isDark
+                  ? COLORS[entry.type].active
+                  : isAbstain
+                    ? "rgba(15, 23, 42, 0.35)"
+                    : "transparent";
                 return (
                   <Cell
                     key={`cell-${index}`}
-                    fill={getColor(entry.type, index)}
-                    stroke={
-                      isAbstain ? "rgba(15, 23, 42, 0.35)" : "transparent"
-                    }
-                    strokeWidth={isAbstain ? 1.2 : 0}
+                    fill={isDark ? "transparent" : baseColor}
+                    stroke={strokeColor}
+                    strokeWidth={isDark ? 1.4 : isAbstain ? 1.2 : 0}
                     style={{
                       transition: "all 0.2s ease-in-out",
                       transform:
-                        activeIndex === index ? "scale(1.05)" : "scale(1)",
+                        interactive && activeIndex === index
+                          ? "scale(1.05)"
+                          : "scale(1)",
                       transformOrigin: "center",
                     }}
                   />
                 );
               })}
-            </Pie>
-            <Pie
-              data={data}
-              cx="50%"
-              cy="50%"
-              innerRadius={56}
-              outerRadius={60}
-              paddingAngle={2}
-              dataKey="value"
-              stroke="none"
-              isAnimationActive={false}
-              style={{ pointerEvents: "none" }}
-            >
-              {data.map((entry, index) => (
-                <Cell key={`edge-${index}`} fill="url(#slice-edge-overlay)" />
-              ))}
             </Pie>
           </PieChart>
         </div>

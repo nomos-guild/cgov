@@ -19,8 +19,12 @@ import { BubbleMap } from "@/components/BubbleMap";
 import { VoteOnProposal } from "@/components/governance";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { loadGovernanceActionDetail } from "@/store/governanceSlice";
-import { ArrowLeft, Twitter, ChevronDown, ChevronRight } from "lucide-react";
-import type { GovernanceActionDetail, VoterType } from "@/types/governance";
+import { ArrowLeft, Twitter, Copy, Check } from "lucide-react";
+import type {
+  GovernanceActionDetail,
+  VoterType,
+  ProposalReferenceObject,
+} from "@/types/governance";
 import {
   ResponsiveContainer,
   LineChart,
@@ -44,6 +48,9 @@ import {
 } from "@/lib/governanceVotingEligibility";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { parseNumeric, deriveAbstainValue } from "@/lib/voteMath";
+import { ProposalContent } from "@/components/ProposalContent";
+import { cn } from "@/lib/utils";
+import { useTheme } from "@/lib/theme";
 
 /**
  * Parse proposal hash (txHash:certIndex format) into separate components
@@ -174,23 +181,11 @@ function isSpoNotApplicable(action: GovernanceActionDetail): boolean {
   return false;
 }
 
-function getStatusColor(status: string): string {
-  switch (status) {
-    case "Active":
-      return "bg-success/20 text-success border-success/30";
-    case "Ratified":
-    case "Enacted":
-      return "bg-primary/20 text-primary border-primary/30";
-    case "Expired":
-    case "Closed":
-      return "bg-muted text-muted-foreground border-border";
-    default:
-      return "bg-muted text-muted-foreground border-border";
-  }
-}
-
 const formatAdaValue = (value: number) => {
   if (!value || Number.isNaN(value)) return "0 ₳";
+  if (value >= 1_000_000_000) {
+    return `${(value / 1_000_000_000).toFixed(1)}B ₳`;
+  }
   if (value >= 1_000_000) {
     return `${(value / 1_000_000).toFixed(1)}M ₳`;
   }
@@ -200,10 +195,16 @@ const formatAdaValue = (value: number) => {
   return `${value.toLocaleString()} ₳`;
 };
 
-const VOTE_COLORS = {
-  yes: "#0d9488",
-  no: "#5b21b6",
+const VOTE_COLORS_LIGHT = {
+  yes: "#0B8C30",
+  no: "#8C200B",
   abstain: "#000000",
+};
+
+const VOTE_COLORS_DARK = {
+  yes: "#0B8C30",
+  no: "#8C200B",
+  abstain: "#ffffff",
 };
 
 type TimelinePoint = {
@@ -222,19 +223,23 @@ export default function GovernanceDetail() {
   const router = useRouter();
   const { hash } = router.query;
   const dispatch = useAppDispatch();
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+  const voteColors = useMemo(
+    () => (isDark ? VOTE_COLORS_DARK : VOTE_COLORS_LIGHT),
+    [isDark]
+  );
   const { selectedAction, isLoadingDetail, detailError } = useAppSelector(
     (state) => state.governance
   );
 
   const [downloadFormat, setDownloadFormat] = useState<string>("");
   const [contentVisible, setContentVisible] = useState(false);
-  const [isDescriptionExpanded, setIsDescriptionExpanded] =
-    useState<boolean>(false);
+  const [isContentExpanded, setIsContentExpanded] = useState<boolean>(false);
   const [curveRoleFilter, setCurveRoleFilter] =
     useState<RoleFilter>("All");
-  const [selectedTab, setSelectedTab] = useState<string | null>("live-voting");
-  const [isRationaleExpanded, setIsRationaleExpanded] =
-    useState<boolean>(false);
+  const [selectedTab, setSelectedTab] = useState<string>("live-voting");
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof hash === "string") {
@@ -258,19 +263,84 @@ export default function GovernanceDetail() {
     ];
   }, [selectedAction]);
 
-  const descriptionPreview = useMemo(() => {
-    if (!selectedAction?.description) return null;
-    const description = selectedAction.description;
+  const contentPreview = useMemo(() => {
+    if (!selectedAction) return null;
+
+    // Use exact data from API - no modifications
+    const description = selectedAction.description || "";
+    const rationale = selectedAction.rationale || "";
+
+    // Combine description and rationale exactly as they come from API
+    const fullContent = [description, rationale]
+      .filter(Boolean)
+      .join("\n\n");
+
+    // Get references from API metadata (if available)
+    const apiReferences: ProposalReferenceObject[] =
+      selectedAction.references || [];
+
+    // Extract URLs from the actual content text (when present)
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const urlsFromContent = fullContent
+      ? fullContent.match(urlRegex) || []
+      : [];
+
+    // Build a map keyed by URI to avoid duplicates when combining API
+    // references with URLs we detect in the content body.
+    const referenceMap = new Map<string, ProposalReferenceObject>();
+
+    for (const ref of apiReferences) {
+      if (!ref) continue;
+      const uri =
+        (typeof ref.uri === "string" && ref.uri) ||
+        (typeof ref.label === "string" && ref.label);
+      if (!uri) continue;
+
+      const key = uri;
+      if (!referenceMap.has(key)) {
+        referenceMap.set(key, {
+          uri,
+          label: ref.label || uri,
+          type: ref.type,
+        });
+      }
+    }
+
+    for (const url of urlsFromContent) {
+      const trimmed = url.trim();
+      if (!trimmed) continue;
+      if (!referenceMap.has(trimmed)) {
+        referenceMap.set(trimmed, {
+          uri: trimmed,
+          label: trimmed,
+        });
+      }
+    }
+
+    const allReferences = Array.from(referenceMap.values());
+
+    // If we have neither content nor references, don't render a preview section.
+    if (!fullContent && allReferences.length === 0) {
+      return null;
+    }
+
     const maxPreviewLength = 200;
-    const shouldTruncate = description.length > maxPreviewLength;
+    const shouldTruncate =
+      !!fullContent && fullContent.length > maxPreviewLength;
+
     return {
-      full: description,
-      preview: shouldTruncate
-        ? description.substring(0, maxPreviewLength) + "..."
-        : description,
+      full: fullContent, // Exact content from API, unmodified
+      preview: fullContent
+        ? shouldTruncate
+          ? fullContent.substring(0, maxPreviewLength) + "..."
+          : fullContent
+        : "",
       shouldTruncate,
+      hasDescription: !!description,
+      hasRationale: !!rationale,
+      references: allReferences, // Combined: API references + URLs from content
     };
-  }, [selectedAction?.description]);
+  }, [selectedAction]);
 
   const eligibleRoles = useMemo<VoterType[]>(() => {
     if (!selectedAction) return [];
@@ -355,18 +425,23 @@ export default function GovernanceDetail() {
     });
   }, [allVotes, curveRoleFilter]);
 
-  const shouldShowPower =
-    curveRoleFilter === "DRep" || curveRoleFilter === "SPO";
+  // Show ADA amounts for DRep/SPO (and "All" which includes them)
+  // Show vote counts for CC only
+  const shouldShowPower = curveRoleFilter !== "CC";
 
   const renderVoteTrendTooltip = useCallback(
     (tooltipProps: TooltipProps<number, string>) => (
-      <VoteTrendTooltip {...tooltipProps} showPower={shouldShowPower} />
+      <VoteTrendTooltip
+        {...tooltipProps}
+        showPower={shouldShowPower}
+        colors={voteColors}
+      />
     ),
-    [shouldShowPower]
+    [shouldShowPower, voteColors]
   );
 
   const useDashedPowerLines =
-    shouldShowPower && curveRoleFilter !== "DRep";
+    shouldShowPower && curveRoleFilter === "All";
 
   const drepAbstainStats = useMemo(() => {
     const drepVotes = allVotes.filter((v) => v.voterType === "DRep");
@@ -489,7 +564,7 @@ export default function GovernanceDetail() {
       <div className="min-h-screen bg-background">
         <div className="container mx-auto py-8 px-4">
           <Link href="/">
-            <Button variant="ghost" className="mb-6">
+            <Button variant="default" className="mb-6 bg-white text-black hover:bg-black hover:text-white shadow-[0_12px_30px_rgba(15,23,42,0.25)]">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Dashboard
             </Button>
@@ -513,7 +588,7 @@ export default function GovernanceDetail() {
       <div className="min-h-screen bg-background">
         <div className="container mx-auto py-8 px-4">
           <Link href="/">
-            <Button variant="ghost" className="mb-6">
+            <Button variant="default" className="mb-6 bg-white text-black hover:bg-black hover:text-white shadow-[0_12px_30px_rgba(15,23,42,0.25)]">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Dashboard
             </Button>
@@ -547,7 +622,7 @@ export default function GovernanceDetail() {
       <div className="min-h-screen bg-background">
         <div className="container mx-auto py-8 px-4">
           <Link href="/">
-            <Button variant="ghost" className="mb-6">
+            <Button variant="default" className="mb-6 bg-white text-black hover:bg-black hover:text-white shadow-[0_12px_30px_rgba(15,23,42,0.25)]">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Dashboard
             </Button>
@@ -640,6 +715,16 @@ export default function GovernanceDetail() {
     setTimeout(() => setDownloadFormat(""), 100);
   };
 
+  const handleCopy = async (text: string, id: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch (err) {
+      console.error("Failed to copy:", err);
+    }
+  };
+
   return (
     <>
       <Head>
@@ -653,69 +738,98 @@ export default function GovernanceDetail() {
         <div
           className={`container mx-auto px-4 py-8 transition-opacity duration-300 sm:px-6 sm:py-8 ${contentVisible ? "opacity-100" : "opacity-0"}`}
         >
-          {/* Back Button */}
-          <Link href="/">
-            <Button variant="ghost" className="mb-6">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Dashboard
-            </Button>
-          </Link>
+          {/* Top actions */}
+          <div className="mb-6 flex flex-wrap items-center gap-3">
+            <Link href="/">
+              <Button
+                variant="default"
+                className="bg-white text-black shadow-[0_12px_30px_rgba(15,23,42,0.25)] h-10 px-4 transform-gpu transition-transform transition-shadow duration-450 ease-in-out hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] hover:bg-white hover:text-black btn-neon"
+              >
+                Back to Dashboard
+              </Button>
+            </Link>
+            {contentPreview?.shouldTruncate && (
+              <Button
+                variant="default"
+                className="bg-white text-black shadow-[0_12px_30px_rgba(15,23,42,0.25)] h-10 px-4 transform-gpu transition-transform transition-shadow duration-450 ease-in-out hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] hover:bg-white hover:text-black btn-neon"
+                onClick={() => setIsContentExpanded((prev) => !prev)}
+              >
+                {isContentExpanded ? "Hide Proposal" : "Read Proposal"}
+              </Button>
+            )}
+            {allVotes.length > 0 && (
+              <Button
+                variant="default"
+                className="bg-white text-black shadow-[0_12px_30px_rgba(15,23,42,0.25)] h-10 px-4 flex items-center gap-2 transform-gpu transition-transform transition-shadow duration-450 ease-in-out hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] hover:bg-white hover:text-black btn-neon"
+                onClick={handleTwitterShare}
+              >
+                <Twitter className="h-4 w-4" />
+                <span className="hidden sm:inline">Share on X</span>
+                <span className="sm:hidden">Share</span>
+              </Button>
+            )}
+          </div>
 
           {/* Header Section */}
           <Card className="mb-8 p-4 sm:p-6">
-            <div className="mb-2 flex flex-wrap items-center gap-3">
-              <Badge
-                variant="outline"
-                className={getStatusColor(selectedAction.status)}
-              >
-                {selectedAction.status}
-              </Badge>
-              <Badge variant="outline" className="border-border">
-                {selectedAction.type}
-              </Badge>
-              {allVotes.length > 0 && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleTwitterShare}
-                  className="ml-auto flex items-center gap-2 whitespace-nowrap"
-                >
-                  <Twitter className="h-4 w-4" />
-                  <span className="hidden sm:inline">Share on X</span>
-                  <span className="sm:hidden">Share</span>
-                </Button>
-              )}
+            <div className="mb-3 flex items-center gap-3">
+              <h1 className="text-2xl font-bold sm:text-3xl md:text-4xl">
+                {selectedAction.title}
+              </h1>
             </div>
-            <h1 className="mb-3 text-2xl font-bold sm:text-3xl md:text-4xl">
-              {selectedAction.title}
-            </h1>
-            <code className="mb-3 inline-block rounded bg-secondary px-3 py-1 font-mono text-xs text-muted-foreground sm:text-sm">
-              {selectedAction.proposalId || selectedAction.hash}
-            </code>
-            <div className="mb-4 flex flex-wrap gap-4 text-xs text-muted-foreground sm:text-sm">
-              <span>Submission: Epoch {selectedAction.submissionEpoch}</span>
-              <span>•</span>
-              <span>Expiry: Epoch {selectedAction.expiryEpoch}</span>
-            </div>
-            {descriptionPreview && (
+            {contentPreview && (
               <div className="border-t border-border/50 pt-4">
-                <div className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90 sm:text-base">
-                  {isDescriptionExpanded
-                    ? descriptionPreview.full
-                    : descriptionPreview.preview}
-                </div>
-                {descriptionPreview.shouldTruncate && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() =>
-                      setIsDescriptionExpanded(!isDescriptionExpanded)
-                    }
-                    className="mt-3"
-                  >
-                    {isDescriptionExpanded ? "Show Less" : "Show More"}
-                  </Button>
+                {contentPreview.preview && !isContentExpanded && (
+                  <ProposalContent
+                    content={contentPreview.preview}
+                    className="text-sm sm:text-base"
+                  />
                 )}
+                {contentPreview.full && (
+                  <div
+                    className={cn(
+                      "mt-4 overflow-hidden transition-all duration-500 ease-in-out",
+                      isContentExpanded
+                        ? "max-h-[4000px] opacity-100 translate-y-0"
+                        : "max-h-0 opacity-0 -translate-y-1 pointer-events-none"
+                    )}
+                  >
+                    <div className="space-y-4 pt-2">
+                      <div className="overflow-x-auto">
+                        <ProposalContent
+                          content={contentPreview.full}
+                          className="px-1 pr-6"
+                          headingLevels={[1, 2, 3, 4]}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {contentPreview.references &&
+                  contentPreview.references.length > 0 && (
+                    <div className="mt-4 border-t border-border/50 pt-4">
+                      <h4 className="mb-3 text-sm font-semibold text-foreground">
+                        References
+                      </h4>
+                      <div className="space-y-2">
+                        {contentPreview.references.map((ref, index) => {
+                          const href = ref.uri || ref.label || "#";
+                          const label = ref.label || ref.uri || href;
+                          return (
+                            <a
+                              key={index}
+                              href={href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block break-all text-sm text-primary hover:underline"
+                            >
+                              {label}
+                            </a>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
               </div>
             )}
           </Card>
@@ -724,57 +838,47 @@ export default function GovernanceDetail() {
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             {/* Left Column - Tabs for donuts, bubble map, curves, details */}
             <div className="space-y-6 lg:col-span-2">
-              <Card className="p-4 sm:p-6">
+              <Card className="info-container p-4 sm:p-6 dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none dark:rounded-none">
                 <Tabs
-                  value={selectedTab || undefined}
+                  value={selectedTab}
                   onValueChange={setSelectedTab}
                   className="w-full"
                 >
                   <div className="flex flex-col gap-4">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <TabsList className="flex-1 flex-wrap justify-start gap-1 bg-transparent p-0">
-                        <TabsTrigger value="live-voting">Live Voting</TabsTrigger>
-                        <TabsTrigger value="bubble-map">Bubble Map</TabsTrigger>
-                        <TabsTrigger value="curves">Curves</TabsTrigger>
-                        <TabsTrigger value="details">Details</TabsTrigger>
+                      <TabsList className="flex-1 flex-wrap justify-start gap-2 bg-transparent p-0">
+                        <TabsTrigger
+                          value="live-voting"
+                          className="rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition-colors data-[state=active]:bg-foreground data-[state=active]:text-background hover:text-foreground dark:rounded-none dark:border-[#0bd1a2] dark:text-[#0bd1a2] dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black"
+                        >
+                          Live Voting
+                        </TabsTrigger>
+                        <TabsTrigger
+                          value="bubble-map"
+                          className="rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition-colors data-[state=active]:bg-foreground data-[state=active]:text-background hover:text-foreground dark:rounded-none dark:border-[#0bd1a2] dark:text-[#0bd1a2] dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black"
+                        >
+                          Bubble Map
+                        </TabsTrigger>
+                        <TabsTrigger
+                          value="curves"
+                          className="rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition-colors data-[state=active]:bg-foreground data-[state=active]:text-background hover:text-foreground dark:rounded-none dark:border-[#0bd1a2] dark:text-[#0bd1a2] dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black"
+                        >
+                          Curves
+                        </TabsTrigger>
+                        <TabsTrigger
+                          value="details"
+                          className="rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition-colors data-[state=active]:bg-foreground data-[state=active]:text-background hover:text-foreground dark:rounded-none dark:border-[#0bd1a2] dark:text-[#0bd1a2] dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black"
+                        >
+                          Details
+                        </TabsTrigger>
                       </TabsList>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          if (selectedTab) {
-                            setSelectedTab(null);
-                          } else {
-                            setSelectedTab("live-voting");
-                          }
-                        }}
-                        className="flex-shrink-0"
-                      >
-                        {selectedTab ? (
-                          <ChevronDown className="h-4 w-4" />
-                        ) : (
-                          <ChevronRight className="h-4 w-4" />
-                        )}
-                      </Button>
                     </div>
 
-                    {selectedTab && (
-                      <>
+                    <>
                         {/* Live voting donuts */}
                         <TabsContent value="live-voting" className="mt-0">
                           {allVotes.length > 0 ? (
                             <div className="space-y-4">
-                              <div className="flex flex-wrap items-center justify-center gap-2">
-                                <Badge
-                                  variant="outline"
-                                  className={getStatusColor(selectedAction.status)}
-                                >
-                                  {selectedAction.status}
-                                </Badge>
-                                <Badge variant="outline" className="border-border">
-                                  {selectedAction.type}
-                                </Badge>
-                              </div>
                               <div
                                 className="flex flex-wrap items-start gap-4 sm:gap-6"
                                 style={{ overflow: "visible" }}
@@ -792,6 +896,8 @@ export default function GovernanceDetail() {
                                         abstainValue={drepAbstainStats.power}
                                         valueUnit="ada"
                                         className="origin-center scale-90 md:scale-100"
+                                        showTooltip={false}
+                                        interactive={false}
                                       />
                                       <RoleLegend
                                         role="DRep"
@@ -801,6 +907,7 @@ export default function GovernanceDetail() {
                                           drepAbstainStats.power
                                         )}
                                         unit="ADA"
+                                        colors={voteColors}
                                       />
                                     </>
                                   ) : allowDRep ? (
@@ -831,6 +938,8 @@ export default function GovernanceDetail() {
                                         abstainValue={ccAbstainStats.count}
                                         valueUnit="count"
                                         className="origin-center scale-90 md:scale-100"
+                                        showTooltip={false}
+                                        interactive={false}
                                       />
                                       <RoleLegend
                                         role="CC"
@@ -838,6 +947,7 @@ export default function GovernanceDetail() {
                                         noLabel={`${ccNoCount}`}
                                         abstainLabel={`${ccAbstainStats.count ?? 0}`}
                                         unit="votes"
+                                        colors={voteColors}
                                       />
                                     </>
                                   ) : allowCC ? (
@@ -865,6 +975,8 @@ export default function GovernanceDetail() {
                                         abstainValue={spoAbstainStats.power}
                                         valueUnit="ada"
                                         className="origin-center scale-90 md:scale-100"
+                                        showTooltip={false}
+                                        interactive={false}
                                       />
                                       <RoleLegend
                                         role="SPO"
@@ -874,6 +986,7 @@ export default function GovernanceDetail() {
                                           spoAbstainStats.power
                                         )}
                                         unit="ADA"
+                                        colors={voteColors}
                                       />
                                     </>
                                   ) : allowSPO ? (
@@ -910,7 +1023,7 @@ export default function GovernanceDetail() {
 
                         {/* Curves */}
                         <TabsContent value="curves" className="mt-0">
-                          <Card className="p-4 sm:p-6">
+                          <Card className="p-4 sm:p-6 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none dark:rounded-none">
                             <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                               <div className="space-y-1">
                                 <h3 className="text-lg font-semibold">Voting trend</h3>
@@ -931,10 +1044,10 @@ export default function GovernanceDetail() {
                                         key={role}
                                         type="button"
                                         onClick={() => setCurveRoleFilter(role)}
-                                        className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide transition-colors ${
+                                        className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide transition-colors dark:rounded-none dark:border-[#0bd1a2] dark:text-[#0bd1a2] ${
                                           isActive
-                                            ? "border-foreground bg-foreground text-background"
-                                            : "border-border text-muted-foreground hover:text-foreground"
+                                            ? "border-foreground bg-foreground text-background dark:bg-[#0bd1a2] dark:text-black"
+                                            : "border-border text-muted-foreground hover:text-foreground dark:hover:bg-[#0bd1a2] dark:hover:text-black"
                                         }`}
                                       >
                                         {role === "All" ? "All Roles" : role}
@@ -943,15 +1056,6 @@ export default function GovernanceDetail() {
                                   })}
                                 </div>
                               </div>
-                              {voteTimelineData.length > 0 && (
-                                <div className="text-xs text-muted-foreground">
-                                  Updated{" "}
-                                  {
-                                    voteTimelineData[voteTimelineData.length - 1]
-                                      .label
-                                  }
-                                </div>
-                              )}
                             </div>
                             {voteTimelineData.length > 0 ? (
                               <div className="h-[320px] w-full min-w-0">
@@ -1002,7 +1106,7 @@ export default function GovernanceDetail() {
                                         <Line
                                           type="monotone"
                                           dataKey="yesPower"
-                                          stroke={VOTE_COLORS.yes}
+                                          stroke={voteColors.yes}
                                           strokeWidth={2}
                                           strokeDasharray={
                                             useDashedPowerLines ? "5 4" : undefined
@@ -1014,7 +1118,7 @@ export default function GovernanceDetail() {
                                         <Line
                                           type="monotone"
                                           dataKey="noPower"
-                                          stroke={VOTE_COLORS.no}
+                                          stroke={voteColors.no}
                                           strokeWidth={2}
                                           strokeDasharray={
                                             useDashedPowerLines ? "5 4" : undefined
@@ -1026,7 +1130,7 @@ export default function GovernanceDetail() {
                                         <Line
                                           type="monotone"
                                           dataKey="abstainPower"
-                                          stroke={VOTE_COLORS.abstain}
+                                          stroke={voteColors.abstain}
                                           strokeOpacity={0.9}
                                           strokeWidth={2}
                                           strokeDasharray={
@@ -1042,7 +1146,7 @@ export default function GovernanceDetail() {
                                         <Line
                                           type="monotone"
                                           dataKey="yesCount"
-                                          stroke={VOTE_COLORS.yes}
+                                          stroke={voteColors.yes}
                                           strokeWidth={2}
                                           dot={false}
                                           name="Yes Votes"
@@ -1051,7 +1155,7 @@ export default function GovernanceDetail() {
                                         <Line
                                           type="monotone"
                                           dataKey="noCount"
-                                          stroke={VOTE_COLORS.no}
+                                          stroke={voteColors.no}
                                           strokeWidth={2}
                                           dot={false}
                                           name="No Votes"
@@ -1060,7 +1164,7 @@ export default function GovernanceDetail() {
                                         <Line
                                           type="monotone"
                                           dataKey="abstainCount"
-                                          stroke={VOTE_COLORS.abstain}
+                                          stroke={voteColors.abstain}
                                           strokeOpacity={0.9}
                                           strokeWidth={2}
                                           dot={false}
@@ -1103,53 +1207,56 @@ export default function GovernanceDetail() {
                                 (epochsPassed / totalEpochs) * 100;
 
                               return (
-                                <div>
-                                  <label className="mb-2 block text-xs text-muted-foreground sm:text-sm">
+                                <div className="rounded-2xl border border-white/8 bg-[#faf9f6] p-4 sm:p-5 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none">
+                                  <label className="mb-3 block text-sm font-semibold text-foreground sm:text-base dark:text-[#0bd1a2]">
                                     Time Until Expiry
                                   </label>
-                                  <div className="mb-3 text-xs text-foreground sm:text-sm">
+                                  <div className="mb-4 text-base font-semibold text-foreground sm:text-lg dark:text-[#0bd1a2]">
                                     {epochsRemaining > 0 ? (
                                       <>
                                         {epochsRemaining}{" "}
                                         {epochsRemaining === 1
                                           ? "epoch"
                                           : "epochs"}{" "}
-                                        ({daysRemaining}{" "}
-                                        {daysRemaining === 1 ? "day" : "days"})
+                                        <span className="text-muted-foreground font-normal dark:text-[#0bd1a2]">
+                                          ({daysRemaining}{" "}
+                                          {daysRemaining === 1 ? "day" : "days"})
+                                        </span>{" "}
                                         remaining
                                       </>
                                     ) : (
-                                      <span className="text-destructive">
+                                      <span className="text-destructive dark:text-[#0bd1a2]">
                                         Expired
                                       </span>
                                     )}
                                   </div>
                                   <Progress
                                     value={progressPercent}
-                                    className="mb-3 h-2"
+                                    className="mb-4 h-3 rounded-full bg-secondary dark:bg-transparent dark:border dark:border-[#0bd1a2] dark:rounded-none"
+                                    indicatorClassName="bg-[#0bd1a2]"
                                   />
-                                  <div className="grid grid-cols-3 gap-4 text-center text-xs">
+                                  <div className="grid grid-cols-3 gap-4 text-center">
                                     <div>
-                                      <div className="mb-1 text-muted-foreground">
+                                      <div className="mb-1 text-xs text-muted-foreground sm:text-sm dark:text-[#0bd1a2]">
                                         Submission
                                       </div>
-                                      <div className="font-semibold">
+                                      <div className="text-sm font-semibold sm:text-base dark:text-[#0bd1a2]">
                                         Epoch {submissionEpoch}
                                       </div>
                                     </div>
                                     <div>
-                                      <div className="mb-1 text-muted-foreground">
+                                      <div className="mb-1 text-xs text-muted-foreground sm:text-sm dark:text-[#0bd1a2]">
                                         Current
                                       </div>
-                                      <div className="font-semibold">
+                                      <div className="text-sm font-semibold sm:text-base dark:text-[#0bd1a2]">
                                         Epoch {mockCurrentEpoch}
                                       </div>
                                     </div>
                                     <div>
-                                      <div className="mb-1 text-muted-foreground">
+                                      <div className="mb-1 text-xs text-muted-foreground sm:text-sm dark:text-[#0bd1a2]">
                                         Expiry
                                       </div>
-                                      <div className="font-semibold">
+                                      <div className="text-sm font-semibold sm:text-base dark:text-[#0bd1a2]">
                                         Epoch {expiryEpoch}
                                       </div>
                                     </div>
@@ -1157,52 +1264,64 @@ export default function GovernanceDetail() {
                                 </div>
                               );
                             })()}
-                            <div>
-                              <label className="mb-2 block text-xs text-muted-foreground sm:text-sm">
+                            <div className="rounded-2xl border border-white/8 bg-[#faf9f6] p-4 sm:p-5 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none">
+                              <label className="mb-3 block text-sm font-semibold text-foreground sm:text-base dark:text-[#0bd1a2]">
                                 Governance Action ID
                               </label>
-                              <code className="block break-all rounded bg-secondary px-2 py-1 font-mono text-xs text-muted-foreground sm:px-3 sm:text-sm">
-                                {selectedAction.proposalId}
-                              </code>
+                              <div className="flex items-start gap-2">
+                                <code className="flex-1 break-all rounded bg-secondary px-2 py-1 font-mono text-xs text-muted-foreground sm:px-3 sm:text-sm dark:bg-transparent dark:border dark:border-[#0bd1a2] dark:text-[#0bd1a2]">
+                                  {selectedAction.proposalId}
+                                </code>
+                                <button
+                                  onClick={() =>
+                                    handleCopy(
+                                      selectedAction.proposalId || "",
+                                      "proposalId"
+                                    )
+                                  }
+                                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-black transition-colors hover:bg-black hover:text-white shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:hover:bg-[#0bd1a2] dark:hover:text-black dark:shadow-none"
+                                  aria-label="Copy Governance Action ID"
+                                >
+                                  {copiedId === "proposalId" ? (
+                                    <Check className="h-3.5 w-3.5" />
+                                  ) : (
+                                    <Copy className="h-3.5 w-3.5" />
+                                  )}
+                                </button>
+                              </div>
                             </div>
-                            <div>
-                              <label className="mb-2 block text-xs text-muted-foreground sm:text-sm">
+                            <div className="rounded-2xl border border-white/8 bg-[#faf9f6] p-4 sm:p-5 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none">
+                              <label className="mb-3 block text-sm font-semibold text-foreground sm:text-base dark:text-[#0bd1a2]">
                                 Transaction Hash
                               </label>
-                              <code className="block break-all rounded bg-secondary px-2 py-1 font-mono text-xs text-muted-foreground sm:px-3 sm:text-sm">
-                                {selectedAction.txHash}
-                              </code>
+                              <div className="flex items-start gap-2">
+                                <code className="flex-1 break-all rounded bg-secondary px-2 py-1 font-mono text-xs text-muted-foreground sm:px-3 sm:text-sm dark:bg-transparent dark:border dark:border-[#0bd1a2] dark:text-[#0bd1a2]">
+                                  {selectedAction.txHash}
+                                </code>
+                                <button
+                                  onClick={() =>
+                                    handleCopy(
+                                      selectedAction.txHash || "",
+                                      "txHash"
+                                    )
+                                  }
+                                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-black transition-colors hover:bg-black hover:text-white shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:hover:bg-[#0bd1a2] dark:hover:text-black dark:shadow-none"
+                                  aria-label="Copy Transaction Hash"
+                                >
+                                  {copiedId === "txHash" ? (
+                                    <Check className="h-3.5 w-3.5" />
+                                  ) : (
+                                    <Copy className="h-3.5 w-3.5" />
+                                  )}
+                                </button>
+                              </div>
                             </div>
                           </div>
                         </TabsContent>
                       </>
-                    )}
                   </div>
                 </Tabs>
               </Card>
-
-              {/* Rationale Card (outside tabs, same column) */}
-              {selectedAction.rationale && (
-                <Card className="p-6">
-                  <div className="mb-2 flex items-center justify-between gap-2">
-                    <h2 className="text-xl font-semibold">Rationale</h2>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        setIsRationaleExpanded((prevExpanded) => !prevExpanded)
-                      }
-                    >
-                      {isRationaleExpanded ? "Hide Rationale" : "Show Rationale"}
-                    </Button>
-                  </div>
-                  {isRationaleExpanded && (
-                    <div className="mt-2 whitespace-pre-wrap leading-relaxed text-foreground/90">
-                      {selectedAction.rationale}
-                    </div>
-                  )}
-                </Card>
-              )}
             </div>
 
             {/* Right Column - Sidebar (voting summary and voting widget) */}
@@ -1218,54 +1337,38 @@ export default function GovernanceDetail() {
                 />
               )}
 
-              {/* Constitutionality Card */}
-              <Card className="p-6">
-                <h3 className="mb-2 font-semibold">Constitutionality</h3>
-                <p className="text-sm text-muted-foreground">
-                  {selectedAction.constitutionality}
-                </p>
-              </Card>
-
               {/* Vote Summary Card */}
               <Card className="p-6">
-                <h3 className="mb-4 font-semibold">Vote Summary</h3>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">
-                      Total Yes
-                    </span>
-                    <span className="text-sm font-semibold text-success">
-                      {selectedAction.totalYes}
-                    </span>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Gov action type</span>
+                    <Badge
+                      variant="outline"
+                  className="rounded-[6px] border-foreground/20 bg-transparent px-3 py-1 text-xs font-semibold uppercase tracking-wide leading-none dark:rounded-none dark:border-[#0bd1a2] dark:text-[#0bd1a2]"
+                    >
+                      {selectedAction.type}
+                    </Badge>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">
-                      Total No
-                    </span>
-                    <span className="text-sm font-semibold text-destructive">
-                      {selectedAction.totalNo}
-                    </span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Status</span>
+                    <Badge
+                      variant="outline"
+                  className="rounded-[6px] border-foreground/20 bg-transparent px-3 py-1 text-xs font-semibold uppercase tracking-wide leading-none dark:rounded-none dark:border-[#0bd1a2] dark:text-[#0bd1a2]"
+                    >
+                      {selectedAction.status}
+                    </Badge>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">
-                      Total Abstain
-                    </span>
-                    <span className="text-sm font-semibold">
-                      {selectedAction.totalAbstain}
-                    </span>
-                  </div>
-                  <div className="mt-2 border-t border-border pt-2">
-                    <div className="flex justify-between">
-                      <span className="text-sm font-semibold">
-                        Total Votes
-                      </span>
-                      <span className="text-sm font-bold">
-                        {selectedAction.totalYes +
-                          selectedAction.totalNo +
-                          selectedAction.totalAbstain}
-                      </span>
+                  {selectedAction.constitutionality && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Constitutionality</span>
+                      <Badge
+                        variant="outline"
+                    className="rounded-[6px] border-foreground/20 bg-transparent px-3 py-1 text-xs font-semibold uppercase tracking-wide leading-none dark:rounded-none dark:border-[#0bd1a2] dark:text-[#0bd1a2]"
+                      >
+                        {selectedAction.constitutionality}
+                      </Badge>
                     </div>
-                  </div>
+                  )}
                 </div>
               </Card>
             </div>
@@ -1294,6 +1397,7 @@ function VoteTrendTooltip({
   payload,
   label,
   showPower,
+  colors,
 }: {
   active?: boolean;
   payload?: Array<{
@@ -1302,6 +1406,7 @@ function VoteTrendTooltip({
   }>;
   label?: string;
   showPower: boolean;
+  colors: VoteColorSet;
 }) {
   if (!active || !payload?.length) {
     return null;
@@ -1318,7 +1423,7 @@ function VoteTrendTooltip({
       value: showPower
         ? formatAdaValue(point.yesPower)
         : `${point.yesCount.toLocaleString()} votes`,
-      color: VOTE_COLORS.yes,
+        color: colors.yes,
       border: "transparent",
     },
     {
@@ -1326,7 +1431,7 @@ function VoteTrendTooltip({
       value: showPower
         ? formatAdaValue(point.noPower)
         : `${point.noCount.toLocaleString()} votes`,
-      color: VOTE_COLORS.no,
+        color: colors.no,
       border: "transparent",
     },
     {
@@ -1334,7 +1439,7 @@ function VoteTrendTooltip({
       value: showPower
         ? formatAdaValue(point.abstainPower)
         : `${point.abstainCount.toLocaleString()} votes`,
-      color: VOTE_COLORS.abstain,
+        color: colors.abstain,
       border: "rgba(148, 163, 184, 0.85)",
     },
   ];
@@ -1369,45 +1474,49 @@ function VoteTrendTooltip({
   );
 }
 
+type VoteColorSet = typeof VOTE_COLORS_LIGHT;
+
 function RoleLegend({
   role,
   yesLabel,
   noLabel,
   abstainLabel,
   unit,
+  colors,
 }: {
   role: string;
   yesLabel: string;
   noLabel: string;
   abstainLabel: string;
   unit: string;
+  colors: VoteColorSet;
 }) {
   const items = [
     {
       label: "Yes",
       value: yesLabel,
-      color: VOTE_COLORS.yes,
+      color: colors.yes,
       border: "transparent",
     },
     {
       label: "No",
       value: noLabel,
-      color: VOTE_COLORS.no,
+      color: colors.no,
       border: "transparent",
     },
     {
       label: "Abstain",
       value: abstainLabel,
-      color: VOTE_COLORS.abstain,
+      color: colors.abstain,
       border: "rgba(148, 163, 184, 0.85)",
     },
   ];
 
   return (
-    <div className="w-full max-w-[200px] rounded-xl border border-border/60 bg-card/40 px-3 py-2 text-xs shadow-sm">
-      <div className="mb-2 flex items-center justify-between text-[11px] uppercase tracking-wide text-muted-foreground">
-        <span className="font-semibold">{role}</span>
-        <span>{unit}</span>
+    <div className="w-full max-w-[200px] rounded-xl border border-border/60 bg-card/40 px-3 py-2 text-xs shadow-sm dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none">
+      <div className="mb-2 flex items-center justify-between text-[11px] uppercase tracking-wide text-muted-foreground dark:text-[#0bd1a2]">
+        <span className="font-semibold dark:text-[#0bd1a2]">{role}</span>
+        <span className="dark:text-[#0bd1a2]">{unit}</span>
       </div>
       <div className="space-y-1.5">
         {items.map((item) => (
@@ -1417,17 +1526,17 @@ function RoleLegend({
           >
             <div className="flex items-center gap-2">
               <span
-                className="h-2.5 w-2.5 rounded-full border"
+                className="h-2.5 w-2.5 border"
                 style={{
                   backgroundColor: item.color,
                   borderColor: item.border,
                 }}
               />
-              <span className="font-semibold text-foreground">
+              <span className="font-semibold text-foreground dark:text-[#0bd1a2]">
                 {item.label}
               </span>
             </div>
-            <span className="font-mono text-[11px] text-muted-foreground">
+            <span className="font-mono text-[11px] text-muted-foreground dark:text-[#0bd1a2]">
               {item.value}
             </span>
           </div>
@@ -1439,9 +1548,9 @@ function RoleLegend({
 
 function RolePlaceholder({ role, message }: { role: string; message: string }) {
   return (
-    <div className="flex h-full min-h-[180px] w-full max-w-[220px] flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-card/30 px-4 py-6 text-center text-xs text-muted-foreground">
-      <span className="mb-1 font-semibold text-foreground">{role}</span>
-      <span>{message}</span>
+    <div className="flex h-full min-h-[180px] w-full max-w-[220px] flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-card/30 px-4 py-6 text-center text-xs text-muted-foreground dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none">
+      <span className="mb-1 font-semibold text-foreground dark:text-[#0bd1a2]">{role}</span>
+      <span className="dark:text-[#0bd1a2]">{message}</span>
     </div>
   );
 }

@@ -188,11 +188,14 @@ export function ConnectWalletModal({
                   >
                     {detectedWallet.icon ? (
                       detectedWallet.icon.startsWith("chrome-extension://") ? (
-                        <img
-                          src={detectedWallet.icon}
-                          alt={detectedWallet.name}
-                          className="w-10 h-10 rounded-lg"
-                        />
+                        <>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={detectedWallet.icon}
+                            alt={detectedWallet.name}
+                            className="w-10 h-10 rounded-lg"
+                          />
+                        </>
                       ) : (
                         <Image
                           src={detectedWallet.icon}

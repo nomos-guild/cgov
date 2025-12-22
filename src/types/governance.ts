@@ -116,6 +116,25 @@ export interface VoteRecord {
   // Optional textual rationale provided directly by the backend (e.g. resolved from IPFS)
   rationale?: string;
   votedAt: string;
+  // Transaction hash of the vote transaction
+  txHash?: string;
+}
+
+/**
+ * Raw reference object as returned by some upstream APIs.
+ * We only care about a human–readable label, a URI, and an optional type.
+ */
+export interface ProposalReferenceObject {
+  uri?: string;
+  label?: string;
+  /**
+   * Optional type of the reference, typically mapped from the upstream
+   * `"@type"` field (e.g. "Other", "Constitution", etc).
+   */
+  type?: string;
+  // Allow any extra metadata fields without typing them all out
+  // (e.g. "@type", "canonical", etc.)
+  [key: string]: unknown;
 }
 
 /**
@@ -125,6 +144,14 @@ export interface VoteRecord {
 export interface GovernanceActionDetail extends GovernanceAction {
   description?: string;
   rationale?: string;
+  /**
+   * References/links from proposal metadata.
+   *
+   * Upstream may return an array of strings or objects like
+   * { uri, label, "@type", ... }. The client code normalises these to a
+   * consistent `ProposalReferenceObject` shape before rendering.
+   */
+  references?: ProposalReferenceObject[];
   votes?: VoteRecord[]; // DRep and SPO votes
   ccVotes?: VoteRecord[]; // Constitutional Committee votes
 }

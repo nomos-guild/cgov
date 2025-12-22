@@ -361,8 +361,8 @@ export function VoteOnProposal({
     return (
       <Card className="p-6">
         <h3 className="font-semibold mb-4">Cast Your Vote</h3>
-        <div className="text-center py-6">
-          <Badge variant="outline" className="mb-3">
+        <div className="py-6">
+          <Badge variant="outline" className="mb-3 rounded-none border-foreground/30 bg-transparent px-3 py-1 text-sm font-semibold uppercase tracking-wide dark:border-[#0bd1a2] dark:text-[#0bd1a2]">
             {status}
           </Badge>
           <p className="text-muted-foreground">
@@ -379,7 +379,7 @@ export function VoteOnProposal({
         <h3 className="font-semibold mb-4">Cast Your Vote</h3>
 
         {!connected ? (
-          <div className="text-center py-6 space-y-4">
+          <div className="py-6 space-y-4">
             <p className="text-muted-foreground">
               Connect your wallet to vote on this governance action.
             </p>
@@ -416,7 +416,7 @@ export function VoteOnProposal({
                 Abstain
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground text-center">
+            <p className="text-xs text-muted-foreground">
               Your vote will be submitted on-chain as a DRep vote.
             </p>
           </div>
@@ -525,10 +525,10 @@ export function VoteOnProposal({
                   variant="outline"
                   className={
                     selectedVote === "Yes"
-                      ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-lg px-6 py-2"
+                      ? "rounded-none bg-transparent text-emerald-400 border-emerald-500/60 text-lg px-6 py-2 dark:border-[#0bd1a2] dark:text-[#0bd1a2]"
                       : selectedVote === "No"
-                      ? "bg-red-500/20 text-red-400 border-red-500/30 text-lg px-6 py-2"
-                      : "bg-gray-500/20 text-gray-400 border-gray-500/30 text-lg px-6 py-2"
+                      ? "rounded-none bg-transparent text-red-400 border-red-500/60 text-lg px-6 py-2 dark:border-[#0bd1a2] dark:text-[#0bd1a2]"
+                      : "rounded-none bg-transparent text-gray-400 border-gray-500/60 text-lg px-6 py-2 dark:border-[#0bd1a2] dark:text-[#0bd1a2]"
                   }
                 >
                   {selectedVote}

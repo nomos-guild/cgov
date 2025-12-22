@@ -16,6 +16,16 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        sans: "var(--font-sans)",
+        heading: "var(--font-heading, var(--font-sans))",
+      },
+      boxShadow: {
+        soft: "var(--shadow-soft)",
+        strong: "var(--shadow-strong)",
+        card: "var(--shadow-card, var(--shadow-soft))",
+        popover: "var(--shadow-popover, var(--shadow-strong))",
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -59,6 +69,11 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      transitionDuration: {
+        fast: "var(--motion-fast)",
+        normal: "var(--motion-normal)",
+        slow: "var(--motion-slow)",
       },
       keyframes: {
         "accordion-down": {
