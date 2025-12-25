@@ -36,7 +36,7 @@ export default function Home() {
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
           <div className="mb-8 text-left">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4 text-black dark:text-white">
+            <h1 className="landing-title text-4xl md:text-5xl font-bold mb-4 text-black dark:text-foreground">
               Cardano Governance
             </h1>
             <p className="text-muted-foreground text-lg">

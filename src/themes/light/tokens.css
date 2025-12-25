@@ -1,0 +1,70 @@
+:root {
+  color-scheme: light;
+  --font-sans: "Inter", "SF Pro Display", "Segoe UI", system-ui, -apple-system,
+    sans-serif;
+  --font-heading: "Space Grotesk", "Inter", "Segoe UI", system-ui, -apple-system,
+    sans-serif;
+
+  --radius: 0.9rem;
+
+  --shadow-soft: 0 12px 35px rgba(15, 23, 42, 0.08);
+  --shadow-strong: 0 24px 70px rgba(15, 23, 42, 0.16);
+  --shadow-card: 0 16px 40px rgba(15, 23, 42, 0.12);
+  --shadow-popover: 0 20px 60px rgba(15, 23, 42, 0.16);
+
+  --motion-fast: 150ms;
+  --motion-normal: 240ms;
+  --motion-slow: 360ms;
+
+  /* Default to light tokens for initial paint */
+  --background: 40 15% 98%;
+  --surface: 40 12% 96.5%;
+  --foreground: 24 10% 12%;
+  --card: 40 12% 97%;
+  --card-foreground: 24 10% 12%;
+  --popover: 40 15% 98%;
+  --popover-foreground: 24 10% 12%;
+  --primary: 0 0% 0%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 35 30% 92%;
+  --secondary-foreground: 24 10% 18%;
+  --muted: 35 24% 90%;
+  --muted-foreground: 24 8% 40%;
+  --accent: 210 90% 45%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 78% 52%;
+  --destructive-foreground: 0 0% 100%;
+  --success: 146 51% 40%;
+  --success-foreground: 0 0% 100%;
+  --border: 40 10% 86%;
+  --input: 40 10% 86%;
+  --ring: 24 92% 45%;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --background: 40 15% 98%;
+  --surface: 40 12% 96.5%;
+  --foreground: 24 10% 12%;
+  --card: 40 12% 97%;
+  --card-foreground: 24 10% 12%;
+  --popover: 40 15% 98%;
+  --popover-foreground: 24 10% 12%;
+  --primary: 0 0% 0%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 35 30% 92%;
+  --secondary-foreground: 24 10% 18%;
+  --muted: 35 24% 90%;
+  --muted-foreground: 24 8% 40%;
+  --accent: 210 90% 45%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 78% 52%;
+  --destructive-foreground: 0 0% 100%;
+  --success: 146 51% 40%;
+  --success-foreground: 0 0% 100%;
+  --border: 40 10% 86%;
+  --input: 40 10% 86%;
+  --ring: 24 92% 45%;
+  --radius: 0.9rem;
+}
+

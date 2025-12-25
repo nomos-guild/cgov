@@ -1,56 +1,42 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
+import {
+  DEFAULT_THEME_ID,
+  getNextThemeId,
+  getThemeDefinition,
+  themes,
+  type ThemeDefinition,
+  type ThemeId,
+  type ThemeComponents,
+} from "@/themes";
 
-export type ThemeId = "light" | "dark";
-
-type ThemeOption = {
-  id: ThemeId;
-  label: string;
-  isDark: boolean;
-};
-
-const THEME_PRESETS: ThemeOption[] = [
-  { id: "light", label: "Light", isDark: false },
-  { id: "dark", label: "Nerd", isDark: true },
-];
-
-const DEFAULT_THEME: ThemeId = "light";
 const STORAGE_KEY = "theme";
-const themeMap = THEME_PRESETS.reduce(
-  (acc, theme) => ({ ...acc, [theme.id]: theme }),
-  {} as Record<ThemeId, ThemeOption>
-);
 
 interface ThemeContextType {
   theme: ThemeId;
   resolvedTheme: "light" | "dark";
+  components: ThemeComponents;
+  activeTheme: ThemeDefinition;
   setTheme: (theme: ThemeId) => void;
   toggleTheme: () => void;
-  themes: ThemeOption[];
+  themes: ThemeDefinition[];
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 function applyTheme(themeId: ThemeId) {
   if (typeof document === "undefined") return;
-  const theme = themeMap[themeId] ?? themeMap[DEFAULT_THEME];
-
+  const theme = getThemeDefinition(themeId);
   document.documentElement.setAttribute("data-theme", theme.id);
   document.documentElement.classList.toggle("dark", theme.isDark);
   document.documentElement.style.setProperty(
     "color-scheme",
     theme.isDark ? "dark" : "light"
   );
-  }
-
-function getNextTheme(current: ThemeId): ThemeId {
-  const index = THEME_PRESETS.findIndex((preset) => preset.id === current);
-  const next = THEME_PRESETS[(index + 1) % THEME_PRESETS.length];
-  return next?.id ?? DEFAULT_THEME;
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<ThemeId>(DEFAULT_THEME);
+  const [theme, setThemeState] = useState<ThemeId>(DEFAULT_THEME_ID);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -58,7 +44,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       typeof localStorage !== "undefined"
         ? (localStorage.getItem(STORAGE_KEY) as ThemeId | null)
         : null;
-    const initialTheme = savedTheme && themeMap[savedTheme] ? savedTheme : DEFAULT_THEME;
+    const hasSaved = savedTheme && themes.some((t) => t.id === savedTheme);
+    const initialTheme = hasSaved ? (savedTheme as ThemeId) : DEFAULT_THEME_ID;
 
     setThemeState(initialTheme);
     applyTheme(initialTheme);
@@ -75,23 +62,27 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [theme, mounted]);
 
   const setTheme = (newTheme: ThemeId) => {
-    if (!themeMap[newTheme]) {
-      setThemeState(DEFAULT_THEME);
-      return;
-    }
-    setThemeState(newTheme);
+    setThemeState(getThemeDefinition(newTheme).id);
   };
 
   const toggleTheme = () => {
-    setTheme(getNextTheme(theme));
+    setTheme(getNextThemeId(theme));
   };
 
-  const resolvedTheme: "light" | "dark" =
-    themeMap[theme]?.isDark ?? false ? "dark" : "light";
+  const activeTheme = getThemeDefinition(theme);
+  const resolvedTheme: "light" | "dark" = activeTheme.isDark ? "dark" : "light";
 
   return (
     <ThemeContext.Provider
-      value={{ theme, resolvedTheme, setTheme, toggleTheme, themes: THEME_PRESETS }}
+      value={{
+        theme,
+        resolvedTheme,
+        components: activeTheme.components ?? {},
+        activeTheme,
+        setTheme,
+        toggleTheme,
+        themes,
+      }}
     >
       {children}
     </ThemeContext.Provider>
@@ -102,11 +93,13 @@ export function useTheme() {
   const context = useContext(ThemeContext);
   if (context === undefined) {
     return { 
-      theme: DEFAULT_THEME,
+      theme: DEFAULT_THEME_ID,
       resolvedTheme: "light" as const,
+      components: {},
+      activeTheme: getThemeDefinition(DEFAULT_THEME_ID),
       setTheme: () => {},
       toggleTheme: () => {},
-      themes: THEME_PRESETS,
+      themes,
     };
   }
   return context;
