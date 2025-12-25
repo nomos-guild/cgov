@@ -1,0 +1,119 @@
+[data-theme="dark"] {
+  color-scheme: dark;
+  --font-sans: "JetBrains Mono", "Fira Code", "Cascadia Code", "Consolas",
+    "Menlo", "Monaco", monospace;
+  --font-heading: "JetBrains Mono", "Fira Code", "Cascadia Code", "Consolas",
+    "Menlo", "Monaco", monospace;
+  --background: 230 18% 8%;
+  --surface: 230 16% 12%;
+  --foreground: 220 30% 96%;
+  --card: 230 16% 10%;
+  --card-foreground: 220 30% 96%;
+  --popover: 230 16% 10%;
+  --popover-foreground: 220 30% 96%;
+  --primary: 210 90% 66%;
+  --primary-foreground: 220 35% 12%;
+  --secondary: 230 14% 22%;
+  --secondary-foreground: 220 30% 92%;
+  --muted: 230 12% 26%;
+  --muted-foreground: 220 15% 65%;
+  --accent: 280 75% 70%;
+  --accent-foreground: 230 35% 12%;
+  --destructive: 0 70% 58%;
+  --destructive-foreground: 0 0% 100%;
+  --success: 150 60% 50%;
+  --success-foreground: 220 30% 10%;
+  --border: 230 12% 28%;
+  --input: 230 12% 28%;
+  --ring: 210 90% 66%;
+  --radius: 1rem;
+  --shadow-soft: 0 12px 35px rgba(0, 0, 0, 0.35);
+  --shadow-strong: 0 24px 70px rgba(0, 0, 0, 0.5);
+  --shadow-card: 0 18px 50px rgba(0, 0, 0, 0.35);
+  --shadow-popover: 0 30px 80px rgba(0, 0, 0, 0.6);
+}
+
+[data-theme="dark"] .landing-title {
+  color: #0bd1a2 !important;
+}
+
+[data-theme="dark"] .proposal-row.first-row,
+[data-theme="dark"] .proposal-row.first-row * {
+  color: #0bd1a2 !important;
+}
+
+[data-theme="dark"] .proposal-header-row,
+[data-theme="dark"] .proposal-header-row * {
+  color: #0bd1a2 !important;
+  border-color: #0bd1a2 !important;
+}
+
+[data-theme="dark"] .proposal-detail-title {
+  color: #0bd1a2 !important;
+}
+
+[data-theme="dark"] .proposal-detail-content,
+[data-theme="dark"] .proposal-detail-content * {
+  color: #0bd1a2 !important;
+}
+
+[data-theme="dark"] .proposal-detail-content a {
+  color: #ff9900 !important;
+}
+[data-theme="dark"] .proposal-detail-content a:hover {
+  color: #ffb84d !important;
+  text-decoration: underline;
+}
+
+[data-theme="dark"] .voting-records-header,
+[data-theme="dark"] .voting-records-header * {
+  color: #0bd1a2 !important;
+  border-color: #0bd1a2 !important;
+}
+
+[data-theme="dark"] .voting-record-row.first-row,
+[data-theme="dark"] .voting-record-row.first-row * {
+  color: #0bd1a2 !important;
+  border-color: #0bd1a2 !important;
+}
+
+[data-theme="dark"] .voting-record-row {
+  border-color: #0bd1a2 !important;
+}
+
+[data-theme="dark"] .voting-record-row.vote-no-row,
+[data-theme="dark"] .voting-record-row.vote-no-row * {
+  color: #8C200B !important;
+  border-color: #8C200B !important;
+}
+
+[data-theme="dark"] .no-vote {
+  border-color: #8C200B !important;
+}
+[data-theme="dark"] .no-vote,
+[data-theme="dark"] .no-vote * {
+  color: #8C200B !important;
+}
+
+[data-theme="dark"] .vote-on-proposal-card,
+[data-theme="dark"] .vote-on-proposal-card * {
+  color: #0bd1a2 !important;
+}
+[data-theme="dark"] .vote-on-proposal-card h3,
+[data-theme="dark"] .vote-on-proposal-card h4,
+[data-theme="dark"] .vote-on-proposal-card h5 {
+  color: #0bd1a2 !important;
+}
+
+[data-theme="dark"] .role-filter-button,
+[data-theme="dark"] .role-filter-button:first-child,
+[data-theme="dark"] .role-filter-button * {
+  color: #0bd1a2 !important;
+  border-color: #0bd1a2 !important;
+}
+
+[data-theme="dark"] .role-filter-button.active {
+  background-color: #0bd1a2 !important;
+  color: #000000 !important;
+}
+

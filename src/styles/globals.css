@@ -1,3 +1,6 @@
+@import "../themes/light/tokens.css";
+@import "../themes/dark/tokens.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -20,112 +23,6 @@
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-@layer base {
-  :root {
-    color-scheme: light;
-    --font-sans: "Inter", "SF Pro Display", "Segoe UI", system-ui, -apple-system,
-      sans-serif;
-    --font-heading: "Space Grotesk", "Inter", "Segoe UI", system-ui, -apple-system,
-      sans-serif;
-
-    --radius: 0.9rem;
-
-    --shadow-soft: 0 12px 35px rgba(15, 23, 42, 0.08);
-    --shadow-strong: 0 24px 70px rgba(15, 23, 42, 0.16);
-    --shadow-card: 0 16px 40px rgba(15, 23, 42, 0.12);
-    --shadow-popover: 0 20px 60px rgba(15, 23, 42, 0.16);
-
-    --motion-fast: 150ms;
-    --motion-normal: 240ms;
-    --motion-slow: 360ms;
-
-    /* Default to light tokens for initial paint */
-    --background: 40 15% 98%;
-    --surface: 40 12% 96.5%;
-    --foreground: 24 10% 12%;
-    --card: 40 12% 97%;
-    --card-foreground: 24 10% 12%;
-    --popover: 40 15% 98%;
-    --popover-foreground: 24 10% 12%;
-    --primary: 0 0% 0%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 35 30% 92%;
-    --secondary-foreground: 24 10% 18%;
-    --muted: 35 24% 90%;
-    --muted-foreground: 24 8% 40%;
-    --accent: 210 90% 45%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 78% 52%;
-    --destructive-foreground: 0 0% 100%;
-    --success: 146 51% 40%;
-    --success-foreground: 0 0% 100%;
-    --border: 40 10% 86%;
-    --input: 40 10% 86%;
-    --ring: 24 92% 45%;
-  }
-
-  [data-theme="light"] {
-    color-scheme: light;
-    --background: 40 15% 98%;
-    --surface: 40 12% 96.5%;
-    --foreground: 24 10% 12%;
-    --card: 40 12% 97%;
-    --card-foreground: 24 10% 12%;
-    --popover: 40 15% 98%;
-    --popover-foreground: 24 10% 12%;
-    --primary: 0 0% 0%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 35 30% 92%;
-    --secondary-foreground: 24 10% 18%;
-    --muted: 35 24% 90%;
-    --muted-foreground: 24 8% 40%;
-    --accent: 210 90% 45%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 78% 52%;
-    --destructive-foreground: 0 0% 100%;
-    --success: 146 51% 40%;
-    --success-foreground: 0 0% 100%;
-    --border: 40 10% 86%;
-    --input: 40 10% 86%;
-    --ring: 24 92% 45%;
-    --radius: 0.9rem;
-  }
-
-  [data-theme="dark"] {
-    color-scheme: dark;
-    --font-sans: "JetBrains Mono", "Fira Code", "Cascadia Code", "Consolas", "Menlo", "Monaco", monospace;
-    --font-heading: "JetBrains Mono", "Fira Code", "Cascadia Code", "Consolas", "Menlo", "Monaco", monospace;
-    --background: 230 18% 8%;
-    --surface: 230 16% 12%;
-    --foreground: 220 30% 96%;
-    --card: 230 16% 10%;
-    --card-foreground: 220 30% 96%;
-    --popover: 230 16% 10%;
-    --popover-foreground: 220 30% 96%;
-    --primary: 210 90% 66%;
-    --primary-foreground: 220 35% 12%;
-    --secondary: 230 14% 22%;
-    --secondary-foreground: 220 30% 92%;
-    --muted: 230 12% 26%;
-    --muted-foreground: 220 15% 65%;
-    --accent: 280 75% 70%;
-    --accent-foreground: 230 35% 12%;
-    --destructive: 0 70% 58%;
-    --destructive-foreground: 0 0% 100%;
-    --success: 150 60% 50%;
-    --success-foreground: 220 30% 10%;
-    --border: 230 12% 28%;
-    --input: 230 12% 28%;
-    --ring: 210 90% 66%;
-    --radius: 1rem;
-    --shadow-soft: 0 12px 35px rgba(0, 0, 0, 0.35);
-    --shadow-strong: 0 24px 70px rgba(0, 0, 0, 0.5);
-    --shadow-card: 0 18px 50px rgba(0, 0, 0, 0.35);
-    --shadow-popover: 0 30px 80px rgba(0, 0, 0, 0.6);
-  }
-
 }
 
 @layer base {

@@ -1,16 +1,38 @@
 import type { Vote } from "@/types/governance";
 
 /**
- * Returns the rationale text coming from the backend, or a clear
- * message that no rationale data was provided.
- *
- * We intentionally do NOT generate any synthetic or template content here.
+ * Extract rationale text. The backend may return:
+ * - Plain text
+ * - CIP-100 JSON ({ body: { comment } })
+ * - CIP-136 JSON ({ body: { rationaleStatement, conclusion } })
+ * - Legacy { comment }
  */
-function getRationale(rationale: string | undefined): string {
-  if (rationale && rationale.trim().length > 0) {
-    return rationale;
+function getRationale(raw: string | undefined): string {
+  if (!raw || raw.trim().length === 0) return "No rationale data provided.";
+
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (parsed && typeof parsed === "object") {
+      const obj = parsed as {
+        body?: { comment?: string; rationaleStatement?: string; conclusion?: string };
+        comment?: string;
+      };
+
+      if (obj.body?.comment) return obj.body.comment;
+
+      if (obj.body?.rationaleStatement) {
+        const statement = obj.body.rationaleStatement;
+        const conclusion = obj.body.conclusion ? `\n\n${obj.body.conclusion}` : "";
+        return `${statement}${conclusion}`.trim();
+      }
+
+      if (obj.comment) return obj.comment;
+    }
+  } catch {
+    // not JSON, fall through
   }
-  return "No rationale data provided.";
+
+  return raw;
 }
 
 export function exportToJSON(votes: Vote[], proposalTitle: string): string {
@@ -79,30 +101,33 @@ export function exportToCSV(votes: Vote[], proposalTitle: string): string {
     "Anchor URL",
   ];
 
+  const escapeField = (value: unknown): string => {
+    if (value === null || value === undefined) return '""';
+    const str = String(value).replace(/"/g, '""').replace(/\r?\n/g, " ");
+    return `"${str}"`;
+  };
+
   const rows = votes.map((vote) => {
-    const rationale = getRationale(vote.rationale)
-      .replace(/"/g, '""') // Escape quotes for CSV
-      .replace(/\n/g, " "); // Replace newlines with spaces
-    
+    const rationale = getRationale(vote.rationale);
+    const votedAt = vote.votedAt
+      ? new Date(vote.votedAt).toISOString()
+      : "";
+    const votingPower = vote.votingPowerAda ?? "";
+
     return [
-      proposalTitle,
-      vote.voterType,
-      vote.voterId,
-      vote.voterName || "",
-      vote.vote,
-      vote.votingPowerAda?.toLocaleString() || "",
-      vote.votedAt ? new Date(vote.votedAt).toLocaleString() : "",
-      `"${rationale}"`,
-      vote.anchorUrl || "",
-    ];
+      escapeField(proposalTitle),
+      escapeField(vote.voterType),
+      escapeField(vote.voterId),
+      escapeField(vote.voterName || ""),
+      escapeField(vote.vote),
+      escapeField(votingPower),
+      escapeField(votedAt),
+      escapeField(rationale),
+      escapeField(vote.anchorUrl || ""),
+    ].join(",");
   });
 
-  const csvContent = [
-    headers.join(","),
-    ...rows.map((row) => row.join(",")),
-  ].join("\n");
-
-  return csvContent;
+  return [headers.join(","), ...rows].join("\n");
 }
 
 export function downloadFile(content: string, filename: string, mimeType: string) {

@@ -359,7 +359,7 @@ export function VoteOnProposal({
 
   if (!isActive) {
     return (
-      <Card className="p-6">
+      <Card className="p-6 vote-on-proposal-card">
         <h3 className="font-semibold mb-4">Cast Your Vote</h3>
         <div className="py-6">
           <Badge variant="outline" className="mb-3 rounded-none border-foreground/30 bg-transparent px-3 py-1 text-sm font-semibold uppercase tracking-wide dark:border-[#0bd1a2] dark:text-[#0bd1a2]">
@@ -375,7 +375,7 @@ export function VoteOnProposal({
 
   return (
     <>
-      <Card className="p-6">
+      <Card className="p-6 vote-on-proposal-card">
         <h3 className="font-semibold mb-4">Cast Your Vote</h3>
 
         {!connected ? (
