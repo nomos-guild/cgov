@@ -293,13 +293,9 @@ export function VotingRecords({
                           {vote.votedAt ? new Date(vote.votedAt).toLocaleDateString() : "—"}
                         </TableCell>
                         <TableCell className="text-right">
-                          {vote.voterType === "CC" ? (
-                            <span className="text-xs text-muted-foreground dark:text-[#0bd1a2]">
-                              Not applicable
-                            </span>
-                          ) : hasRationale ? (
-                            <Button 
-                              size="sm" 
+                          {hasRationale ? (
+                            <Button
+                              size="sm"
                               variant="default"
                               onClick={() => handleOpenRationale(vote)}
                               className="bg-white text-black hover:bg-black hover:text-white transition-colors shadow-[0_12px_30px_rgba(15,23,42,0.25)] btn-neon"
