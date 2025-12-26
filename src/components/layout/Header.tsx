@@ -2,16 +2,26 @@ import Link from "next/link";
 import { ConnectWalletButton } from "@/components/wallet";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Globe, Github, Twitter } from "lucide-react";
+import { useTheme } from "@/lib/theme";
+
+function DefaultBrand() {
+  return (
+    <span className="text-xl font-bold text-black dark:text-[#0bd1a2]">
+      CGOV
+    </span>
+  );
+}
 
 export function Header() {
+  const { components } = useTheme();
+  const Brand = components?.HeaderBrand ?? DefaultBrand;
+
   return (
     <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           <Link href="/" className="flex items-center space-x-2">
-            <span className="text-xl font-bold text-black dark:text-[#0bd1a2]">
-              CGOV
-            </span>
+            <Brand />
           </Link>
 
           <div className="flex items-center gap-6">

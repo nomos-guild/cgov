@@ -312,9 +312,9 @@ export function BubbleMap({ votes }: BubbleMapProps) {
                   key={role}
                   type="button"
                   onClick={() => setVoterFilter(role)}
-                  className={`rounded-2xl px-4 py-2 shadow-[0_12px_30px_rgba(15,23,42,0.25)] cursor-pointer transition-colors text-xs font-semibold uppercase tracking-wide dark:rounded-none dark:border dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none ${
+                  className={`role-filter-button rounded-2xl px-4 py-2 shadow-[0_12px_30px_rgba(15,23,42,0.25)] cursor-pointer transition-colors text-xs font-semibold uppercase tracking-wide dark:rounded-none dark:border dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none ${
                     isActive
-                      ? "bg-black text-white dark:bg-[#0bd1a2] dark:text-black"
+                      ? "bg-black text-white dark:bg-[#0bd1a2] dark:text-black active"
                       : "bg-white text-black hover:bg-black hover:text-white dark:hover:bg-[#0bd1a2] dark:hover:text-black"
                   }`}
                 >

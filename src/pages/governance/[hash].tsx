@@ -773,7 +773,7 @@ export default function GovernanceDetail() {
           {/* Header Section */}
           <Card className="mb-8 p-4 sm:p-6">
             <div className="mb-3 flex items-center gap-3">
-              <h1 className="text-2xl font-bold sm:text-3xl md:text-4xl">
+              <h1 className="proposal-detail-title text-2xl font-bold sm:text-3xl md:text-4xl">
                 {selectedAction.title}
               </h1>
             </div>
@@ -782,7 +782,7 @@ export default function GovernanceDetail() {
                 {contentPreview.preview && !isContentExpanded && (
                   <ProposalContent
                     content={contentPreview.preview}
-                    className="text-sm sm:text-base"
+                    className="proposal-detail-content text-sm sm:text-base"
                   />
                 )}
                 {contentPreview.full && (
@@ -798,20 +798,21 @@ export default function GovernanceDetail() {
                       <div className="overflow-x-auto">
                         <ProposalContent
                           content={contentPreview.full}
-                          className="px-1 pr-6"
+                          className="proposal-detail-content px-1 pr-6"
                           headingLevels={[1, 2, 3, 4]}
                         />
                       </div>
                     </div>
                   </div>
                 )}
-                {contentPreview.references &&
+                {isContentExpanded &&
+                  contentPreview.references &&
                   contentPreview.references.length > 0 && (
                     <div className="mt-4 border-t border-border/50 pt-4">
                       <h4 className="mb-3 text-sm font-semibold text-foreground">
                         References
                       </h4>
-                      <div className="space-y-2">
+                      <div className="space-y-2 proposal-detail-content">
                         {contentPreview.references.map((ref, index) => {
                           const href = ref.uri || ref.label || "#";
                           const label = ref.label || ref.uri || href;

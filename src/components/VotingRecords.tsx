@@ -23,9 +23,13 @@ function formatAda(ada: number): string {
 }
 
 function getVoteBadgeClasses(vote: VoteRecord["vote"]): string {
-  return vote === "Yes"
-    ? "text-foreground border-foreground/40 bg-foreground/5 dark:text-[#0bd1a2] dark:border-[#0bd1a2] dark:bg-transparent"
-    : "text-foreground/60 border-foreground/20 bg-transparent dark:text-[#0bd1a2] dark:border-[#0bd1a2] dark:bg-transparent";
+  if (vote === "Yes") {
+    return "text-foreground border-foreground/40 bg-foreground/5 dark:text-[#0bd1a2] dark:border-[#0bd1a2] dark:bg-transparent";
+  }
+  if (vote === "No") {
+    return "text-foreground border-foreground/40 bg-destructive/10 dark:text-[#8C200B] dark:border-[#8C200B] dark:bg-transparent";
+  }
+  return "text-foreground/60 border-foreground/20 bg-transparent dark:text-[#0bd1a2] dark:border-[#0bd1a2] dark:bg-transparent";
 }
 
 function formatVoterDisplayName(vote: VoteRecord): string {
@@ -222,7 +226,7 @@ export function VotingRecords({
           <div className="inline-block min-w-full px-4 align-middle sm:px-6 md:px-0 dark:text-[#0bd1a2]">
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="voting-records-header">
                   <TableHead>Voter</TableHead>
                   {hasTransactionHashes && <TableHead>Transaction</TableHead>}
                   <TableHead>Vote</TableHead>
@@ -239,15 +243,20 @@ export function VotingRecords({
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredVotes.map((vote) => {
+                  filteredVotes.map((vote, index) => {
                     const voteId = getVoteId(vote);
                     const hasRationale = Boolean(
                       vote.rationale && vote.rationale.trim().length > 0
                     );
+                    const isFirstRow = index === 0;
+                    const voteLower = vote.vote.toLowerCase();
+                    const isNoVote = voteLower === "no";
                     return (
                   <TableRow
                     key={voteId}
-                    className="hover:bg-transparent transition-transform duration-300 ease-out transform-gpu hover:scale-[1.01]"
+                    className={`voting-record-row hover:bg-transparent transition-transform duration-300 ease-out transform-gpu hover:scale-[1.01] ${
+                      isFirstRow ? "first-row" : ""
+                    } ${isNoVote ? "vote-no-row" : ""}`}
                   >
                         <TableCell>
                           <div>

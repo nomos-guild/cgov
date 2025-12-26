@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef, useEffect } from "react";
+import { useMemo, useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -148,6 +148,38 @@ export function GovernanceTable() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isFilterMenuOpen, isStatusMenuOpen]);
 
+  const handleToggleFilterMenu = useCallback(() => {
+    setIsFilterMenuOpen((prev) => !prev);
+    setIsStatusMenuOpen(false);
+  }, []);
+
+  const handleToggleStatusMenu = useCallback(() => {
+    setIsStatusMenuOpen((prev) => !prev);
+    setIsFilterMenuOpen(false);
+  }, []);
+
+  const handleTriggerPointerDown = useCallback(
+    (event: React.PointerEvent, toggle: () => void) => {
+      event.preventDefault(); // avoid focus jumps that feel laggy
+      toggle();
+    },
+    []
+  );
+
+  const handleTriggerKeyDown = useCallback(
+    (event: React.KeyboardEvent, toggle: () => void) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle();
+      }
+      if (event.key === "Escape") {
+        setIsFilterMenuOpen(false);
+        setIsStatusMenuOpen(false);
+      }
+    },
+    []
+  );
+
   const sortedActions = useMemo(() => {
     return [...actions].sort((a, b) => {
       // Sort by submission epoch (newest first)
@@ -266,8 +298,13 @@ export function GovernanceTable() {
             <Button
               variant="outline"
               size="sm"
-              className="h-9 min-h-0 px-3 py-2 text-sm btn-neon rounded-2xl hover:bg-black hover:text-white dark:hover:bg-[#0bd1a2] dark:hover:text-black dark:rounded-none"
-              onClick={() => setIsFilterMenuOpen((prev) => !prev)}
+              className="h-9 min-h-0 px-3 py-2 text-sm btn-neon rounded-2xl hover:bg-black hover:text-white transition-none dark:hover:bg-[#0bd1a2] dark:hover:text-black dark:rounded-none"
+              aria-haspopup="true"
+              aria-expanded={isFilterMenuOpen}
+              onPointerDown={(e) =>
+                handleTriggerPointerDown(e, handleToggleFilterMenu)
+              }
+              onKeyDown={(e) => handleTriggerKeyDown(e, handleToggleFilterMenu)}
             >
               Filter action types
               <ChevronDown
@@ -323,8 +360,13 @@ export function GovernanceTable() {
             <Button
               variant="outline"
               size="sm"
-              className="h-9 min-h-0 px-3 py-2 text-sm btn-neon rounded-2xl hover:bg-black hover:text-white dark:hover:bg-[#0bd1a2] dark:hover:text-black dark:rounded-none"
-              onClick={() => setIsStatusMenuOpen((prev) => !prev)}
+              className="h-9 min-h-0 px-3 py-2 text-sm btn-neon rounded-2xl hover:bg-black hover:text-white transition-none dark:hover:bg-[#0bd1a2] dark:hover:text-black dark:rounded-none"
+              aria-haspopup="true"
+              aria-expanded={isStatusMenuOpen}
+              onPointerDown={(e) =>
+                handleTriggerPointerDown(e, handleToggleStatusMenu)
+              }
+              onKeyDown={(e) => handleTriggerKeyDown(e, handleToggleStatusMenu)}
             >
               Filter by status
               <ChevronDown
@@ -391,7 +433,7 @@ export function GovernanceTable() {
         <div className="rounded-2xl border border-white/8 bg-[#faf9f6] overflow-hidden shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none">
           <Table>
             <TableHeader>
-              <TableRow className="hover:bg-transparent">
+              <TableRow className="proposal-header-row hover:bg-transparent">
                 <TableHead className="w-[30px] px-0 text-center h-10 py-2">DRep</TableHead>
                 <TableHead className="w-[30px] px-0 text-center h-10 py-2">SPO</TableHead>
                 <TableHead className="w-[30px] px-0 text-center h-10 py-2">CC</TableHead>
@@ -401,7 +443,8 @@ export function GovernanceTable() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredActions.map((action) => {
+              {filteredActions.map((action, index) => {
+                const isFirstRow = index === 0;
                 // Always show donuts when we have data, even if a role
                 // isn't formally eligible for this proposal type.
                 // Eligibility is used in other parts of the UI.
@@ -463,7 +506,9 @@ export function GovernanceTable() {
                 return (
                   <TableRow
                     key={action.proposalId ?? action.hash}
-                    className="cursor-pointer transition-transform duration-300 ease-out transform-gpu hover:scale-[1.01] hover:bg-transparent dark:border-[#0bd1a2] dark:border-b"
+                    className={`proposal-row cursor-pointer transition-transform duration-300 ease-out transform-gpu hover:scale-[1.01] hover:bg-transparent dark:border-[#0bd1a2] dark:border-b ${
+                      isFirstRow ? "first-row" : ""
+                    }`}
                     onClick={() => handleRowClick(action.hash)}
                   >
                     <TableCell className="py-1 px-0">

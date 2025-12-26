@@ -1,8 +1,11 @@
 import { Progress } from "@/components/ui/progress";
 import { useAppSelector } from "@/store/hooks";
+import { useTheme } from "@/lib/theme";
 
 export function GovernanceStats() {
   const { actions, nclData } = useAppSelector((state) => state.governance);
+  const { activeTheme } = useTheme();
+  const isDarkTheme = activeTheme.isDark;
 
   const stats = {
     total: actions.length,
@@ -94,7 +97,7 @@ export function GovernanceStats() {
           <Progress
             value={nclProgress}
             className="h-1.5 rounded-full bg-secondary dark:bg-transparent dark:border dark:border-[#0bd1a2] dark:rounded-none"
-            indicatorClassName="bg-[#0bd1a2]"
+            indicatorClassName={isDarkTheme ? "bg-[#0bd1a2]" : "bg-black"}
           />
         </div>
       )}
