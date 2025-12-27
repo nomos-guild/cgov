@@ -31,7 +31,7 @@ export function GovernanceStats() {
   };
 
   return (
-    <div className="flex flex-col md:flex-row gap-4 mb-6">
+    <div className="flex flex-col md:flex-row gap-4 mb-6 game-stats">
       {/* Proposal Counter Box */}
       <div className="rounded-2xl border border-white/8 bg-[#faf9f6] p-3 sm:p-4 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none">
         <div className="flex flex-wrap items-center gap-4 sm:gap-6 md:gap-8">
@@ -77,7 +77,7 @@ export function GovernanceStats() {
 
       {/* NCL Progress Box */}
       {nclData && (
-        <div className="rounded-2xl border border-white/8 bg-[#faf9f6] p-3 sm:p-4 shadow-[0_12px_30px_rgba(15,23,42,0.25)] md:flex-1 md:max-w-md dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none">
+        <div className="rounded-2xl border border-white/8 bg-[#faf9f6] p-3 sm:p-4 shadow-[0_12px_30px_rgba(15,23,42,0.25)] md:flex-1 md:max-w-md dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none game-stats-ncl">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs text-muted-foreground uppercase tracking-wide dark:text-[#0bd1a2]">
               {nclData.year} NCL

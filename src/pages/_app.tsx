@@ -18,7 +18,9 @@ export default function App({ Component, pageProps }: AppProps) {
             <link rel="icon" href="/favicon.ico?v=2" />
           </Head>
           <Header />
-          <Component {...pageProps} />
+          <main className="main-content">
+            <Component {...pageProps} />
+          </main>
           <Footer />
         </Provider>
       </MeshProvider>

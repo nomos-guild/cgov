@@ -51,6 +51,7 @@ import { parseNumeric, deriveAbstainValue } from "@/lib/voteMath";
 import { ProposalContent } from "@/components/ProposalContent";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/lib/theme";
+import { GameLoader } from "@/components/ui/game-loader";
 
 /**
  * Parse proposal hash (txHash:certIndex format) into separate components
@@ -223,11 +224,12 @@ export default function GovernanceDetail() {
   const router = useRouter();
   const { hash } = router.query;
   const dispatch = useAppDispatch();
-  const { theme } = useTheme();
+  const { theme, activeTheme } = useTheme();
   const isDark = theme === "dark";
+  const isGame = activeTheme.id === "game";
   const voteColors = useMemo(
-    () => (isDark ? VOTE_COLORS_DARK : VOTE_COLORS_LIGHT),
-    [isDark]
+    () => (isDark || isGame ? VOTE_COLORS_DARK : VOTE_COLORS_LIGHT),
+    [isDark, isGame]
   );
   const { selectedAction, isLoadingDetail, detailError } = useAppSelector(
     (state) => state.governance
@@ -564,19 +566,25 @@ export default function GovernanceDetail() {
       <div className="min-h-screen bg-background">
         <div className="container mx-auto py-8 px-4">
           <Link href="/">
-            <Button variant="default" className="mb-6 bg-white text-black hover:bg-black hover:text-white shadow-[0_12px_30px_rgba(15,23,42,0.25)]">
+            <Button variant="default" className={isGame ? "game-nav-btn mb-6" : "mb-6 bg-white text-black hover:bg-black hover:text-white shadow-[0_12px_30px_rgba(15,23,42,0.25)]"}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Dashboard
             </Button>
           </Link>
-          <Card className="p-12">
-            <div className="flex flex-col items-center justify-center">
-              <div className="mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-primary"></div>
-              <p className="text-muted-foreground">
-                Loading governance action...
-              </p>
+          {isGame ? (
+            <div className="flex flex-col items-center justify-center py-24">
+              <GameLoader />
             </div>
-          </Card>
+          ) : (
+            <Card className="p-12">
+              <div className="flex flex-col items-center justify-center">
+                <div className="mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-primary"></div>
+                <p className="text-muted-foreground">
+                  Loading governance action...
+                </p>
+              </div>
+            </Card>
+          )}
         </div>
       </div>
     );
@@ -743,35 +751,22 @@ export default function GovernanceDetail() {
             <Link href="/">
               <Button
                 variant="default"
-                className="bg-white text-black shadow-[0_12px_30px_rgba(15,23,42,0.25)] h-10 px-4 transform-gpu transition-transform transition-shadow duration-450 ease-in-out hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] hover:bg-white hover:text-black btn-neon"
+                className={
+                  isGame
+                    ? "game-nav-btn"
+                    : "bg-white text-black shadow-[0_12px_30px_rgba(15,23,42,0.25)] h-10 px-4 transform-gpu transition-transform transition-shadow duration-450 ease-in-out hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] hover:bg-white hover:text-black btn-neon"
+                }
               >
                 Back to Dashboard
               </Button>
             </Link>
-            {contentPreview?.shouldTruncate && (
-              <Button
-                variant="default"
-                className="bg-white text-black shadow-[0_12px_30px_rgba(15,23,42,0.25)] h-10 px-4 transform-gpu transition-transform transition-shadow duration-450 ease-in-out hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] hover:bg-white hover:text-black btn-neon"
-                onClick={() => setIsContentExpanded((prev) => !prev)}
-              >
-                {isContentExpanded ? "Hide Proposal" : "Read Proposal"}
-              </Button>
-            )}
-            {allVotes.length > 0 && (
-              <Button
-                variant="default"
-                className="bg-white text-black shadow-[0_12px_30px_rgba(15,23,42,0.25)] h-10 px-4 flex items-center gap-2 transform-gpu transition-transform transition-shadow duration-450 ease-in-out hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] hover:bg-white hover:text-black btn-neon"
-                onClick={handleTwitterShare}
-              >
-                <Twitter className="h-4 w-4" />
-                <span className="hidden sm:inline">Share on X</span>
-                <span className="sm:hidden">Share</span>
-              </Button>
-            )}
           </div>
 
           {/* Header Section */}
-          <Card className="mb-8 p-4 sm:p-6">
+          <Card className={cn(
+            "mb-8 p-4 sm:p-6",
+            isGame && "game-proposal-header-card"
+          )}>
             <div className="mb-3 flex items-center gap-3">
               <h1 className="proposal-detail-title text-2xl font-bold sm:text-3xl md:text-4xl">
                 {selectedAction.title}
@@ -831,6 +826,37 @@ export default function GovernanceDetail() {
                       </div>
                     </div>
                   )}
+                {/* Proposal action buttons */}
+                <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-border/50 pt-4">
+                  {contentPreview.shouldTruncate && (
+                    <Button
+                      variant="default"
+                      className={
+                        isGame
+                          ? "game-nav-btn"
+                          : "bg-white text-black shadow-[0_12px_30px_rgba(15,23,42,0.25)] h-10 px-4 transform-gpu transition-transform transition-shadow duration-450 ease-in-out hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] hover:bg-white hover:text-black btn-neon"
+                      }
+                      onClick={() => setIsContentExpanded((prev) => !prev)}
+                    >
+                      {isContentExpanded ? "Hide Proposal" : "Read Proposal"}
+                    </Button>
+                  )}
+                  {allVotes.length > 0 && (
+                    <Button
+                      variant="default"
+                      className={
+                        isGame
+                          ? "game-nav-btn"
+                          : "bg-white text-black shadow-[0_12px_30px_rgba(15,23,42,0.25)] h-10 px-4 flex items-center gap-2 transform-gpu transition-transform transition-shadow duration-450 ease-in-out hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] hover:bg-white hover:text-black btn-neon"
+                      }
+                      onClick={handleTwitterShare}
+                    >
+                      <Twitter className="h-4 w-4" />
+                      <span className="hidden sm:inline">Share on X</span>
+                      <span className="sm:hidden">Share</span>
+                    </Button>
+                  )}
+                </div>
               </div>
             )}
           </Card>
@@ -839,7 +865,10 @@ export default function GovernanceDetail() {
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             {/* Left Column - Tabs for donuts, bubble map, curves, details */}
             <div className="space-y-6 lg:col-span-2">
-              <Card className="info-container p-4 sm:p-6 dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none dark:rounded-none">
+              <Card className={cn(
+                "info-container p-4 sm:p-6 dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none dark:rounded-none",
+                isGame && "game-voting-card"
+              )}>
                 <Tabs
                   value={selectedTab}
                   onValueChange={setSelectedTab}
@@ -850,25 +879,41 @@ export default function GovernanceDetail() {
                       <TabsList className="flex-1 flex-wrap justify-start gap-2 bg-transparent p-0">
                         <TabsTrigger
                           value="live-voting"
-                          className="rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition-colors data-[state=active]:bg-foreground data-[state=active]:text-background hover:text-foreground dark:rounded-none dark:border-[#0bd1a2] dark:text-[#0bd1a2] dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black"
+                          className={
+                            isGame
+                              ? "game-tab-btn data-[state=active]:game-tab-btn-active"
+                              : "rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition-colors data-[state=active]:bg-foreground data-[state=active]:text-background hover:text-foreground dark:rounded-none dark:border-[#0bd1a2] dark:text-[#0bd1a2] dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black"
+                          }
                         >
                           Live Voting
                         </TabsTrigger>
                         <TabsTrigger
                           value="bubble-map"
-                          className="rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition-colors data-[state=active]:bg-foreground data-[state=active]:text-background hover:text-foreground dark:rounded-none dark:border-[#0bd1a2] dark:text-[#0bd1a2] dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black"
+                          className={
+                            isGame
+                              ? "game-tab-btn data-[state=active]:game-tab-btn-active"
+                              : "rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition-colors data-[state=active]:bg-foreground data-[state=active]:text-background hover:text-foreground dark:rounded-none dark:border-[#0bd1a2] dark:text-[#0bd1a2] dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black"
+                          }
                         >
                           Bubble Map
                         </TabsTrigger>
                         <TabsTrigger
                           value="curves"
-                          className="rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition-colors data-[state=active]:bg-foreground data-[state=active]:text-background hover:text-foreground dark:rounded-none dark:border-[#0bd1a2] dark:text-[#0bd1a2] dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black"
+                          className={
+                            isGame
+                              ? "game-tab-btn data-[state=active]:game-tab-btn-active"
+                              : "rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition-colors data-[state=active]:bg-foreground data-[state=active]:text-background hover:text-foreground dark:rounded-none dark:border-[#0bd1a2] dark:text-[#0bd1a2] dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black"
+                          }
                         >
                           Curves
                         </TabsTrigger>
                         <TabsTrigger
                           value="details"
-                          className="rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition-colors data-[state=active]:bg-foreground data-[state=active]:text-background hover:text-foreground dark:rounded-none dark:border-[#0bd1a2] dark:text-[#0bd1a2] dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black"
+                          className={
+                            isGame
+                              ? "game-tab-btn data-[state=active]:game-tab-btn-active"
+                              : "rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition-colors data-[state=active]:bg-foreground data-[state=active]:text-background hover:text-foreground dark:rounded-none dark:border-[#0bd1a2] dark:text-[#0bd1a2] dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black"
+                          }
                         >
                           Details
                         </TabsTrigger>
@@ -1024,11 +1069,14 @@ export default function GovernanceDetail() {
 
                         {/* Curves */}
                         <TabsContent value="curves" className="mt-0">
-                          <Card className="p-4 sm:p-6 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none dark:rounded-none">
+                          <Card className={cn(
+                            "p-4 sm:p-6 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none dark:rounded-none",
+                            isGame && "game-detail-card"
+                          )}>
                             <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                               <div className="space-y-1">
-                                <h3 className="text-lg font-semibold">Voting trend</h3>
-                                <p className="text-sm text-muted-foreground">
+                                <h3 className={cn("text-lg font-semibold", isGame && "text-white")}>Voting trend</h3>
+                                <p className={cn("text-sm", isGame ? "text-white/70" : "text-muted-foreground")}>
                                   {shouldShowPower
                                     ? "Cumulative voting power (ADA)"
                                     : "Cumulative yes / no / abstain votes"}{" "}
@@ -1045,11 +1093,17 @@ export default function GovernanceDetail() {
                                         key={role}
                                         type="button"
                                         onClick={() => setCurveRoleFilter(role)}
-                                        className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide transition-colors dark:rounded-none dark:border-[#0bd1a2] dark:text-[#0bd1a2] ${
-                                          isActive
-                                            ? "border-foreground bg-foreground text-background dark:bg-[#0bd1a2] dark:text-black"
-                                            : "border-border text-muted-foreground hover:text-foreground dark:hover:bg-[#0bd1a2] dark:hover:text-black"
-                                        }`}
+                                        className={cn(
+                                          isGame
+                                            ? isActive
+                                              ? "game-tab-btn-active-inline"
+                                              : "game-tab-btn-inline"
+                                            : `rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide transition-colors dark:rounded-none dark:border-[#0bd1a2] dark:text-[#0bd1a2] ${
+                                                isActive
+                                                  ? "border-foreground bg-foreground text-background dark:bg-[#0bd1a2] dark:text-black"
+                                                  : "border-border text-muted-foreground hover:text-foreground dark:hover:bg-[#0bd1a2] dark:hover:text-black"
+                                              }`
+                                        )}
                                       >
                                         {role === "All" ? "All Roles" : role}
                                       </button>
@@ -1208,56 +1262,93 @@ export default function GovernanceDetail() {
                                 (epochsPassed / totalEpochs) * 100;
 
                               return (
-                                <div className="rounded-2xl border border-white/8 bg-[#faf9f6] p-4 sm:p-5 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none">
-                                  <label className="mb-3 block text-sm font-semibold text-foreground sm:text-base dark:text-[#0bd1a2]">
+                                <div className={cn(
+                                  "p-4 sm:p-5",
+                                  isGame
+                                    ? "game-detail-card"
+                                    : "rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+                                )}>
+                                  <label className={cn(
+                                    "mb-3 block text-sm font-semibold sm:text-base",
+                                    isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
+                                  )}>
                                     Time Until Expiry
                                   </label>
-                                  <div className="mb-4 text-base font-semibold text-foreground sm:text-lg dark:text-[#0bd1a2]">
+                                  <div className={cn(
+                                    "mb-4 text-base font-semibold sm:text-lg",
+                                    isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
+                                  )}>
                                     {epochsRemaining > 0 ? (
                                       <>
                                         {epochsRemaining}{" "}
                                         {epochsRemaining === 1
                                           ? "epoch"
                                           : "epochs"}{" "}
-                                        <span className="text-muted-foreground font-normal dark:text-[#0bd1a2]">
+                                        <span className={cn(
+                                          "font-normal",
+                                          isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]"
+                                        )}>
                                           ({daysRemaining}{" "}
                                           {daysRemaining === 1 ? "day" : "days"})
                                         </span>{" "}
                                         remaining
                                       </>
                                     ) : (
-                                      <span className="text-destructive dark:text-[#0bd1a2]">
+                                      <span className={isGame ? "text-white" : "text-destructive dark:text-[#0bd1a2]"}>
                                         Expired
                                       </span>
                                     )}
                                   </div>
                                   <Progress
                                     value={progressPercent}
-                                    className="mb-4 h-3 rounded-full bg-secondary dark:bg-transparent dark:border dark:border-[#0bd1a2] dark:rounded-none"
-                                    indicatorClassName="bg-[#0bd1a2]"
+                                    className={cn(
+                                      "mb-4 h-3",
+                                      isGame
+                                        ? "rounded-full bg-white/20"
+                                        : "rounded-full bg-secondary dark:bg-transparent dark:border dark:border-[#0bd1a2] dark:rounded-none"
+                                    )}
+                                    indicatorClassName={isGame ? "bg-white" : "bg-[#0bd1a2]"}
                                   />
                                   <div className="grid grid-cols-3 gap-4 text-center">
                                     <div>
-                                      <div className="mb-1 text-xs text-muted-foreground sm:text-sm dark:text-[#0bd1a2]">
+                                      <div className={cn(
+                                        "mb-1 text-xs sm:text-sm",
+                                        isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]"
+                                      )}>
                                         Submission
                                       </div>
-                                      <div className="text-sm font-semibold sm:text-base dark:text-[#0bd1a2]">
+                                      <div className={cn(
+                                        "text-sm font-semibold sm:text-base",
+                                        isGame ? "text-white" : "dark:text-[#0bd1a2]"
+                                      )}>
                                         Epoch {submissionEpoch}
                                       </div>
                                     </div>
                                     <div>
-                                      <div className="mb-1 text-xs text-muted-foreground sm:text-sm dark:text-[#0bd1a2]">
+                                      <div className={cn(
+                                        "mb-1 text-xs sm:text-sm",
+                                        isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]"
+                                      )}>
                                         Current
                                       </div>
-                                      <div className="text-sm font-semibold sm:text-base dark:text-[#0bd1a2]">
+                                      <div className={cn(
+                                        "text-sm font-semibold sm:text-base",
+                                        isGame ? "text-white" : "dark:text-[#0bd1a2]"
+                                      )}>
                                         Epoch {mockCurrentEpoch}
                                       </div>
                                     </div>
                                     <div>
-                                      <div className="mb-1 text-xs text-muted-foreground sm:text-sm dark:text-[#0bd1a2]">
+                                      <div className={cn(
+                                        "mb-1 text-xs sm:text-sm",
+                                        isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]"
+                                      )}>
                                         Expiry
                                       </div>
-                                      <div className="text-sm font-semibold sm:text-base dark:text-[#0bd1a2]">
+                                      <div className={cn(
+                                        "text-sm font-semibold sm:text-base",
+                                        isGame ? "text-white" : "dark:text-[#0bd1a2]"
+                                      )}>
                                         Epoch {expiryEpoch}
                                       </div>
                                     </div>
@@ -1265,12 +1356,25 @@ export default function GovernanceDetail() {
                                 </div>
                               );
                             })()}
-                            <div className="rounded-2xl border border-white/8 bg-[#faf9f6] p-4 sm:p-5 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none">
-                              <label className="mb-3 block text-sm font-semibold text-foreground sm:text-base dark:text-[#0bd1a2]">
+                            <div className={cn(
+                              "p-4 sm:p-5",
+                              isGame
+                                ? "game-detail-card"
+                                : "rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+                            )}>
+                              <label className={cn(
+                                "mb-3 block text-sm font-semibold sm:text-base",
+                                isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
+                              )}>
                                 Governance Action ID
                               </label>
                               <div className="flex items-start gap-2">
-                                <code className="flex-1 break-all rounded bg-secondary px-2 py-1 font-mono text-xs text-muted-foreground sm:px-3 sm:text-sm dark:bg-transparent dark:border dark:border-[#0bd1a2] dark:text-[#0bd1a2]">
+                                <code className={cn(
+                                  "flex-1 break-all px-2 py-1 font-mono text-xs sm:px-3 sm:text-sm",
+                                  isGame
+                                    ? "rounded bg-white/10 text-white/80"
+                                    : "rounded bg-secondary text-muted-foreground dark:bg-transparent dark:border dark:border-[#0bd1a2] dark:text-[#0bd1a2]"
+                                )}>
                                   {selectedAction.proposalId}
                                 </code>
                                 <button
@@ -1280,7 +1384,12 @@ export default function GovernanceDetail() {
                                       "proposalId"
                                     )
                                   }
-                                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-black transition-colors hover:bg-black hover:text-white shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:hover:bg-[#0bd1a2] dark:hover:text-black dark:shadow-none"
+                                  className={cn(
+                                    "flex h-7 w-7 shrink-0 items-center justify-center transition-colors",
+                                    isGame
+                                      ? "game-nav-btn !p-0 !min-w-0 !min-h-0"
+                                      : "rounded-full bg-white text-black hover:bg-black hover:text-white shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:hover:bg-[#0bd1a2] dark:hover:text-black dark:shadow-none"
+                                  )}
                                   aria-label="Copy Governance Action ID"
                                 >
                                   {copiedId === "proposalId" ? (
@@ -1291,12 +1400,25 @@ export default function GovernanceDetail() {
                                 </button>
                               </div>
                             </div>
-                            <div className="rounded-2xl border border-white/8 bg-[#faf9f6] p-4 sm:p-5 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none">
-                              <label className="mb-3 block text-sm font-semibold text-foreground sm:text-base dark:text-[#0bd1a2]">
+                            <div className={cn(
+                              "p-4 sm:p-5",
+                              isGame
+                                ? "game-detail-card"
+                                : "rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+                            )}>
+                              <label className={cn(
+                                "mb-3 block text-sm font-semibold sm:text-base",
+                                isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
+                              )}>
                                 Transaction Hash
                               </label>
                               <div className="flex items-start gap-2">
-                                <code className="flex-1 break-all rounded bg-secondary px-2 py-1 font-mono text-xs text-muted-foreground sm:px-3 sm:text-sm dark:bg-transparent dark:border dark:border-[#0bd1a2] dark:text-[#0bd1a2]">
+                                <code className={cn(
+                                  "flex-1 break-all px-2 py-1 font-mono text-xs sm:px-3 sm:text-sm",
+                                  isGame
+                                    ? "rounded bg-white/10 text-white/80"
+                                    : "rounded bg-secondary text-muted-foreground dark:bg-transparent dark:border dark:border-[#0bd1a2] dark:text-[#0bd1a2]"
+                                )}>
                                   {selectedAction.txHash}
                                 </code>
                                 <button
@@ -1306,7 +1428,12 @@ export default function GovernanceDetail() {
                                       "txHash"
                                     )
                                   }
-                                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-black transition-colors hover:bg-black hover:text-white shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:hover:bg-[#0bd1a2] dark:hover:text-black dark:shadow-none"
+                                  className={cn(
+                                    "flex h-7 w-7 shrink-0 items-center justify-center transition-colors",
+                                    isGame
+                                      ? "game-nav-btn !p-0 !min-w-0 !min-h-0"
+                                      : "rounded-full bg-white text-black hover:bg-black hover:text-white shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:hover:bg-[#0bd1a2] dark:hover:text-black dark:shadow-none"
+                                  )}
                                   aria-label="Copy Transaction Hash"
                                 >
                                   {copiedId === "txHash" ? (
@@ -1339,32 +1466,47 @@ export default function GovernanceDetail() {
               )}
 
               {/* Vote Summary Card */}
-              <Card className="p-6">
+              <Card className={cn("p-6", isGame && "game-detail-card")}>
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Gov action type</span>
+                    <span className={isGame ? "text-white/70" : "text-muted-foreground"}>Gov action type</span>
                     <Badge
                       variant="outline"
-                  className="rounded-[6px] border-foreground/20 bg-transparent px-3 py-1 text-xs font-semibold uppercase tracking-wide leading-none dark:rounded-none dark:border-[#0bd1a2] dark:text-[#0bd1a2]"
+                      className={cn(
+                        "rounded-[6px] bg-transparent px-3 py-1 text-xs font-semibold uppercase tracking-wide leading-none",
+                        isGame 
+                          ? "border-white/30 text-white" 
+                          : "border-foreground/20 dark:rounded-none dark:border-[#0bd1a2] dark:text-[#0bd1a2]"
+                      )}
                     >
                       {selectedAction.type}
                     </Badge>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Status</span>
+                    <span className={isGame ? "text-white/70" : "text-muted-foreground"}>Status</span>
                     <Badge
                       variant="outline"
-                  className="rounded-[6px] border-foreground/20 bg-transparent px-3 py-1 text-xs font-semibold uppercase tracking-wide leading-none dark:rounded-none dark:border-[#0bd1a2] dark:text-[#0bd1a2]"
+                      className={cn(
+                        "rounded-[6px] bg-transparent px-3 py-1 text-xs font-semibold uppercase tracking-wide leading-none",
+                        isGame 
+                          ? "border-white/30 text-white" 
+                          : "border-foreground/20 dark:rounded-none dark:border-[#0bd1a2] dark:text-[#0bd1a2]"
+                      )}
                     >
                       {selectedAction.status}
                     </Badge>
                   </div>
                   {selectedAction.constitutionality && (
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Constitutionality</span>
+                      <span className={isGame ? "text-white/70" : "text-muted-foreground"}>Constitutionality</span>
                       <Badge
                         variant="outline"
-                    className="rounded-[6px] border-foreground/20 bg-transparent px-3 py-1 text-xs font-semibold uppercase tracking-wide leading-none dark:rounded-none dark:border-[#0bd1a2] dark:text-[#0bd1a2]"
+                        className={cn(
+                          "rounded-[6px] bg-transparent px-3 py-1 text-xs font-semibold uppercase tracking-wide leading-none",
+                          isGame 
+                            ? "border-white/30 text-white" 
+                            : "border-foreground/20 dark:rounded-none dark:border-[#0bd1a2] dark:text-[#0bd1a2]"
+                        )}
                       >
                         {selectedAction.constitutionality}
                       </Badge>
@@ -1492,6 +1634,9 @@ function RoleLegend({
   unit: string;
   colors: VoteColorSet;
 }) {
+  const { activeTheme } = useTheme();
+  const isGame = activeTheme.id === "game";
+
   const items = [
     {
       label: "Yes",
@@ -1514,10 +1659,18 @@ function RoleLegend({
   ];
 
   return (
-    <div className="w-full max-w-[200px] rounded-xl border border-border/60 bg-card/40 px-3 py-2 text-xs shadow-sm dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none">
-      <div className="mb-2 flex items-center justify-between text-[11px] uppercase tracking-wide text-muted-foreground dark:text-[#0bd1a2]">
-        <span className="font-semibold dark:text-[#0bd1a2]">{role}</span>
-        <span className="dark:text-[#0bd1a2]">{unit}</span>
+    <div className={cn(
+      "w-full max-w-[200px] px-3 py-2 text-xs",
+      isGame
+        ? "border-none bg-transparent"
+        : "rounded-xl border border-border/60 bg-card/40 shadow-sm dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+    )}>
+      <div className={cn(
+        "mb-2 flex items-center justify-between text-[11px] uppercase tracking-wide",
+        isGame ? "text-white" : "text-muted-foreground dark:text-[#0bd1a2]"
+      )}>
+        <span className={cn("font-semibold", isGame ? "text-white" : "dark:text-[#0bd1a2]")}>{role}</span>
+        <span className={isGame ? "text-white" : "dark:text-[#0bd1a2]"}>{unit}</span>
       </div>
       <div className="space-y-1.5">
         {items.map((item) => (
@@ -1533,11 +1686,17 @@ function RoleLegend({
                   borderColor: item.border,
                 }}
               />
-              <span className="font-semibold text-foreground dark:text-[#0bd1a2]">
+              <span className={cn(
+                "font-semibold",
+                isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
+              )}>
                 {item.label}
               </span>
             </div>
-            <span className="font-mono text-[11px] text-muted-foreground dark:text-[#0bd1a2]">
+            <span className={cn(
+              "font-mono text-[11px]",
+              isGame ? "text-white/80" : "text-muted-foreground dark:text-[#0bd1a2]"
+            )}>
               {item.value}
             </span>
           </div>
@@ -1548,10 +1707,21 @@ function RoleLegend({
 }
 
 function RolePlaceholder({ role, message }: { role: string; message: string }) {
+  const { activeTheme } = useTheme();
+  const isGame = activeTheme.id === "game";
+
   return (
-    <div className="flex h-full min-h-[180px] w-full max-w-[220px] flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-card/30 px-4 py-6 text-center text-xs text-muted-foreground dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none">
-      <span className="mb-1 font-semibold text-foreground dark:text-[#0bd1a2]">{role}</span>
-      <span className="dark:text-[#0bd1a2]">{message}</span>
+    <div className={cn(
+      "flex h-full min-h-[180px] w-full max-w-[220px] flex-col items-center justify-center px-4 py-6 text-center text-xs text-muted-foreground",
+      isGame
+        ? "border-none bg-transparent"
+        : "rounded-xl border border-dashed border-border/60 bg-card/30 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none"
+    )}>
+      <span className={cn(
+        "mb-1 font-semibold",
+        isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
+      )}>{role}</span>
+      <span className={isGame ? "text-white/70" : "dark:text-[#0bd1a2]"}>{message}</span>
     </div>
   );
 }

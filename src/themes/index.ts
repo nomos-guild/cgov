@@ -1,8 +1,9 @@
 import { darkTheme } from "./dark";
 import { lightTheme } from "./light";
+import { gameTheme } from "./game";
 import type { ThemeDefinition, ThemeId, ThemeComponents } from "./types";
 
-export const themes: ThemeDefinition[] = [lightTheme, darkTheme];
+export const themes: ThemeDefinition[] = [lightTheme, darkTheme, gameTheme];
 
 const themeMap = new Map<ThemeId, ThemeDefinition>(
   themes.map((theme) => [theme.id, theme])

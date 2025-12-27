@@ -3,7 +3,7 @@ import lightComponents from "./components";
 
 export const lightTheme: ThemeDefinition = {
   id: "light",
-  label: "Fancy",
+  label: "Simple Light",
   isDark: false,
   components: lightComponents,
 };

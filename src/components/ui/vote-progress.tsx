@@ -76,8 +76,9 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
     },
     ref
   ) => {
-    const { theme } = useTheme();
+    const { theme, activeTheme } = useTheme();
     const isDark = theme === "dark";
+    const isGame = activeTheme.id === "game";
     const [activeIndex, setActiveIndex] = React.useState<number | null>(null);
 
     const totalPercent = yesPercent + noPercent + abstainPercent;
@@ -219,11 +220,105 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
       );
     }
 
+    if (isGame) {
+      return (
+        <div
+          ref={ref}
+          className={cn("flex flex-col items-center gap-2", className)}
+          {...props}
+          style={cardStyle}
+        >
+          {title && titlePosition === "top" && (
+            <span className="whitespace-nowrap text-sm font-medium text-white">
+              {title}
+            </span>
+          )}
+          <div
+            className="vote-progress-card-game recharts-no-box relative overflow-visible rounded-full"
+            style={{ width: 132, height: 132, minWidth: 132, minHeight: 132 }}
+            onMouseLeave={(e) => {
+              const relatedTarget = e.relatedTarget;
+              const currentTarget = e.currentTarget;
+              if (
+                !relatedTarget ||
+                !(relatedTarget instanceof Node) ||
+                !currentTarget.contains(relatedTarget)
+              ) {
+                onPieLeave();
+              }
+            }}
+          >
+            {title && titlePosition === "center" && (
+              <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-xs font-semibold text-white">
+                {title}
+              </span>
+            )}
+            <PieChart
+              width={132}
+              height={132}
+              className="overflow-visible"
+              style={{
+                background: "transparent",
+                border: "none",
+                outline: "none",
+              }}
+              margin={{ top: 4, right: 4, bottom: 4, left: 4 }}
+              onMouseLeave={onPieLeave}
+            >
+              {showTooltip && (
+                <Tooltip
+                  content={renderTooltip}
+                  cursor={false}
+                  wrapperClassName="recharts-no-box"
+                  wrapperStyle={{ pointerEvents: "none" }}
+                  animationDuration={0}
+                  isAnimationActive={false}
+                />
+              )}
+              <Pie
+                data={data}
+                cx="50%"
+                cy="50%"
+                innerRadius={44}
+                outerRadius={58}
+                paddingAngle={2}
+                dataKey="value"
+                onMouseEnter={onPieEnter}
+                onMouseLeave={onPieLeave}
+                stroke="none"
+                isAnimationActive={animate}
+              >
+                {data.map((entry, index) => {
+                  const baseColor = getColor(entry.type, index);
+                  return (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={baseColor}
+                      stroke="transparent"
+                      strokeWidth={0}
+                      style={{
+                        transition: "all 0.2s ease-in-out",
+                        transform:
+                          interactive && activeIndex === index
+                            ? "scale(1.05)"
+                            : "scale(1)",
+                        transformOrigin: "center",
+                      }}
+                    />
+                  );
+                })}
+              </Pie>
+            </PieChart>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div
         ref={ref}
         className={cn(
-          "border-white/8 flex flex-col items-center gap-2 border bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] rounded-3xl px-[14px] pt-[12px] pb-[14px] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none",
+          "vote-progress-card border-white/8 flex flex-col items-center gap-2 border bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] rounded-3xl px-[14px] pt-[12px] pb-[14px] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none",
           className
         )}
         {...props}

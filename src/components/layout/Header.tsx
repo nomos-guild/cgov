@@ -13,11 +13,18 @@ function DefaultBrand() {
 }
 
 export function Header() {
-  const { components } = useTheme();
+  const { components, activeTheme } = useTheme();
+  const isGame = activeTheme.id === "game";
   const Brand = components?.HeaderBrand ?? DefaultBrand;
 
   return (
-    <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header
+      className={
+        isGame
+          ? "border-b border-transparent bg-transparent backdrop-blur-none supports-[backdrop-filter]:bg-transparent"
+          : "border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+      }
+    >
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           <Link href="/" className="flex items-center space-x-2">
@@ -31,7 +38,11 @@ export function Header() {
                 href="https://nomos.cgov.io/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-black transition-colors hover:bg-black hover:text-white shadow-[0_12px_30px_rgba(15,23,42,0.25)] btn-neon"
+                className={
+                  isGame
+                    ? "game-nav-btn"
+                    : "flex h-9 w-9 items-center justify-center rounded-full bg-white text-black transition-colors hover:bg-black hover:text-white shadow-[0_12px_30px_rgba(15,23,42,0.25)] btn-neon"
+                }
                 aria-label="Website"
               >
                 <Globe className="h-4 w-4" />
@@ -40,7 +51,11 @@ export function Header() {
                 href="https://github.com/nomos-guild"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-black transition-colors hover:bg-black hover:text-white shadow-[0_12px_30px_rgba(15,23,42,0.25)] btn-neon"
+                className={
+                  isGame
+                    ? "game-nav-btn"
+                    : "flex h-9 w-9 items-center justify-center rounded-full bg-white text-black transition-colors hover:bg-black hover:text-white shadow-[0_12px_30px_rgba(15,23,42,0.25)] btn-neon"
+                }
                 aria-label="GitHub"
               >
                 <Github className="h-4 w-4" />
@@ -49,7 +64,11 @@ export function Header() {
                 href="https://x.com/Nomos_guild"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-black transition-colors hover:bg-black hover:text-white shadow-[0_12px_30px_rgba(15,23,42,0.25)] btn-neon"
+                className={
+                  isGame
+                    ? "game-nav-btn"
+                    : "flex h-9 w-9 items-center justify-center rounded-full bg-white text-black transition-colors hover:bg-black hover:text-white shadow-[0_12px_30px_rgba(15,23,42,0.25)] btn-neon"
+                }
                 aria-label="X (Twitter)"
               >
                 <Twitter className="h-4 w-4" />
