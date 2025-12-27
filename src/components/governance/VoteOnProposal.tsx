@@ -27,6 +27,8 @@ import {
   ExternalLink,
   RefreshCw,
 } from "lucide-react";
+import { useTheme } from "@/lib/theme";
+import { cn } from "@/lib/utils";
 
 type VoteChoice = "Yes" | "No" | "Abstain";
 
@@ -61,6 +63,8 @@ export function VoteOnProposal({
 }: VoteOnProposalProps) {
   const dispatch = useDispatch<AppDispatch>();
   const { connected, wallet } = useWallet();
+  const { activeTheme } = useTheme();
+  const isGame = activeTheme.id === "game";
   const [selectedVote, setSelectedVote] = useState<VoteChoice | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [anchorUrl, setAnchorUrl] = useState("");
@@ -359,13 +363,21 @@ export function VoteOnProposal({
 
   if (!isActive) {
     return (
-      <Card className="p-6 vote-on-proposal-card">
-        <h3 className="font-semibold mb-4">Cast Your Vote</h3>
+      <Card className={cn(
+        "p-6 vote-on-proposal-card",
+        isGame && "game-detail-card"
+      )}>
+        <h3 className={cn("font-semibold mb-4", isGame && "text-white")}>Cast Your Vote</h3>
         <div className="py-6">
-          <Badge variant="outline" className="mb-3 rounded-none border-foreground/30 bg-transparent px-3 py-1 text-sm font-semibold uppercase tracking-wide dark:border-[#0bd1a2] dark:text-[#0bd1a2]">
+          <Badge variant="outline" className={cn(
+            "mb-3 rounded-none bg-transparent px-3 py-1 text-sm font-semibold uppercase tracking-wide",
+            isGame 
+              ? "border-white/30 text-white" 
+              : "border-foreground/30 dark:border-[#0bd1a2] dark:text-[#0bd1a2]"
+          )}>
             {status}
           </Badge>
-          <p className="text-muted-foreground">
+          <p className={isGame ? "text-white/70" : "text-muted-foreground"}>
             Voting is no longer available for this proposal.
           </p>
         </div>
@@ -375,19 +387,22 @@ export function VoteOnProposal({
 
   return (
     <>
-      <Card className="p-6 vote-on-proposal-card">
-        <h3 className="font-semibold mb-4">Cast Your Vote</h3>
+      <Card className={cn(
+        "p-6 vote-on-proposal-card",
+        isGame && "game-detail-card"
+      )}>
+        <h3 className={cn("font-semibold mb-4", isGame && "text-white")}>Cast Your Vote</h3>
 
         {!connected ? (
           <div className="py-6 space-y-4">
-            <p className="text-muted-foreground">
+            <p className={isGame ? "text-white/70" : "text-muted-foreground"}>
               Connect your wallet to vote on this governance action.
             </p>
             <ConnectWalletButton />
           </div>
         ) : (
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
+            <p className={cn("text-sm", isGame ? "text-white/70" : "text-muted-foreground")}>
               Select your vote choice:
             </p>
             <div className="flex gap-3">
@@ -416,7 +431,7 @@ export function VoteOnProposal({
                 Abstain
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className={cn("text-xs", isGame ? "text-white/70" : "text-muted-foreground")}>
               Your vote will be submitted on-chain as a DRep vote.
             </p>
           </div>

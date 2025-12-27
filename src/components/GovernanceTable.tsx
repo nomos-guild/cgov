@@ -29,6 +29,7 @@ import {
   deriveAbstainValue,
   deriveCcAbstainCount,
 } from "@/lib/voteMath";
+import { useTheme } from "@/lib/theme";
 // import { VoteButtons } from "@/components/governance/VoteButtons";
 
 const TYPE_LABELS: Record<ProposalType, string> = {
@@ -117,6 +118,8 @@ export function GovernanceTable() {
   const selectedStatuses =
     useAppSelector((state) => state.governance.filters?.selectedStatuses) ??
     STATUS_OPTIONS;
+  const { activeTheme } = useTheme();
+  const isGame = activeTheme.id === "game";
   const [searchQuery, setSearchQuery] = useState("");
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
   const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
@@ -283,7 +286,7 @@ export function GovernanceTable() {
 
   return (
     <div className="space-y-6">
-      <div className="border-white/8 rounded-2xl border bg-[#faf9f6] p-4 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none">
+      <div className="relative overflow-visible border-white/8 rounded-2xl border bg-[#faf9f6] p-4 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none game-filters-card">
         <div className="flex flex-wrap gap-3 items-center">
           <div className="relative max-w-md flex-1 min-w-[200px]">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-muted-foreground z-10" />
@@ -291,14 +294,22 @@ export function GovernanceTable() {
               placeholder="Search by proposal title..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 h-9 filter-input"
+              className={
+                isGame
+                  ? "pl-10 h-10 filter-input game-nav-input"
+                  : "pl-10 h-9 filter-input"
+              }
             />
           </div>
           <div className="relative" ref={filterMenuRef}>
             <Button
               variant="outline"
               size="sm"
-              className="h-9 min-h-0 px-3 py-2 text-sm btn-neon rounded-2xl hover:bg-black hover:text-white transition-none dark:hover:bg-[#0bd1a2] dark:hover:text-black dark:rounded-none"
+              className={
+                isGame
+                  ? "game-nav-btn h-10 px-4 min-w-[150px]"
+                  : "h-9 min-h-0 px-3 py-2 text-sm btn-neon rounded-2xl hover:bg-black hover:text-white transition-none dark:hover:bg-[#0bd1a2] dark:hover:text-black dark:rounded-none"
+              }
               aria-haspopup="true"
               aria-expanded={isFilterMenuOpen}
               onPointerDown={(e) =>
@@ -312,7 +323,13 @@ export function GovernanceTable() {
               />
             </Button>
             {isFilterMenuOpen ? (
-              <div className="border-white/8 absolute left-0 z-20 mt-2 w-64 rounded-2xl border bg-[#faf9f6] p-2 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-black dark:shadow-none">
+              <div
+                className={
+                  isGame
+                    ? "game-filter-dropdown"
+                    : "border-white/8 absolute left-0 z-20 mt-2 w-64 rounded-2xl border bg-[#faf9f6] p-2 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-black dark:shadow-none"
+                }
+              >
                 <div className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground dark:bg-transparent dark:text-[#0bd1a2]">
                   <span>Action Types</span>
                   <button
@@ -360,7 +377,11 @@ export function GovernanceTable() {
             <Button
               variant="outline"
               size="sm"
-              className="h-9 min-h-0 px-3 py-2 text-sm btn-neon rounded-2xl hover:bg-black hover:text-white transition-none dark:hover:bg-[#0bd1a2] dark:hover:text-black dark:rounded-none"
+              className={
+                isGame
+                  ? "game-nav-btn h-10 px-4 min-w-[150px]"
+                  : "h-9 min-h-0 px-3 py-2 text-sm btn-neon rounded-2xl hover:bg-black hover:text-white transition-none dark:hover:bg-[#0bd1a2] dark:hover:text-black dark:rounded-none"
+              }
               aria-haspopup="true"
               aria-expanded={isStatusMenuOpen}
               onPointerDown={(e) =>
@@ -374,7 +395,13 @@ export function GovernanceTable() {
               />
             </Button>
             {isStatusMenuOpen ? (
-              <div className="border-white/8 absolute left-0 z-20 mt-2 w-64 rounded-2xl border bg-[#faf9f6] p-2 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-black dark:shadow-none">
+              <div
+                className={
+                  isGame
+                    ? "game-filter-dropdown"
+                    : "border-white/8 absolute left-0 z-20 mt-2 w-64 rounded-2xl border bg-[#faf9f6] p-2 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-black dark:shadow-none"
+                }
+              >
                 <div className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground dark:bg-transparent dark:text-[#0bd1a2]">
                   <span>Status</span>
                   <button
@@ -430,7 +457,7 @@ export function GovernanceTable() {
           </p>
         </div>
       ) : (
-        <div className="rounded-2xl border border-white/8 bg-[#faf9f6] overflow-hidden shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none">
+        <div className="rounded-2xl border border-white/8 bg-[#faf9f6] overflow-hidden shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none game-proposals-card">
           <Table>
             <TableHeader>
               <TableRow className="proposal-header-row hover:bg-transparent">

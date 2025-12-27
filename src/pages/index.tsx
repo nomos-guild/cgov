@@ -9,9 +9,13 @@ import {
   loadNCLData,
 } from "@/store/governanceSlice";
 import { Card } from "@/components/ui/card";
+import { GameLoader } from "@/components/ui/game-loader";
+import { useTheme } from "@/lib/theme";
 
 export default function Home() {
   const dispatch = useAppDispatch();
+  const { activeTheme } = useTheme();
+  const isGame = activeTheme.id === "game";
   const { isLoadingActions, actionsError, isLoadingOverview, overviewError } =
     useAppSelector((state) => state.governance);
 
@@ -39,7 +43,7 @@ export default function Home() {
             <h1 className="landing-title text-4xl md:text-5xl font-bold mb-4 text-black dark:text-foreground">
               Cardano Governance
             </h1>
-            <p className="text-muted-foreground text-lg">
+            <p className="landing-subtitle text-muted-foreground text-lg">
               Track and monitor on-chain governance actions
             </p>
           </div>
@@ -68,14 +72,20 @@ export default function Home() {
 
           {/* Loading state */}
           {isLoading && !error && (
-            <Card className="p-12 mb-6">
-              <div className="flex flex-col items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
-                <p className="text-muted-foreground">
-                  Loading governance data...
-                </p>
+            isGame ? (
+              <div className="flex flex-col items-center justify-center py-24">
+                <GameLoader />
               </div>
-            </Card>
+            ) : (
+              <Card className="p-12 mb-6">
+                <div className="flex flex-col items-center justify-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+                  <p className="text-muted-foreground">
+                    Loading governance data...
+                  </p>
+                </div>
+              </Card>
+            )
           )}
 
           {/* Content */}

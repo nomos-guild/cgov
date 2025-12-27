@@ -118,8 +118,9 @@ function formatAda(ada: number): string {
 }
 
 export function BubbleMap({ votes }: BubbleMapProps) {
-  const { theme } = useTheme();
+  const { theme, activeTheme } = useTheme();
   const isDark = theme === "dark";
+  const isGame = activeTheme.id === "game";
   const [voterFilter, setVoterFilter] = useState<VoterFilter>("All");
 
   // Determine available roles from votes
@@ -283,14 +284,22 @@ export function BubbleMap({ votes }: BubbleMapProps) {
   }
 
   return (
-    <div className="rounded-2xl border border-white/8 bg-[#faf9f6] p-3 shadow-[0_12px_30px_rgba(15,23,42,0.25)] overflow-visible dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none">
+    <div className={
+      isGame
+        ? "game-detail-card p-3 overflow-visible"
+        : "rounded-2xl border border-white/8 bg-[#faf9f6] p-3 shadow-[0_12px_30px_rgba(15,23,42,0.25)] overflow-visible dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+    }>
       <div className="mb-2 flex flex-col sm:flex-row items-center justify-center gap-3 px-4 py-2 pb-4 text-sm overflow-visible">
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
             size="sm"
             onClick={handlePlayPause}
-            className="h-9 rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none"
+            className={
+              isGame
+                ? "game-nav-btn h-9"
+                : "h-9 rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none"
+            }
           >
             {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
           </Button>
@@ -299,7 +308,11 @@ export function BubbleMap({ votes }: BubbleMapProps) {
               variant="outline"
               size="sm"
               onClick={handleReset}
-              className="h-9 rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] text-xs dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none"
+              className={
+                isGame
+                  ? "game-nav-btn h-9 text-xs"
+                  : "h-9 rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] text-xs dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none"
+              }
             >
               Reset
             </Button>
@@ -312,11 +325,17 @@ export function BubbleMap({ votes }: BubbleMapProps) {
                   key={role}
                   type="button"
                   onClick={() => setVoterFilter(role)}
-                  className={`role-filter-button rounded-2xl px-4 py-2 shadow-[0_12px_30px_rgba(15,23,42,0.25)] cursor-pointer transition-colors text-xs font-semibold uppercase tracking-wide dark:rounded-none dark:border dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none ${
-                    isActive
-                      ? "bg-black text-white dark:bg-[#0bd1a2] dark:text-black active"
-                      : "bg-white text-black hover:bg-black hover:text-white dark:hover:bg-[#0bd1a2] dark:hover:text-black"
-                  }`}
+                  className={
+                    isGame
+                      ? isActive
+                        ? "game-tab-btn-active-inline"
+                        : "game-tab-btn-inline"
+                      : `role-filter-button rounded-2xl px-4 py-2 shadow-[0_12px_30px_rgba(15,23,42,0.25)] cursor-pointer transition-colors text-xs font-semibold uppercase tracking-wide dark:rounded-none dark:border dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none ${
+                          isActive
+                            ? "bg-black text-white dark:bg-[#0bd1a2] dark:text-black active"
+                            : "bg-white text-black hover:bg-black hover:text-white dark:hover:bg-[#0bd1a2] dark:hover:text-black"
+                        }`
+                  }
                 >
                   {role === "All" ? "All Roles" : role}
                 </button>
@@ -396,6 +415,32 @@ export function BubbleMap({ votes }: BubbleMapProps) {
                 <rect width="8" height="8" fill="rgba(148, 163, 184, 0.9)"/>
                 <path d="M0,0 L8,8" stroke="rgba(148, 163, 184, 0.5)" strokeWidth="1.5"/>
               </pattern>
+              {/* Game theme text gradient */}
+              <linearGradient id="game-text-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="rgba(255, 255, 255, 0.9)"/>
+                <stop offset="90%" stopColor="rgba(215, 215, 215, 0.8)"/>
+                <stop offset="99%" stopColor="rgba(120, 120, 120, 0.7)"/>
+                <stop offset="100%" stopColor="rgba(35, 35, 35, 0.08)"/>
+              </linearGradient>
+              {/* Game theme bubble gradients - dark on right, normal on left */}
+              <linearGradient id="game-bubble-yes" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="rgba(11, 140, 48, 0.5)"/>
+                <stop offset="70%" stopColor="rgba(11, 140, 48, 0.35)"/>
+                <stop offset="100%" stopColor="rgba(5, 70, 24, 0.2)"/>
+              </linearGradient>
+              <linearGradient id="game-bubble-no" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="rgba(140, 32, 11, 0.5)"/>
+                <stop offset="70%" stopColor="rgba(140, 32, 11, 0.35)"/>
+                <stop offset="100%" stopColor="rgba(70, 16, 5, 0.2)"/>
+              </linearGradient>
+              <linearGradient id="game-bubble-abstain" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="rgba(148, 163, 184, 0.5)"/>
+                <stop offset="70%" stopColor="rgba(148, 163, 184, 0.35)"/>
+                <stop offset="100%" stopColor="rgba(74, 82, 92, 0.2)"/>
+              </linearGradient>
+              <filter id="game-text-shadow" x="-50%" y="-50%" width="200%" height="200%">
+                <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="rgba(0,0,0,0.8)" floodOpacity="1"/>
+              </filter>
             </defs>
           {visibleBubbles.map((bubble, index) => {
             const palette = getVoteColors(bubble.vote.vote, bubble.vote.voterType);
@@ -408,9 +453,19 @@ export function BubbleMap({ votes }: BubbleMapProps) {
             const patternId = isCC 
               ? (bubble.vote.vote === "Yes" ? "cc-pattern-yes" : bubble.vote.vote === "No" ? "cc-pattern-no" : "cc-pattern-abstain")
               : null;
-            const fillColor = isDark ? "transparent" : patternId ? `url(#${patternId})` : palette.fill;
-            const strokeWidth = isDark ? "1.4" : isCC ? "3" : "2";
-            const strokeColor = palette.border;
+            
+            // Game theme: gradient fills (dark on right, normal on left)
+            const getGameFill = () => {
+              switch (bubble.vote.vote) {
+                case "Yes": return "url(#game-bubble-yes)";
+                case "No": return "url(#game-bubble-no)";
+                default: return "url(#game-bubble-abstain)";
+              }
+            };
+            
+            const fillColor = isGame ? getGameFill() : isDark ? "transparent" : patternId ? `url(#${patternId})` : palette.fill;
+            const strokeWidth = isGame ? "0" : isDark ? "1.4" : isCC ? "3" : "2";
+            const strokeColor = isGame ? "transparent" : palette.border;
 
             // Find index in sorted bubbles for animation timing
             const sortedIndex = sortedBubbles.findIndex(
@@ -454,8 +509,9 @@ export function BubbleMap({ votes }: BubbleMapProps) {
                     y={bubble.y}
                     textAnchor="middle"
                     dominantBaseline="middle"
-                    fill={isDark ? palette.border : "#0f172a"}
-                    className="pointer-events-none text-xs font-semibold"
+                    fill={isGame ? "url(#game-text-gradient)" : isDark ? palette.border : "#0f172a"}
+                    filter={isGame ? "url(#game-text-shadow)" : undefined}
+                    className={isGame ? "pointer-events-none text-xs font-normal" : "pointer-events-none text-xs font-semibold"}
                   >
                     {bubble.vote.voterName
                       ? bubble.vote.voterName.slice(0, Math.floor(bubble.radius / 4))
@@ -472,24 +528,28 @@ export function BubbleMap({ votes }: BubbleMapProps) {
         </div>
         {hoveredBubble && (
           <div
-            className="absolute z-50 rounded-2xl border border-white/8 bg-[#faf9f6] px-4 py-3 text-xs shadow-[0_12px_30px_rgba(15,23,42,0.25)] pointer-events-none"
+            className={
+              isGame
+                ? "absolute z-50 rounded-sm px-4 py-3 text-xs pointer-events-none game-tooltip-card"
+                : "absolute z-50 rounded-2xl border border-white/8 bg-[#faf9f6] px-4 py-3 text-xs shadow-[0_12px_30px_rgba(15,23,42,0.25)] pointer-events-none"
+            }
             style={{
               left: `${hoveredBubble.x + 15}px`,
               top: `${Math.max(8, hoveredBubble.y - 14)}px`,
               transform: "translateY(-100%)",
             }}
           >
-            <div className="font-semibold text-foreground">
+            <div className={isGame ? "font-semibold text-white" : "font-semibold text-foreground"}>
               {hoveredBubble.bubble.vote.voterName || hoveredBubble.bubble.vote.voterId}
             </div>
-            <div className="mt-1 text-muted-foreground">
+            <div className={isGame ? "mt-1 text-white/70" : "mt-1 text-muted-foreground"}>
               <span className="font-medium">Type:</span> {hoveredBubble.bubble.vote.voterType}
             </div>
-            <div className="mt-1 text-muted-foreground">
+            <div className={isGame ? "mt-1 text-white/70" : "mt-1 text-muted-foreground"}>
               <span className="font-medium">Vote:</span> {hoveredBubble.bubble.vote.vote}
             </div>
             {getVotingPowerAda(hoveredBubble.bubble.vote) > 0 ? (
-              <div className="mt-1 text-muted-foreground">
+              <div className={isGame ? "mt-1 text-white/70" : "mt-1 text-muted-foreground"}>
                 <span className="font-medium">Power:</span>{" "}
                 {formatAda(getVotingPowerAda(hoveredBubble.bubble.vote))} ADA
               </div>

@@ -4,9 +4,12 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { GameDropdown } from "@/components/ui/game-dropdown";
 import { VotingRationaleModal } from "@/components/VotingRationaleModal";
 import type { VoteRecord } from "@/types/governance";
 import { Search } from "lucide-react";
+import { useTheme } from "@/lib/theme";
+import { cn } from "@/lib/utils";
 
 interface VotingRecordsProps {
   votes: VoteRecord[];
@@ -32,6 +35,16 @@ function getVoteBadgeClasses(vote: VoteRecord["vote"]): string {
   return "text-foreground/60 border-foreground/20 bg-transparent dark:text-[#0bd1a2] dark:border-[#0bd1a2] dark:bg-transparent";
 }
 
+function getGameVoteBadgeClasses(vote: VoteRecord["vote"]): string {
+  if (vote === "Yes") {
+    return "text-green-400 border-green-400/50 bg-transparent";
+  }
+  if (vote === "No") {
+    return "text-red-400 border-red-400/50 bg-transparent";
+  }
+  return "text-white/70 border-white/30 bg-transparent";
+}
+
 function formatVoterDisplayName(vote: VoteRecord): string {
   const name = vote.voterName?.trim();
   const id = vote.voterId || vote.drepId;
@@ -47,6 +60,8 @@ export function VotingRecords({
   downloadFormat,
   onDownloadFormatChange,
 }: VotingRecordsProps) {
+  const { activeTheme } = useTheme();
+  const isGame = activeTheme.id === "game";
   const [searchQuery, setSearchQuery] = useState("");
   const [voteFilter, setVoteFilter] = useState<string>("all");
   const [roleFilter, setRoleFilter] = useState<string>("all");
@@ -55,6 +70,11 @@ export function VotingRecords({
   const [rationaleFilter, setRationaleFilter] = useState<string>("all");
   const [selectedVote, setSelectedVote] = useState<VoteRecord | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [openDropdowns, setOpenDropdowns] = useState(0);
+
+  const handleDropdownOpenChange = (open: boolean) => {
+    setOpenDropdowns((prev) => (open ? prev + 1 : Math.max(0, prev - 1)));
+  };
 
   const voteIdMap = useMemo(() => {
     const map = new Map<VoteRecord, number>();
@@ -137,102 +157,195 @@ export function VotingRecords({
 
   return (
     <div className="space-y-6">
-      <div />
-
-      <div className="rounded-2xl border border-white/8 bg-[#faf9f6] p-3 sm:p-4 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none">
+      <div className={cn(
+        "p-3 sm:p-4",
+        isGame 
+          ? "game-detail-card" 
+          : "rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+      )}>
         <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-6">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-muted-foreground" />
+            <Search className={cn("absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform", isGame ? "text-white/50" : "text-muted-foreground")} />
             <Input
               placeholder="Search by voter name or ID..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 filter-input"
+              className={cn("pl-10", isGame ? "game-nav-input" : "filter-input")}
             />
           </div>
-          <Select value={voteFilter} onValueChange={setVoteFilter}>
-            <SelectTrigger className="btn-neon ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:ring-offset-0 focus:border-black data-[state=open]:ring-0 data-[state=open]:ring-transparent data-[state=open]:ring-offset-0 data-[state=open]:border-black dark:focus:border-[#0bd1a2] dark:data-[state=open]:border-[#0bd1a2]">
-              <SelectValue placeholder="Filter by vote" />
-            </SelectTrigger>
-            <SelectContent className="rounded-none dark:border dark:border-[#0bd1a2] dark:bg-black dark:text-[#0bd1a2] dark:rounded-none">
-              <SelectItem className={selectItemClass} value="all">All Votes</SelectItem>
-              <SelectItem className={selectItemClass} value="yes">Yes</SelectItem>
-              <SelectItem className={selectItemClass} value="no">No</SelectItem>
-              <SelectItem className={selectItemClass} value="abstain">Abstain</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={roleFilter} onValueChange={setRoleFilter}>
-            <SelectTrigger className="btn-neon ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:ring-offset-0 focus:border-black data-[state=open]:ring-0 data-[state=open]:ring-transparent data-[state=open]:ring-offset-0 data-[state=open]:border-black dark:focus:border-[#0bd1a2] dark:data-[state=open]:border-[#0bd1a2]">
-              <SelectValue placeholder="Filter by role" />
-            </SelectTrigger>
-            <SelectContent className="rounded-none dark:border dark:border-[#0bd1a2] dark:bg-black dark:text-[#0bd1a2] dark:rounded-none">
-              <SelectItem className={selectItemClass} value="all">All Roles</SelectItem>
-              <SelectItem className={selectItemClass} value="DRep">DRep</SelectItem>
-              <SelectItem className={selectItemClass} value="SPO">SPO</SelectItem>
-              <SelectItem className={selectItemClass} value="CC">CC</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={timeSort} onValueChange={setTimeSort}>
-            <SelectTrigger className="btn-neon ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:ring-offset-0 focus:border-black data-[state=open]:ring-0 data-[state=open]:ring-transparent data-[state=open]:ring-offset-0 data-[state=open]:border-black dark:focus:border-[#0bd1a2] dark:data-[state=open]:border-[#0bd1a2]">
-              <SelectValue placeholder="Sort by time" />
-            </SelectTrigger>
-            <SelectContent className="rounded-none dark:border dark:border-[#0bd1a2] dark:bg-black dark:text-[#0bd1a2] dark:rounded-none">
-              <SelectItem className={selectItemClass} value="newest">Newest First</SelectItem>
-              <SelectItem className={selectItemClass} value="oldest">Oldest First</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={rationaleFilter} onValueChange={setRationaleFilter}>
-            <SelectTrigger className="btn-neon ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:ring-offset-0 focus:border-black data-[state=open]:ring-0 data-[state=open]:ring-transparent data-[state=open]:ring-offset-0 data-[state=open]:border-black dark:focus:border-[#0bd1a2] dark:data-[state=open]:border-[#0bd1a2]">
-              <SelectValue placeholder="Filter by rationale" />
-            </SelectTrigger>
-            <SelectContent className="rounded-none dark:border dark:border-[#0bd1a2] dark:bg-black dark:text-[#0bd1a2] dark:rounded-none">
-              <SelectItem className={selectItemClass} value="all">All records</SelectItem>
-              <SelectItem className={selectItemClass} value="with">Only votes with rationale</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={powerSort} onValueChange={setPowerSort}>
-            <SelectTrigger className="btn-neon ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:ring-offset-0 focus:border-black data-[state=open]:ring-0 data-[state=open]:ring-transparent data-[state=open]:ring-offset-0 data-[state=open]:border-black dark:focus:border-[#0bd1a2] dark:data-[state=open]:border-[#0bd1a2]">
-              <SelectValue placeholder="Sort by voting power" />
-            </SelectTrigger>
-            <SelectContent className="rounded-none dark:border dark:border-[#0bd1a2] dark:bg-black dark:text-[#0bd1a2] dark:rounded-none">
-              <SelectItem className={selectItemClass} value="none">No Sort</SelectItem>
-              <SelectItem className={selectItemClass} value="high">Highest Voting Power</SelectItem>
-              <SelectItem className={selectItemClass} value="low">Lowest Voting Power</SelectItem>
-            </SelectContent>
-          </Select>
-          {showDownload ? (
-            <Select
-              value={downloadFormat || ""}
-              onValueChange={(value: string) =>
-                onDownloadFormatChange?.(value as "json" | "markdown" | "csv")
-              }>
+          {isGame ? (
+            <GameDropdown
+              value={voteFilter}
+              onValueChange={setVoteFilter}
+              placeholder="Filter by vote"
+              onOpenChange={handleDropdownOpenChange}
+              options={[
+                { value: "all", label: "All Votes" },
+                { value: "yes", label: "Yes" },
+                { value: "no", label: "No" },
+                { value: "abstain", label: "Abstain" },
+              ]}
+            />
+          ) : (
+            <Select value={voteFilter} onValueChange={setVoteFilter}>
               <SelectTrigger className="btn-neon ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:ring-offset-0 focus:border-black data-[state=open]:ring-0 data-[state=open]:ring-transparent data-[state=open]:ring-offset-0 data-[state=open]:border-black dark:focus:border-[#0bd1a2] dark:data-[state=open]:border-[#0bd1a2]">
-                <SelectValue placeholder="Download rationales" />
+                <SelectValue placeholder="Filter by vote" />
               </SelectTrigger>
               <SelectContent className="rounded-none dark:border dark:border-[#0bd1a2] dark:bg-black dark:text-[#0bd1a2] dark:rounded-none">
-                <SelectItem className={selectItemClass} value="json">Download as JSON</SelectItem>
-                <SelectItem className={selectItemClass} value="markdown">Download as Markdown</SelectItem>
-                <SelectItem className={selectItemClass} value="csv">Download as CSV</SelectItem>
+                <SelectItem className={selectItemClass} value="all">All Votes</SelectItem>
+                <SelectItem className={selectItemClass} value="yes">Yes</SelectItem>
+                <SelectItem className={selectItemClass} value="no">No</SelectItem>
+                <SelectItem className={selectItemClass} value="abstain">Abstain</SelectItem>
               </SelectContent>
             </Select>
+          )}
+          {isGame ? (
+            <GameDropdown
+              value={roleFilter}
+              onValueChange={setRoleFilter}
+              placeholder="Filter by role"
+              onOpenChange={handleDropdownOpenChange}
+              options={[
+                { value: "all", label: "All Roles" },
+                { value: "DRep", label: "DRep" },
+                { value: "SPO", label: "SPO" },
+                { value: "CC", label: "CC" },
+              ]}
+            />
+          ) : (
+            <Select value={roleFilter} onValueChange={setRoleFilter}>
+              <SelectTrigger className="btn-neon ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:ring-offset-0 focus:border-black data-[state=open]:ring-0 data-[state=open]:ring-transparent data-[state=open]:ring-offset-0 data-[state=open]:border-black dark:focus:border-[#0bd1a2] dark:data-[state=open]:border-[#0bd1a2]">
+                <SelectValue placeholder="Filter by role" />
+              </SelectTrigger>
+              <SelectContent className="rounded-none dark:border dark:border-[#0bd1a2] dark:bg-black dark:text-[#0bd1a2] dark:rounded-none">
+                <SelectItem className={selectItemClass} value="all">All Roles</SelectItem>
+                <SelectItem className={selectItemClass} value="DRep">DRep</SelectItem>
+                <SelectItem className={selectItemClass} value="SPO">SPO</SelectItem>
+                <SelectItem className={selectItemClass} value="CC">CC</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+          {isGame ? (
+            <GameDropdown
+              value={timeSort}
+              onValueChange={setTimeSort}
+              placeholder="Sort by time"
+              onOpenChange={handleDropdownOpenChange}
+              options={[
+                { value: "newest", label: "Newest First" },
+                { value: "oldest", label: "Oldest First" },
+              ]}
+            />
+          ) : (
+            <Select value={timeSort} onValueChange={setTimeSort}>
+              <SelectTrigger className="btn-neon ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:ring-offset-0 focus:border-black data-[state=open]:ring-0 data-[state=open]:ring-transparent data-[state=open]:ring-offset-0 data-[state=open]:border-black dark:focus:border-[#0bd1a2] dark:data-[state=open]:border-[#0bd1a2]">
+                <SelectValue placeholder="Sort by time" />
+              </SelectTrigger>
+              <SelectContent className="rounded-none dark:border dark:border-[#0bd1a2] dark:bg-black dark:text-[#0bd1a2] dark:rounded-none">
+                <SelectItem className={selectItemClass} value="newest">Newest First</SelectItem>
+                <SelectItem className={selectItemClass} value="oldest">Oldest First</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+          {isGame ? (
+            <GameDropdown
+              value={rationaleFilter}
+              onValueChange={setRationaleFilter}
+              placeholder="Filter by rationale"
+              onOpenChange={handleDropdownOpenChange}
+              options={[
+                { value: "all", label: "All records" },
+                { value: "with", label: "Only votes with rationale" },
+              ]}
+            />
+          ) : (
+            <Select value={rationaleFilter} onValueChange={setRationaleFilter}>
+              <SelectTrigger className="btn-neon ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:ring-offset-0 focus:border-black data-[state=open]:ring-0 data-[state=open]:ring-transparent data-[state=open]:ring-offset-0 data-[state=open]:border-black dark:focus:border-[#0bd1a2] dark:data-[state=open]:border-[#0bd1a2]">
+                <SelectValue placeholder="Filter by rationale" />
+              </SelectTrigger>
+              <SelectContent className="rounded-none dark:border dark:border-[#0bd1a2] dark:bg-black dark:text-[#0bd1a2] dark:rounded-none">
+                <SelectItem className={selectItemClass} value="all">All records</SelectItem>
+                <SelectItem className={selectItemClass} value="with">Only votes with rationale</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+          {isGame ? (
+            <GameDropdown
+              value={powerSort}
+              onValueChange={setPowerSort}
+              placeholder="Sort by voting power"
+              onOpenChange={handleDropdownOpenChange}
+              options={[
+                { value: "none", label: "No Sort" },
+                { value: "high", label: "Highest Voting Power" },
+                { value: "low", label: "Lowest Voting Power" },
+              ]}
+            />
+          ) : (
+            <Select value={powerSort} onValueChange={setPowerSort}>
+              <SelectTrigger className="btn-neon ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:ring-offset-0 focus:border-black data-[state=open]:ring-0 data-[state=open]:ring-transparent data-[state=open]:ring-offset-0 data-[state=open]:border-black dark:focus:border-[#0bd1a2] dark:data-[state=open]:border-[#0bd1a2]">
+                <SelectValue placeholder="Sort by voting power" />
+              </SelectTrigger>
+              <SelectContent className="rounded-none dark:border dark:border-[#0bd1a2] dark:bg-black dark:text-[#0bd1a2] dark:rounded-none">
+                <SelectItem className={selectItemClass} value="none">No Sort</SelectItem>
+                <SelectItem className={selectItemClass} value="high">Highest Voting Power</SelectItem>
+                <SelectItem className={selectItemClass} value="low">Lowest Voting Power</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+          {showDownload ? (
+            isGame ? (
+              <GameDropdown
+                value={downloadFormat || ""}
+                onValueChange={(value) => onDownloadFormatChange?.(value as "json" | "markdown" | "csv")}
+                placeholder="Download rationales"
+                onOpenChange={handleDropdownOpenChange}
+                options={[
+                  { value: "json", label: "Download as JSON" },
+                  { value: "markdown", label: "Download as Markdown" },
+                  { value: "csv", label: "Download as CSV" },
+                ]}
+              />
+            ) : (
+              <Select
+                value={downloadFormat || ""}
+                onValueChange={(value: string) =>
+                  onDownloadFormatChange?.(value as "json" | "markdown" | "csv")
+                }>
+                <SelectTrigger className="btn-neon ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:ring-offset-0 focus:border-black data-[state=open]:ring-0 data-[state=open]:ring-transparent data-[state=open]:ring-offset-0 data-[state=open]:border-black dark:focus:border-[#0bd1a2] dark:data-[state=open]:border-[#0bd1a2]">
+                  <SelectValue placeholder="Download rationales" />
+                </SelectTrigger>
+                <SelectContent className="rounded-none dark:border dark:border-[#0bd1a2] dark:bg-black dark:text-[#0bd1a2] dark:rounded-none">
+                  <SelectItem className={selectItemClass} value="json">Download as JSON</SelectItem>
+                  <SelectItem className={selectItemClass} value="markdown">Download as Markdown</SelectItem>
+                  <SelectItem className={selectItemClass} value="csv">Download as CSV</SelectItem>
+                </SelectContent>
+              </Select>
+            )
           ) : (
             <div className="hidden lg:block" />
           )}
         </div>
       </div>
 
-      <div className="rounded-2xl border border-white/8 bg-[#faf9f6] overflow-hidden shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none">
+      <div 
+        className={cn(
+          "rounded-2xl border border-white/8 bg-[#faf9f6] overflow-hidden shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none transition-[margin-top] duration-300 ease-in-out",
+          isGame && "game-detail-card"
+        )}
+        style={isGame && openDropdowns > 0 ? { marginTop: '280px' } : undefined}
+      >
         <div className="-mx-4 overflow-x-auto sm:-mx-6 md:mx-0">
-          <div className="inline-block min-w-full px-4 align-middle sm:px-6 md:px-0 dark:text-[#0bd1a2]">
-            <Table>
+          <div className={cn("inline-block min-w-full px-4 align-middle sm:px-6 md:px-0", isGame ? "text-white" : "dark:text-[#0bd1a2]")}>
+            <Table className={isGame ? "game-voting-table" : ""}>
               <TableHeader>
-                <TableRow className="voting-records-header">
-                  <TableHead>Voter</TableHead>
-                  {hasTransactionHashes && <TableHead>Transaction</TableHead>}
-                  <TableHead>Vote</TableHead>
-                  <TableHead>Voting Power</TableHead>
-                  <TableHead>Voted At</TableHead>
-                  <TableHead className="text-right">Rationale</TableHead>
+                <TableRow className={cn("voting-records-header", isGame && "border-b border-white/10")}>
+                  <TableHead className={isGame ? "text-white/70" : ""}>Voter</TableHead>
+                  {hasTransactionHashes && <TableHead className={isGame ? "text-white/70" : ""}>Transaction</TableHead>}
+                  <TableHead className={isGame ? "text-white/70" : ""}>Vote</TableHead>
+                  <TableHead className={isGame ? "text-white/70" : ""}>Voting Power</TableHead>
+                  <TableHead className={isGame ? "text-white/70" : ""}>Voted At</TableHead>
+                  <TableHead className={cn("text-right", isGame ? "text-white/70" : "")}>Rationale</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -254,21 +367,24 @@ export function VotingRecords({
                     return (
                   <TableRow
                     key={voteId}
-                    className={`voting-record-row hover:bg-transparent transition-transform duration-300 ease-out transform-gpu hover:scale-[1.01] ${
-                      isFirstRow ? "first-row" : ""
-                    } ${isNoVote ? "vote-no-row" : ""}`}
+                    className={cn(
+                      "voting-record-row hover:bg-transparent transition-transform duration-300 ease-out transform-gpu hover:scale-[1.01]",
+                      isFirstRow && "first-row",
+                      isNoVote && "vote-no-row",
+                      isGame && "border-b border-white/10"
+                    )}
                   >
                         <TableCell>
                           <div>
                             <div className="mb-1 flex items-center gap-2">
-                              <span className="font-semibold dark:text-[#0bd1a2]">
+                              <span className={cn("font-semibold", isGame ? "text-white" : "dark:text-[#0bd1a2]")}>
                                 {formatVoterDisplayName(vote)}
                               </span>
-                                <Badge variant="outline" className="border-foreground/20 bg-transparent px-1.5 py-0 text-xs dark:text-[#0bd1a2] dark:border-[#0bd1a2] dark:bg-transparent">
+                                <Badge variant="outline" className={isGame ? "border-white/30 bg-transparent px-1.5 py-0 text-xs text-white/70" : "border-foreground/20 bg-transparent px-1.5 py-0 text-xs dark:text-[#0bd1a2] dark:border-[#0bd1a2] dark:bg-transparent"}>
                                 {vote.voterType}
                               </Badge>
                             </div>
-                            <div className="font-mono text-xs text-muted-foreground dark:text-[#0bd1a2] break-all">
+                            <div className={cn("font-mono text-xs break-all", isGame ? "text-white/50" : "text-muted-foreground dark:text-[#0bd1a2]")}>
                               {vote.voterId || vote.drepId || "—"}
                             </div>
                           </div>
@@ -276,47 +392,43 @@ export function VotingRecords({
                         {hasTransactionHashes && (
                           <TableCell>
                             {vote.txHash ? (
-                              <code className="font-mono text-xs text-muted-foreground dark:text-[#0bd1a2]">
+                              <code className={cn("font-mono text-xs", isGame ? "text-white/50" : "text-muted-foreground dark:text-[#0bd1a2]")}>
                                 {vote.txHash.slice(0, 16)}...
                               </code>
                             ) : (
-                              <span className="text-xs text-muted-foreground dark:text-[#0bd1a2]">—</span>
+                              <span className={cn("text-xs", isGame ? "text-white/50" : "text-muted-foreground dark:text-[#0bd1a2]")}>—</span>
                             )}
                           </TableCell>
                         )}
                         <TableCell>
-                          <Badge variant="outline" className={getVoteBadgeClasses(vote.vote)}>
+                          <Badge variant="outline" className={isGame ? getGameVoteBadgeClasses(vote.vote) : getVoteBadgeClasses(vote.vote)}>
                             {vote.vote}
                           </Badge>
                         </TableCell>
                         <TableCell>
                           {vote.voterType !== "CC" ? (
-                            <div className="font-semibold">
+                            <div className={cn("font-semibold", isGame && "text-white")}>
                               {formatAda(vote.votingPowerAda || 0)} ADA
                             </div>
                           ) : (
-                            <div className="text-xs text-muted-foreground dark:text-[#0bd1a2]">One member, one vote</div>
+                            <div className={cn("text-xs", isGame ? "text-white/50" : "text-muted-foreground dark:text-[#0bd1a2]")}>One member, one vote</div>
                           )}
                         </TableCell>
-                        <TableCell className="text-sm text-muted-foreground dark:text-[#0bd1a2]">
+                        <TableCell className={cn("text-sm", isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]")}>
                           {vote.votedAt ? new Date(vote.votedAt).toLocaleDateString() : "—"}
                         </TableCell>
                         <TableCell className="text-right">
-                          {vote.voterType === "CC" ? (
-                            <span className="text-xs text-muted-foreground dark:text-[#0bd1a2]">
-                              Not applicable
-                            </span>
-                          ) : hasRationale ? (
-                            <Button 
-                              size="sm" 
+                          {hasRationale ? (
+                            <Button
+                              size="sm"
                               variant="default"
                               onClick={() => handleOpenRationale(vote)}
-                              className="bg-white text-black hover:bg-black hover:text-white transition-colors shadow-[0_12px_30px_rgba(15,23,42,0.25)] btn-neon"
+                              className={isGame ? "game-nav-btn" : "bg-white text-black hover:bg-black hover:text-white transition-colors shadow-[0_12px_30px_rgba(15,23,42,0.25)] btn-neon"}
                             >
                               View
                             </Button>
                           ) : (
-                            <span className="text-xs text-muted-foreground dark:text-[#0bd1a2]">
+                            <span className={cn("text-xs", isGame ? "text-white/50" : "text-muted-foreground dark:text-[#0bd1a2]")}>
                               No rationale
                             </span>
                           )}

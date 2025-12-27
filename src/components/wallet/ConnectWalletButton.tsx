@@ -4,12 +4,15 @@ import { Wallet } from "lucide-react";
 import { useState, useEffect } from "react";
 import { ConnectWalletModal } from "./ConnectWalletModal";
 import Image from "next/image";
+import { useTheme } from "@/lib/theme";
 
 export function ConnectWalletButton() {
   const { connected, connecting, name, wallet } = useWallet();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [address, setAddress] = useState<string>("");
   const [walletIcon, setWalletIcon] = useState<string>("");
+  const { activeTheme } = useTheme();
+  const isGame = activeTheme.id === "game";
 
   // Get wallet address and icon when connected
   useEffect(() => {
@@ -60,11 +63,15 @@ export function ConnectWalletButton() {
         variant={connected ? "outline" : "default"}
         onClick={() => setIsModalOpen(true)}
         disabled={connecting}
-        className={`flex items-center gap-2 transition-colors btn-neon ${
-          connected
-            ? "hover:bg-black hover:text-white"
-            : "bg-white text-black hover:bg-black hover:text-white shadow-[0_12px_30px_rgba(15,23,42,0.25)]"
-        }`}
+        className={
+          isGame
+            ? "game-nav-btn"
+            : `flex items-center gap-2 transition-colors btn-neon ${
+                connected
+                  ? "hover:bg-black hover:text-white"
+                  : "bg-white text-black hover:bg-black hover:text-white shadow-[0_12px_30px_rgba(15,23,42,0.25)]"
+              }`
+        }
       >
         {connecting ? (
           <>

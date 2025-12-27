@@ -1,5 +1,6 @@
 @import "../themes/light/tokens.css";
 @import "../themes/dark/tokens.css";
+@import "../themes/game/tokens.css";
 
 @tailwind base;
 @tailwind components;
