@@ -131,9 +131,9 @@ export function ProposalContent({
         "[&_h3]:text-lg [&_h3]:font-semibold [&_h3]:mt-3 [&_h3]:mb-2 sm:[&_h3]:text-xl",
         "[&_h4]:text-base [&_h4]:font-semibold [&_h4]:mt-3 [&_h4]:mb-2",
         "[&_p]:leading-relaxed [&_p:not(:last-child)]:mb-3",
-        "[&_table]:w-full [&_table]:border-collapse",
-        "[&_th]:border [&_th]:border-border [&_th]:bg-muted/40 [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:text-sm",
-        "[&_td]:border [&_td]:border-border [&_td]:px-3 [&_td]:py-2 [&_td]:align-top [&_td]:text-sm",
+        "[&_table]:w-full [&_table]:border-collapse [&_table]:block [&_table]:overflow-x-auto [&_table]:max-w-full sm:[&_table]:table",
+        "[&_th]:border [&_th]:border-border [&_th]:bg-muted/40 [&_th]:px-2 [&_th]:py-1.5 [&_th]:text-left [&_th]:text-xs [&_th]:whitespace-nowrap sm:[&_th]:px-3 sm:[&_th]:py-2 sm:[&_th]:text-sm",
+        "[&_td]:border [&_td]:border-border [&_td]:px-2 [&_td]:py-1.5 [&_td]:align-top [&_td]:text-xs sm:[&_td]:px-3 sm:[&_td]:py-2 sm:[&_td]:text-sm",
         className
       )}
     >

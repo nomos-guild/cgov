@@ -1143,3 +1143,155 @@
   }
 }
 
+/* ========================================
+   MOBILE RESPONSIVE OVERRIDES
+   ======================================== */
+
+@media (max-width: 639px) {
+  /* Reduce button sizes on mobile */
+  [data-theme="game"] .game-nav-btn {
+    padding: 0.4rem 0.9rem;
+    min-height: 36px;
+    height: 36px;
+    font-size: 0.8rem;
+    gap: 0.35rem;
+  }
+
+  [data-theme="game"] .game-nav-input {
+    min-height: 36px;
+    font-size: 0.85rem;
+  }
+
+  /* Reduce tab button sizes */
+  [data-theme="game"] .game-tab-btn {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.65rem;
+  }
+
+  /* Make filter dropdown full-width and responsive */
+  [data-theme="game"] .game-filter-dropdown {
+    width: calc(100vw - 2rem);
+    max-width: 320px;
+    left: 0;
+    right: auto;
+  }
+
+  /* Reduce loader scale for mobile */
+  [data-theme="game"] .game-loader-wrapper {
+    scale: 1;
+    font-size: 1.2em;
+    margin: 1rem;
+  }
+
+  /* Disable loader effect animation on mobile */
+  [data-theme="game"] .game-loader-effect::after {
+    animation: none !important;
+    opacity: 0.5;
+  }
+
+  /* Reduce box-shadows for performance */
+  [data-theme="game"] .game-stats > div,
+  [data-theme="game"] .game-stats-ncl,
+  [data-theme="game"] .game-filters-card,
+  [data-theme="game"] .game-proposals-card,
+  [data-theme="game"] .game-detail-card {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+  }
+
+  [data-theme="game"] .game-nav-btn {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5) !important;
+  }
+
+  [data-theme="game"] .game-nav-btn::before {
+    display: none !important;
+  }
+
+  /* Disable transform transitions on hover for mobile */
+  [data-theme="game"] .game-nav-btn:hover,
+  [data-theme="game"] .game-tab-btn:hover {
+    transform: none !important;
+  }
+
+  /* Simplify gradient overlay */
+  [data-theme="game"] .game-proposals-card::after {
+    background: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.3) 100%) !important;
+  }
+
+  /* Disable heavy animations for mobile performance */
+  [data-theme="game"] body::before {
+    animation: none !important;
+    filter: blur(5em) brightness(3) !important;
+    opacity: 0.3;
+    background-image: radial-gradient(ellipse 100px 80px at 30% 40%, #0f0 0%, transparent 100%),
+      radial-gradient(ellipse 80px 60px at 70% 60%, #0f0 0%, transparent 100%) !important;
+    background-size: 100% 100% !important;
+  }
+
+  [data-theme="game"] body::after {
+    backdrop-filter: none !important;
+    animation: none !important;
+  }
+
+  /* Reduce card padding */
+  [data-theme="game"] .game-stats > div,
+  [data-theme="game"] .game-stats-ncl,
+  [data-theme="game"] .game-filters-card,
+  [data-theme="game"] .game-proposals-card,
+  [data-theme="game"] .game-voting-card,
+  [data-theme="game"] .game-detail-card {
+    padding: 0.75rem;
+  }
+
+  /* Smaller dropdown items */
+  [data-theme="game"] .dropdown-item {
+    padding: 10px 12px 10px 50px;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+    min-height: auto;
+  }
+
+  [data-theme="game"] .game-filter-dropdown label {
+    padding: 8px 12px;
+    min-height: 36px;
+  }
+
+  /* Adjust switch checkbox size */
+  [data-theme="game"] .game-filter-dropdown input[type="checkbox"] {
+    width: 32px;
+    height: 16px;
+  }
+
+  [data-theme="game"] .game-filter-dropdown input[type="checkbox"]::before {
+    width: 14px;
+    height: 12px;
+  }
+
+  [data-theme="game"] .game-filter-dropdown input[type="checkbox"]::after {
+    left: 6px;
+    width: 4px;
+    height: 4px;
+  }
+
+  [data-theme="game"] .game-filter-dropdown input[type="checkbox"]:checked::before {
+    left: 16px;
+  }
+
+  [data-theme="game"] .game-filter-dropdown input[type="checkbox"]:checked::after {
+    left: 21px;
+  }
+}
+
+/* Small tablets and large phones */
+@media (min-width: 640px) and (max-width: 767px) {
+  [data-theme="game"] .game-nav-btn {
+    padding: 0.45rem 1rem;
+    min-height: 38px;
+    height: 38px;
+    font-size: 0.85rem;
+  }
+
+  [data-theme="game"] .game-loader-wrapper {
+    scale: 1.2;
+  }
+}
+

@@ -286,19 +286,19 @@ export function BubbleMap({ votes }: BubbleMapProps) {
   return (
     <div className={
       isGame
-        ? "game-detail-card p-3 overflow-visible"
-        : "rounded-2xl border border-white/8 bg-[#faf9f6] p-3 shadow-[0_12px_30px_rgba(15,23,42,0.25)] overflow-visible dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+        ? "game-detail-card p-2 sm:p-3 overflow-visible"
+        : "rounded-2xl border border-white/8 bg-[#faf9f6] p-2 sm:p-3 shadow-[0_12px_30px_rgba(15,23,42,0.25)] overflow-visible dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
     }>
-      <div className="mb-2 flex flex-col sm:flex-row items-center justify-center gap-3 px-4 py-2 pb-4 text-sm overflow-visible">
-        <div className="flex items-center gap-2">
+      <div className="mb-2 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 px-2 sm:px-4 py-2 pb-2 sm:pb-4 text-sm overflow-visible">
+        <div className="flex flex-wrap items-center justify-center gap-2">
           <Button
             variant="outline"
             size="sm"
             onClick={handlePlayPause}
             className={
               isGame
-                ? "game-nav-btn h-9"
-                : "h-9 rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none"
+                ? "game-nav-btn h-8 sm:h-9"
+                : "h-8 sm:h-9 rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none"
             }
           >
             {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
@@ -310,14 +310,14 @@ export function BubbleMap({ votes }: BubbleMapProps) {
               onClick={handleReset}
               className={
                 isGame
-                  ? "game-nav-btn h-9 text-xs"
-                  : "h-9 rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] text-xs dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none"
+                  ? "game-nav-btn h-8 sm:h-9 text-xs"
+                  : "h-8 sm:h-9 rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] text-xs dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none"
               }
             >
               Reset
             </Button>
           )}
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
             {roleFilterOptions.map((role) => {
               const isActive = voterFilter === role;
               return (
@@ -330,7 +330,7 @@ export function BubbleMap({ votes }: BubbleMapProps) {
                       ? isActive
                         ? "game-tab-btn-active-inline"
                         : "game-tab-btn-inline"
-                      : `role-filter-button rounded-2xl px-4 py-2 shadow-[0_12px_30px_rgba(15,23,42,0.25)] cursor-pointer transition-colors text-xs font-semibold uppercase tracking-wide dark:rounded-none dark:border dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none ${
+                      : `role-filter-button rounded-2xl px-3 sm:px-4 py-1.5 sm:py-2 shadow-[0_12px_30px_rgba(15,23,42,0.25)] cursor-pointer transition-colors text-[10px] sm:text-xs font-semibold uppercase tracking-wide dark:rounded-none dark:border dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none ${
                           isActive
                             ? "bg-black text-white dark:bg-[#0bd1a2] dark:text-black active"
                             : "bg-white text-black hover:bg-black hover:text-white dark:hover:bg-[#0bd1a2] dark:hover:text-black"
@@ -349,10 +349,9 @@ export function BubbleMap({ votes }: BubbleMapProps) {
           <svg
             ref={svgRef}
             id="bubble-map-svg"
-            width="800"
-            height="600"
             viewBox="0 0 800 600"
-            className="rounded-lg bg-background"
+            className="rounded-lg bg-background w-full h-auto max-h-[350px] sm:max-h-[450px] md:max-h-[600px]"
+            preserveAspectRatio="xMidYMid meet"
           >
             <defs>
               <filter id="bubble-shadow" x="-200%" y="-200%" width="500%" height="500%">
