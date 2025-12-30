@@ -1,5 +1,5 @@
 import { useMemo, useState, useRef, useEffect, useCallback } from "react";
-import { useRouter } from "next/router";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { VoteProgress } from "@/components/ui/vote-progress";
@@ -109,7 +109,6 @@ function getTypeLabel(type: GovernanceAction["type"]): string {
 }
 
 export function GovernanceTable() {
-  const router = useRouter();
   const dispatch = useAppDispatch();
   const actions = useAppSelector((state) => state.governance.actions);
   const selectedTypes =
@@ -123,9 +122,12 @@ export function GovernanceTable() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
   const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
+  const [showAllProposals, setShowAllProposals] = useState(false);
   const filterMenuRef = useRef<HTMLDivElement | null>(null);
   const statusMenuRef = useRef<HTMLDivElement | null>(null);
   const isAllSelected = selectedTypes.length === PROPOSAL_TYPES.length;
+  
+  const INITIAL_PROPOSALS_LIMIT = 20;
   const isAllStatusesSelected =
     selectedStatuses.length === STATUS_OPTIONS.length;
 
@@ -240,6 +242,14 @@ export function GovernanceTable() {
     isAllStatusesSelected,
   ]);
 
+  const displayedActions = useMemo(() => {
+    if (showAllProposals) return filteredActions;
+    return filteredActions.slice(0, INITIAL_PROPOSALS_LIMIT);
+  }, [filteredActions, showAllProposals, INITIAL_PROPOSALS_LIMIT]);
+
+  const hasMoreProposals = filteredActions.length > INITIAL_PROPOSALS_LIMIT;
+  const remainingProposals = filteredActions.length - INITIAL_PROPOSALS_LIMIT;
+
   const handleToggleType = (type: ProposalType) => {
     const isChecked = selectedTypes.includes(type);
     const nextSelection = isChecked
@@ -280,54 +290,53 @@ export function GovernanceTable() {
     }
   };
 
-  const handleRowClick = (hash: string) => {
-    router.push(`/governance/${hash}`);
-  };
 
   return (
-    <div className="space-y-6">
-      <div className="relative overflow-visible border-white/8 rounded-2xl border bg-[#faf9f6] p-4 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none game-filters-card">
-        <div className="flex flex-wrap gap-3 items-center">
-          <div className="relative max-w-md flex-1 min-w-[200px]">
+    <div className="space-y-3 sm:space-y-4 md:space-y-6">
+      <div className="relative overflow-visible border-white/8 rounded-2xl border bg-[#faf9f6] p-2.5 sm:p-3 md:p-4 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none game-filters-card">
+        <div className="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-3 items-stretch sm:items-center">
+          <div className="relative flex-1 min-w-0 sm:min-w-[200px] sm:max-w-md">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-muted-foreground z-10" />
             <Input
-              placeholder="Search by proposal title..."
+              placeholder="Search..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className={
                 isGame
-                  ? "pl-10 h-10 filter-input game-nav-input"
-                  : "pl-10 h-9 filter-input"
+                  ? "pl-10 h-9 sm:h-10 filter-input game-nav-input text-sm"
+                  : "pl-10 h-8 sm:h-9 filter-input text-sm"
               }
             />
           </div>
-          <div className="relative" ref={filterMenuRef}>
-            <Button
-              variant="outline"
-              size="sm"
-              className={
-                isGame
-                  ? "game-nav-btn h-10 px-4 min-w-[150px]"
-                  : "h-9 min-h-0 px-3 py-2 text-sm btn-neon rounded-2xl hover:bg-black hover:text-white transition-none dark:hover:bg-[#0bd1a2] dark:hover:text-black dark:rounded-none"
-              }
-              aria-haspopup="true"
-              aria-expanded={isFilterMenuOpen}
-              onPointerDown={(e) =>
-                handleTriggerPointerDown(e, handleToggleFilterMenu)
-              }
-              onKeyDown={(e) => handleTriggerKeyDown(e, handleToggleFilterMenu)}
-            >
-              Filter action types
-              <ChevronDown
-                className={`h-4 w-4 transition-transform ${isFilterMenuOpen ? "rotate-180" : ""}`}
-              />
-            </Button>
+          <div className="flex gap-2 sm:gap-3">
+            <div className="relative flex-1 sm:flex-none" ref={filterMenuRef}>
+              <Button
+                variant="outline"
+                size="sm"
+                className={
+                  isGame
+                    ? "game-nav-btn h-9 sm:h-10 px-2.5 sm:px-4 w-full sm:w-auto sm:min-w-[150px] text-xs sm:text-sm"
+                    : "h-8 sm:h-9 min-h-0 px-2.5 sm:px-3 py-2 text-xs sm:text-sm btn-neon rounded-2xl hover:bg-black hover:text-white transition-none dark:hover:bg-[#0bd1a2] dark:hover:text-black dark:rounded-none w-full sm:w-auto"
+                }
+                aria-haspopup="true"
+                aria-expanded={isFilterMenuOpen}
+                onPointerDown={(e) =>
+                  handleTriggerPointerDown(e, handleToggleFilterMenu)
+                }
+                onKeyDown={(e) => handleTriggerKeyDown(e, handleToggleFilterMenu)}
+              >
+                <span className="hidden sm:inline">Filter action types</span>
+                <span className="sm:hidden">Types</span>
+                <ChevronDown
+                  className={`h-4 w-4 transition-transform ${isFilterMenuOpen ? "rotate-180" : ""}`}
+                />
+              </Button>
             {isFilterMenuOpen ? (
               <div
                 className={
                   isGame
                     ? "game-filter-dropdown"
-                    : "border-white/8 absolute left-0 z-20 mt-2 w-64 rounded-2xl border bg-[#faf9f6] p-2 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-black dark:shadow-none"
+                    : "border-white/8 absolute left-0 sm:left-0 right-0 sm:right-auto z-20 mt-2 w-auto sm:w-64 rounded-2xl border bg-[#faf9f6] p-2 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-black dark:shadow-none"
                 }
               >
                 <div className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground dark:bg-transparent dark:text-[#0bd1a2]">
@@ -372,36 +381,37 @@ export function GovernanceTable() {
                 </div>
               </div>
             ) : null}
-          </div>
-          <div className="relative" ref={statusMenuRef}>
-            <Button
-              variant="outline"
-              size="sm"
-              className={
-                isGame
-                  ? "game-nav-btn h-10 px-4 min-w-[150px]"
-                  : "h-9 min-h-0 px-3 py-2 text-sm btn-neon rounded-2xl hover:bg-black hover:text-white transition-none dark:hover:bg-[#0bd1a2] dark:hover:text-black dark:rounded-none"
-              }
-              aria-haspopup="true"
-              aria-expanded={isStatusMenuOpen}
-              onPointerDown={(e) =>
-                handleTriggerPointerDown(e, handleToggleStatusMenu)
-              }
-              onKeyDown={(e) => handleTriggerKeyDown(e, handleToggleStatusMenu)}
-            >
-              Filter by status
-              <ChevronDown
-                className={`h-4 w-4 transition-transform ${isStatusMenuOpen ? "rotate-180" : ""}`}
-              />
-            </Button>
-            {isStatusMenuOpen ? (
-              <div
+            </div>
+            <div className="relative flex-1 sm:flex-none" ref={statusMenuRef}>
+              <Button
+                variant="outline"
+                size="sm"
                 className={
                   isGame
-                    ? "game-filter-dropdown"
-                    : "border-white/8 absolute left-0 z-20 mt-2 w-64 rounded-2xl border bg-[#faf9f6] p-2 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-black dark:shadow-none"
+                    ? "game-nav-btn h-9 sm:h-10 px-2.5 sm:px-4 w-full sm:w-auto sm:min-w-[150px] text-xs sm:text-sm"
+                    : "h-8 sm:h-9 min-h-0 px-2.5 sm:px-3 py-2 text-xs sm:text-sm btn-neon rounded-2xl hover:bg-black hover:text-white transition-none dark:hover:bg-[#0bd1a2] dark:hover:text-black dark:rounded-none w-full sm:w-auto"
                 }
+                aria-haspopup="true"
+                aria-expanded={isStatusMenuOpen}
+                onPointerDown={(e) =>
+                  handleTriggerPointerDown(e, handleToggleStatusMenu)
+                }
+                onKeyDown={(e) => handleTriggerKeyDown(e, handleToggleStatusMenu)}
               >
+                <span className="hidden sm:inline">Filter by status</span>
+                <span className="sm:hidden">Status</span>
+                <ChevronDown
+                  className={`h-4 w-4 transition-transform ${isStatusMenuOpen ? "rotate-180" : ""}`}
+                />
+              </Button>
+              {isStatusMenuOpen ? (
+                <div
+                  className={
+                    isGame
+                      ? "game-filter-dropdown"
+                      : "border-white/8 absolute left-0 sm:left-0 right-0 sm:right-auto z-20 mt-2 w-auto sm:w-64 rounded-2xl border bg-[#faf9f6] p-2 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-black dark:shadow-none"
+                  }
+                >
                 <div className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground dark:bg-transparent dark:text-[#0bd1a2]">
                   <span>Status</span>
                   <button
@@ -443,34 +453,89 @@ export function GovernanceTable() {
                       </label>
                     );
                   })}
+                  </div>
                 </div>
-              </div>
-            ) : null}
+              ) : null}
+            </div>
           </div>
         </div>
       </div>
 
       {filteredActions.length === 0 ? (
-        <div className="border-white/8 rounded-2xl border bg-[#faf9f6] p-12 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none">
-          <p className="text-center text-muted-foreground">
+        <div className="border-white/8 rounded-2xl border bg-[#faf9f6] p-6 sm:p-8 md:p-12 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none">
+          <p className="text-center text-muted-foreground text-sm sm:text-base">
             No governance actions found
           </p>
         </div>
       ) : (
-        <div className="rounded-2xl border border-white/8 bg-[#faf9f6] overflow-hidden shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none game-proposals-card">
+        <>
+        {/* Mobile card layout */}
+        <div className="sm:hidden space-y-3">
+          {displayedActions.map((action) => (
+            <Link
+              key={action.proposalId ?? action.hash}
+              href={`/governance/${action.hash}`}
+              className="block"
+            >
+              <div
+                className={
+                  isGame
+                    ? "game-detail-card p-3"
+                    : "rounded-xl border border-white/8 bg-[#faf9f6] p-3 shadow-[0_8px_20px_rgba(15,23,42,0.15)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+                }
+              >
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <span className="text-[9px] uppercase tracking-wide font-semibold text-muted-foreground dark:text-[#0bd1a2]/70">
+                    {getTypeLabel(action.type)}
+                  </span>
+                  <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide shrink-0">
+                    {action.status === "Active" && (
+                      <span className="relative flex h-1.5 w-1.5">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-500 opacity-75"></span>
+                        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-green-500"></span>
+                      </span>
+                    )}
+                    <span className={`${getStatusColor(action.status)} dark:text-[#0bd1a2]`}>
+                      {action.status}
+                    </span>
+                  </div>
+                </div>
+                <h3 className={`text-sm font-semibold line-clamp-2 ${isGame ? "text-white" : "dark:text-[#0bd1a2]"}`}>
+                  {action.title}
+                </h3>
+              </div>
+            </Link>
+          ))}
+          {hasMoreProposals && !showAllProposals && (
+            <Button
+              variant="outline"
+              onClick={() => setShowAllProposals(true)}
+              className={
+                isGame
+                  ? "game-nav-btn w-full"
+                  : "w-full bg-white text-black hover:bg-black hover:text-white transition-colors shadow-[0_8px_16px_rgba(15,23,42,0.2)] btn-neon"
+              }
+            >
+              Show {remainingProposals} more proposals
+            </Button>
+          )}
+        </div>
+
+        {/* Desktop table layout */}
+        <div className="hidden sm:block rounded-2xl border border-white/8 bg-[#faf9f6] overflow-hidden shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none game-proposals-card">
           <Table>
             <TableHeader>
               <TableRow className="proposal-header-row hover:bg-transparent">
-                <TableHead className="w-[30px] px-0 text-center h-10 py-2">DRep</TableHead>
-                <TableHead className="w-[30px] px-0 text-center h-10 py-2">SPO</TableHead>
-                <TableHead className="w-[30px] px-0 text-center h-10 py-2">CC</TableHead>
-                <TableHead className="border-l border-border/50 pl-4 h-10 py-2">Proposal Title</TableHead>
-                <TableHead className="w-[180px] h-10 py-2">Action Type</TableHead>
-                <TableHead className="w-[120px] h-10 py-2">Status</TableHead>
+                <TableHead className="hidden md:table-cell w-[30px] px-0 text-center h-8 sm:h-10 py-1 sm:py-2 text-xs sm:text-sm">DRep</TableHead>
+                <TableHead className="hidden md:table-cell w-[30px] px-0 text-center h-8 sm:h-10 py-1 sm:py-2 text-xs sm:text-sm">SPO</TableHead>
+                <TableHead className="hidden md:table-cell w-[30px] px-0 text-center h-8 sm:h-10 py-1 sm:py-2 text-xs sm:text-sm">CC</TableHead>
+                <TableHead className="md:border-l md:border-border/50 pl-2 sm:pl-4 h-8 sm:h-10 py-1 sm:py-2 text-xs sm:text-sm">Proposal Title</TableHead>
+                <TableHead className="hidden sm:table-cell w-[140px] md:w-[180px] h-8 sm:h-10 py-1 sm:py-2 text-xs sm:text-sm">Action Type</TableHead>
+                <TableHead className="w-[80px] sm:w-[120px] h-8 sm:h-10 py-1 sm:py-2 text-xs sm:text-sm">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredActions.map((action, index) => {
+              {displayedActions.map((action, index) => {
                 const isFirstRow = index === 0;
                 // Always show donuts when we have data, even if a role
                 // isn't formally eligible for this proposal type.
@@ -531,14 +596,17 @@ export function GovernanceTable() {
                   );
 
                 return (
-                  <TableRow
+                  <Link
                     key={action.proposalId ?? action.hash}
+                    href={`/governance/${action.hash}`}
+                    className="contents"
+                  >
+                  <TableRow
                     className={`proposal-row cursor-pointer transition-transform duration-300 ease-out transform-gpu hover:scale-[1.01] hover:bg-transparent dark:border-[#0bd1a2] dark:border-b ${
                       isFirstRow ? "first-row" : ""
                     }`}
-                    onClick={() => handleRowClick(action.hash)}
                   >
-                    <TableCell className="py-1 px-0">
+                    <TableCell className="hidden md:table-cell py-1 px-0">
                       {drepInfo ? (
                         <div
                           className="flex justify-center -mr-4"
@@ -564,7 +632,7 @@ export function GovernanceTable() {
                         </div>
                       ) : null}
                     </TableCell>
-                    <TableCell className="py-1 px-0">
+                    <TableCell className="hidden md:table-cell py-1 px-0">
                       {spoInfo ? (
                         <div
                           className="flex justify-center -mx-4"
@@ -590,7 +658,7 @@ export function GovernanceTable() {
                         </div>
                       ) : null}
                     </TableCell>
-                    <TableCell className="py-1 px-0">
+                    <TableCell className="hidden md:table-cell py-1 px-0">
                       {ccInfo ? (
                         <div
                           className="flex justify-center -ml-4"
@@ -616,20 +684,20 @@ export function GovernanceTable() {
                         </div>
                       ) : null}
                     </TableCell>
-                    <TableCell className="py-1 border-l border-border/50 pl-4">
-                      <h3 className="text-base font-semibold dark:text-[#0bd1a2]">{action.title}</h3>
+                    <TableCell className="py-1 sm:py-1.5 md:border-l md:border-border/50 pl-2 sm:pl-4">
+                      <h3 className="text-sm sm:text-base font-semibold dark:text-[#0bd1a2] line-clamp-2">{action.title}</h3>
                     </TableCell>
-                    <TableCell className="py-1">
-                      <span className="text-xs uppercase tracking-wide font-semibold text-foreground dark:text-[#0bd1a2]">
+                    <TableCell className="hidden sm:table-cell py-1 sm:py-1.5">
+                      <span className="text-[10px] sm:text-xs uppercase tracking-wide font-semibold text-foreground dark:text-[#0bd1a2]">
                         {getTypeLabel(action.type)}
                       </span>
                     </TableCell>
-                    <TableCell className="py-1">
-                      <div className="flex items-center gap-2 text-xs uppercase tracking-wide dark:text-[#0bd1a2]">
+                    <TableCell className="py-1 sm:py-1.5">
+                      <div className="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs uppercase tracking-wide dark:text-[#0bd1a2]">
                         {action.status === "Active" && (
-                          <span className="relative flex h-2 w-2">
+                          <span className="relative flex h-1.5 w-1.5 sm:h-2 sm:w-2">
                             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-500 opacity-75"></span>
-                            <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500"></span>
+                            <span className="relative inline-flex h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-green-500"></span>
                           </span>
                         )}
                         <span className={getStatusColor(action.status)}>
@@ -638,11 +706,28 @@ export function GovernanceTable() {
                       </div>
                     </TableCell>
                   </TableRow>
+                  </Link>
                 );
               })}
             </TableBody>
           </Table>
+          {hasMoreProposals && !showAllProposals && (
+            <div className="p-4">
+              <Button
+                variant="outline"
+                onClick={() => setShowAllProposals(true)}
+                className={
+                  isGame
+                    ? "game-nav-btn w-full"
+                    : "w-full bg-white text-black hover:bg-black hover:text-white transition-colors shadow-[0_8px_16px_rgba(15,23,42,0.2)] btn-neon"
+                }
+              >
+                Show {remainingProposals} more proposals
+              </Button>
+            </div>
+          )}
         </div>
+        </>
       )}
     </div>
   );

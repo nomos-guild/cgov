@@ -310,3 +310,19 @@
 [data-theme="dark"] .filter-input::placeholder {
   color: rgba(11, 209, 162, 0.7) !important;
 }
+
+/* Hide scrollbar on voting records table */
+.voting-records-container {
+  overflow: hidden !important;
+}
+
+.voting-records-container::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.voting-records-container {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}

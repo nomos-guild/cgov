@@ -16,10 +16,9 @@ import { VoteProgress } from "@/components/ui/vote-progress";
 import { Progress } from "@/components/ui/progress";
 import { VotingRecords } from "@/components/VotingRecords";
 import { BubbleMap } from "@/components/BubbleMap";
-import { VoteOnProposal } from "@/components/governance";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { loadGovernanceActionDetail } from "@/store/governanceSlice";
-import { ArrowLeft, Twitter, Copy, Check } from "lucide-react";
+import { ArrowLeft, Copy, Check } from "lucide-react";
 import type {
   GovernanceActionDetail,
   VoterType,
@@ -54,34 +53,48 @@ import { useTheme } from "@/lib/theme";
 import { GameLoader } from "@/components/ui/game-loader";
 
 /**
- * Parse proposal hash (txHash:certIndex format) into separate components
- * The API returns hash in format "txHash:certIndex"
+ * Cardano epoch reference: Epoch 208 started on July 29, 2020 at 21:44:51 UTC (Shelley era start)
+ * Each epoch is exactly 5 days (432,000 seconds)
  */
-function parseProposalHash(hash: string): {
-  txHash: string;
-  certIndex: number;
-} | null {
-  if (!hash) return null;
+const SHELLEY_START_EPOCH = 208;
+const SHELLEY_START_TIME = new Date("2020-07-29T21:44:51Z").getTime();
+const EPOCH_DURATION_MS = 5 * 24 * 60 * 60 * 1000; // 5 days in milliseconds
 
-  // Handle txHash:certIndex format (API format)
-  if (hash.includes(":")) {
-    const [txHash, certIndexStr] = hash.split(":");
-    const certIndex = parseInt(certIndexStr, 10);
-    if (txHash && !isNaN(certIndex)) {
-      return { txHash, certIndex };
-    }
-  }
+/**
+ * Convert a Cardano epoch number to a Date object (start of that epoch)
+ */
+function epochToDate(epoch: number): Date {
+  const epochsSinceShelley = epoch - SHELLEY_START_EPOCH;
+  const timeMs = SHELLEY_START_TIME + epochsSinceShelley * EPOCH_DURATION_MS;
+  return new Date(timeMs);
+}
 
-  // Handle txHash#certIndex format (alternative format)
-  if (hash.includes("#")) {
-    const [txHash, certIndexStr] = hash.split("#");
-    const certIndex = parseInt(certIndexStr, 10);
-    if (txHash && !isNaN(certIndex)) {
-      return { txHash, certIndex };
-    }
-  }
+/**
+ * Format a date as DD/MM/YYYY
+ */
+function formatDateUTC(date: Date): string {
+  const day = date.getUTCDate().toString().padStart(2, "0");
+  const month = (date.getUTCMonth() + 1).toString().padStart(2, "0");
+  const year = date.getUTCFullYear();
+  return `${day}/${month}/${year}`;
+}
 
-  return null;
+/**
+ * Format time as HH:MM UTC
+ */
+function formatTimeUTC(date: Date): string {
+  const hours = date.getUTCHours().toString().padStart(2, "0");
+  const minutes = date.getUTCMinutes().toString().padStart(2, "0");
+  return `${hours}:${minutes} UTC`;
+}
+
+/**
+ * Get current epoch number
+ */
+function getCurrentEpoch(): number {
+  const now = Date.now();
+  const epochsSinceShelley = Math.floor((now - SHELLEY_START_TIME) / EPOCH_DURATION_MS);
+  return SHELLEY_START_EPOCH + epochsSinceShelley;
 }
 
 /**
@@ -547,11 +560,6 @@ export default function GovernanceDetail() {
     };
   }, [selectedAction]);
 
-  // Parse proposal hash outside JSX to avoid IIFE causing component remount
-  const parsedProposalHash = selectedAction?.hash
-    ? parseProposalHash(selectedAction.hash)
-    : null;
-
   // Only show loading state for initial load (when we don't have data yet)
   // This prevents unmounting VoteOnProposal during polling re-fetches
   const showLoadingState = isLoadingDetail && !selectedAction;
@@ -744,129 +752,121 @@ export default function GovernanceDetail() {
       </Head>
       <div className="min-h-screen bg-background">
         <div
-          className={`container mx-auto px-4 py-8 transition-opacity duration-300 sm:px-6 sm:py-8 ${contentVisible ? "opacity-100" : "opacity-0"}`}
+          className={`container mx-auto px-3 py-4 sm:px-4 sm:py-6 md:px-6 md:py-8 transition-opacity duration-300 ${contentVisible ? "opacity-100" : "opacity-0"}`}
         >
           {/* Top actions */}
-          <div className="mb-6 flex flex-wrap items-center gap-3">
+          <div className="mb-4 sm:mb-6 flex flex-wrap items-center gap-2 sm:gap-3">
             <Link href="/">
+              <Button
+                variant="default"
+                size="icon"
+                className={
+                  isGame
+                    ? "game-nav-btn"
+                    : "bg-white text-black shadow-[0_12px_30px_rgba(15,23,42,0.25)] h-8 w-8 sm:h-10 sm:w-10 transform-gpu transition-transform transition-shadow duration-450 ease-in-out hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] hover:bg-white hover:text-black btn-neon"
+                }
+                aria-label="Back to Dashboard"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            </Link>
+            {contentPreview?.shouldTruncate && (
               <Button
                 variant="default"
                 className={
                   isGame
-                    ? "game-nav-btn"
-                    : "bg-white text-black shadow-[0_12px_30px_rgba(15,23,42,0.25)] h-10 px-4 transform-gpu transition-transform transition-shadow duration-450 ease-in-out hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] hover:bg-white hover:text-black btn-neon"
+                    ? "game-nav-btn w-[110px] sm:w-[130px] text-xs sm:text-sm"
+                    : "bg-white text-black shadow-[0_12px_30px_rgba(15,23,42,0.25)] h-8 sm:h-10 w-[110px] sm:w-[130px] text-xs sm:text-sm transform-gpu transition-transform transition-shadow duration-450 ease-in-out hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] hover:bg-white hover:text-black btn-neon"
                 }
+                onClick={() => setIsContentExpanded((prev) => !prev)}
               >
-                Back to Dashboard
+                {isContentExpanded ? "Hide Proposal" : "Read Proposal"}
               </Button>
-            </Link>
+            )}
+            {allVotes.length > 0 && (
+              <Button
+                variant="default"
+                className={
+                  isGame
+                    ? "game-nav-btn text-xs sm:text-sm"
+                    : "bg-white text-black shadow-[0_12px_30px_rgba(15,23,42,0.25)] h-8 sm:h-10 px-3 sm:px-4 text-xs sm:text-sm transform-gpu transition-transform transition-shadow duration-450 ease-in-out hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] hover:bg-white hover:text-black btn-neon"
+                }
+                onClick={handleTwitterShare}
+              >
+                Share on X
+              </Button>
+            )}
           </div>
 
           {/* Header Section */}
           <Card className={cn(
-            "mb-8 p-4 sm:p-6",
+            "mb-4 sm:mb-6 md:mb-8 p-3 sm:p-4 md:p-6",
             isGame && "game-proposal-header-card"
           )}>
-            <div className="mb-3 flex items-center gap-3">
-              <h1 className="proposal-detail-title text-2xl font-bold sm:text-3xl md:text-4xl">
+            <div className="mb-2 sm:mb-3 flex items-center gap-2 sm:gap-3">
+              <h1 className="proposal-detail-title text-xl font-bold sm:text-2xl md:text-3xl lg:text-4xl">
                 {selectedAction.title}
               </h1>
             </div>
             {contentPreview && (
               <div className="border-t border-border/50 pt-4">
-                {contentPreview.preview && !isContentExpanded && (
-                  <ProposalContent
-                    content={contentPreview.preview}
-                    className="proposal-detail-content text-sm sm:text-base"
-                  />
-                )}
-                {contentPreview.full && (
-                  <div
-                    className={cn(
-                      "mt-4 overflow-hidden transition-all duration-500 ease-in-out",
-                      isContentExpanded
-                        ? "max-h-[4000px] opacity-100 translate-y-0"
-                        : "max-h-0 opacity-0 -translate-y-1 pointer-events-none"
-                    )}
-                  >
-                    <div className="space-y-4 pt-2">
-                      <div className="overflow-x-auto">
-                        <ProposalContent
-                          content={contentPreview.full}
-                          className="proposal-detail-content px-1 pr-6"
-                          headingLevels={[1, 2, 3, 4]}
-                        />
-                      </div>
+                <div
+                  className={cn(
+                    "transition-all duration-500 ease-in-out overflow-hidden",
+                    isContentExpanded
+                      ? "max-h-[60vh] overflow-y-auto"
+                      : "max-h-24"
+                  )}
+                >
+                  <div className="pr-2">
+                    <div className="overflow-x-auto">
+                      <ProposalContent
+                        content={contentPreview.full}
+                        className="proposal-detail-content text-sm sm:text-base px-1 pr-4"
+                        headingLevels={[1, 2, 3, 4]}
+                      />
                     </div>
+                    {contentPreview.references &&
+                      contentPreview.references.length > 0 && (
+                        <div className="mt-4 border-t border-border/50 pt-4">
+                          <h4 className="mb-3 text-sm font-semibold text-foreground">
+                            References
+                          </h4>
+                          <div className="space-y-2 proposal-detail-content">
+                            {contentPreview.references.map((ref, index) => {
+                              const href = ref.uri || ref.label || "#";
+                              const label = ref.label || ref.uri || href;
+                              return (
+                                <a
+                                  key={index}
+                                  href={href}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="block break-all text-sm text-primary hover:underline"
+                                >
+                                  {label}
+                                </a>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
                   </div>
-                )}
-                {isContentExpanded &&
-                  contentPreview.references &&
-                  contentPreview.references.length > 0 && (
-                    <div className="mt-4 border-t border-border/50 pt-4">
-                      <h4 className="mb-3 text-sm font-semibold text-foreground">
-                        References
-                      </h4>
-                      <div className="space-y-2 proposal-detail-content">
-                        {contentPreview.references.map((ref, index) => {
-                          const href = ref.uri || ref.label || "#";
-                          const label = ref.label || ref.uri || href;
-                          return (
-                            <a
-                              key={index}
-                              href={href}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="block break-all text-sm text-primary hover:underline"
-                            >
-                              {label}
-                            </a>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                {/* Proposal action buttons */}
-                <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-border/50 pt-4">
-                  {contentPreview.shouldTruncate && (
-                    <Button
-                      variant="default"
-                      className={
-                        isGame
-                          ? "game-nav-btn"
-                          : "bg-white text-black shadow-[0_12px_30px_rgba(15,23,42,0.25)] h-10 px-4 transform-gpu transition-transform transition-shadow duration-450 ease-in-out hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] hover:bg-white hover:text-black btn-neon"
-                      }
-                      onClick={() => setIsContentExpanded((prev) => !prev)}
-                    >
-                      {isContentExpanded ? "Hide Proposal" : "Read Proposal"}
-                    </Button>
-                  )}
-                  {allVotes.length > 0 && (
-                    <Button
-                      variant="default"
-                      className={
-                        isGame
-                          ? "game-nav-btn"
-                          : "bg-white text-black shadow-[0_12px_30px_rgba(15,23,42,0.25)] h-10 px-4 flex items-center gap-2 transform-gpu transition-transform transition-shadow duration-450 ease-in-out hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] hover:bg-white hover:text-black btn-neon"
-                      }
-                      onClick={handleTwitterShare}
-                    >
-                      <Twitter className="h-4 w-4" />
-                      <span className="hidden sm:inline">Share on X</span>
-                      <span className="sm:hidden">Share</span>
-                    </Button>
-                  )}
                 </div>
+                {/* Fade overlay when collapsed */}
+                {!isContentExpanded && contentPreview.shouldTruncate && (
+                  <div className="relative h-8 -mt-8 bg-gradient-to-t from-card to-transparent pointer-events-none" />
+                )}
               </div>
             )}
           </Card>
 
           {/* Main Grid: 2/3 Left, 1/3 Right */}
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:gap-5 md:gap-6 lg:grid-cols-3">
             {/* Left Column - Tabs for donuts, bubble map, curves, details */}
-            <div className="space-y-6 lg:col-span-2">
+            <div className="space-y-4 sm:space-y-5 md:space-y-6 lg:col-span-2">
               <Card className={cn(
-                "info-container p-4 sm:p-6 dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none dark:rounded-none",
+                "info-container p-3 sm:p-4 md:p-6 dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none dark:rounded-none",
                 isGame && "game-voting-card"
               )}>
                 <Tabs
@@ -874,15 +874,15 @@ export default function GovernanceDetail() {
                   onValueChange={setSelectedTab}
                   className="w-full"
                 >
-                  <div className="flex flex-col gap-4">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <TabsList className="flex-1 flex-wrap justify-start gap-2 bg-transparent p-0">
+                  <div className="flex flex-col gap-3 sm:gap-4">
+                    <div className="flex flex-col gap-2 sm:gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <TabsList className="flex-1 flex-wrap justify-start gap-1.5 sm:gap-2 bg-transparent p-0 overflow-x-auto">
                         <TabsTrigger
                           value="live-voting"
                           className={
                             isGame
-                              ? "game-tab-btn data-[state=active]:game-tab-btn-active"
-                              : "rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition-colors data-[state=active]:bg-foreground data-[state=active]:text-background hover:text-foreground dark:rounded-none dark:border-[#0bd1a2] dark:text-[#0bd1a2] dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black"
+                              ? "game-tab-btn data-[state=active]:game-tab-btn-active text-[10px] sm:text-xs"
+                              : "rounded-full border px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold uppercase tracking-wide transition-colors data-[state=active]:bg-foreground data-[state=active]:text-background hover:text-foreground dark:rounded-none dark:border-[#0bd1a2] dark:text-[#0bd1a2] dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap"
                           }
                         >
                           Live Voting
@@ -891,8 +891,8 @@ export default function GovernanceDetail() {
                           value="bubble-map"
                           className={
                             isGame
-                              ? "game-tab-btn data-[state=active]:game-tab-btn-active"
-                              : "rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition-colors data-[state=active]:bg-foreground data-[state=active]:text-background hover:text-foreground dark:rounded-none dark:border-[#0bd1a2] dark:text-[#0bd1a2] dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black"
+                              ? "game-tab-btn data-[state=active]:game-tab-btn-active text-[10px] sm:text-xs"
+                              : "rounded-full border px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold uppercase tracking-wide transition-colors data-[state=active]:bg-foreground data-[state=active]:text-background hover:text-foreground dark:rounded-none dark:border-[#0bd1a2] dark:text-[#0bd1a2] dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap"
                           }
                         >
                           Bubble Map
@@ -901,8 +901,8 @@ export default function GovernanceDetail() {
                           value="curves"
                           className={
                             isGame
-                              ? "game-tab-btn data-[state=active]:game-tab-btn-active"
-                              : "rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition-colors data-[state=active]:bg-foreground data-[state=active]:text-background hover:text-foreground dark:rounded-none dark:border-[#0bd1a2] dark:text-[#0bd1a2] dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black"
+                              ? "game-tab-btn data-[state=active]:game-tab-btn-active text-[10px] sm:text-xs"
+                              : "rounded-full border px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold uppercase tracking-wide transition-colors data-[state=active]:bg-foreground data-[state=active]:text-background hover:text-foreground dark:rounded-none dark:border-[#0bd1a2] dark:text-[#0bd1a2] dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap"
                           }
                         >
                           Curves
@@ -911,8 +911,8 @@ export default function GovernanceDetail() {
                           value="details"
                           className={
                             isGame
-                              ? "game-tab-btn data-[state=active]:game-tab-btn-active"
-                              : "rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition-colors data-[state=active]:bg-foreground data-[state=active]:text-background hover:text-foreground dark:rounded-none dark:border-[#0bd1a2] dark:text-[#0bd1a2] dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black"
+                              ? "game-tab-btn data-[state=active]:game-tab-btn-active text-[10px] sm:text-xs"
+                              : "rounded-full border px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold uppercase tracking-wide transition-colors data-[state=active]:bg-foreground data-[state=active]:text-background hover:text-foreground dark:rounded-none dark:border-[#0bd1a2] dark:text-[#0bd1a2] dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap"
                           }
                         >
                           Details
@@ -924,12 +924,11 @@ export default function GovernanceDetail() {
                         {/* Live voting donuts */}
                         <TabsContent value="live-voting" className="mt-0">
                           {allVotes.length > 0 ? (
-                            <div className="space-y-4">
-                              <div
-                                className="flex flex-wrap items-start gap-4 sm:gap-6"
-                                style={{ overflow: "visible" }}
-                              >
-                                <div className="flex flex-col items-center gap-3">
+                            <div className="space-y-3 sm:space-y-4">
+                              {/* Mobile: vertical stack with legend on right. Desktop: horizontal row with legend below */}
+                              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-start sm:gap-4 md:gap-6">
+                                {/* DRep */}
+                                <div className="flex flex-row items-center gap-3 sm:flex-col sm:items-center sm:gap-3">
                                   {drepInfo ? (
                                     <>
                                       <VoteProgress
@@ -941,7 +940,7 @@ export default function GovernanceDetail() {
                                         noValue={drepNoAda}
                                         abstainValue={drepAbstainStats.power}
                                         valueUnit="ada"
-                                        className="origin-center scale-90 md:scale-100"
+                                        className="origin-center scale-[0.85] sm:scale-90 md:scale-100"
                                         showTooltip={false}
                                         interactive={false}
                                       />
@@ -968,7 +967,8 @@ export default function GovernanceDetail() {
                                     />
                                   )}
                                 </div>
-                                <div className="flex flex-col items-center gap-3">
+                                {/* CC */}
+                                <div className="flex flex-row items-center gap-3 sm:flex-col sm:items-center sm:gap-3">
                                   {ccInfo ? (
                                     <>
                                       <VoteProgress
@@ -983,7 +983,7 @@ export default function GovernanceDetail() {
                                         noValue={ccNoCount}
                                         abstainValue={ccAbstainStats.count}
                                         valueUnit="count"
-                                        className="origin-center scale-90 md:scale-100"
+                                        className="origin-center scale-[0.85] sm:scale-90 md:scale-100"
                                         showTooltip={false}
                                         interactive={false}
                                       />
@@ -1008,7 +1008,8 @@ export default function GovernanceDetail() {
                                     />
                                   )}
                                 </div>
-                                <div className="flex flex-col items-center gap-3">
+                                {/* SPO */}
+                                <div className="flex flex-row items-center gap-3 sm:flex-col sm:items-center sm:gap-3">
                                   {spoInfo ? (
                                     <>
                                       <VoteProgress
@@ -1020,7 +1021,7 @@ export default function GovernanceDetail() {
                                         noValue={spoNoAda}
                                         abstainValue={spoAbstainStats.power}
                                         valueUnit="ada"
-                                        className="origin-center scale-90 md:scale-100"
+                                        className="origin-center scale-[0.85] sm:scale-90 md:scale-100"
                                         showTooltip={false}
                                         interactive={false}
                                       />
@@ -1244,22 +1245,30 @@ export default function GovernanceDetail() {
                           <div className="space-y-4">
                             {/* Time Until Expiry */}
                             {selectedAction && (() => {
-                              const submissionEpoch = selectedAction.submissionEpoch;
-                              const expiryEpoch =
-                                selectedAction.expiryEpoch || submissionEpoch + 6;
-                              const mockCurrentEpoch = submissionEpoch + 2;
+                              const currentEpoch = getCurrentEpoch();
+                              // Use actual epoch values, fallback to current epoch if missing
+                              const submissionEpoch = selectedAction.submissionEpoch > 0 
+                                ? selectedAction.submissionEpoch 
+                                : currentEpoch;
+                              const expiryEpoch = selectedAction.expiryEpoch > 0
+                                ? selectedAction.expiryEpoch
+                                : submissionEpoch + 6;
                               const epochsRemaining = Math.max(
                                 0,
-                                expiryEpoch - mockCurrentEpoch
+                                expiryEpoch - currentEpoch
                               );
                               const daysRemaining = epochsRemaining * 5;
-                              const totalEpochs = 6;
+                              const totalEpochs = expiryEpoch - submissionEpoch;
                               const epochsPassed = Math.min(
                                 totalEpochs,
-                                totalEpochs - epochsRemaining
+                                Math.max(0, currentEpoch - submissionEpoch)
                               );
-                              const progressPercent =
-                                (epochsPassed / totalEpochs) * 100;
+                              const progressPercent = totalEpochs > 0
+                                ? (epochsPassed / totalEpochs) * 100
+                                : 0;
+
+                              const submissionDate = epochToDate(submissionEpoch);
+                              const expiryDate = epochToDate(expiryEpoch);
 
                               return (
                                 <div className={cn(
@@ -1280,21 +1289,12 @@ export default function GovernanceDetail() {
                                   )}>
                                     {epochsRemaining > 0 ? (
                                       <>
-                                        {epochsRemaining}{" "}
-                                        {epochsRemaining === 1
-                                          ? "epoch"
-                                          : "epochs"}{" "}
-                                        <span className={cn(
-                                          "font-normal",
-                                          isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]"
-                                        )}>
-                                          ({daysRemaining}{" "}
-                                          {daysRemaining === 1 ? "day" : "days"})
-                                        </span>{" "}
+                                        {daysRemaining}{" "}
+                                        {daysRemaining === 1 ? "day" : "days"}{" "}
                                         remaining
                                       </>
                                     ) : (
-                                      <span className={isGame ? "text-white" : "text-destructive dark:text-[#0bd1a2]"}>
+                                      <span className={isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"}>
                                         Expired
                                       </span>
                                     )}
@@ -1307,52 +1307,38 @@ export default function GovernanceDetail() {
                                         ? "rounded-full bg-white/20"
                                         : "rounded-full bg-secondary dark:bg-transparent dark:border dark:border-[#0bd1a2] dark:rounded-none"
                                     )}
-                                    indicatorClassName={isGame ? "bg-white" : "bg-[#0bd1a2]"}
+                                    indicatorClassName={isGame ? "bg-white/50" : "bg-black dark:bg-[#0bd1a2]"}
                                   />
-                                  <div className="grid grid-cols-3 gap-4 text-center">
-                                    <div>
-                                      <div className={cn(
-                                        "mb-1 text-xs sm:text-sm",
+                                  <table className="w-full text-sm">
+                                    <thead>
+                                      <tr className={cn(
+                                        "text-xs",
                                         isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]"
                                       )}>
-                                        Submission
-                                      </div>
-                                      <div className={cn(
-                                        "text-sm font-semibold sm:text-base",
-                                        isGame ? "text-white" : "dark:text-[#0bd1a2]"
-                                      )}>
-                                        Epoch {submissionEpoch}
-                                      </div>
-                                    </div>
-                                    <div>
-                                      <div className={cn(
-                                        "mb-1 text-xs sm:text-sm",
-                                        isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]"
-                                      )}>
-                                        Current
-                                      </div>
-                                      <div className={cn(
-                                        "text-sm font-semibold sm:text-base",
-                                        isGame ? "text-white" : "dark:text-[#0bd1a2]"
-                                      )}>
-                                        Epoch {mockCurrentEpoch}
-                                      </div>
-                                    </div>
-                                    <div>
-                                      <div className={cn(
-                                        "mb-1 text-xs sm:text-sm",
-                                        isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]"
-                                      )}>
-                                        Expiry
-                                      </div>
-                                      <div className={cn(
-                                        "text-sm font-semibold sm:text-base",
-                                        isGame ? "text-white" : "dark:text-[#0bd1a2]"
-                                      )}>
-                                        Epoch {expiryEpoch}
-                                      </div>
-                                    </div>
-                                  </div>
+                                        <th className="text-left py-1 font-medium"></th>
+                                        <th className="text-left py-1 font-medium">Epoch</th>
+                                        <th className="text-left py-1 font-medium">Date</th>
+                                        <th className="text-left py-1 font-medium">Time</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className={cn(
+                                      "text-xs sm:text-sm font-semibold",
+                                      isGame ? "text-white" : "dark:text-[#0bd1a2]"
+                                    )}>
+                                      <tr>
+                                        <td className={cn("py-1.5", isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]")}>Submission</td>
+                                        <td className="py-1.5">{submissionEpoch}</td>
+                                        <td className="py-1.5">{formatDateUTC(submissionDate)}</td>
+                                        <td className="py-1.5">{formatTimeUTC(submissionDate)}</td>
+                                      </tr>
+                                      <tr>
+                                        <td className={cn("py-1.5", isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]")}>Expiry</td>
+                                        <td className="py-1.5">{expiryEpoch}</td>
+                                        <td className="py-1.5">{formatDateUTC(expiryDate)}</td>
+                                        <td className="py-1.5">{formatTimeUTC(expiryDate)}</td>
+                                      </tr>
+                                    </tbody>
+                                  </table>
                                 </div>
                               );
                             })()}
@@ -1452,19 +1438,8 @@ export default function GovernanceDetail() {
               </Card>
             </div>
 
-            {/* Right Column - Sidebar (voting summary and voting widget) */}
+            {/* Right Column - Sidebar (voting summary) */}
             <div className="space-y-6">
-              {/* Vote on Proposal Card */}
-              {parsedProposalHash && (
-                <VoteOnProposal
-                  txHash={parsedProposalHash.txHash}
-                  certIndex={parsedProposalHash.certIndex}
-                  proposalTitle={selectedAction.title}
-                  status={selectedAction.status}
-                  proposalId={selectedAction.hash}
-                />
-              )}
-
               {/* Vote Summary Card */}
               <Card className={cn("p-6", isGame && "game-detail-card")}>
                 <div className="space-y-2 text-sm">

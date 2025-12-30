@@ -96,7 +96,7 @@ export function VotingRationaleModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className={cn(
-          "max-w-4xl max-h-[90vh] overflow-hidden flex flex-col",
+          "max-w-4xl max-h-[85vh] sm:max-h-[90vh] overflow-hidden flex flex-col w-[calc(100vw-2rem)] sm:w-auto",
           isGame 
             ? "game-modal-card" 
             : "rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-black dark:bg-opacity-90 dark:shadow-none",
@@ -109,133 +109,87 @@ export function VotingRationaleModal({
           </DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-4 overflow-y-auto flex-1">
+        <div className="space-y-3 sm:space-y-4 overflow-y-auto flex-1 min-h-0">
           {isGame ? (
             <>
-              <div className="space-y-3 pb-4 border-b border-white/10">
-                <div className="space-y-1 text-sm text-white">
-                  <div className="text-xs text-white/50">Voter</div>
-                  <div className="font-semibold text-white">
-                    {vote.voterName ?? vote.drepName ?? vote.voterId ?? vote.drepId ?? "Unknown voter"}
-                  </div>
-                  <div className="text-xs font-mono break-all text-white/50">
-                    {vote.voterId || vote.drepId || "—"}
-                  </div>
-                </div>
-                <div className="space-y-1 text-sm text-white">
-                  <div className="text-xs text-white/50">Vote Tx Hash</div>
-                  <div className="font-mono text-xs break-all text-white/50">
-                    {vote.txHash || "—"}
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-sm text-white">
+              {/* Compact voter info on mobile */}
+              <div className="space-y-2 sm:space-y-3 pb-3 sm:pb-4 border-b border-white/10">
+                <div className="flex flex-wrap items-center gap-2 text-sm text-white">
+                  <span className="font-semibold">{vote.voterName ?? vote.drepName ?? vote.voterId ?? vote.drepId ?? "Unknown voter"}</span>
+                  <span className={cn("text-xs px-1.5 py-0.5 rounded", vote.vote === "Yes" ? "bg-green-400/20 text-green-400" : vote.vote === "No" ? "bg-red-400/20 text-red-400" : "bg-white/10 text-white/70")}>{vote.vote}</span>
                   {vote.voterType !== "CC" && vote.votingPowerAda && (
-                    <div>
-                      <div className="text-xs mb-0.5 text-white/50">Voting Power</div>
-                      <div className="font-medium text-white">{vote.votingPowerAda.toLocaleString()} ADA</div>
-                    </div>
+                    <span className="text-xs text-white/70">{vote.votingPowerAda.toLocaleString()} ADA</span>
                   )}
-                  <div>
-                    <div className="text-xs mb-0.5 text-white/50">Vote</div>
-                    <div className={cn("font-medium", vote.vote === "Yes" ? "text-green-400" : vote.vote === "No" ? "text-red-400" : "text-white/70")}>{vote.vote}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs mb-0.5 text-white/50">Voted At</div>
-                    <div className="font-medium text-white">
-                      {vote.votedAt ? new Date(vote.votedAt).toLocaleDateString() : "Unknown"}
-                    </div>
-                  </div>
+                </div>
+                <div className="text-[10px] sm:text-xs font-mono break-all text-white/50 hidden sm:block">
+                  {vote.voterId || vote.drepId || "—"}
                 </div>
               </div>
 
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-semibold text-white">Rationale</h2>
+              <div className="flex-1 flex flex-col min-h-0">
+                <div className="flex items-center justify-between mb-2 sm:mb-4">
+                  <h2 className="text-base sm:text-xl font-semibold text-white">Rationale</h2>
                   {vote.anchorUrl && (
                     <a
                       href={resolveAnchorUrl(vote.anchorUrl)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="hover:underline text-sm flex items-center gap-1 text-white/70 hover:text-white"
+                      className="hover:underline text-xs sm:text-sm flex items-center gap-1 text-white/70 hover:text-white"
                     >
                       <ExternalLink className="h-3 w-3" />
-                      Open on IPFS
+                      <span className="hidden sm:inline">Open on IPFS</span>
+                      <span className="sm:hidden">IPFS</span>
                     </a>
                   )}
                 </div>
-                <div className="modal-scrollbar">
-                  <ScrollArea className="h-[500px] w-full">
-                    <div className="text-sm whitespace-pre-wrap leading-relaxed text-white game-proposal-content">
-                      {rationaleText.length > 0
-                        ? rationaleText
-                        : "No rationale data provided."}
-                    </div>
-                  </ScrollArea>
-                </div>
+                <ScrollArea className="h-[45vh] sm:h-[400px] w-full overflow-hidden">
+                  <div className="text-sm whitespace-pre-wrap leading-relaxed text-white game-proposal-content mr-3 [overflow-wrap:anywhere]">
+                    {rationaleText.length > 0
+                      ? rationaleText
+                      : "No rationale data provided."}
+                  </div>
+                </ScrollArea>
               </div>
             </>
           ) : (
             <>
-              <div className="rounded-2xl border border-white/8 bg-[#faf9f6] p-4 sm:p-5 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none space-y-3">
-                <div className="space-y-1 text-sm dark:text-[#0bd1a2]">
-                  <div className="text-xs text-muted-foreground dark:text-[#0bd1a2]">Voter</div>
-                  <div className="font-semibold dark:text-[#0bd1a2]">
-                    {vote.voterName ?? vote.drepName ?? vote.voterId ?? vote.drepId ?? "Unknown voter"}
-                  </div>
-                  <div className="text-xs text-muted-foreground font-mono break-all dark:text-[#0bd1a2]">
-                    {vote.voterId || vote.drepId || "—"}
-                  </div>
-                </div>
-                <div className="space-y-1 text-sm dark:text-[#0bd1a2]">
-                  <div className="text-xs text-muted-foreground dark:text-[#0bd1a2]">Vote Tx Hash</div>
-                  <div className="font-mono text-xs break-all dark:text-[#0bd1a2]">
-                    {vote.txHash || "—"}
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-sm dark:text-[#0bd1a2]">
+              {/* Compact voter info on mobile */}
+              <div className="rounded-xl sm:rounded-2xl border border-white/8 bg-[#faf9f6] p-3 sm:p-5 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none space-y-2 sm:space-y-3">
+                <div className="flex flex-wrap items-center gap-2 text-sm dark:text-[#0bd1a2]">
+                  <span className="font-semibold">{vote.voterName ?? vote.drepName ?? vote.voterId ?? vote.drepId ?? "Unknown voter"}</span>
+                  <span className="text-xs px-1.5 py-0.5 rounded border border-current">{vote.vote}</span>
                   {vote.voterType !== "CC" && vote.votingPowerAda && (
-                    <div>
-                      <div className="text-xs text-muted-foreground mb-0.5 dark:text-[#0bd1a2]">Voting Power</div>
-                      <div className="font-medium dark:text-[#0bd1a2]">{vote.votingPowerAda.toLocaleString()} ADA</div>
-                    </div>
+                    <span className="text-xs text-muted-foreground dark:text-[#0bd1a2]">{vote.votingPowerAda.toLocaleString()} ADA</span>
                   )}
-                  <div>
-                    <div className="text-xs text-muted-foreground mb-0.5 dark:text-[#0bd1a2]">Vote</div>
-                    <div className="font-medium dark:text-[#0bd1a2]">{vote.vote}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-muted-foreground mb-0.5 dark:text-[#0bd1a2]">Voted At</div>
-                    <div className="font-medium dark:text-[#0bd1a2]">
-                      {vote.votedAt ? new Date(vote.votedAt).toLocaleDateString() : "Unknown"}
-                    </div>
-                  </div>
+                </div>
+                <div className="text-[10px] sm:text-xs text-muted-foreground font-mono break-all dark:text-[#0bd1a2] hidden sm:block">
+                  {vote.voterId || vote.drepId || "—"}
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-white/8 bg-[#faf9f6] p-4 sm:p-6 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-semibold dark:text-[#0bd1a2]">Rationale</h2>
+              <div className="flex-1 flex flex-col min-h-0">
+                <div className="flex items-center justify-between mb-2 sm:mb-4">
+                  <h2 className="text-base sm:text-xl font-semibold dark:text-[#0bd1a2]">Rationale</h2>
                   {vote.anchorUrl && (
                     <a
                       href={resolveAnchorUrl(vote.anchorUrl)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-foreground hover:underline text-sm flex items-center gap-1 dark:text-[#0bd1a2]"
+                      className="text-foreground hover:underline text-xs sm:text-sm flex items-center gap-1 dark:text-[#0bd1a2]"
                     >
                       <ExternalLink className="h-3 w-3" />
-                      Open on IPFS
+                      <span className="hidden sm:inline">Open on IPFS</span>
+                      <span className="sm:hidden">IPFS</span>
                     </a>
                   )}
                 </div>
-                <div className="modal-scrollbar">
-                  <ScrollArea className="h-[500px] w-full rounded-md border p-4 dark:rounded-none dark:border-[#0bd1a2]">
-                    <div className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed dark:text-[#0bd1a2]">
-                      {rationaleText.length > 0
-                        ? rationaleText
-                        : "No rationale data provided."}
-                    </div>
-                  </ScrollArea>
-                </div>
+                <ScrollArea className="h-[45vh] sm:h-[400px] w-full overflow-hidden">
+                  <div className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed dark:text-[#0bd1a2] mr-3 [overflow-wrap:anywhere]">
+                    {rationaleText.length > 0
+                      ? rationaleText
+                      : "No rationale data provided."}
+                  </div>
+                </ScrollArea>
               </div>
             </>
           )}
