@@ -13,11 +13,13 @@ interface VoteProgressProps extends React.HTMLAttributes<HTMLDivElement> {
   yesPercent: number;
   noPercent: number;
   abstainPercent?: number;
+  pendingPercent?: number;
   title?: string;
   titlePosition?: "top" | "center";
   yesValue?: number;
   noValue?: number;
   abstainValue?: number;
+  pendingValue?: number;
   valueUnit?: "ada" | "count";
   showTooltip?: boolean;
   animate?: boolean;
@@ -37,10 +39,14 @@ const COLORS = {
     active: "rgb(226, 232, 240)",
     inactive: "rgba(226, 232, 240, 0.65)",
   },
+  pending: {
+    active: "rgb(148, 163, 184)",
+    inactive: "rgba(148, 163, 184, 0.45)",
+  },
 };
 
 type SliceData = {
-  name: "Yes" | "No" | "Abstain";
+  name: "Yes" | "No" | "Abstain" | "Pending";
   value: number;
   type: keyof typeof COLORS;
   displayValue?: number;
@@ -62,11 +68,13 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
       yesPercent,
       noPercent,
       abstainPercent = 0,
+      pendingPercent = 0,
       title,
       titlePosition = "top",
       yesValue,
       noValue,
       abstainValue,
+      pendingValue,
       valueUnit,
       showTooltip = true,
       animate = true,
@@ -81,7 +89,7 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
     const isGame = activeTheme.id === "game";
     const [activeIndex, setActiveIndex] = React.useState<number | null>(null);
 
-    const totalPercent = yesPercent + noPercent + abstainPercent;
+    const totalPercent = yesPercent + noPercent + abstainPercent + pendingPercent;
 
     const data = React.useMemo<SliceData[]>(() => {
       const result: SliceData[] = [];
@@ -109,14 +117,24 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
           displayValue: abstainValue,
         });
       }
+      if (pendingPercent > 0) {
+        result.push({
+          name: "Pending",
+          value: pendingPercent,
+          type: "pending",
+          displayValue: pendingValue,
+        });
+      }
       return result;
     }, [
       yesPercent,
       noPercent,
       abstainPercent,
+      pendingPercent,
       yesValue,
       noValue,
       abstainValue,
+      pendingValue,
     ]);
 
     const onPieEnter = React.useCallback(
@@ -288,25 +306,25 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
                 stroke="none"
                 isAnimationActive={animate}
               >
-                {data.map((entry, index) => {
-                  const baseColor = getColor(entry.type, index);
-                  return (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={baseColor}
-                      stroke="transparent"
-                      strokeWidth={0}
-                      style={{
-                        transition: "all 0.2s ease-in-out",
-                        transform:
-                          interactive && activeIndex === index
-                            ? "scale(1.05)"
-                            : "scale(1)",
-                        transformOrigin: "center",
-                      }}
-                    />
-                  );
-                })}
+              {data.map((entry, index) => {
+                const baseColor = getColor(entry.type, index);
+                return (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={baseColor}
+                    stroke="transparent"
+                    strokeWidth={0}
+                    style={{
+                      transition: "all 0.2s ease-in-out",
+                      transform:
+                        interactive && activeIndex === index
+                          ? "scale(1.05)"
+                          : "scale(1)",
+                      transformOrigin: "center",
+                    }}
+                  />
+                );
+              })}
               </Pie>
             </PieChart>
           </div>
@@ -390,10 +408,11 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
             >
               {data.map((entry, index) => {
                 const isAbstain = entry.type === "abstain";
+                const isPending = entry.type === "pending";
                 const baseColor = getColor(entry.type, index);
                 const strokeColor = isDark
                   ? COLORS[entry.type].active
-                  : isAbstain
+                  : isAbstain || isPending
                     ? "rgba(15, 23, 42, 0.35)"
                     : "transparent";
                 return (
@@ -401,7 +420,7 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
                     key={`cell-${index}`}
                     fill={isDark ? "transparent" : baseColor}
                     stroke={strokeColor}
-                    strokeWidth={isDark ? 1.4 : isAbstain ? 1.2 : 0}
+                    strokeWidth={isDark ? 1.4 : isAbstain || isPending ? 1.2 : 0}
                     style={{
                       transition: "all 0.2s ease-in-out",
                       transform:
