@@ -47,6 +47,13 @@ import {
 } from "@/lib/governanceVotingEligibility";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { parseNumeric, deriveAbstainValue } from "@/lib/voteMath";
+
+// Convert lovelace string to ADA number
+function lovelaceToAda(lovelace: string | undefined): number | undefined {
+  if (!lovelace) return undefined;
+  const numeric = parseNumeric(lovelace);
+  return numeric !== undefined ? numeric / 1_000_000 : undefined;
+}
 import { ProposalContent } from "@/components/ProposalContent";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/lib/theme";
@@ -213,12 +220,14 @@ const VOTE_COLORS_LIGHT = {
   yes: "#0B8C30",
   no: "#8C200B",
   abstain: "#000000",
+  pending: "#94A3B8",
 };
 
 const VOTE_COLORS_DARK = {
   yes: "#0B8C30",
   no: "#8C200B",
   abstain: "#ffffff",
+  pending: "#94A3B8",
 };
 
 type TimelinePoint = {
@@ -687,6 +696,28 @@ export default function GovernanceDetail() {
   const ccYesCount = ccAbstainStats.yesCount ?? ccInfo?.yesCount ?? 0;
   const ccNoCount = ccAbstainStats.noCount ?? ccInfo?.noCount ?? 0;
 
+  // Calculate pending votes
+  const drepTotalPowerAda = lovelaceToAda(selectedAction.rawVotingPowerValues?.drep_total_vote_power);
+  const drepVotedAda = (drepYesAda ?? 0) + (drepNoAda ?? 0) + (drepAbstainStats.power ?? 0);
+  const drepPendingAda = drepTotalPowerAda !== undefined && drepTotalPowerAda > 0
+    ? Math.max(0, drepTotalPowerAda - drepVotedAda)
+    : undefined;
+  const drepPendingPercent = drepTotalPowerAda !== undefined && drepTotalPowerAda > 0 && drepPendingAda !== undefined
+    ? (drepPendingAda / drepTotalPowerAda) * 100
+    : 0;
+
+  const spoTotalPowerAda = lovelaceToAda(selectedAction.rawVotingPowerValues?.spo_total_vote_power);
+  const spoVotedAda = (spoYesAda ?? 0) + (spoNoAda ?? 0) + (spoAbstainStats.power ?? 0);
+  const spoPendingAda = spoTotalPowerAda !== undefined && spoTotalPowerAda > 0
+    ? Math.max(0, spoTotalPowerAda - spoVotedAda)
+    : undefined;
+  const spoPendingPercent = spoTotalPowerAda !== undefined && spoTotalPowerAda > 0 && spoPendingAda !== undefined
+    ? (spoPendingAda / spoTotalPowerAda) * 100
+    : 0;
+
+  const ccPendingCount = ccInfo?.notVotedCount ?? 0;
+  const ccPendingPercent = ccInfo?.notVotedPercent ?? 0;
+
   const handleTwitterShare = () => {
     const url =
       typeof window !== "undefined"
@@ -936,9 +967,11 @@ export default function GovernanceDetail() {
                                         yesPercent={drepInfo.yesPercent}
                                         noPercent={drepInfo.noPercent}
                                         abstainPercent={drepAbstainStats.percent}
+                                        pendingPercent={drepPendingPercent}
                                         yesValue={drepYesAda}
                                         noValue={drepNoAda}
                                         abstainValue={drepAbstainStats.power}
+                                        pendingValue={drepPendingAda}
                                         valueUnit="ada"
                                         className="origin-center scale-[0.85] sm:scale-90 md:scale-100"
                                         showTooltip={false}
@@ -951,6 +984,11 @@ export default function GovernanceDetail() {
                                         abstainLabel={formatAdaValue(
                                           drepAbstainStats.power
                                         )}
+                                        pendingLabel={
+                                          drepPendingAda !== undefined
+                                            ? formatAdaValue(drepPendingAda)
+                                            : "0 ₳"
+                                        }
                                         unit="ADA"
                                         colors={voteColors}
                                       />
@@ -979,9 +1017,11 @@ export default function GovernanceDetail() {
                                           ccInfo.abstainPercent ??
                                           ccAbstainStats.percent
                                         }
+                                        pendingPercent={ccPendingPercent}
                                         yesValue={ccYesCount}
                                         noValue={ccNoCount}
                                         abstainValue={ccAbstainStats.count}
+                                        pendingValue={ccPendingCount}
                                         valueUnit="count"
                                         className="origin-center scale-[0.85] sm:scale-90 md:scale-100"
                                         showTooltip={false}
@@ -992,6 +1032,7 @@ export default function GovernanceDetail() {
                                         yesLabel={`${ccYesCount}`}
                                         noLabel={`${ccNoCount}`}
                                         abstainLabel={`${ccAbstainStats.count ?? 0}`}
+                                        pendingLabel={`${ccPendingCount}`}
                                         unit="votes"
                                         colors={voteColors}
                                       />
@@ -1017,9 +1058,11 @@ export default function GovernanceDetail() {
                                         yesPercent={spoInfo.yesPercent}
                                         noPercent={spoInfo.noPercent || 0}
                                         abstainPercent={spoAbstainStats.percent}
+                                        pendingPercent={spoPendingPercent}
                                         yesValue={spoYesAda}
                                         noValue={spoNoAda}
                                         abstainValue={spoAbstainStats.power}
+                                        pendingValue={spoPendingAda}
                                         valueUnit="ada"
                                         className="origin-center scale-[0.85] sm:scale-90 md:scale-100"
                                         showTooltip={false}
@@ -1032,6 +1075,11 @@ export default function GovernanceDetail() {
                                         abstainLabel={formatAdaValue(
                                           spoAbstainStats.power
                                         )}
+                                        pendingLabel={
+                                          spoPendingAda !== undefined
+                                            ? formatAdaValue(spoPendingAda)
+                                            : "0 ₳"
+                                        }
                                         unit="ADA"
                                         colors={voteColors}
                                       />
@@ -1599,6 +1647,7 @@ function RoleLegend({
   yesLabel,
   noLabel,
   abstainLabel,
+  pendingLabel,
   unit,
   colors,
 }: {
@@ -1606,6 +1655,7 @@ function RoleLegend({
   yesLabel: string;
   noLabel: string;
   abstainLabel: string;
+  pendingLabel?: string;
   unit: string;
   colors: VoteColorSet;
 }) {
@@ -1629,6 +1679,12 @@ function RoleLegend({
       label: "Abstain",
       value: abstainLabel,
       color: colors.abstain,
+      border: "rgba(148, 163, 184, 0.85)",
+    },
+    {
+      label: "Pending",
+      value: pendingLabel ?? (unit === "ADA" ? "0 ₳" : "0 votes"),
+      color: colors.pending,
       border: "rgba(148, 163, 184, 0.85)",
     },
   ];

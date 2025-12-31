@@ -26,6 +26,8 @@ export interface CCGovernanceActionVoteInfo {
   yesCount: number;
   noCount: number;
   abstainCount: number;
+  notVotedCount?: number;
+  notVotedPercent?: number;
 }
 
 /**

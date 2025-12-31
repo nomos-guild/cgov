@@ -1,5 +1,6 @@
 import { useMemo, useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { VoteProgress } from "@/components/ui/vote-progress";
@@ -31,6 +32,13 @@ import {
 } from "@/lib/voteMath";
 import { useTheme } from "@/lib/theme";
 // import { VoteButtons } from "@/components/governance/VoteButtons";
+
+// Convert lovelace string to ADA number
+function lovelaceToAda(lovelace: string | undefined): number | undefined {
+  if (!lovelace) return undefined;
+  const numeric = parseNumeric(lovelace);
+  return numeric !== undefined ? numeric / 1_000_000 : undefined;
+}
 
 const TYPE_LABELS: Record<ProposalType, string> = {
   NoConfidence: "Motion of No-Confidence",
@@ -109,6 +117,7 @@ function getTypeLabel(type: GovernanceAction["type"]): string {
 }
 
 export function GovernanceTable() {
+  const router = useRouter();
   const dispatch = useAppDispatch();
   const actions = useAppSelector((state) => state.governance.actions);
   const selectedTypes =
@@ -562,6 +571,16 @@ export function GovernanceTable() {
                   drepNoPercent,
                   drepInfo?.abstainPercent
                 );
+                
+                // Calculate DRep pending votes
+                const drepTotalPowerAda = lovelaceToAda(action.rawVotingPowerValues?.drep_total_vote_power);
+                const drepVotedAda = (drepYesAda ?? 0) + (drepNoAda ?? 0) + (drepAbstainAda ?? 0);
+                const drepPendingAda = drepTotalPowerAda !== undefined && drepTotalPowerAda > 0
+                  ? Math.max(0, drepTotalPowerAda - drepVotedAda)
+                  : undefined;
+                const drepPendingPercent = drepTotalPowerAda !== undefined && drepTotalPowerAda > 0 && drepPendingAda !== undefined
+                  ? (drepPendingAda / drepTotalPowerAda) * 100
+                  : 0;
 
                 const spoYesPercent = spoInfo?.yesPercent ?? 0;
                 const spoNoPercent = spoInfo?.noPercent ?? 0;
@@ -577,6 +596,16 @@ export function GovernanceTable() {
                   spoNoPercent,
                   spoAbstainPercent
                 );
+                
+                // Calculate SPO pending votes
+                const spoTotalPowerAda = lovelaceToAda(action.rawVotingPowerValues?.spo_total_vote_power);
+                const spoVotedAda = (spoYesAda ?? 0) + (spoNoAda ?? 0) + (spoAbstainAda ?? 0);
+                const spoPendingAda = spoTotalPowerAda !== undefined && spoTotalPowerAda > 0
+                  ? Math.max(0, spoTotalPowerAda - spoVotedAda)
+                  : undefined;
+                const spoPendingPercent = spoTotalPowerAda !== undefined && spoTotalPowerAda > 0 && spoPendingAda !== undefined
+                  ? (spoPendingAda / spoTotalPowerAda) * 100
+                  : 0;
 
                 const ccYesPercent = ccInfo?.yesPercent ?? 0;
                 const ccNoPercent = ccInfo?.noPercent ?? 0;
@@ -594,17 +623,18 @@ export function GovernanceTable() {
                     ccNoPercent,
                     ccAbstainPercent
                   );
+                
+                // Calculate CC pending votes
+                const ccPendingCount = ccInfo?.notVotedCount ?? 0;
+                const ccPendingPercent = ccInfo?.notVotedPercent ?? 0;
 
                 return (
-                  <Link
-                    key={action.proposalId ?? action.hash}
-                    href={`/governance/${action.hash}`}
-                    className="contents"
-                  >
                   <TableRow
-                    className={`proposal-row cursor-pointer transition-transform duration-300 ease-out transform-gpu hover:scale-[1.01] hover:bg-transparent dark:border-[#0bd1a2] dark:border-b ${
+                    key={action.proposalId ?? action.hash}
+                    className={`proposal-row cursor-pointer transition-transform duration-300 ease-out transform-gpu hover:scale-[1.01] hover:bg-transparent border-b-0 ${
                       isFirstRow ? "first-row" : ""
                     }`}
+                    onClick={() => router.push(`/governance/${action.hash}`)}
                   >
                     <TableCell className="hidden md:table-cell py-1 px-0">
                       {drepInfo ? (
@@ -619,9 +649,11 @@ export function GovernanceTable() {
                             yesPercent={drepYesPercent}
                             noPercent={drepNoPercent}
                             abstainPercent={drepAbstainPercent}
+                            pendingPercent={drepPendingPercent}
                             yesValue={drepYesAda}
                             noValue={drepNoAda}
                             abstainValue={drepAbstainAda}
+                            pendingValue={drepPendingAda}
                             valueUnit="ada"
                             className="origin-center scale-[0.6]"
                             style={{ padding: "8px 10px 10px" }}
@@ -645,9 +677,11 @@ export function GovernanceTable() {
                             yesPercent={spoYesPercent}
                             noPercent={spoNoPercent || 0}
                             abstainPercent={spoAbstainPercent}
+                            pendingPercent={spoPendingPercent}
                             yesValue={spoYesAda}
                             noValue={spoNoAda}
                             abstainValue={spoAbstainAda}
+                            pendingValue={spoPendingAda}
                             valueUnit="ada"
                             className="origin-center scale-[0.6]"
                             style={{ padding: "8px 10px 10px" }}
@@ -671,9 +705,11 @@ export function GovernanceTable() {
                             yesPercent={ccYesPercent}
                             noPercent={ccNoPercent || 0}
                             abstainPercent={ccAbstainPercent}
+                            pendingPercent={ccPendingPercent}
                             yesValue={ccYesCount}
                             noValue={ccNoCount}
                             abstainValue={ccAbstainCount}
+                            pendingValue={ccPendingCount}
                             valueUnit="count"
                             className="origin-center scale-[0.6]"
                             style={{ padding: "8px 10px 10px" }}
@@ -706,7 +742,6 @@ export function GovernanceTable() {
                       </div>
                     </TableCell>
                   </TableRow>
-                  </Link>
                 );
               })}
             </TableBody>
