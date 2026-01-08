@@ -540,23 +540,11 @@ export function GovernanceTable() {
             <TableBody>
               {displayedActions.map((action, index) => {
                 const isFirstRow = index === 0;
-                // Always show donuts when we have data, even if a role
-                // isn't formally eligible for this proposal type.
-                // Eligibility is used in other parts of the UI.
-                // DRep: Show if threshold exists OR if eligible by action type (DRep is always eligible)
-                const drepThreshold = action.threshold?.drepThreshold;
-                const drepEligible = canRoleVoteOnAction(action.type, "DRep");
-                const showDrep = (drepThreshold !== null && drepThreshold !== undefined) || drepEligible;
-
-                // SPO: Show if threshold exists OR if eligible by action type
-                const spoThreshold = action.threshold?.spoThreshold;
-                const spoEligible = canRoleVoteOnAction(action.type, "SPO");
-                const showSpo = (spoThreshold !== null && spoThreshold !== undefined) || spoEligible;
-
-                // CC: Show if threshold exists OR if eligible by action type
-                const ccThreshold = action.threshold?.ccThreshold;
-                const ccEligible = canRoleVoteOnAction(action.type, "CC");
-                const showCc = (ccThreshold !== null && ccThreshold !== undefined) || ccEligible;
+                // Only show donut charts for roles that are eligible to vote on this action type
+                // This follows Cardano governance rules (e.g., DRep doesn't vote on Hard Fork Initiation)
+                const showDrep = canRoleVoteOnAction(action.type, "DRep");
+                const showSpo = canRoleVoteOnAction(action.type, "SPO");
+                const showCc = canRoleVoteOnAction(action.type, "CC");
 
                 // CC vote data (still uses legacy props - no breakdown data from API)
                 const ccData = action.cc;

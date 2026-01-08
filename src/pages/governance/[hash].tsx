@@ -900,33 +900,35 @@ export default function GovernanceDetail() {
                               <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-start sm:gap-4 md:gap-6">
                                 {/* DRep */}
                                 <div className="flex flex-row items-center gap-3 sm:flex-col sm:items-center sm:gap-3">
-                                  {drepInfo ? (
-                                    <>
-                                      <VoteProgress
-                                        title="DRep Votes"
-                                        segments={drepDonutSegments ?? undefined}
-                                        valueUnit="ada"
-                                        className="origin-center scale-[0.85] sm:scale-90 md:scale-100"
-                                        showTooltip={false}
-                                        interactive={false}
-                                        showYesPercent={!!drepDonutSegments}
-                                      />
-                                      <RoleLegend
+                                  {allowDRep ? (
+                                    drepInfo ? (
+                                      <>
+                                        <VoteProgress
+                                          title="DRep Votes"
+                                          segments={drepDonutSegments ?? undefined}
+                                          valueUnit="ada"
+                                          className="origin-center scale-[0.85] sm:scale-90 md:scale-100"
+                                          showTooltip={false}
+                                          interactive={false}
+                                          showYesPercent={!!drepDonutSegments}
+                                        />
+                                        <RoleLegend
+                                          role="DRep"
+                                          segments={drepDonutSegments}
+                                          unit="ADA"
+                                        />
+                                        <ExcludedBreakdownDisplay
+                                          role="DRep"
+                                          breakdown={drepExcludedBreakdown}
+                                          isInfoAction={isInfoAction}
+                                        />
+                                      </>
+                                    ) : (
+                                      <RolePlaceholder
                                         role="DRep"
-                                        segments={drepDonutSegments}
-                                        unit="ADA"
+                                        message="No on-chain data yet"
                                       />
-                                      <ExcludedBreakdownDisplay
-                                        role="DRep"
-                                        breakdown={drepExcludedBreakdown}
-                                        isInfoAction={isInfoAction}
-                                      />
-                                    </>
-                                  ) : allowDRep ? (
-                                    <RolePlaceholder
-                                      role="DRep"
-                                      message="No on-chain data yet"
-                                    />
+                                    )
                                   ) : (
                                     <RolePlaceholder
                                       role="DRep"
@@ -936,39 +938,41 @@ export default function GovernanceDetail() {
                                 </div>
                                 {/* CC */}
                                 <div className="flex flex-row items-center gap-3 sm:flex-col sm:items-center sm:gap-3">
-                                  {ccInfo ? (
-                                    <>
-                                      <VoteProgress
-                                        title="CC"
-                                        yesPercent={ccInfo.yesPercent}
-                                        noPercent={ccInfo.noPercent || 0}
-                                        pendingPercent={ccPendingPercent}
-                                        yesValue={ccYesCount}
-                                        noValue={ccNoCount}
-                                        pendingValue={ccPendingCount}
-                                        valueUnit="count"
-                                        className="origin-center scale-[0.85] sm:scale-90 md:scale-100"
-                                        showTooltip={false}
-                                        interactive={false}
-                                        showYesPercent
-                                      />
-                                      <RoleLegend
+                                  {allowCC ? (
+                                    ccInfo ? (
+                                      <>
+                                        <VoteProgress
+                                          title="CC"
+                                          yesPercent={ccInfo.yesPercent}
+                                          noPercent={ccInfo.noPercent || 0}
+                                          pendingPercent={ccPendingPercent}
+                                          yesValue={ccYesCount}
+                                          noValue={ccNoCount}
+                                          pendingValue={ccPendingCount}
+                                          valueUnit="count"
+                                          className="origin-center scale-[0.85] sm:scale-90 md:scale-100"
+                                          showTooltip={false}
+                                          interactive={false}
+                                          showYesPercent
+                                        />
+                                        <RoleLegend
+                                          role="CC"
+                                          yesLabel={`${ccYesCount}`}
+                                          noLabel={`${ccNoCount}`}
+                                          pendingLabel={`${ccPendingCount}`}
+                                          unit="votes"
+                                        />
+                                        <CCExcludedDisplay
+                                          abstainCount={ccAbstainStats.count ?? 0}
+                                          isInfoAction={isInfoAction}
+                                        />
+                                      </>
+                                    ) : (
+                                      <RolePlaceholder
                                         role="CC"
-                                        yesLabel={`${ccYesCount}`}
-                                        noLabel={`${ccNoCount}`}
-                                        pendingLabel={`${ccPendingCount}`}
-                                        unit="votes"
+                                        message="No on-chain data yet"
                                       />
-                                      <CCExcludedDisplay
-                                        abstainCount={ccAbstainStats.count ?? 0}
-                                        isInfoAction={isInfoAction}
-                                      />
-                                    </>
-                                  ) : allowCC ? (
-                                    <RolePlaceholder
-                                      role="CC"
-                                      message="No on-chain data yet"
-                                    />
+                                    )
                                   ) : (
                                     <RolePlaceholder
                                       role="CC"
@@ -978,33 +982,35 @@ export default function GovernanceDetail() {
                                 </div>
                                 {/* SPO */}
                                 <div className="flex flex-row items-center gap-3 sm:flex-col sm:items-center sm:gap-3">
-                                  {spoInfo ? (
-                                    <>
-                                      <VoteProgress
-                                        title="SPO Votes"
-                                        segments={spoDonutSegments ?? undefined}
-                                        valueUnit="ada"
-                                        className="origin-center scale-[0.85] sm:scale-90 md:scale-100"
-                                        showTooltip={false}
-                                        interactive={false}
-                                        showYesPercent={!!spoDonutSegments}
-                                      />
-                                      <RoleLegend
+                                  {allowSPO ? (
+                                    spoInfo ? (
+                                      <>
+                                        <VoteProgress
+                                          title="SPO Votes"
+                                          segments={spoDonutSegments ?? undefined}
+                                          valueUnit="ada"
+                                          className="origin-center scale-[0.85] sm:scale-90 md:scale-100"
+                                          showTooltip={false}
+                                          interactive={false}
+                                          showYesPercent={!!spoDonutSegments}
+                                        />
+                                        <RoleLegend
+                                          role="SPO"
+                                          segments={spoDonutSegments}
+                                          unit="ADA"
+                                        />
+                                        <ExcludedBreakdownDisplay
+                                          role="SPO"
+                                          breakdown={spoExcludedBreakdown}
+                                          isInfoAction={isInfoAction}
+                                        />
+                                      </>
+                                    ) : (
+                                      <RolePlaceholder
                                         role="SPO"
-                                        segments={spoDonutSegments}
-                                        unit="ADA"
+                                        message="No on-chain data yet"
                                       />
-                                      <ExcludedBreakdownDisplay
-                                        role="SPO"
-                                        breakdown={spoExcludedBreakdown}
-                                        isInfoAction={isInfoAction}
-                                      />
-                                    </>
-                                  ) : allowSPO ? (
-                                    <RolePlaceholder
-                                      role="SPO"
-                                      message="No on-chain data yet"
-                                    />
+                                    )
                                   ) : (
                                     <RolePlaceholder
                                       role="SPO"

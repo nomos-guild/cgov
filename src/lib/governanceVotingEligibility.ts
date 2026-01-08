@@ -7,7 +7,7 @@ const ELIGIBILITY: Record<ProposalType, RoleEligibility> = {
   NoConfidence: { SPO: true, DRep: true, CC: false },
   UpdateCommittee: { SPO: true, DRep: true, CC: false },
   NewConstitution: { SPO: false, DRep: true, CC: true },
-  HardForkInitiation: { SPO: true, DRep: true, CC: true },
+  HardForkInitiation: { SPO: true, DRep: false, CC: true },
   ParameterChange: { SPO: false, DRep: true, CC: true },
   Treasury: { SPO: false, DRep: true, CC: true },
   InfoAction: { SPO: true, DRep: true, CC: true },
