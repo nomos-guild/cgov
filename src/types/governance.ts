@@ -31,6 +31,28 @@ export interface CCGovernanceActionVoteInfo {
 }
 
 /**
+ * Vote breakdown by delegation status for DRep and SPO voters.
+ * All values are stringified lovelace amounts for BigInt precision.
+ */
+export interface VoteBreakdown {
+  activeYes: string;
+  activeNo: string;
+  activeAbstain: string;
+  alwaysAbstain: string;
+  alwaysNoConfidence: string;
+  inactive: string; // DRep only (SPO doesn't have inactive)
+  notVoted: string;
+}
+
+/**
+ * Governance action type code for vote calculation logic
+ */
+export type GovernanceActionTypeCode =
+  | "NO_CONFIDENCE"
+  | "HARD_FORK_INITIATION"
+  | "OTHER";
+
+/**
  * Raw voting power values by voter group and status as returned by the API.
  * All values are stringified lovelace amounts for maximum precision.
  */
@@ -124,6 +146,23 @@ export interface GovernanceAction {
    * precise display in the UI.
    */
   rawVotingPowerValues?: RawVotingPowerValues;
+
+  /**
+   * Vote breakdown by delegation status for DRep voters.
+   * Used for detailed donut chart visualization.
+   */
+  drepBreakdown?: VoteBreakdown;
+
+  /**
+   * Vote breakdown by delegation status for SPO voters.
+   * Used for detailed donut chart visualization.
+   */
+  spoBreakdown?: VoteBreakdown;
+
+  /**
+   * Governance action type code from API (e.g., "NoConfidence", "HardForkInitiation")
+   */
+  governanceActionType?: string;
 }
 
 /**

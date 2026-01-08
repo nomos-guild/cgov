@@ -25,20 +25,14 @@ import type {
 } from "@/types/governance";
 import { PROPOSAL_TYPES } from "@/types/governance";
 import { ChevronDown, Search } from "lucide-react";
-import {
-  parseNumeric,
-  deriveAbstainValue,
-  deriveCcAbstainCount,
-} from "@/lib/voteMath";
+import { deriveCcAbstainCount } from "@/lib/voteMath";
 import { useTheme } from "@/lib/theme";
+import {
+  buildDonutSegments,
+  getGovernanceActionTypeCode,
+} from "@/lib/voteBreakdownCalculator";
+import { canRoleVoteOnAction } from "@/lib/governanceVotingEligibility";
 // import { VoteButtons } from "@/components/governance/VoteButtons";
-
-// Convert lovelace string to ADA number
-function lovelaceToAda(lovelace: string | undefined): number | undefined {
-  if (!lovelace) return undefined;
-  const numeric = parseNumeric(lovelace);
-  return numeric !== undefined ? numeric / 1_000_000 : undefined;
-}
 
 const TYPE_LABELS: Record<ProposalType, string> = {
   NoConfidence: "Motion of No-Confidence",
@@ -546,87 +540,37 @@ export function GovernanceTable() {
             <TableBody>
               {displayedActions.map((action, index) => {
                 const isFirstRow = index === 0;
-                // Always show donuts when we have data, even if a role
-                // isn't formally eligible for this proposal type.
-                // Eligibility is used in other parts of the UI.
-                const drepInfo = action.drep;
-                const spoThreshold = action.threshold?.spoThreshold;
-                const spoInfo =
-                  spoThreshold !== null && spoThreshold !== undefined
-                    ? action.spo
-                    : undefined;
-                const ccInfo = action.cc;
+                // Only show donut charts for roles that are eligible to vote on this action type
+                // This follows Cardano governance rules (e.g., DRep doesn't vote on Hard Fork Initiation)
+                const showDrep = canRoleVoteOnAction(action.type, "DRep");
+                const showSpo = canRoleVoteOnAction(action.type, "SPO");
+                const showCc = canRoleVoteOnAction(action.type, "CC");
 
-                const drepYesPercent = drepInfo?.yesPercent ?? 0;
-                const drepNoPercent = drepInfo?.noPercent ?? 0;
-                const drepAbstainPercent =
-                  drepInfo?.abstainPercent ??
-                  Math.max(0, 100 - drepYesPercent - drepNoPercent);
-                const drepYesAda = parseNumeric(drepInfo?.yesAda);
-                const drepNoAda = parseNumeric(drepInfo?.noAda);
-                const drepAbstainAda = deriveAbstainValue(
-                  drepYesAda,
-                  drepYesPercent,
-                  drepNoAda,
-                  drepNoPercent,
-                  drepInfo?.abstainPercent
-                );
-                
-                // Calculate DRep pending votes
-                const drepTotalPowerAda = lovelaceToAda(action.rawVotingPowerValues?.drep_total_vote_power);
-                const drepVotedAda = (drepYesAda ?? 0) + (drepNoAda ?? 0) + (drepAbstainAda ?? 0);
-                const drepPendingAda = drepTotalPowerAda !== undefined && drepTotalPowerAda > 0
-                  ? Math.max(0, drepTotalPowerAda - drepVotedAda)
-                  : undefined;
-                const drepPendingPercent = drepTotalPowerAda !== undefined && drepTotalPowerAda > 0 && drepPendingAda !== undefined
-                  ? (drepPendingAda / drepTotalPowerAda) * 100
+                // CC vote data (still uses legacy props - no breakdown data from API)
+                const ccData = action.cc;
+                const ccYesPercent = ccData?.yesPercent ?? 0;
+                const ccNoPercent = ccData?.noPercent ?? 0;
+                // Only calculate abstain fallback if we have CC data
+                const ccAbstainPercent = ccData
+                  ? (ccData.abstainPercent ?? Math.max(0, 100 - ccYesPercent - ccNoPercent))
+                  : 0;
+                const ccYesCount = ccData?.yesCount;
+                const ccNoCount = ccData?.noCount;
+                const ccAbstainCount = ccData
+                  ? (ccData.abstainCount ?? deriveCcAbstainCount(
+                      ccYesCount,
+                      ccNoCount,
+                      ccYesPercent,
+                      ccNoPercent,
+                      ccAbstainPercent
+                    ))
                   : 0;
 
-                const spoYesPercent = spoInfo?.yesPercent ?? 0;
-                const spoNoPercent = spoInfo?.noPercent ?? 0;
-                const spoAbstainPercent =
-                  spoInfo?.abstainPercent ??
-                  Math.max(0, 100 - spoYesPercent - spoNoPercent);
-                const spoYesAda = parseNumeric(spoInfo?.yesAda);
-                const spoNoAda = parseNumeric(spoInfo?.noAda);
-                const spoAbstainAda = deriveAbstainValue(
-                  spoYesAda,
-                  spoYesPercent,
-                  spoNoAda,
-                  spoNoPercent,
-                  spoAbstainPercent
-                );
-                
-                // Calculate SPO pending votes
-                const spoTotalPowerAda = lovelaceToAda(action.rawVotingPowerValues?.spo_total_vote_power);
-                const spoVotedAda = (spoYesAda ?? 0) + (spoNoAda ?? 0) + (spoAbstainAda ?? 0);
-                const spoPendingAda = spoTotalPowerAda !== undefined && spoTotalPowerAda > 0
-                  ? Math.max(0, spoTotalPowerAda - spoVotedAda)
-                  : undefined;
-                const spoPendingPercent = spoTotalPowerAda !== undefined && spoTotalPowerAda > 0 && spoPendingAda !== undefined
-                  ? (spoPendingAda / spoTotalPowerAda) * 100
-                  : 0;
-
-                const ccYesPercent = ccInfo?.yesPercent ?? 0;
-                const ccNoPercent = ccInfo?.noPercent ?? 0;
-                const ccAbstainPercent =
-                  ccInfo?.abstainPercent ??
-                  Math.max(0, 100 - ccYesPercent - ccNoPercent);
-                const ccYesCount = ccInfo?.yesCount;
-                const ccNoCount = ccInfo?.noCount;
-                const ccAbstainCount =
-                  ccInfo?.abstainCount ??
-                  deriveCcAbstainCount(
-                    ccYesCount,
-                    ccNoCount,
-                    ccYesPercent,
-                    ccNoPercent,
-                    ccAbstainPercent
-                  );
-                
-                // Calculate CC pending votes
-                const ccPendingCount = ccInfo?.notVotedCount ?? 0;
-                const ccPendingPercent = ccInfo?.notVotedPercent ?? 0;
+                // Calculate CC pending votes - if no CC data, show 100% as "Not Voted"
+                const ccPendingCount = ccData?.notVotedCount ?? 0;
+                const ccPendingPercent = ccData
+                  ? (ccData.notVotedPercent ?? 0)
+                  : 100; // No CC data means 100% not voted
 
                 return (
                   <TableRow
@@ -637,63 +581,65 @@ export function GovernanceTable() {
                     onClick={() => router.push(`/governance/${action.hash}`)}
                   >
                     <TableCell className="hidden md:table-cell py-1 px-0">
-                      {drepInfo ? (
+                      {showDrep ? (
                         <div
                           className="flex justify-center -mr-4"
                           style={{ overflow: "visible" }}
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <VoteProgress
-                            title="DRep"
-                            titlePosition="center"
-                            yesPercent={drepYesPercent}
-                            noPercent={drepNoPercent}
-                            abstainPercent={drepAbstainPercent}
-                            pendingPercent={drepPendingPercent}
-                            yesValue={drepYesAda}
-                            noValue={drepNoAda}
-                            abstainValue={drepAbstainAda}
-                            pendingValue={drepPendingAda}
-                            valueUnit="ada"
-                            className="origin-center scale-[0.6]"
-                            style={{ padding: "8px 10px 10px" }}
-                            showTooltip={false}
-                            animate={false}
-                            interactive={false}
-                          />
+                          {(() => {
+                            const actionTypeCode = getGovernanceActionTypeCode(action.governanceActionType || action.type);
+                            const drepSegments = action.drepBreakdown
+                              ? buildDonutSegments(action.drepBreakdown, actionTypeCode, true)
+                              : null;
+                            return (
+                              <VoteProgress
+                                title="DRep"
+                                titlePosition="center"
+                                segments={drepSegments ?? undefined}
+                                valueUnit="ada"
+                                className="origin-center scale-[0.6]"
+                                style={{ padding: "8px 10px 10px" }}
+                                showTooltip={false}
+                                animate={false}
+                                interactive={false}
+                              />
+                            );
+                          })()}
                         </div>
                       ) : null}
                     </TableCell>
                     <TableCell className="hidden md:table-cell py-1 px-0">
-                      {spoInfo ? (
+                      {showSpo ? (
                         <div
                           className="flex justify-center -mx-4"
                           style={{ overflow: "visible" }}
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <VoteProgress
-                            title="SPO"
-                            titlePosition="center"
-                            yesPercent={spoYesPercent}
-                            noPercent={spoNoPercent || 0}
-                            abstainPercent={spoAbstainPercent}
-                            pendingPercent={spoPendingPercent}
-                            yesValue={spoYesAda}
-                            noValue={spoNoAda}
-                            abstainValue={spoAbstainAda}
-                            pendingValue={spoPendingAda}
-                            valueUnit="ada"
-                            className="origin-center scale-[0.6]"
-                            style={{ padding: "8px 10px 10px" }}
-                            showTooltip={false}
-                            animate={false}
-                            interactive={false}
-                          />
+                          {(() => {
+                            const actionTypeCode = getGovernanceActionTypeCode(action.governanceActionType || action.type);
+                            const spoSegments = action.spoBreakdown
+                              ? buildDonutSegments(action.spoBreakdown, actionTypeCode, false)
+                              : null;
+                            return (
+                              <VoteProgress
+                                title="SPO"
+                                titlePosition="center"
+                                segments={spoSegments ?? undefined}
+                                valueUnit="ada"
+                                className="origin-center scale-[0.6]"
+                                style={{ padding: "8px 10px 10px" }}
+                                showTooltip={false}
+                                animate={false}
+                                interactive={false}
+                              />
+                            );
+                          })()}
                         </div>
                       ) : null}
                     </TableCell>
                     <TableCell className="hidden md:table-cell py-1 px-0">
-                      {ccInfo ? (
+                      {showCc ? (
                         <div
                           className="flex justify-center -ml-4"
                           style={{ overflow: "visible" }}

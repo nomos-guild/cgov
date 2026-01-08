@@ -34,10 +34,37 @@ async function fetchApi<T>(url: string): Promise<T> {
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(
-      `API Error (${response.status}): ${errorText || response.statusText}`
-    );
+    // Handle rate limiting (429) with a user-friendly message
+    if (response.status === 429) {
+      throw new Error(
+        "Too many requests. Please wait a moment and try again."
+      );
+    }
+
+    // Try to extract a meaningful error message
+    const contentType = response.headers.get("content-type") || "";
+    let errorMessage = response.statusText;
+
+    if (contentType.includes("application/json")) {
+      try {
+        const errorJson = await response.json();
+        errorMessage = errorJson.error || errorJson.message || response.statusText;
+      } catch {
+        // Ignore JSON parse errors, use statusText
+      }
+    } else {
+      // For HTML responses (like Cloudflare error pages), don't include the raw HTML
+      const errorText = await response.text();
+      // Check if it's an HTML page (Cloudflare error, etc.)
+      if (errorText.includes("<!doctype html>") || errorText.includes("<html")) {
+        errorMessage = `Request failed (${response.status}). Please try again later.`;
+      } else if (errorText.length < 200) {
+        // Only include short text responses
+        errorMessage = errorText || response.statusText;
+      }
+    }
+
+    throw new Error(errorMessage);
   }
 
   return response.json();
@@ -239,6 +266,13 @@ function transformGovernanceAction(action: GovernanceAction): GovernanceAction {
 
     // Raw voting power values (passed through for advanced UI use)
     rawVotingPowerValues: action.rawVotingPowerValues,
+
+    // Vote breakdown by delegation status (extracted from nested drep/spo objects)
+    drepBreakdown: (action.drep as { breakdown?: typeof action.drepBreakdown })?.breakdown ?? action.drepBreakdown,
+    spoBreakdown: (action.spo as { breakdown?: typeof action.spoBreakdown })?.breakdown ?? action.spoBreakdown,
+
+    // Governance action type code for vote calculation logic
+    governanceActionType: action.governanceActionType ?? action.type,
 
     // Pass through raw API data, augmenting with ADA values
     drep: action.drep
