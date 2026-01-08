@@ -46,8 +46,7 @@ export function getClientIp(req: NextApiRequest): string {
  * The API key is kept server-side and never exposed to the browser
  */
 export async function callApi(args: CallApiArgs) {
-  const backendApiUrl =
-    process.env.BACKEND_API_URL || "http://localhost:3001";
+  const backendApiUrl = process.env.BACKEND_API_URL || "http://localhost:3001";
   const backendApiKey = process.env.BACKEND_API_KEY || "";
 
   const res = await fetch(backendApiUrl + args.endpoint, {
@@ -55,7 +54,7 @@ export async function callApi(args: CallApiArgs) {
     headers: {
       "Content-Type": "application/json",
       ...(backendApiKey && { "X-API-Key": backendApiKey }),
-      ...(args.clientIp && { "X-Forwarded-For": args.clientIp }),
+      ...(args.clientIp && { "X-Real-Client-IP": args.clientIp }),
       ...args.headers,
     },
     body: args.body,
@@ -76,6 +75,7 @@ export async function callApi(args: CallApiArgs) {
  */
 export function handleApiError(res: NextApiResponse, error: unknown) {
   console.error("API Error:", error);
-  const message = error instanceof Error ? error.message : "Internal server error";
+  const message =
+    error instanceof Error ? error.message : "Internal server error";
   return res.status(500).json({ error: message });
 }
