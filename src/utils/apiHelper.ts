@@ -4,7 +4,7 @@
  * This runs on the server side only, keeping the API key secure
  */
 
-import { NextApiResponse } from "next";
+import { NextApiRequest, NextApiResponse } from "next";
 
 interface CallApiArgs {
   endpoint: string;
@@ -12,6 +12,33 @@ interface CallApiArgs {
   headers?: Record<string, string>;
   body?: string;
   isJson?: boolean;
+  clientIp?: string;
+}
+
+/**
+ * Extract the client IP address from a Next.js API request
+ * Works with Vercel's proxy headers and standard forwarding headers
+ */
+export function getClientIp(req: NextApiRequest): string {
+  // Vercel/proxy headers (most reliable in production)
+  const xForwardedFor = req.headers["x-forwarded-for"];
+  if (xForwardedFor) {
+    // x-forwarded-for can contain multiple IPs: "client, proxy1, proxy2"
+    // The first IP is the original client
+    const ips = Array.isArray(xForwardedFor)
+      ? xForwardedFor[0]
+      : xForwardedFor.split(",")[0];
+    return ips.trim();
+  }
+
+  // Alternative headers
+  const xRealIp = req.headers["x-real-ip"];
+  if (xRealIp) {
+    return Array.isArray(xRealIp) ? xRealIp[0] : xRealIp;
+  }
+
+  // Fallback to socket remote address (for local development)
+  return req.socket?.remoteAddress || "unknown";
 }
 
 /**
@@ -28,6 +55,7 @@ export async function callApi(args: CallApiArgs) {
     headers: {
       "Content-Type": "application/json",
       ...(backendApiKey && { "X-API-Key": backendApiKey }),
+      ...(args.clientIp && { "X-Forwarded-For": args.clientIp }),
       ...args.headers,
     },
     body: args.body,

@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { callApi } from "@/utils/apiHelper";
+import { callApi, getClientIp } from "@/utils/apiHelper";
 
 export default async function handler(
   req: NextApiRequest,
@@ -16,9 +16,11 @@ export default async function handler(
   }
 
   try {
+    const clientIp = getClientIp(req);
     const response = await callApi({
       endpoint: `/overview/ncl/${encodeURIComponent(year)}`,
       method: "GET",
+      clientIp,
     });
 
     const data = await response.json();
