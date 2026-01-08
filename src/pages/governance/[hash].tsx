@@ -531,13 +531,18 @@ export default function GovernanceDetail() {
     return calculateExcludedBreakdown(selectedAction.spoBreakdown, false);
   }, [selectedAction?.spoBreakdown]);
 
-  // Only show loading state for initial load (when we don't have data yet)
-  // This prevents unmounting VoteOnProposal during polling re-fetches
-  const showLoadingState = isLoadingDetail && !selectedAction;
+  // Check if cached data matches the current route's hash
+  // This prevents showing stale data from a different proposal during navigation
+  const isDataForCurrentRoute = selectedAction &&
+    (selectedAction.hash === hash || selectedAction.proposalId === hash);
 
-  // Only show error state if we don't have existing data
-  // This prevents unmounting VoteOnProposal if an API call fails during polling
-  const showErrorState = detailError && !selectedAction;
+  // Show loading state when:
+  // 1. We're loading and have no data at all, OR
+  // 2. We're loading and the cached data is for a different proposal
+  const showLoadingState = isLoadingDetail && !isDataForCurrentRoute;
+
+  // Only show error state if we don't have matching data for current route
+  const showErrorState = detailError && !isDataForCurrentRoute;
 
   // Loading state - only shown on initial load
   if (showLoadingState) {
@@ -603,8 +608,8 @@ export default function GovernanceDetail() {
     );
   }
 
-  // Not found state
-  if (!selectedAction) {
+  // Not found state - only show if not loading and no matching data
+  if (!isDataForCurrentRoute && !isLoadingDetail) {
     return (
       <div className="min-h-screen bg-background">
         <div className="container mx-auto py-8 px-4">
@@ -624,6 +629,11 @@ export default function GovernanceDetail() {
         </div>
       </div>
     );
+  }
+
+  // TypeScript guard: at this point selectedAction must exist (isDataForCurrentRoute was true)
+  if (!selectedAction) {
+    return null;
   }
 
   const allowDRep =
