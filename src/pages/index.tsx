@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import Head from "next/head";
 import { GovernanceStats } from "@/components/GovernanceStats";
 import { GovernanceTable } from "@/components/GovernanceTable";
@@ -16,10 +16,16 @@ export default function Home() {
   const dispatch = useAppDispatch();
   const { activeTheme } = useTheme();
   const isGame = activeTheme.id === "game";
-  const { isLoadingActions, actionsError, isLoadingOverview, overviewError } =
+  const { actions, isLoadingActions, actionsError, isLoadingOverview, overviewError } =
     useAppSelector((state) => state.governance);
 
+  // Prevent duplicate fetches during React StrictMode double-mount or component remounts
+  const hasFetched = useRef(false);
+
   useEffect(() => {
+    if (hasFetched.current) return;
+    hasFetched.current = true;
+
     dispatch(loadGovernanceActions());
     dispatch(loadOverviewSummary());
     dispatch(loadNCLData());
@@ -27,6 +33,10 @@ export default function Home() {
 
   const isLoading = isLoadingActions || isLoadingOverview;
   const error = actionsError || overviewError;
+
+  // Stale-while-revalidate: show existing data while fetching new data
+  const hasData = actions.length > 0;
+  const showLoadingSpinner = isLoading && !hasData && !error;
 
   return (
     <>
@@ -70,8 +80,8 @@ export default function Home() {
             </Card>
           )}
 
-          {/* Loading state */}
-          {isLoading && !error && (
+          {/* Loading state - only show when no existing data */}
+          {showLoadingSpinner && (
             isGame ? (
               <div className="flex flex-col items-center justify-center py-12 sm:py-16 md:py-24">
                 <GameLoader />
@@ -88,8 +98,8 @@ export default function Home() {
             )
           )}
 
-          {/* Content */}
-          {!isLoading && !error && (
+          {/* Content - show existing data even while refreshing (stale-while-revalidate) */}
+          {(hasData || (!isLoading && !error)) && !showLoadingSpinner && (
             <>
               <GovernanceStats />
               <GovernanceTable />
