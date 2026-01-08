@@ -14,7 +14,7 @@ import {
   fetchGovernanceActions,
   fetchGovernanceActionDetail,
   fetchOverviewSummary,
-  fetchCurrentYearNCL,
+  fetchNCLData,
 } from "@/services/api";
 
 // Status filter options used by the table and filters.
@@ -49,7 +49,7 @@ interface GovernanceState {
   actions: GovernanceAction[];
   selectedAction: GovernanceActionDetail | null;
   overview: OverviewSummary | null;
-  nclData: NCLDisplayData | null;
+  nclDataList: NCLDisplayData[];
 
   // Filters
   filters: GovernanceFilters;
@@ -71,7 +71,7 @@ const initialState: GovernanceState = {
   actions: [],
   selectedAction: null,
   overview: null,
-  nclData: null,
+  nclDataList: [],
   filters: {
     // Keep existing filters used by components
     selectedTypes: PROPOSAL_TYPES,
@@ -146,9 +146,9 @@ export const loadNCLData = createAsyncThunk(
   "governance/loadNCL",
   async (_, { rejectWithValue }) => {
     try {
-      const data = await fetchCurrentYearNCL();
-      if (!data) {
-        return rejectWithValue("NCL data not found for current year");
+      const data = await fetchNCLData();
+      if (!data || data.length === 0) {
+        return rejectWithValue("NCL data not found");
       }
       return data;
     } catch (error) {
@@ -179,8 +179,8 @@ const governanceSlice = createSlice({
       state.overview = action.payload;
       state.overviewError = null;
     },
-    setNCLData: (state, action: PayloadAction<NCLDisplayData | null>) => {
-      state.nclData = action.payload;
+    setNCLDataList: (state, action: PayloadAction<NCLDisplayData[]>) => {
+      state.nclDataList = action.payload;
       state.nclError = null;
     },
 
@@ -271,7 +271,7 @@ const governanceSlice = createSlice({
       })
       .addCase(loadNCLData.fulfilled, (state, action) => {
         state.isLoadingNCL = false;
-        state.nclData = action.payload;
+        state.nclDataList = action.payload;
       })
       .addCase(loadNCLData.rejected, (state, action) => {
         state.isLoadingNCL = false;
@@ -284,7 +284,7 @@ export const {
   setActions,
   setSelectedAction,
   setOverview,
-  setNCLData,
+  setNCLDataList,
   setSelectedTypes,
   setSelectedStatuses,
   setTypeFilter,

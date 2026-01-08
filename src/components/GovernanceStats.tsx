@@ -1,9 +1,11 @@
+import { useMemo } from "react";
 import { Progress } from "@/components/ui/progress";
 import { useAppSelector } from "@/store/hooks";
 import { useTheme } from "@/lib/theme";
+import type { NCLDisplayData } from "@/types/governance";
 
 export function GovernanceStats() {
-  const { actions, nclData } = useAppSelector((state) => state.governance);
+  const { actions, nclDataList } = useAppSelector((state) => state.governance);
   const { activeTheme } = useTheme();
   const isDarkTheme = activeTheme.isDark;
 
@@ -19,8 +21,16 @@ export function GovernanceStats() {
     ).length,
   };
 
-  // Calculate NCL progress percentage from Redux-managed display data
-  const nclProgress = nclData ? nclData.percentUsed : 0;
+  // Sort NCL data: 2025 (extended) first, then by year descending
+  const sortedNclData = useMemo(() => {
+    return [...nclDataList].sort((a, b) => {
+      // 2025 is the "extended" year (extends to Feb 2026), show first
+      if (a.year === 2025 && b.year !== 2025) return -1;
+      if (a.year !== 2025 && b.year === 2025) return 1;
+      // Then by year descending (newest first)
+      return b.year - a.year;
+    });
+  }, [nclDataList]);
 
   // Format large numbers of ADA (e.g. 290,000,000 → "290M", 4,000,000,000 → "4B")
   const formatToMillions = (value: number): string => {
@@ -28,6 +38,45 @@ export function GovernanceStats() {
       return `${(value / 1_000_000_000).toFixed(0)}B`;
     }
     return `${(value / 1_000_000).toFixed(0)}M`;
+  };
+
+  // Render a single NCL year card
+  const NCLYearCard = ({ ncl, isFirst }: { ncl: NCLDisplayData; isFirst: boolean }) => {
+    const progress = Math.min(ncl.percentUsed, 100);
+    const isExtended = ncl.year === 2025;
+
+    return (
+      <div className={isFirst ? "" : "pt-2 mt-2 border-t border-border/30 dark:border-[#0bd1a2]/30"}>
+        <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wide dark:text-[#0bd1a2]">
+              {ncl.year} NCL
+            </span>
+            {isExtended && (
+              <span className="text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:bg-[#0bd1a2]/20 dark:text-[#0bd1a2] uppercase tracking-wide">
+                Extended
+              </span>
+            )}
+          </div>
+          <span className="text-xs sm:text-sm font-semibold dark:text-[#0bd1a2]">
+            {progress.toFixed(1)}%
+          </span>
+        </div>
+        <div className="flex items-baseline gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
+          <span className="text-base sm:text-lg font-bold dark:text-[#0bd1a2]">
+            {formatToMillions(ncl.currentValueAda)}
+          </span>
+          <span className="text-xs sm:text-sm text-muted-foreground dark:text-[#0bd1a2]">
+            / {formatToMillions(ncl.targetValueAda)}
+          </span>
+        </div>
+        <Progress
+          value={progress}
+          className="h-1 sm:h-1.5 rounded-full bg-secondary dark:bg-transparent dark:border dark:border-[#0bd1a2] dark:rounded-none"
+          indicatorClassName={isDarkTheme ? "bg-[#0bd1a2]" : "bg-black"}
+        />
+      </div>
+    );
   };
 
   return (
@@ -76,29 +125,11 @@ export function GovernanceStats() {
       </div>
 
       {/* NCL Progress Box */}
-      {nclData && (
+      {sortedNclData.length > 0 && (
         <div className="rounded-2xl border border-white/8 bg-[#faf9f6] p-2.5 sm:p-3 md:p-4 shadow-[0_12px_30px_rgba(15,23,42,0.25)] sm:flex-1 sm:max-w-xs md:max-w-md dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none game-stats-ncl">
-          <div className="flex items-center justify-between mb-1.5 sm:mb-2">
-            <span className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wide dark:text-[#0bd1a2]">
-              {nclData.year} NCL
-            </span>
-            <span className="text-xs sm:text-sm font-semibold dark:text-[#0bd1a2]">
-              {nclProgress.toFixed(1)}%
-            </span>
-          </div>
-          <div className="flex items-baseline gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
-            <span className="text-base sm:text-lg font-bold dark:text-[#0bd1a2]">
-              {formatToMillions(nclData.currentValueAda)}
-            </span>
-            <span className="text-xs sm:text-sm text-muted-foreground dark:text-[#0bd1a2]">
-              / {formatToMillions(nclData.targetValueAda)}
-            </span>
-          </div>
-          <Progress
-            value={nclProgress}
-            className="h-1 sm:h-1.5 rounded-full bg-secondary dark:bg-transparent dark:border dark:border-[#0bd1a2] dark:rounded-none"
-            indicatorClassName={isDarkTheme ? "bg-[#0bd1a2]" : "bg-black"}
-          />
+          {sortedNclData.map((ncl, index) => (
+            <NCLYearCard key={ncl.year} ncl={ncl} isFirst={index === 0} />
+          ))}
         </div>
       )}
     </div>

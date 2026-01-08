@@ -240,6 +240,13 @@ function transformGovernanceAction(action: GovernanceAction): GovernanceAction {
     // Raw voting power values (passed through for advanced UI use)
     rawVotingPowerValues: action.rawVotingPowerValues,
 
+    // Vote breakdown by delegation status (extracted from nested drep/spo objects)
+    drepBreakdown: (action.drep as { breakdown?: typeof action.drepBreakdown })?.breakdown ?? action.drepBreakdown,
+    spoBreakdown: (action.spo as { breakdown?: typeof action.spoBreakdown })?.breakdown ?? action.spoBreakdown,
+
+    // Governance action type code for vote calculation logic
+    governanceActionType: action.governanceActionType ?? action.type,
+
     // Pass through raw API data, augmenting with ADA values
     drep: action.drep
       ? {

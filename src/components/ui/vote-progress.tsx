@@ -8,48 +8,36 @@ import {
 } from "recharts";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/lib/theme";
+import { SEGMENT_COLORS, type VoteSegment } from "@/lib/voteBreakdownCalculator";
 
 interface VoteProgressProps extends React.HTMLAttributes<HTMLDivElement> {
-  yesPercent: number;
-  noPercent: number;
+  // Primary interface for DRep/SPO
+  segments?: VoteSegment[];
+  // Legacy props - CC only (no breakdown data from API)
+  yesPercent?: number;
+  noPercent?: number;
   abstainPercent?: number;
   pendingPercent?: number;
-  title?: string;
-  titlePosition?: "top" | "center";
   yesValue?: number;
   noValue?: number;
   abstainValue?: number;
   pendingValue?: number;
+  // Common props
+  title?: string;
+  titlePosition?: "top" | "center";
   valueUnit?: "ada" | "count";
   showTooltip?: boolean;
   animate?: boolean;
   interactive?: boolean;
+  showYesPercent?: boolean;
 }
 
-const COLORS = {
-  yes: {
-    active: "rgb(11, 140, 48)",
-    inactive: "rgba(11, 140, 48, 0.45)",
-  },
-  no: {
-    active: "rgb(140, 32, 11)",
-    inactive: "rgba(140, 32, 11, 0.45)",
-  },
-  abstain: {
-    active: "rgb(226, 232, 240)",
-    inactive: "rgba(226, 232, 240, 0.65)",
-  },
-  pending: {
-    active: "rgb(148, 163, 184)",
-    inactive: "rgba(148, 163, 184, 0.45)",
-  },
-};
-
 type SliceData = {
-  name: "Yes" | "No" | "Abstain" | "Pending";
+  name: string;
   value: number;
-  type: keyof typeof COLORS;
+  type: string;
   displayValue?: number;
+  color: string;
 };
 
 const compactNumberFormatter = new Intl.NumberFormat("en-US", {
@@ -65,8 +53,9 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
   (
     {
       className,
-      yesPercent,
-      noPercent,
+      segments,
+      yesPercent = 0,
+      noPercent = 0,
       abstainPercent = 0,
       pendingPercent = 0,
       title,
@@ -79,6 +68,7 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
       showTooltip = true,
       animate = true,
       interactive = true,
+      showYesPercent = false,
       style,
       ...props
     },
@@ -89,9 +79,35 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
     const isGame = activeTheme.id === "game";
     const [activeIndex, setActiveIndex] = React.useState<number | null>(null);
 
-    const totalPercent = yesPercent + noPercent + abstainPercent + pendingPercent;
+    // Calculate total percent from segments or legacy props
+    const totalPercent = segments
+      ? segments.reduce((sum, seg) => sum + seg.percent, 0)
+      : yesPercent + noPercent + abstainPercent + pendingPercent;
+
+    // Calculate Yes % for center display (from segments or legacy props)
+    const calculatedYesPercent = React.useMemo(() => {
+      if (segments && segments.length > 0) {
+        const yesSegment = segments.find((seg) => seg.type === "yes");
+        return yesSegment?.percent ?? 0;
+      }
+      return yesPercent;
+    }, [segments, yesPercent]);
 
     const data = React.useMemo<SliceData[]>(() => {
+      // Use segments if provided (DRep/SPO)
+      if (segments && segments.length > 0) {
+        return segments
+          .filter((seg) => seg.percent > 0)
+          .map((seg) => ({
+            name: seg.label,
+            value: seg.percent,
+            type: seg.type,
+            displayValue: seg.value,
+            color: seg.color,
+          }));
+      }
+
+      // Legacy fallback for CC only - use SEGMENT_COLORS
       const result: SliceData[] = [];
       if (yesPercent > 0) {
         result.push({
@@ -99,6 +115,7 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
           value: yesPercent,
           type: "yes",
           displayValue: yesValue,
+          color: SEGMENT_COLORS.yes,
         });
       }
       if (noPercent > 0) {
@@ -107,6 +124,7 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
           value: noPercent,
           type: "no",
           displayValue: noValue,
+          color: SEGMENT_COLORS.no,
         });
       }
       if (abstainPercent > 0) {
@@ -115,18 +133,21 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
           value: abstainPercent,
           type: "abstain",
           displayValue: abstainValue,
+          color: SEGMENT_COLORS.excluded,
         });
       }
       if (pendingPercent > 0) {
         result.push({
-          name: "Pending",
+          name: "Not Voted",
           value: pendingPercent,
           type: "pending",
           displayValue: pendingValue,
+          color: SEGMENT_COLORS.notVoted,
         });
       }
       return result;
     }, [
+      segments,
       yesPercent,
       noPercent,
       abstainPercent,
@@ -150,11 +171,12 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
       setActiveIndex(null);
     }, [interactive]);
 
-    const getColor = (type: string, index: number) => {
+    const getColor = (entry: SliceData, index: number) => {
       if (activeIndex === index) {
-        return COLORS[type as keyof typeof COLORS].active;
+        return entry.color;
       }
-      return COLORS[type as keyof typeof COLORS].inactive;
+      // Apply 45% opacity for inactive state
+      return `${entry.color}73`; // 73 is hex for ~45% opacity
     };
 
     const formatDisplayValue = React.useCallback(
@@ -266,11 +288,16 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
               }
             }}
           >
-            {title && titlePosition === "center" && (
+            {showYesPercent ? (
+              <span className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-white">
+                <span className="text-[10px] font-medium uppercase tracking-wide opacity-80">Yes</span>
+                <span className="text-lg font-bold leading-tight">{calculatedYesPercent.toFixed(1)}%</span>
+              </span>
+            ) : title && titlePosition === "center" ? (
               <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-xs font-semibold text-white">
                 {title}
               </span>
-            )}
+            ) : null}
             <PieChart
               width={132}
               height={132}
@@ -307,7 +334,7 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
                 isAnimationActive={animate}
               >
               {data.map((entry, index) => {
-                const baseColor = getColor(entry.type, index);
+                const baseColor = getColor(entry, index);
                 return (
                   <Cell
                     key={`cell-${index}`}
@@ -366,11 +393,19 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
             }
           }}
         >
-          {title && titlePosition === "center" && (
+          {showYesPercent ? (
+            <span className={cn(
+              "pointer-events-none absolute inset-0 flex flex-col items-center justify-center",
+              isDark ? "text-[#0bd1a2]" : "text-foreground"
+            )}>
+              <span className="text-[10px] font-medium uppercase tracking-wide opacity-70">Yes</span>
+              <span className="text-lg font-bold leading-tight">{calculatedYesPercent.toFixed(1)}%</span>
+            </span>
+          ) : title && titlePosition === "center" ? (
             <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-xs font-semibold text-foreground">
               {title}
             </span>
-          )}
+          ) : null}
           <PieChart
             width={132}
             height={132}
@@ -409,18 +444,31 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
               {data.map((entry, index) => {
                 const isAbstain = entry.type === "abstain";
                 const isPending = entry.type === "pending";
-                const baseColor = getColor(entry.type, index);
-                const strokeColor = isDark
-                  ? COLORS[entry.type].active
-                  : isAbstain || isPending
-                    ? "rgba(15, 23, 42, 0.35)"
-                    : "transparent";
+                const isExcluded = entry.type === "excluded";
+                const isNotVoted = entry.type === "notVoted";
+                const baseColor = getColor(entry, index);
+
+                // Determine stroke color
+                let strokeColor: string;
+                if (isDark) {
+                  // In dark mode, use the segment color for stroke
+                  strokeColor = entry.color;
+                } else if (isAbstain || isPending || isExcluded || isNotVoted) {
+                  strokeColor = "rgba(15, 23, 42, 0.35)";
+                } else {
+                  strokeColor = "transparent";
+                }
+
+                // Determine stroke width
+                const needsStroke = isAbstain || isPending || isExcluded || isNotVoted;
+                const strokeWidth = isDark ? 1.4 : needsStroke ? 1.2 : 0;
+
                 return (
                   <Cell
                     key={`cell-${index}`}
                     fill={isDark ? "transparent" : baseColor}
                     stroke={strokeColor}
-                    strokeWidth={isDark ? 1.4 : isAbstain || isPending ? 1.2 : 0}
+                    strokeWidth={strokeWidth}
                     style={{
                       transition: "all 0.2s ease-in-out",
                       transform:

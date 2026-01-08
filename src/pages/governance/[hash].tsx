@@ -46,14 +46,14 @@ import {
   getEligibleRoles,
 } from "@/lib/governanceVotingEligibility";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { parseNumeric, deriveAbstainValue } from "@/lib/voteMath";
-
-// Convert lovelace string to ADA number
-function lovelaceToAda(lovelace: string | undefined): number | undefined {
-  if (!lovelace) return undefined;
-  const numeric = parseNumeric(lovelace);
-  return numeric !== undefined ? numeric / 1_000_000 : undefined;
-}
+import {
+  buildDonutSegments,
+  calculateExcludedBreakdown,
+  getGovernanceActionTypeCode,
+  SEGMENT_COLORS,
+  type ExcludedBreakdown,
+  type VoteSegment,
+} from "@/lib/voteBreakdownCalculator";
 import { ProposalContent } from "@/components/ProposalContent";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/lib/theme";
@@ -467,80 +467,6 @@ export default function GovernanceDetail() {
   const useDashedPowerLines =
     shouldShowPower && curveRoleFilter === "All";
 
-  const drepAbstainStats = useMemo(() => {
-    const drepVotes = allVotes.filter((v) => v.voterType === "DRep");
-    const totalPower = drepVotes.reduce(
-      (sum, v) => sum + (v.votingPowerAda || 0),
-      0
-    );
-
-    // Prefer actual vote data when available
-    if (totalPower > 0) {
-      const abstainPower = drepVotes
-        .filter((v) => v.vote === "Abstain")
-        .reduce((sum, v) => sum + (v.votingPowerAda || 0), 0);
-
-      if (abstainPower > 0) {
-        return {
-          percent: (abstainPower / totalPower) * 100,
-          power: abstainPower,
-        };
-      }
-    }
-
-    // Fallback to aggregated tallies from selectedAction
-    const percent = selectedAction?.drepAbstainPercent ?? 0;
-    const yesAda = parseNumeric(selectedAction?.drepYesAda);
-    const noAda = parseNumeric(selectedAction?.drepNoAda);
-    const derivedPower =
-      deriveAbstainValue(
-        yesAda,
-        selectedAction?.drepYesPercent,
-        noAda,
-        selectedAction?.drepNoPercent,
-        percent
-      ) ?? 0;
-
-    return { percent, power: derivedPower };
-  }, [allVotes, selectedAction]);
-
-  const spoAbstainStats = useMemo(() => {
-    const spoVotes = allVotes.filter((v) => v.voterType === "SPO");
-    const totalPower = spoVotes.reduce(
-      (sum, v) => sum + (v.votingPowerAda || 0),
-      0
-    );
-
-    // Prefer actual vote data when available
-    if (totalPower > 0) {
-      const abstainPower = spoVotes
-        .filter((v) => v.vote === "Abstain")
-        .reduce((sum, v) => sum + (v.votingPowerAda || 0), 0);
-
-      if (abstainPower > 0) {
-        return {
-          percent: (abstainPower / totalPower) * 100,
-          power: abstainPower,
-        };
-      }
-    }
-
-    // Fallback to aggregated tallies from selectedAction
-    const percent = selectedAction?.spoAbstainPercent ?? 0;
-    const yesAda = parseNumeric(selectedAction?.spoYesAda);
-    const noAda = parseNumeric(selectedAction?.spoNoAda);
-    const derivedPower =
-      deriveAbstainValue(
-        yesAda,
-        selectedAction?.spoYesPercent,
-        noAda,
-        selectedAction?.spoNoPercent,
-        percent
-      ) ?? 0;
-
-    return { percent, power: derivedPower };
-  }, [allVotes, selectedAction]);
-
   const ccAbstainStats = useMemo(() => {
     // For CC, always rely on the summary tallies rather than ccVotes,
     // since ccVotes can be partial while the summary reflects the
@@ -568,6 +494,42 @@ export default function GovernanceDetail() {
       noCount,
     };
   }, [selectedAction]);
+
+  // Determine governance action type code for vote grouping logic
+  const actionTypeCode = useMemo(
+    () => getGovernanceActionTypeCode(selectedAction?.governanceActionType || selectedAction?.type),
+    [selectedAction?.governanceActionType, selectedAction?.type]
+  );
+
+  // Check if this is an Info Action (no ratification concept)
+  const isInfoAction = useMemo(
+    () => selectedAction?.type === "Info Action" || selectedAction?.type === "InfoAction",
+    [selectedAction?.type]
+  );
+
+  // Calculate DRep donut segments from breakdown data
+  const drepDonutSegments = useMemo(() => {
+    if (!selectedAction?.drepBreakdown) return null;
+    return buildDonutSegments(selectedAction.drepBreakdown, actionTypeCode, true);
+  }, [selectedAction?.drepBreakdown, actionTypeCode]);
+
+  // Calculate SPO donut segments from breakdown data (no inactive for SPO)
+  const spoDonutSegments = useMemo(() => {
+    if (!selectedAction?.spoBreakdown) return null;
+    return buildDonutSegments(selectedAction.spoBreakdown, actionTypeCode, false);
+  }, [selectedAction?.spoBreakdown, actionTypeCode]);
+
+  // Calculate DRep excluded breakdown (for separate display)
+  const drepExcludedBreakdown = useMemo(() => {
+    if (!selectedAction?.drepBreakdown) return null;
+    return calculateExcludedBreakdown(selectedAction.drepBreakdown, true);
+  }, [selectedAction?.drepBreakdown]);
+
+  // Calculate SPO excluded breakdown (for separate display - no inactive)
+  const spoExcludedBreakdown = useMemo(() => {
+    if (!selectedAction?.spoBreakdown) return null;
+    return calculateExcludedBreakdown(selectedAction.spoBreakdown, false);
+  }, [selectedAction?.spoBreakdown]);
 
   // Only show loading state for initial load (when we don't have data yet)
   // This prevents unmounting VoteOnProposal during polling re-fetches
@@ -689,32 +651,10 @@ export default function GovernanceDetail() {
       ? selectedAction.cc
       : undefined;
 
-  const drepYesAda = parseNumeric(drepInfo?.yesAda);
-  const drepNoAda = parseNumeric(drepInfo?.noAda);
-  const spoYesAda = parseNumeric(spoInfo?.yesAda);
-  const spoNoAda = parseNumeric(spoInfo?.noAda);
   const ccYesCount = ccAbstainStats.yesCount ?? ccInfo?.yesCount ?? 0;
   const ccNoCount = ccAbstainStats.noCount ?? ccInfo?.noCount ?? 0;
 
-  // Calculate pending votes
-  const drepTotalPowerAda = lovelaceToAda(selectedAction.rawVotingPowerValues?.drep_total_vote_power);
-  const drepVotedAda = (drepYesAda ?? 0) + (drepNoAda ?? 0) + (drepAbstainStats.power ?? 0);
-  const drepPendingAda = drepTotalPowerAda !== undefined && drepTotalPowerAda > 0
-    ? Math.max(0, drepTotalPowerAda - drepVotedAda)
-    : undefined;
-  const drepPendingPercent = drepTotalPowerAda !== undefined && drepTotalPowerAda > 0 && drepPendingAda !== undefined
-    ? (drepPendingAda / drepTotalPowerAda) * 100
-    : 0;
-
-  const spoTotalPowerAda = lovelaceToAda(selectedAction.rawVotingPowerValues?.spo_total_vote_power);
-  const spoVotedAda = (spoYesAda ?? 0) + (spoNoAda ?? 0) + (spoAbstainStats.power ?? 0);
-  const spoPendingAda = spoTotalPowerAda !== undefined && spoTotalPowerAda > 0
-    ? Math.max(0, spoTotalPowerAda - spoVotedAda)
-    : undefined;
-  const spoPendingPercent = spoTotalPowerAda !== undefined && spoTotalPowerAda > 0 && spoPendingAda !== undefined
-    ? (spoPendingAda / spoTotalPowerAda) * 100
-    : 0;
-
+  // CC pending votes (still uses legacy props - no breakdown data from API)
   const ccPendingCount = ccInfo?.notVotedCount ?? 0;
   const ccPendingPercent = ccInfo?.notVotedPercent ?? 0;
 
@@ -964,33 +904,22 @@ export default function GovernanceDetail() {
                                     <>
                                       <VoteProgress
                                         title="DRep Votes"
-                                        yesPercent={drepInfo.yesPercent}
-                                        noPercent={drepInfo.noPercent}
-                                        abstainPercent={drepAbstainStats.percent}
-                                        pendingPercent={drepPendingPercent}
-                                        yesValue={drepYesAda}
-                                        noValue={drepNoAda}
-                                        abstainValue={drepAbstainStats.power}
-                                        pendingValue={drepPendingAda}
+                                        segments={drepDonutSegments ?? undefined}
                                         valueUnit="ada"
                                         className="origin-center scale-[0.85] sm:scale-90 md:scale-100"
                                         showTooltip={false}
                                         interactive={false}
+                                        showYesPercent={!!drepDonutSegments}
                                       />
                                       <RoleLegend
                                         role="DRep"
-                                        yesLabel={formatAdaValue(drepYesAda || 0)}
-                                        noLabel={formatAdaValue(drepNoAda || 0)}
-                                        abstainLabel={formatAdaValue(
-                                          drepAbstainStats.power
-                                        )}
-                                        pendingLabel={
-                                          drepPendingAda !== undefined
-                                            ? formatAdaValue(drepPendingAda)
-                                            : "0 ₳"
-                                        }
+                                        segments={drepDonutSegments}
                                         unit="ADA"
-                                        colors={voteColors}
+                                      />
+                                      <ExcludedBreakdownDisplay
+                                        role="DRep"
+                                        breakdown={drepExcludedBreakdown}
+                                        isInfoAction={isInfoAction}
                                       />
                                     </>
                                   ) : allowDRep ? (
@@ -1013,28 +942,26 @@ export default function GovernanceDetail() {
                                         title="CC"
                                         yesPercent={ccInfo.yesPercent}
                                         noPercent={ccInfo.noPercent || 0}
-                                        abstainPercent={
-                                          ccInfo.abstainPercent ??
-                                          ccAbstainStats.percent
-                                        }
                                         pendingPercent={ccPendingPercent}
                                         yesValue={ccYesCount}
                                         noValue={ccNoCount}
-                                        abstainValue={ccAbstainStats.count}
                                         pendingValue={ccPendingCount}
                                         valueUnit="count"
                                         className="origin-center scale-[0.85] sm:scale-90 md:scale-100"
                                         showTooltip={false}
                                         interactive={false}
+                                        showYesPercent
                                       />
                                       <RoleLegend
                                         role="CC"
                                         yesLabel={`${ccYesCount}`}
                                         noLabel={`${ccNoCount}`}
-                                        abstainLabel={`${ccAbstainStats.count ?? 0}`}
                                         pendingLabel={`${ccPendingCount}`}
                                         unit="votes"
-                                        colors={voteColors}
+                                      />
+                                      <CCExcludedDisplay
+                                        abstainCount={ccAbstainStats.count ?? 0}
+                                        isInfoAction={isInfoAction}
                                       />
                                     </>
                                   ) : allowCC ? (
@@ -1055,33 +982,22 @@ export default function GovernanceDetail() {
                                     <>
                                       <VoteProgress
                                         title="SPO Votes"
-                                        yesPercent={spoInfo.yesPercent}
-                                        noPercent={spoInfo.noPercent || 0}
-                                        abstainPercent={spoAbstainStats.percent}
-                                        pendingPercent={spoPendingPercent}
-                                        yesValue={spoYesAda}
-                                        noValue={spoNoAda}
-                                        abstainValue={spoAbstainStats.power}
-                                        pendingValue={spoPendingAda}
+                                        segments={spoDonutSegments ?? undefined}
                                         valueUnit="ada"
                                         className="origin-center scale-[0.85] sm:scale-90 md:scale-100"
                                         showTooltip={false}
                                         interactive={false}
+                                        showYesPercent={!!spoDonutSegments}
                                       />
                                       <RoleLegend
                                         role="SPO"
-                                        yesLabel={formatAdaValue(spoYesAda || 0)}
-                                        noLabel={formatAdaValue(spoNoAda || 0)}
-                                        abstainLabel={formatAdaValue(
-                                          spoAbstainStats.power
-                                        )}
-                                        pendingLabel={
-                                          spoPendingAda !== undefined
-                                            ? formatAdaValue(spoPendingAda)
-                                            : "0 ₳"
-                                        }
+                                        segments={spoDonutSegments}
                                         unit="ADA"
-                                        colors={voteColors}
+                                      />
+                                      <ExcludedBreakdownDisplay
+                                        role="SPO"
+                                        breakdown={spoExcludedBreakdown}
+                                        isInfoAction={isInfoAction}
                                       />
                                     </>
                                   ) : allowSPO ? (
@@ -1644,50 +1560,55 @@ type VoteColorSet = typeof VOTE_COLORS_LIGHT;
 
 function RoleLegend({
   role,
+  segments,
   yesLabel,
   noLabel,
-  abstainLabel,
   pendingLabel,
   unit,
-  colors,
 }: {
   role: string;
-  yesLabel: string;
-  noLabel: string;
-  abstainLabel: string;
+  segments?: VoteSegment[] | null;
+  // Legacy props for CC only (no breakdown data from API)
+  yesLabel?: string;
+  noLabel?: string;
   pendingLabel?: string;
   unit: string;
-  colors: VoteColorSet;
 }) {
   const { activeTheme } = useTheme();
   const isGame = activeTheme.id === "game";
 
-  const items = [
-    {
-      label: "Yes",
-      value: yesLabel,
-      color: colors.yes,
-      border: "transparent",
-    },
-    {
-      label: "No",
-      value: noLabel,
-      color: colors.no,
-      border: "transparent",
-    },
-    {
-      label: "Abstain",
-      value: abstainLabel,
-      color: colors.abstain,
-      border: "rgba(148, 163, 184, 0.85)",
-    },
-    {
-      label: "Pending",
-      value: pendingLabel ?? (unit === "ADA" ? "0 ₳" : "0 votes"),
-      color: colors.pending,
-      border: "rgba(148, 163, 184, 0.85)",
-    },
-  ];
+  // Use segments when provided (DRep/SPO), otherwise use legacy props (CC)
+  const items = segments && segments.length > 0
+    ? segments.map((seg) => ({
+        label: seg.label,
+        value: formatAdaValue(seg.value),
+        color: `${seg.color}73`, // Apply 45% opacity to match donut inactive state
+        border: seg.type === "abstain" || seg.type === "notVoted" || seg.type === "excluded"
+          ? "rgba(148, 163, 184, 0.85)"
+          : "transparent",
+      }))
+    : [
+        // CC legacy fallback - uses SEGMENT_COLORS with 45% opacity
+        // Abstain is excluded from legend (shown separately)
+        {
+          label: "Yes",
+          value: yesLabel ?? "0",
+          color: `${SEGMENT_COLORS.yes}73`,
+          border: "transparent",
+        },
+        {
+          label: "No",
+          value: noLabel ?? "0",
+          color: `${SEGMENT_COLORS.no}73`,
+          border: "transparent",
+        },
+        {
+          label: "Not Voted",
+          value: pendingLabel ?? (unit === "ADA" ? "0 ₳" : "0 votes"),
+          color: `${SEGMENT_COLORS.notVoted}73`,
+          border: "rgba(148, 163, 184, 0.85)",
+        },
+      ];
 
   return (
     <div className={cn(
@@ -1707,31 +1628,134 @@ function RoleLegend({
         {items.map((item) => (
           <div
             key={item.label}
-            className="flex items-center justify-between gap-3"
+            className="flex items-start justify-between gap-2"
           >
-            <div className="flex items-center gap-2">
+            <div className="flex items-start gap-2 min-w-0 flex-1">
               <span
-                className="h-2.5 w-2.5 border"
+                className="h-2.5 w-2.5 border shrink-0 mt-0.5"
                 style={{
                   backgroundColor: item.color,
                   borderColor: item.border,
                 }}
               />
               <span className={cn(
-                "font-semibold",
+                "font-semibold leading-tight",
                 isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
               )}>
                 {item.label}
               </span>
             </div>
             <span className={cn(
-              "font-mono text-[11px]",
+              "font-mono text-[11px] shrink-0 text-right",
               isGame ? "text-white/80" : "text-muted-foreground dark:text-[#0bd1a2]"
             )}>
               {item.value}
             </span>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function ExcludedBreakdownDisplay({
+  role,
+  breakdown,
+  isInfoAction = false,
+}: {
+  role: "DRep" | "SPO";
+  breakdown: ExcludedBreakdown | null;
+  isInfoAction?: boolean;
+}) {
+  const { activeTheme } = useTheme();
+  const isGame = activeTheme.id === "game";
+
+  if (!breakdown || breakdown.total === 0) return null;
+
+  const items = [
+    { label: "Active Abstain", value: breakdown.activeAbstain },
+    { label: "Always Abstain", value: breakdown.alwaysAbstain },
+    ...(breakdown.inactive !== undefined && role === "DRep"
+      ? [{ label: "Inactive", value: breakdown.inactive }]
+      : []),
+  ];
+
+  return (
+    <div className={cn(
+      "w-full max-w-[200px] px-3 py-2 text-xs mt-2",
+      isGame
+        ? "border-none bg-transparent"
+        : "rounded-xl border border-dashed border-border/40 bg-card/20 dark:rounded-none dark:border-[#0bd1a2]/50 dark:bg-transparent"
+    )}>
+      <div className={cn(
+        "mb-2 text-[10px] uppercase tracking-wide",
+        isGame ? "text-white/60" : "text-muted-foreground/70 dark:text-[#0bd1a2]/70"
+      )}>
+        {isInfoAction ? "Excluded" : "Excluded from ratification"}
+      </div>
+      <div className="space-y-1">
+        {items.map((item) => (
+          <div
+            key={item.label}
+            className="flex items-center justify-between gap-3"
+          >
+            <span className={cn(
+              "text-[10px]",
+              isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
+            )}>
+              {item.label}
+            </span>
+            <span className={cn(
+              "font-mono text-[10px]",
+              isGame ? "text-white/60" : "text-muted-foreground/80 dark:text-[#0bd1a2]/70"
+            )}>
+              {formatAdaValue(item.value)}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CCExcludedDisplay({
+  abstainCount,
+  isInfoAction = false,
+}: {
+  abstainCount: number;
+  isInfoAction?: boolean;
+}) {
+  const { activeTheme } = useTheme();
+  const isGame = activeTheme.id === "game";
+
+  if (abstainCount === 0) return null;
+
+  return (
+    <div className={cn(
+      "w-full max-w-[200px] px-3 py-2 text-xs mt-2",
+      isGame
+        ? "border-none bg-transparent"
+        : "rounded-xl border border-dashed border-border/40 bg-card/20 dark:rounded-none dark:border-[#0bd1a2]/50 dark:bg-transparent"
+    )}>
+      <div className={cn(
+        "mb-2 text-[10px] uppercase tracking-wide",
+        isGame ? "text-white/60" : "text-muted-foreground/70 dark:text-[#0bd1a2]/70"
+      )}>
+        {isInfoAction ? "Excluded" : "Excluded from ratification"}
+      </div>
+      <div className="flex items-center justify-between gap-3">
+        <span className={cn(
+          "text-[10px]",
+          isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
+        )}>
+          Abstain
+        </span>
+        <span className={cn(
+          "font-mono text-[10px]",
+          isGame ? "text-white/60" : "text-muted-foreground/80 dark:text-[#0bd1a2]/70"
+        )}>
+          {abstainCount}
+        </span>
       </div>
     </div>
   );
