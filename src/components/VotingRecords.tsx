@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { GameDropdown } from "@/components/ui/game-dropdown";
 import { VotingRationaleModal } from "@/components/VotingRationaleModal";
 import type { VoteRecord } from "@/types/governance";
-import { Search, ChevronDown } from "lucide-react";
+import { Search, ChevronDown, Copy, Check } from "lucide-react";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
@@ -88,8 +88,15 @@ function MultiSelectDropdown({
         onOpenChange(false);
       }
     };
+    const handleScroll = () => {
+      onOpenChange(false);
+    };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    window.addEventListener("scroll", handleScroll, true);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("scroll", handleScroll, true);
+    };
   }, [isOpen, onOpenChange]);
 
   const handleToggle = (value: string) => {
@@ -164,7 +171,7 @@ function MultiSelectDropdown({
         onClick={() => onOpenChange(!isOpen)}
         className="btn-neon flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-0 ring-offset-0 focus:outline-none focus:border-black dark:focus:border-[#0bd1a2]"
       >
-        <span className={selected.length === 0 || isAllSelected ? "text-muted-foreground" : ""}>
+        <span>
           {displayText}
         </span>
         <ChevronDown className={cn("h-4 w-4 opacity-50 transition-transform", isOpen && "rotate-180")} />
@@ -216,7 +223,6 @@ export function VotingRecords({
   const [rationaleFilter, setRationaleFilter] = useState<string>("all");
   const [selectedVoteRecord, setSelectedVoteRecord] = useState<VoteRecord | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isAnyDropdownOpen, setIsAnyDropdownOpen] = useState(false);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [showAllVotes, setShowAllVotes] = useState(false);
   const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -230,12 +236,8 @@ export function VotingRecords({
         closeTimeoutRef.current = null;
       }
       setOpenDropdownId(id);
-      setIsAnyDropdownOpen(true);
     } else {
       setOpenDropdownId(null);
-      closeTimeoutRef.current = setTimeout(() => {
-        setIsAnyDropdownOpen(false);
-      }, 100);
     }
   }, []);
 
@@ -256,6 +258,14 @@ export function VotingRecords({
     setSelectedVoteRecord(vote);
     setIsModalOpen(true);
   };
+
+  const [copiedTxHash, setCopiedTxHash] = useState<string | null>(null);
+
+  const handleCopyTxHash = useCallback((txHash: string) => {
+    navigator.clipboard.writeText(txHash);
+    setCopiedTxHash(txHash);
+    setTimeout(() => setCopiedTxHash(null), 2000);
+  }, []);
 
   // Check if any votes have transaction hashes
   const hasTransactionHashes = useMemo(() => {
@@ -328,111 +338,15 @@ export function VotingRecords({
 
   return (
     <div className="space-y-3 sm:space-y-4 md:space-y-6">
-      <div className={cn(
-        "p-2.5 sm:p-3 md:p-4",
-        isGame 
-          ? "game-detail-card" 
-          : "rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
-      )}>
-        <div className="grid grid-cols-2 gap-2 sm:gap-3 md:gap-4 sm:grid-cols-3 lg:grid-cols-6">
-          <div className="relative col-span-2 sm:col-span-1">
-            <Search className={cn("absolute left-2.5 sm:left-3 top-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 -translate-y-1/2 transform", isGame ? "text-white/50" : "text-muted-foreground")} />
-            <Input
-              placeholder="Search..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className={cn("pl-8 sm:pl-10 h-8 sm:h-9 md:h-10 text-xs sm:text-sm", isGame ? "game-nav-input" : "filter-input")}
-            />
-          </div>
-          <MultiSelectDropdown
-            label="Filter by vote"
-            options={VOTE_OPTIONS}
-            selected={selectedVotes}
-            onSelectionChange={setSelectedVotes}
-            isOpen={openDropdownId === "vote"}
-            onOpenChange={(open) => handleDropdownOpenChange("vote", open)}
-            isGame={isGame}
-            formatLabel={(v) => v.charAt(0).toUpperCase() + v.slice(1)}
-          />
-          <MultiSelectDropdown
-            label="Filter by role"
-            options={ROLE_OPTIONS}
-            selected={selectedRoles}
-            onSelectionChange={setSelectedRoles}
-            isOpen={openDropdownId === "role"}
-            onOpenChange={(open) => handleDropdownOpenChange("role", open)}
-            isGame={isGame}
-          />
-          {isGame ? (
-            <GameDropdown
-              value={timeSort}
-              onValueChange={setTimeSort}
-              placeholder="Sort by time"
-              onOpenChange={(open) => handleDropdownOpenChange("time", open)}
-              options={[
-                { value: "newest", label: "Newest First" },
-                { value: "oldest", label: "Oldest First" },
-              ]}
-            />
-          ) : (
-            <Select value={timeSort} onValueChange={setTimeSort} onOpenChange={(open) => handleDropdownOpenChange("time", open)}>
-              <SelectTrigger className="btn-neon ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:ring-offset-0 focus:border-black data-[state=open]:ring-0 data-[state=open]:ring-transparent data-[state=open]:ring-offset-0 data-[state=open]:border-black dark:focus:border-[#0bd1a2] dark:data-[state=open]:border-[#0bd1a2]">
-                <SelectValue placeholder="Sort by time" />
-              </SelectTrigger>
-              <SelectContent className="rounded-none dark:border dark:border-[#0bd1a2] dark:bg-black dark:text-[#0bd1a2] dark:rounded-none">
-                <SelectItem className={selectItemClass} value="newest">Newest First</SelectItem>
-                <SelectItem className={selectItemClass} value="oldest">Oldest First</SelectItem>
-              </SelectContent>
-            </Select>
-          )}
-          {isGame ? (
-            <GameDropdown
-              value={rationaleFilter}
-              onValueChange={setRationaleFilter}
-              placeholder="Filter by rationale"
-              onOpenChange={(open) => handleDropdownOpenChange("rationale", open)}
-              options={[
-                { value: "all", label: "All records" },
-                { value: "with", label: "With rationale" },
-              ]}
-            />
-          ) : (
-            <Select value={rationaleFilter} onValueChange={setRationaleFilter} onOpenChange={(open) => handleDropdownOpenChange("rationale", open)}>
-              <SelectTrigger className="btn-neon ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:ring-offset-0 focus:border-black data-[state=open]:ring-0 data-[state=open]:ring-transparent data-[state=open]:ring-offset-0 data-[state=open]:border-black dark:focus:border-[#0bd1a2] dark:data-[state=open]:border-[#0bd1a2]">
-                <SelectValue placeholder="Filter by rationale" />
-              </SelectTrigger>
-              <SelectContent className="rounded-none dark:border dark:border-[#0bd1a2] dark:bg-black dark:text-[#0bd1a2] dark:rounded-none">
-                <SelectItem className={selectItemClass} value="all">All records</SelectItem>
-                <SelectItem className={selectItemClass} value="with">With rationale</SelectItem>
-              </SelectContent>
-            </Select>
-          )}
-          {isGame ? (
-            <GameDropdown
-              value={powerSort}
-              onValueChange={setPowerSort}
-              placeholder="Sort by voting power"
-              onOpenChange={(open) => handleDropdownOpenChange("power", open)}
-              options={[
-                { value: "none", label: "Voting Power" },
-                { value: "high", label: "Highest Power" },
-                { value: "low", label: "Lowest Power" },
-              ]}
-            />
-          ) : (
-            <Select value={powerSort} onValueChange={setPowerSort} onOpenChange={(open) => handleDropdownOpenChange("power", open)}>
-              <SelectTrigger className="btn-neon ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:ring-offset-0 focus:border-black data-[state=open]:ring-0 data-[state=open]:ring-transparent data-[state=open]:ring-offset-0 data-[state=open]:border-black dark:focus:border-[#0bd1a2] dark:data-[state=open]:border-[#0bd1a2]">
-                <SelectValue placeholder="Sort by voting power" />
-              </SelectTrigger>
-              <SelectContent className="rounded-none dark:border dark:border-[#0bd1a2] dark:bg-black dark:text-[#0bd1a2] dark:rounded-none">
-                <SelectItem className={selectItemClass} value="none">Voting Power</SelectItem>
-                <SelectItem className={selectItemClass} value="high">Highest Power</SelectItem>
-                <SelectItem className={selectItemClass} value="low">Lowest Power</SelectItem>
-              </SelectContent>
-            </Select>
-          )}
-          {showDownload ? (
-            isGame ? (
+      <div className="flex flex-wrap gap-2 sm:gap-3 md:gap-4">
+        {showDownload && (
+          <div className={cn(
+            "w-full sm:w-auto sm:min-w-[220px] p-2.5 sm:p-3 md:p-4",
+            isGame
+              ? "game-detail-card"
+              : "rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+          )}>
+            {isGame ? (
               <GameDropdown
                 value={downloadFormat || ""}
                 onValueChange={(value) => onDownloadFormatChange?.(value as "json" | "markdown" | "csv")}
@@ -460,19 +374,140 @@ export function VotingRecords({
                   <SelectItem className={selectItemClass} value="csv">CSV</SelectItem>
                 </SelectContent>
               </Select>
-            )
-          ) : (
-            <div className="hidden lg:block" />
-          )}
+            )}
+          </div>
+        )}
+
+        <div className={cn(
+          "w-full sm:w-auto sm:w-[160px] p-2.5 sm:p-3 md:p-4",
+          isGame
+            ? "game-detail-card"
+            : "rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+        )}>
+          <div className="relative">
+            <Search className={cn("absolute left-2.5 sm:left-3 top-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 -translate-y-1/2 transform", isGame ? "text-white/50" : "text-muted-foreground")} />
+            <Input
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className={cn("pl-8 sm:pl-10 h-8 sm:h-9 md:h-10 text-xs sm:text-sm", isGame ? "game-nav-input" : "filter-input")}
+            />
+          </div>
+        </div>
+
+        <div className={cn(
+          "flex-1 min-w-0 p-2.5 sm:p-3 md:p-4",
+          isGame
+            ? "game-detail-card"
+            : "rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+        )}>
+          <div className="flex flex-wrap gap-2 sm:gap-3 md:gap-4">
+            <div className="flex-1 min-w-[120px]">
+              <MultiSelectDropdown
+                label="Filter by vote"
+                options={VOTE_OPTIONS}
+                selected={selectedVotes}
+                onSelectionChange={setSelectedVotes}
+                isOpen={openDropdownId === "vote"}
+                onOpenChange={(open) => handleDropdownOpenChange("vote", open)}
+                isGame={isGame}
+                formatLabel={(v) => v.charAt(0).toUpperCase() + v.slice(1)}
+              />
+            </div>
+            <div className="flex-1 min-w-[120px]">
+              <MultiSelectDropdown
+                label="Filter by role"
+                options={ROLE_OPTIONS}
+                selected={selectedRoles}
+                onSelectionChange={setSelectedRoles}
+                isOpen={openDropdownId === "role"}
+                onOpenChange={(open) => handleDropdownOpenChange("role", open)}
+                isGame={isGame}
+              />
+            </div>
+            <div className="flex-1 min-w-[120px]">
+              {isGame ? (
+                <GameDropdown
+                  value={timeSort}
+                  onValueChange={setTimeSort}
+                  placeholder="Sort by time"
+                  onOpenChange={(open) => handleDropdownOpenChange("time", open)}
+                  options={[
+                    { value: "newest", label: "Newest First" },
+                    { value: "oldest", label: "Oldest First" },
+                  ]}
+                />
+              ) : (
+                <Select value={timeSort} onValueChange={setTimeSort} onOpenChange={(open) => handleDropdownOpenChange("time", open)}>
+                  <SelectTrigger className="btn-neon ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:ring-offset-0 focus:border-black data-[state=open]:ring-0 data-[state=open]:ring-transparent data-[state=open]:ring-offset-0 data-[state=open]:border-black dark:focus:border-[#0bd1a2] dark:data-[state=open]:border-[#0bd1a2]">
+                    <SelectValue placeholder="Sort by time" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-none dark:border dark:border-[#0bd1a2] dark:bg-black dark:text-[#0bd1a2] dark:rounded-none">
+                    <SelectItem className={selectItemClass} value="newest">Newest First</SelectItem>
+                    <SelectItem className={selectItemClass} value="oldest">Oldest First</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+            <div className="flex-1 min-w-[140px]">
+              {isGame ? (
+                <GameDropdown
+                  value={rationaleFilter}
+                  onValueChange={setRationaleFilter}
+                  placeholder="Filter by rationale"
+                  onOpenChange={(open) => handleDropdownOpenChange("rationale", open)}
+                  options={[
+                    { value: "all", label: "All records" },
+                    { value: "with", label: "With rationale" },
+                  ]}
+                />
+              ) : (
+                <Select value={rationaleFilter} onValueChange={setRationaleFilter} onOpenChange={(open) => handleDropdownOpenChange("rationale", open)}>
+                  <SelectTrigger className="btn-neon ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:ring-offset-0 focus:border-black data-[state=open]:ring-0 data-[state=open]:ring-transparent data-[state=open]:ring-offset-0 data-[state=open]:border-black dark:focus:border-[#0bd1a2] dark:data-[state=open]:border-[#0bd1a2]">
+                    <SelectValue placeholder="Filter by rationale" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-none dark:border dark:border-[#0bd1a2] dark:bg-black dark:text-[#0bd1a2] dark:rounded-none">
+                    <SelectItem className={selectItemClass} value="all">All records</SelectItem>
+                    <SelectItem className={selectItemClass} value="with">With rationale</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+            <div className="flex-1 min-w-[150px]">
+              {isGame ? (
+                <GameDropdown
+                  value={powerSort}
+                  onValueChange={setPowerSort}
+                  placeholder="Sort by voting power"
+                  onOpenChange={(open) => handleDropdownOpenChange("power", open)}
+                  options={[
+                    { value: "none", label: "Voting Power" },
+                    { value: "high", label: "Highest Power" },
+                    { value: "low", label: "Lowest Power" },
+                  ]}
+                />
+              ) : (
+                <Select value={powerSort} onValueChange={setPowerSort} onOpenChange={(open) => handleDropdownOpenChange("power", open)}>
+                  <SelectTrigger className="btn-neon ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:ring-offset-0 focus:border-black data-[state=open]:ring-0 data-[state=open]:ring-transparent data-[state=open]:ring-offset-0 data-[state=open]:border-black dark:focus:border-[#0bd1a2] dark:data-[state=open]:border-[#0bd1a2]">
+                    <SelectValue placeholder="Sort by voting power" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-none dark:border dark:border-[#0bd1a2] dark:bg-black dark:text-[#0bd1a2] dark:rounded-none">
+                    <SelectItem className={selectItemClass} value="none">Voting Power</SelectItem>
+                    <SelectItem className={selectItemClass} value="high">Highest Power</SelectItem>
+                    <SelectItem className={selectItemClass} value="low">Lowest Power</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Mobile card layout */}
-      <div 
+      <div
         className={cn(
-          "sm:hidden space-y-2 transition-[margin-top] duration-300 ease-in-out",
+          "sm:hidden space-y-2 min-h-[400px]",
         )}
-        style={isGame && isAnyDropdownOpen ? { marginTop: '280px' } : undefined}
       >
         {filteredVotes.length === 0 ? (
           <div className={cn(
@@ -555,12 +590,11 @@ export function VotingRecords({
       </div>
 
       {/* Desktop table layout */}
-      <div 
+      <div
         className={cn(
-          "hidden sm:block rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none transition-[margin-top] duration-300 ease-in-out voting-records-container",
+          "hidden sm:block rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none voting-records-container min-h-[400px]",
           isGame && "game-detail-card"
         )}
-        style={isGame && isAnyDropdownOpen ? { marginTop: '280px' } : undefined}
       >
         <div className="voting-records-container">
           <div className={cn("inline-block min-w-full px-2 sm:px-4 md:px-6 lg:px-0 align-middle", isGame ? "text-white" : "dark:text-[#0bd1a2]")}>
@@ -619,9 +653,27 @@ export function VotingRecords({
                         {hasTransactionHashes && (
                           <TableCell className="hidden md:table-cell py-2 sm:py-3">
                             {vote.txHash ? (
-                              <code className={cn("font-mono text-[10px] sm:text-xs", isGame ? "text-white/50" : "text-muted-foreground dark:text-[#0bd1a2]")}>
-                                {vote.txHash.slice(0, 16)}...
-                              </code>
+                              <div className="flex items-center gap-2">
+                                <code className={cn("font-mono text-[10px] sm:text-xs", isGame ? "text-white/50" : "text-muted-foreground dark:text-[#0bd1a2]")}>
+                                  {vote.txHash.slice(0, 16)}...
+                                </code>
+                                <button
+                                  onClick={() => handleCopyTxHash(vote.txHash!)}
+                                  className={cn(
+                                    "inline-flex items-center justify-center p-1 rounded transition-colors",
+                                    isGame
+                                      ? "hover:bg-white/10 text-white/50 hover:text-white"
+                                      : "hover:bg-muted text-muted-foreground hover:text-foreground dark:text-[#0bd1a2] dark:hover:bg-[#0bd1a2]/10"
+                                  )}
+                                  aria-label="Copy transaction hash"
+                                >
+                                  {copiedTxHash === vote.txHash ? (
+                                    <Check className="h-3 w-3" />
+                                  ) : (
+                                    <Copy className="h-3 w-3" />
+                                  )}
+                                </button>
+                              </div>
                             ) : (
                               <span className={cn("text-[10px] sm:text-xs", isGame ? "text-white/50" : "text-muted-foreground dark:text-[#0bd1a2]")}>—</span>
                             )}

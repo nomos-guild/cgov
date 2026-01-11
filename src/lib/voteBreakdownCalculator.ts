@@ -55,7 +55,7 @@ export const SEGMENT_COLORS = {
   yes: "#22C55E", // Green
   no: "#8C200B", // Brown (rgb(140, 32, 11))
   alwaysNoConfidenceYes: "#22C55E", // Green (for NO_CONFIDENCE actions - counts as Yes)
-  alwaysNoConfidenceNo: "#8C200B", // Same brown as No (for other actions - counts as No)
+  alwaysNoConfidenceNo: "#000000", // Black (for other actions - counts as No)
   notVoted: "#D1D5DB", // Neutral gray - pending votes, not yet decided
   excluded: "#9CA3AF", // Gray
 };
@@ -199,6 +199,7 @@ export function getGovernanceActionTypeCode(
 
 /**
  * Build donut segments array for VoteProgress component
+ * Only includes segments with values > 0 (for donut chart rendering)
  */
 export function buildDonutSegments(
   breakdown: VoteBreakdown,
@@ -267,6 +268,57 @@ export function buildDonutSegments(
   // separately in the ExcludedBreakdownDisplay component.
 
   return result;
+}
+
+/**
+ * Build legend segments array - always includes all categories (even with 0 values)
+ */
+export function buildLegendSegments(
+  breakdown: VoteBreakdown,
+  actionType: GovernanceActionTypeCode,
+  includeInactive: boolean = true
+): VoteSegment[] {
+  const segments = calculateDonutSegments(breakdown, includeInactive);
+
+  const total =
+    segments.yes +
+    segments.no +
+    segments.alwaysNoConfidence +
+    segments.notVoted;
+
+  const alwaysNoConfidenceColor = getAlwaysNoConfidenceColor(actionType);
+
+  // Always include all categories for legend display
+  return [
+    {
+      type: "yes",
+      percent: total > 0 ? (segments.yes / total) * 100 : 0,
+      value: segments.yes,
+      color: SEGMENT_COLORS.yes,
+      label: "Yes",
+    },
+    {
+      type: "no",
+      percent: total > 0 ? (segments.no / total) * 100 : 0,
+      value: segments.no,
+      color: SEGMENT_COLORS.no,
+      label: "No",
+    },
+    {
+      type: "alwaysNoConfidence",
+      percent: total > 0 ? (segments.alwaysNoConfidence / total) * 100 : 0,
+      value: segments.alwaysNoConfidence,
+      color: alwaysNoConfidenceColor,
+      label: "Always No Confidence",
+    },
+    {
+      type: "notVoted",
+      percent: total > 0 ? (segments.notVoted / total) * 100 : 0,
+      value: segments.notVoted,
+      color: SEGMENT_COLORS.notVoted,
+      label: "Not Voted",
+    },
+  ];
 }
 
 /**

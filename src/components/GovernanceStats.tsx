@@ -21,15 +21,13 @@ export function GovernanceStats() {
     ).length,
   };
 
-  // Sort NCL data: 2025 (extended) first, then by year descending
-  const sortedNclData = useMemo(() => {
-    return [...nclDataList].sort((a, b) => {
-      // 2025 is the "extended" year (extends to Feb 2026), show first
-      if (a.year === 2025 && b.year !== 2025) return -1;
-      if (a.year !== 2025 && b.year === 2025) return 1;
-      // Then by year descending (newest first)
-      return b.year - a.year;
-    });
+  // Separate NCL data: 2025 (extended) and 2026 for separate boxes
+  const ncl2025Data = useMemo(() => {
+    return nclDataList.find((ncl) => ncl.year === 2025);
+  }, [nclDataList]);
+
+  const ncl2026Data = useMemo(() => {
+    return nclDataList.find((ncl) => ncl.year === 2026);
   }, [nclDataList]);
 
   // Format large numbers of ADA (e.g. 290,000,000 → "290M", 4,000,000,000 → "4B")
@@ -40,24 +38,20 @@ export function GovernanceStats() {
     return `${(value / 1_000_000).toFixed(0)}M`;
   };
 
-  // Render a single NCL year card
-  const NCLYearCard = ({ ncl, isFirst }: { ncl: NCLDisplayData; isFirst: boolean }) => {
-    const progress = Math.min(ncl.percentUsed, 100);
-    const isExtended = ncl.year === 2025;
+  // Render a single NCL year box
+  const NCLYearBox = ({ ncl }: { ncl: NCLDisplayData }) => {
+    // Calculate percentage - use provided percentUsed or calculate from values
+    const calculatedPercent = ncl.targetValueAda > 0
+      ? (ncl.currentValueAda / ncl.targetValueAda) * 100
+      : 0;
+    const progress = Math.min(ncl.percentUsed || calculatedPercent, 100);
 
     return (
-      <div className={isFirst ? "" : "pt-2 mt-2 border-t border-border/30 dark:border-[#0bd1a2]/30"}>
+      <div className="rounded-2xl border border-white/8 bg-[#faf9f6] p-2.5 sm:p-3 md:p-4 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none game-stats-ncl">
         <div className="flex items-center justify-between mb-1.5 sm:mb-2">
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wide dark:text-[#0bd1a2]">
-              {ncl.year} NCL
-            </span>
-            {isExtended && (
-              <span className="text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:bg-[#0bd1a2]/20 dark:text-[#0bd1a2] uppercase tracking-wide">
-                Extended
-              </span>
-            )}
-          </div>
+          <span className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wide dark:text-[#0bd1a2]">
+            {ncl.year} NCL
+          </span>
           <span className="text-xs sm:text-sm font-semibold dark:text-[#0bd1a2]">
             {progress.toFixed(1)}%
           </span>
@@ -80,7 +74,7 @@ export function GovernanceStats() {
   };
 
   return (
-    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4 sm:mb-6 game-stats">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6 game-stats">
       {/* Proposal Counter Box */}
       <div className="rounded-2xl border border-white/8 bg-[#faf9f6] p-2.5 sm:p-3 md:p-4 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none">
         <div className="grid grid-cols-4 sm:flex sm:flex-wrap items-center gap-2 sm:gap-4 md:gap-6 lg:gap-8">
@@ -124,14 +118,11 @@ export function GovernanceStats() {
         </div>
       </div>
 
-      {/* NCL Progress Box */}
-      {sortedNclData.length > 0 && (
-        <div className="rounded-2xl border border-white/8 bg-[#faf9f6] p-2.5 sm:p-3 md:p-4 shadow-[0_12px_30px_rgba(15,23,42,0.25)] sm:flex-1 sm:max-w-xs md:max-w-md dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none game-stats-ncl">
-          {sortedNclData.map((ncl, index) => (
-            <NCLYearCard key={ncl.year} ncl={ncl} isFirst={index === 0} />
-          ))}
-        </div>
-      )}
+      {/* NCL 2025 Box */}
+      {ncl2025Data && <NCLYearBox ncl={ncl2025Data} />}
+
+      {/* NCL 2026 Box */}
+      {ncl2026Data && <NCLYearBox ncl={ncl2026Data} />}
     </div>
   );
 }
