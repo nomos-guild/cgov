@@ -235,6 +235,7 @@
     border: none !important;
     box-shadow: none !important;
     outline: none !important;
+    cursor: inherit !important;
   }
 
   .recharts-responsive-container,

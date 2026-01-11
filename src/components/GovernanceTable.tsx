@@ -579,15 +579,15 @@ export function GovernanceTable() {
                       isFirstRow ? "first-row" : ""
                     }`}
                     onClick={() => router.push(`/governance/${action.hash}`)}
+                    style={{ cursor: 'pointer' }}
                   >
                     <TableCell className="hidden md:table-cell py-1 px-0">
-                      {showDrep ? (
-                        <div
-                          className="flex justify-center -mr-4"
-                          style={{ overflow: "visible" }}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {(() => {
+                      <div
+                        className="flex justify-center -mr-4"
+                        style={{ overflow: "visible" }}
+                      >
+                        {showDrep ? (
+                          (() => {
                             const actionTypeCode = getGovernanceActionTypeCode(action.governanceActionType || action.type);
                             const drepSegments = action.drepBreakdown
                               ? buildDonutSegments(action.drepBreakdown, actionTypeCode, true)
@@ -605,18 +605,33 @@ export function GovernanceTable() {
                                 interactive={false}
                               />
                             );
-                          })()}
-                        </div>
-                      ) : null}
+                          })()
+                        ) : (
+                          <VoteProgress
+                            title="DRep"
+                            titlePosition="center"
+                            centerText="Not Eligible"
+                            yesPercent={0}
+                            noPercent={0}
+                            abstainPercent={0}
+                            pendingPercent={100}
+                            pendingValue={1}
+                            className="origin-center scale-[0.6]"
+                            style={{ padding: "8px 10px 10px" }}
+                            showTooltip={false}
+                            animate={false}
+                            interactive={false}
+                          />
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="hidden md:table-cell py-1 px-0">
-                      {showSpo ? (
-                        <div
-                          className="flex justify-center -mx-4"
-                          style={{ overflow: "visible" }}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {(() => {
+                      <div
+                        className="flex justify-center -mx-4"
+                        style={{ overflow: "visible" }}
+                      >
+                        {showSpo ? (
+                          (() => {
                             const actionTypeCode = getGovernanceActionTypeCode(action.governanceActionType || action.type);
                             const spoSegments = action.spoBreakdown
                               ? buildDonutSegments(action.spoBreakdown, actionTypeCode, false)
@@ -634,17 +649,32 @@ export function GovernanceTable() {
                                 interactive={false}
                               />
                             );
-                          })()}
-                        </div>
-                      ) : null}
+                          })()
+                        ) : (
+                          <VoteProgress
+                            title="SPO"
+                            titlePosition="center"
+                            centerText="Not Eligible"
+                            yesPercent={0}
+                            noPercent={0}
+                            abstainPercent={0}
+                            pendingPercent={100}
+                            pendingValue={1}
+                            className="origin-center scale-[0.6]"
+                            style={{ padding: "8px 10px 10px" }}
+                            showTooltip={false}
+                            animate={false}
+                            interactive={false}
+                          />
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="hidden md:table-cell py-1 px-0">
-                      {showCc ? (
-                        <div
-                          className="flex justify-center -ml-4"
-                          style={{ overflow: "visible" }}
-                          onClick={(e) => e.stopPropagation()}
-                        >
+                      <div
+                        className="flex justify-center -ml-4"
+                        style={{ overflow: "visible" }}
+                      >
+                        {showCc ? (
                           <VoteProgress
                             title="CC"
                             titlePosition="center"
@@ -663,8 +693,24 @@ export function GovernanceTable() {
                             animate={false}
                             interactive={false}
                           />
-                        </div>
-                      ) : null}
+                        ) : (
+                          <VoteProgress
+                            title="CC"
+                            titlePosition="center"
+                            centerText="Not Eligible"
+                            yesPercent={0}
+                            noPercent={0}
+                            abstainPercent={0}
+                            pendingPercent={100}
+                            pendingValue={1}
+                            className="origin-center scale-[0.6]"
+                            style={{ padding: "8px 10px 10px" }}
+                            showTooltip={false}
+                            animate={false}
+                            interactive={false}
+                          />
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="py-1 sm:py-1.5 md:border-l md:border-border/50 pl-2 sm:pl-4">
                       <h3 className="text-sm sm:text-base font-semibold dark:text-[#0bd1a2] line-clamp-2">{action.title}</h3>

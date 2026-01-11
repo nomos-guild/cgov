@@ -25,11 +25,14 @@ interface VoteProgressProps extends React.HTMLAttributes<HTMLDivElement> {
   // Common props
   title?: string;
   titlePosition?: "top" | "center";
+  centerText?: string; // Custom text to show in center (overrides title when set)
   valueUnit?: "ada" | "count";
   showTooltip?: boolean;
   animate?: boolean;
   interactive?: boolean;
   showYesPercent?: boolean;
+  // Layout props
+  fixedWidth?: number; // Fixed width in pixels (for detail pages)
 }
 
 type SliceData = {
@@ -60,6 +63,7 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
       pendingPercent = 0,
       title,
       titlePosition = "top",
+      centerText,
       yesValue,
       noValue,
       abstainValue,
@@ -69,6 +73,7 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
       animate = true,
       interactive = true,
       showYesPercent = false,
+      fixedWidth,
       style,
       ...props
     },
@@ -80,9 +85,11 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
     const [activeIndex, setActiveIndex] = React.useState<number | null>(null);
 
     // Calculate total percent from segments or legacy props
+    // For CC (legacy props): if no votes cast but we have pendingValue, show 100% "Not Voted"
+    const hasLegacyPendingData = !segments && pendingValue !== undefined && pendingValue > 0;
     const totalPercent = segments
       ? segments.reduce((sum, seg) => sum + seg.percent, 0)
-      : yesPercent + noPercent + abstainPercent + pendingPercent;
+      : yesPercent + noPercent + abstainPercent + pendingPercent || (hasLegacyPendingData ? 100 : 0);
 
     // Calculate Yes % for center display (from segments or legacy props)
     const calculatedYesPercent = React.useMemo(() => {
@@ -145,6 +152,16 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
           color: SEGMENT_COLORS.notVoted,
         });
       }
+      // If no votes at all but we have pending members, show 100% "Not Voted"
+      if (result.length === 0 && pendingValue !== undefined && pendingValue > 0) {
+        result.push({
+          name: "Not Voted",
+          value: 100,
+          type: "pending",
+          displayValue: pendingValue,
+          color: SEGMENT_COLORS.notVoted,
+        });
+      }
       return result;
     }, [
       segments,
@@ -175,7 +192,10 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
       if (activeIndex === index) {
         return entry.color;
       }
-      // Apply 45% opacity for inactive state
+      // Light theme: full opacity; Dark/Game: 45% opacity for inactive state
+      if (!isDark && !isGame) {
+        return entry.color;
+      }
       return `${entry.color}73`; // 73 is hex for ~45% opacity
     };
 
@@ -232,9 +252,10 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
     const cardStyle = React.useMemo<React.CSSProperties>(
       () => ({
         overflow: "visible",
+        ...(fixedWidth ? { width: fixedWidth, height: fixedWidth, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" } : {}),
         ...style,
       }),
-      [style]
+      [style, fixedWidth]
     );
 
     if (totalPercent === 0) {
@@ -242,7 +263,7 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
         <div
           ref={ref}
           className={cn(
-            "border-white/8 flex flex-col items-center gap-2 border bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] rounded-3xl px-[14px] pt-[12px] pb-[14px] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none",
+            "border-white/8 flex flex-col items-center gap-0 border bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] rounded-3xl px-[14px] pt-0 pb-0 sm:gap-2 sm:pt-[12px] sm:pb-[14px] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none",
             className
           )}
           style={cardStyle}
@@ -266,7 +287,7 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
           ref={ref}
           className={cn("flex flex-col items-center gap-2", className)}
           {...props}
-          style={cardStyle}
+          style={{ ...cardStyle, cursor: 'inherit' }}
         >
           {title && titlePosition === "top" && (
             <span className="whitespace-nowrap text-sm font-medium text-white">
@@ -275,7 +296,7 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
           )}
           <div
             className="vote-progress-card-game recharts-no-box relative overflow-visible rounded-full"
-            style={{ width: 132, height: 132, minWidth: 132, minHeight: 132 }}
+            style={{ width: 132, height: 132, minWidth: 132, minHeight: 132, cursor: 'inherit' }}
             onMouseLeave={(e) => {
               const relatedTarget = e.relatedTarget;
               const currentTarget = e.currentTarget;
@@ -288,13 +309,17 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
               }
             }}
           >
-            {showYesPercent ? (
-              <span className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-white">
+            {centerText ? (
+              <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-xs font-semibold text-white" style={{ cursor: 'inherit' }}>
+                {centerText}
+              </span>
+            ) : showYesPercent ? (
+              <span className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-white" style={{ cursor: 'inherit' }}>
                 <span className="text-[10px] font-medium uppercase tracking-wide opacity-80">Yes</span>
                 <span className="text-lg font-bold leading-tight">{calculatedYesPercent.toFixed(1)}%</span>
               </span>
             ) : title && titlePosition === "center" ? (
-              <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-xs font-semibold text-white">
+              <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-xs font-semibold text-white" style={{ cursor: 'inherit' }}>
                 {title}
               </span>
             ) : null}
@@ -363,11 +388,11 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
       <div
         ref={ref}
         className={cn(
-          "vote-progress-card border-white/8 flex flex-col items-center gap-2 border bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] rounded-3xl px-[14px] pt-[12px] pb-[14px] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none",
+          "vote-progress-card border-white/8 flex flex-col items-center gap-0 border bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] rounded-3xl px-[14px] pt-0 pb-0 sm:gap-2 sm:pt-[12px] sm:pb-[14px] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none",
           className
         )}
         {...props}
-        style={cardStyle}
+        style={{ ...cardStyle, cursor: 'inherit' }}
       >
         {title && titlePosition === "top" && (
           <span className="whitespace-nowrap text-sm font-medium text-muted-foreground">
@@ -376,7 +401,7 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
         )}
         <div
           className="recharts-no-box relative overflow-visible"
-          style={{ width: 132, height: 132, minWidth: 132, minHeight: 132 }}
+          style={{ width: 132, height: 132, minWidth: 132, minHeight: 132, cursor: 'inherit' }}
           onMouseLeave={(e) => {
             // Ensure we're actually leaving the container, not just moving to a child.
             // In some edge cases, relatedTarget may be a non-Node (e.g. window), which
@@ -393,16 +418,23 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
             }
           }}
         >
-          {showYesPercent ? (
+          {centerText ? (
+            <span className={cn(
+              "pointer-events-none absolute inset-0 flex items-center justify-center text-xs font-semibold",
+              isDark ? "text-[#0bd1a2]" : "text-foreground"
+            )} style={{ cursor: 'inherit' }}>
+              {centerText}
+            </span>
+          ) : showYesPercent ? (
             <span className={cn(
               "pointer-events-none absolute inset-0 flex flex-col items-center justify-center",
               isDark ? "text-[#0bd1a2]" : "text-foreground"
-            )}>
+            )} style={{ cursor: 'inherit' }}>
               <span className="text-[10px] font-medium uppercase tracking-wide opacity-70">Yes</span>
               <span className="text-lg font-bold leading-tight">{calculatedYesPercent.toFixed(1)}%</span>
             </span>
           ) : title && titlePosition === "center" ? (
-            <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-xs font-semibold text-foreground">
+            <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-xs font-semibold text-foreground" style={{ cursor: 'inherit' }}>
               {title}
             </span>
           ) : null}
