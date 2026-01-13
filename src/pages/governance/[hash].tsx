@@ -78,6 +78,14 @@ function getCurrentEpoch(): number {
 }
 
 /**
+ * Convert epoch number to timestamp
+ */
+function epochToTimestamp(epoch: number): number {
+  const epochsSinceShelley = epoch - SHELLEY_START_EPOCH;
+  return SHELLEY_START_TIME + (epochsSinceShelley * EPOCH_DURATION_MS);
+}
+
+/**
  * Legacy governance actions with special voting rules
  */
 const LEGACY_NON_APPLICABLE_DREP_ACTIONS = [
@@ -204,7 +212,8 @@ const VOTE_COLORS_DARK = {
 };
 
 type TimelinePoint = {
-  label: string;
+  label: string; // Unique identifier (includes index for duplicate dates)
+  displayLabel: string; // Clean label for display (just the date)
   yesCount: number;
   noCount: number;
   abstainCount: number;
@@ -233,6 +242,10 @@ export default function GovernanceDetail() {
   const [downloadFormat, setDownloadFormat] = useState<string>("");
   const [contentVisible, setContentVisible] = useState(false);
   const [isContentExpanded, setIsContentExpanded] = useState<boolean>(false);
+  const [isTimeExpanded, setIsTimeExpanded] = useState<boolean>(false);
+  const [isDrepExcludedExpanded, setIsDrepExcludedExpanded] = useState<boolean>(false);
+  const [isSpoExcludedExpanded, setIsSpoExcludedExpanded] = useState<boolean>(false);
+  const [isCcExcludedExpanded, setIsCcExcludedExpanded] = useState<boolean>(false);
   const [curveRoleFilter, setCurveRoleFilter] =
     useState<RoleFilter>("All");
   const [selectedTab, setSelectedTab] = useState<string>("live-voting");
@@ -413,7 +426,8 @@ export default function GovernanceDetail() {
           : `Vote ${index + 1}`;
 
       return {
-        label,
+        label: `${label}#${index}`, // Add unique index to ensure each point is distinct
+        displayLabel: label, // Keep clean label for display
         yesCount,
         noCount,
         abstainCount,
@@ -434,9 +448,10 @@ export default function GovernanceDetail() {
         {...tooltipProps}
         showPower={shouldShowPower}
         colors={voteColors}
+        isGame={isGame}
       />
     ),
-    [shouldShowPower, voteColors]
+    [shouldShowPower, voteColors, isGame]
   );
 
   const useDashedPowerLines =
@@ -653,7 +668,19 @@ export default function GovernanceDetail() {
 
   // CC pending votes (still uses legacy props - no breakdown data from API)
   const ccPendingCount = ccInfo?.notVotedCount ?? 0;
-  const ccPendingPercent = ccInfo?.notVotedPercent ?? 0;
+
+  // Recalculate CC percentages excluding abstain votes
+  // The donut should only show Yes, No, and Not Voted
+  const ccTotalVotesExcludingAbstain = ccYesCount + ccNoCount + ccPendingCount;
+  const ccYesPercent = ccTotalVotesExcludingAbstain > 0
+    ? (ccYesCount / ccTotalVotesExcludingAbstain) * 100
+    : 0;
+  const ccNoPercent = ccTotalVotesExcludingAbstain > 0
+    ? (ccNoCount / ccTotalVotesExcludingAbstain) * 100
+    : 0;
+  const ccPendingPercentRecalc = ccTotalVotesExcludingAbstain > 0
+    ? (ccPendingCount / ccTotalVotesExcludingAbstain) * 100
+    : 100;
 
   const handleTwitterShare = () => {
     const url =
@@ -738,19 +765,6 @@ export default function GovernanceDetail() {
                 <ArrowLeft className="h-4 w-4" />
               </Button>
             </Link>
-            {contentPreview?.shouldTruncate && (
-              <Button
-                variant="default"
-                className={
-                  isGame
-                    ? "game-nav-btn w-[110px] sm:w-[130px] text-xs sm:text-sm"
-                    : "bg-white text-black shadow-[0_12px_30px_rgba(15,23,42,0.25)] h-8 sm:h-10 w-[110px] sm:w-[130px] text-xs sm:text-sm transform-gpu transition-transform transition-shadow duration-450 ease-in-out hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] hover:bg-white hover:text-black btn-neon"
-                }
-                onClick={() => setIsContentExpanded((prev) => !prev)}
-              >
-                {isContentExpanded ? "Hide Proposal" : "Read Proposal"}
-              </Button>
-            )}
             {allVotes.length > 0 && (
               <Button
                 variant="default"
@@ -783,7 +797,7 @@ export default function GovernanceDetail() {
                     "transition-all duration-500 ease-in-out [scrollbar-gutter:stable]",
                     isContentExpanded
                       ? "max-h-[60vh] overflow-y-auto"
-                      : "max-h-[4.5rem] overflow-hidden"
+                      : "max-h-[3rem] overflow-hidden"
                   )}
                 >
                   <div className="pr-2">
@@ -821,25 +835,21 @@ export default function GovernanceDetail() {
                       )}
                   </div>
                 </div>
-                {/* Fade overlay when collapsed */}
-                {!isContentExpanded && contentPreview.shouldTruncate && !isGame && (
-                  <div className="relative h-8 -mt-8 bg-gradient-to-t from-card to-transparent pointer-events-none" />
-                )}
                 {/* Expand/Collapse Arrow */}
                 {contentPreview.shouldTruncate && (
-                  <div className="flex justify-center items-center pt-3">
+                  <div className="flex justify-center items-center pt-6">
                     <div
                       className={cn(
-                        "inline-flex items-center justify-center rounded-lg border px-3 py-2.5 cursor-pointer transition-all duration-300 hover:scale-110",
+                        "flex w-full items-center justify-center px-3 py-1.5 cursor-pointer transition-all duration-300",
                         isGame
-                          ? "border-white/30 bg-transparent hover:bg-white/10"
-                          : "border-border/50 bg-card/50 hover:bg-card dark:border-[#0bd1a2] dark:bg-transparent dark:hover:bg-[#0bd1a2]/10"
+                          ? "game-expand-btn rounded-lg"
+                          : "rounded-lg border border-border/50 bg-card/50 hover:bg-white hover:shadow-lg hover:scale-[1.02] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:hover:bg-[#0bd1a2]/10 dark:hover:shadow-none"
                       )}
                       onClick={() => setIsContentExpanded((prev) => !prev)}
                     >
                       <svg
                         className={cn(
-                          "h-5 w-5 transition-transform duration-300",
+                          "h-4 w-4 transition-transform duration-300",
                           isContentExpanded ? "rotate-180" : "",
                           isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
                         )}
@@ -871,13 +881,13 @@ export default function GovernanceDetail() {
                 >
                   <div className="flex flex-col gap-3 sm:gap-4">
                     <div className="flex flex-col gap-2 sm:gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <TabsList className="flex-1 flex-wrap justify-start gap-1.5 sm:gap-2 bg-transparent p-0 overflow-x-auto">
+                      <TabsList className="flex-1 flex-wrap justify-start gap-1.5 sm:gap-2 bg-transparent p-0 py-2 overflow-x-auto overflow-visible">
                         <TabsTrigger
                           value="live-voting"
                           className={
                             isGame
                               ? "game-tab-btn data-[state=active]:game-tab-btn-active text-[10px] sm:text-xs"
-                              : "rounded-full border px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold uppercase tracking-wide transition-colors data-[state=active]:bg-foreground data-[state=active]:text-background hover:text-foreground dark:rounded-none dark:border-[#0bd1a2] dark:text-[#0bd1a2] dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap"
+                              : "rounded-md border border-white/8 bg-white text-black px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold uppercase tracking-wide transform-gpu transition-transform transition-shadow duration-450 ease-in-out shadow-[0_12px_30px_rgba(15,23,42,0.25)] data-[state=active]:bg-black data-[state=active]:text-white hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon"
                           }
                         >
                           Live Voting
@@ -887,7 +897,7 @@ export default function GovernanceDetail() {
                           className={
                             isGame
                               ? "game-tab-btn data-[state=active]:game-tab-btn-active text-[10px] sm:text-xs"
-                              : "rounded-full border px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold uppercase tracking-wide transition-colors data-[state=active]:bg-foreground data-[state=active]:text-background hover:text-foreground dark:rounded-none dark:border-[#0bd1a2] dark:text-[#0bd1a2] dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap"
+                              : "rounded-md border border-white/8 bg-white text-black px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold uppercase tracking-wide transform-gpu transition-transform transition-shadow duration-450 ease-in-out shadow-[0_12px_30px_rgba(15,23,42,0.25)] data-[state=active]:bg-black data-[state=active]:text-white hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon"
                           }
                         >
                           Bubble Map
@@ -897,7 +907,7 @@ export default function GovernanceDetail() {
                           className={
                             isGame
                               ? "game-tab-btn data-[state=active]:game-tab-btn-active text-[10px] sm:text-xs"
-                              : "rounded-full border px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold uppercase tracking-wide transition-colors data-[state=active]:bg-foreground data-[state=active]:text-background hover:text-foreground dark:rounded-none dark:border-[#0bd1a2] dark:text-[#0bd1a2] dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap"
+                              : "rounded-md border border-white/8 bg-white text-black px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold uppercase tracking-wide transform-gpu transition-transform transition-shadow duration-450 ease-in-out shadow-[0_12px_30px_rgba(15,23,42,0.25)] data-[state=active]:bg-black data-[state=active]:text-white hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon"
                           }
                         >
                           Curves
@@ -907,7 +917,7 @@ export default function GovernanceDetail() {
                           className={
                             isGame
                               ? "game-tab-btn data-[state=active]:game-tab-btn-active text-[10px] sm:text-xs"
-                              : "rounded-full border px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold uppercase tracking-wide transition-colors data-[state=active]:bg-foreground data-[state=active]:text-background hover:text-foreground dark:rounded-none dark:border-[#0bd1a2] dark:text-[#0bd1a2] dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap"
+                              : "rounded-md border border-white/8 bg-white text-black px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold uppercase tracking-wide transform-gpu transition-transform transition-shadow duration-450 ease-in-out shadow-[0_12px_30px_rgba(15,23,42,0.25)] data-[state=active]:bg-black data-[state=active]:text-white hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon"
                           }
                         >
                           Details
@@ -921,7 +931,10 @@ export default function GovernanceDetail() {
                           {allVotes.length > 0 ? (
                             <div className="space-y-0 sm:space-y-4">
                               {/* Mobile: horizontal donut + legend. Desktop: horizontal row with vertical stacks */}
-                              <div className="flex flex-col -space-y-20 sm:space-y-0 sm:flex-row sm:flex-nowrap sm:items-start sm:justify-start sm:gap-4 md:gap-6">
+                              <div className={cn(
+                                "flex flex-col -space-y-20 sm:space-y-0 sm:flex-row sm:flex-nowrap sm:items-start sm:justify-start",
+                                isGame ? "sm:gap-2 md:gap-3" : "sm:gap-4 md:gap-6"
+                              )}>
                                 {/* DRep */}
                                 <div className="flex flex-row items-center gap-1 sm:flex-col sm:items-center sm:gap-3 my-0">
                                   {allowDRep ? (
@@ -947,6 +960,8 @@ export default function GovernanceDetail() {
                                           role="DRep"
                                           breakdown={drepExcludedBreakdown}
                                           isInfoAction={isInfoAction}
+                                          isExpanded={isDrepExcludedExpanded}
+                                          setIsExpanded={setIsDrepExcludedExpanded}
                                         />
                                       </>
                                     ) : (
@@ -970,9 +985,9 @@ export default function GovernanceDetail() {
                                     <>
                                       <VoteProgress
                                         title="CC Votes"
-                                        yesPercent={ccInfo?.yesPercent ?? 0}
-                                        noPercent={ccInfo?.noPercent ?? 0}
-                                        pendingPercent={ccPendingPercent || 100}
+                                        yesPercent={ccYesPercent}
+                                        noPercent={ccNoPercent}
+                                        pendingPercent={ccPendingPercentRecalc}
                                         yesValue={ccYesCount}
                                         noValue={ccNoCount}
                                         pendingValue={ccPendingCount || 1}
@@ -988,9 +1003,17 @@ export default function GovernanceDetail() {
                                         role="CC"
                                         yesLabel={`${ccYesCount}`}
                                         noLabel={`${ccNoCount}`}
-                                        abstainLabel={`${ccAbstainStats.count ?? 0}`}
                                         pendingLabel={ccInfo ? `${ccPendingCount}` : "100%"}
                                         unit="votes"
+                                      />
+                                      <ExcludedBreakdownDisplay
+                                        role="CC"
+                                        breakdown={{
+                                          abstain: ccAbstainStats.count ?? 0,
+                                        }}
+                                        isInfoAction={isInfoAction}
+                                        isExpanded={isCcExcludedExpanded}
+                                        setIsExpanded={setIsCcExcludedExpanded}
                                       />
                                     </>
                                   ) : (
@@ -1027,6 +1050,8 @@ export default function GovernanceDetail() {
                                           role="SPO"
                                           breakdown={spoExcludedBreakdown}
                                           isInfoAction={isInfoAction}
+                                          isExpanded={isSpoExcludedExpanded}
+                                          setIsExpanded={setIsSpoExcludedExpanded}
                                         />
                                       </>
                                     ) : (
@@ -1119,7 +1144,7 @@ export default function GovernanceDetail() {
                                     data={voteTimelineData}
                                     margin={{
                                       top: 10,
-                                      right: 24,
+                                      right: 40,
                                       left: 0,
                                       bottom: 0,
                                     }}
@@ -1132,6 +1157,11 @@ export default function GovernanceDetail() {
                                       dataKey="label"
                                       tick={{ fontSize: 12 }}
                                       minTickGap={24}
+                                      tickFormatter={(value) => {
+                                        // Extract displayLabel from the data point
+                                        const dataPoint = voteTimelineData.find(d => d.label === value);
+                                        return dataPoint?.displayLabel || value;
+                                      }}
                                     />
                                     <YAxis
                                       yAxisId="primary"
@@ -1391,6 +1421,50 @@ export default function GovernanceDetail() {
                                 "mb-3 block text-sm font-semibold sm:text-base",
                                 isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
                               )}>
+                                Legacy Governance Action ID (CIP-105)
+                              </label>
+                              <div className="flex items-start gap-2">
+                                <code className={cn(
+                                  "flex-1 break-all px-2 py-1 font-mono text-xs sm:px-3 sm:text-sm",
+                                  isGame
+                                    ? "rounded bg-white/10 text-white/80"
+                                    : "rounded bg-secondary text-muted-foreground dark:bg-transparent dark:border dark:border-[#0bd1a2] dark:text-[#0bd1a2]"
+                                )}>
+                                  {selectedAction.hash?.replace(/:/g, '#')}
+                                </code>
+                                <button
+                                  onClick={() =>
+                                    handleCopy(
+                                      selectedAction.hash?.replace(/:/g, '#') || "",
+                                      "hash"
+                                    )
+                                  }
+                                  className={cn(
+                                    "flex h-7 w-7 shrink-0 items-center justify-center transition-colors",
+                                    isGame
+                                      ? "game-nav-btn !p-0 !min-w-0 !min-h-0"
+                                      : "rounded-full bg-white text-black hover:bg-black hover:text-white shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:hover:bg-[#0bd1a2] dark:hover:text-black dark:shadow-none"
+                                  )}
+                                  aria-label="Copy Legacy Governance Action ID"
+                                >
+                                  {copiedId === "hash" ? (
+                                    <Check className="h-3.5 w-3.5" />
+                                  ) : (
+                                    <Copy className="h-3.5 w-3.5" />
+                                  )}
+                                </button>
+                              </div>
+                            </div>
+                            <div className={cn(
+                              "p-4 sm:p-5",
+                              isGame
+                                ? "game-detail-card"
+                                : "rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+                            )}>
+                              <label className={cn(
+                                "mb-3 block text-sm font-semibold sm:text-base",
+                                isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
+                              )}>
                                 Transaction Hash
                               </label>
                               <div className="flex items-start gap-2">
@@ -1437,26 +1511,28 @@ export default function GovernanceDetail() {
             <div className="space-y-6">
               {/* Time Until Expiry Card */}
               {selectedAction && (() => {
+                // Calculate expiry based on 30 days from submission
+                const now = Date.now();
                 const currentEpoch = getCurrentEpoch();
                 const submissionEpoch = selectedAction.submissionEpoch > 0
                   ? selectedAction.submissionEpoch
                   : currentEpoch;
-                const expiryEpoch = selectedAction.expiryEpoch > 0
-                  ? selectedAction.expiryEpoch
-                  : submissionEpoch + 6;
-                const epochsRemaining = Math.max(
-                  0,
-                  expiryEpoch - currentEpoch
-                );
-                const daysRemaining = epochsRemaining * 5;
-                const totalEpochs = expiryEpoch - submissionEpoch;
-                const epochsPassed = Math.min(
-                  totalEpochs,
-                  Math.max(0, currentEpoch - submissionEpoch)
-                );
-                const progressPercent = totalEpochs > 0
-                  ? (epochsPassed / totalEpochs) * 100
-                  : 0;
+
+                // Convert submission epoch to timestamp
+                const submissionTimestamp = epochToTimestamp(submissionEpoch);
+
+                // Calculate expiry as 30 days from submission
+                const DAYS_UNTIL_EXPIRY = 30;
+                const expiryTimestamp = submissionTimestamp + (DAYS_UNTIL_EXPIRY * 24 * 60 * 60 * 1000);
+
+                // Calculate time remaining in milliseconds
+                const timeRemaining = Math.max(0, expiryTimestamp - now);
+                const daysRemaining = Math.floor(timeRemaining / (24 * 60 * 60 * 1000));
+
+                // Calculate progress (days elapsed out of 30)
+                const totalDuration = DAYS_UNTIL_EXPIRY * 24 * 60 * 60 * 1000;
+                const timeElapsed = Math.min(totalDuration, Math.max(0, now - submissionTimestamp));
+                const progressPercent = (timeElapsed / totalDuration) * 100;
 
                 return (
                   <Card className={cn("p-6", isGame && "game-detail-card")}>
@@ -1471,7 +1547,7 @@ export default function GovernanceDetail() {
                         "text-base font-semibold",
                         isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
                       )}>
-                        {epochsRemaining > 0 ? (
+                        {daysRemaining > 0 ? (
                           <>
                             {daysRemaining}{" "}
                             {daysRemaining === 1 ? "day" : "days"}
@@ -1493,6 +1569,132 @@ export default function GovernanceDetail() {
                       )}
                       indicatorClassName={isGame ? "bg-white/50" : "bg-black dark:bg-[#0bd1a2]"}
                     />
+
+                    {/* Expandable details section */}
+                    <div className={cn(
+                      "overflow-hidden transition-all duration-300 ease-in-out",
+                      isTimeExpanded ? "max-h-[300px] opacity-100" : "max-h-0 opacity-0"
+                    )}>
+                      <div className="mt-4 pt-3 border-t border-border/50">
+                        <table className="text-xs">
+                          <thead>
+                            <tr className={cn(
+                              "border-b",
+                              isGame ? "border-white/20" : "border-border/50"
+                            )}>
+                              <th className={cn(
+                                "text-left py-2 font-medium",
+                                isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
+                              )}>
+                                Subject
+                              </th>
+                              <th></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr className={cn(
+                              "border-b",
+                              isGame ? "border-white/10" : "border-border/30"
+                            )}>
+                              <td className={cn(
+                                "py-2 pr-4",
+                                isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
+                              )}>
+                                Submission Date
+                              </td>
+                              <td className={cn(
+                                "py-2 font-semibold whitespace-nowrap",
+                                isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
+                              )}>
+                                {new Date(submissionTimestamp).toLocaleDateString("en-GB", {
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                  year: "numeric"
+                                })}
+                              </td>
+                            </tr>
+                            <tr className={cn(
+                              "border-b",
+                              isGame ? "border-white/10" : "border-border/30"
+                            )}>
+                              <td className={cn(
+                                "py-2 pr-4",
+                                isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
+                              )}>
+                                Deadline Date
+                              </td>
+                              <td className={cn(
+                                "py-2 font-semibold whitespace-nowrap",
+                                isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
+                              )}>
+                                {new Date(expiryTimestamp).toLocaleDateString("en-GB", {
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                  year: "numeric"
+                                })}
+                              </td>
+                            </tr>
+                            <tr className={cn(
+                              "border-b",
+                              isGame ? "border-white/10" : "border-border/30"
+                            )}>
+                              <td className={cn(
+                                "py-2 pr-4",
+                                isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
+                              )}>
+                                Submission Epoch
+                              </td>
+                              <td className={cn(
+                                "py-2 font-semibold whitespace-nowrap",
+                                isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
+                              )}>
+                                {submissionEpoch}
+                              </td>
+                            </tr>
+                            <tr>
+                              <td className={cn(
+                                "py-2 pr-4",
+                                isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
+                              )}>
+                                Valid Until Epoch
+                              </td>
+                              <td className={cn(
+                                "py-2 font-semibold whitespace-nowrap",
+                                isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
+                              )}>
+                                {(selectedAction.expiryEpoch > 0 ? selectedAction.expiryEpoch : submissionEpoch + 6) - 1}
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* Expand/Collapse Arrow */}
+                    <div className="flex justify-center items-center pt-3">
+                      <div
+                        className={cn(
+                          "flex w-full items-center justify-center px-3 py-1.5 cursor-pointer transition-all duration-300",
+                          isGame
+                            ? "game-expand-btn rounded-lg"
+                            : "rounded-lg border border-border/50 bg-card/50 hover:bg-white hover:shadow-lg hover:scale-[1.02] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:hover:bg-[#0bd1a2]/10 dark:hover:shadow-none"
+                        )}
+                        onClick={() => setIsTimeExpanded((prev) => !prev)}
+                      >
+                        <svg
+                          className={cn(
+                            "h-4 w-4 transition-transform duration-300",
+                            isTimeExpanded ? "rotate-180" : "",
+                            isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
+                          )}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
+                    </div>
                   </Card>
                 );
               })()}
@@ -1505,10 +1707,19 @@ export default function GovernanceDetail() {
                     <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                       <LineChart
                         data={voteTimelineData}
-                        margin={{ top: 5, right: 5, left: -20, bottom: 5 }}
+                        margin={{ top: 5, right: 30, left: -20, bottom: 5 }}
                       >
                         <CartesianGrid strokeDasharray="3 3" className="stroke-border/60" />
-                        <XAxis dataKey="label" tick={{ fontSize: 10 }} minTickGap={30} />
+                        <XAxis
+                          dataKey="label"
+                          tick={{ fontSize: 10 }}
+                          minTickGap={30}
+                          tickFormatter={(value) => {
+                            // Extract displayLabel from the data point
+                            const dataPoint = voteTimelineData.find(d => d.label === value);
+                            return dataPoint?.displayLabel || value;
+                          }}
+                        />
                         <YAxis
                           yAxisId="primary"
                           allowDecimals={false}
@@ -1681,18 +1892,18 @@ export default function GovernanceDetail() {
 function VoteTrendTooltip({
   active,
   payload,
-  label,
   showPower,
   colors,
+  isGame,
 }: {
   active?: boolean;
   payload?: Array<{
     payload?: unknown;
     [key: string]: unknown;
   }>;
-  label?: string;
   showPower: boolean;
   colors: VoteColorSet;
+  isGame: boolean;
 }) {
   if (!active || !payload?.length) {
     return null;
@@ -1731,9 +1942,12 @@ function VoteTrendTooltip({
   ];
 
   return (
-    <div className="rounded-md border bg-background/95 px-3 py-2 text-xs shadow-md">
+    <div className={cn(
+      "rounded-md bg-background/95 px-3 py-2 text-xs shadow-md",
+      !isGame && "border"
+    )}>
       <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-        {label}
+        {point.displayLabel}
       </div>
       <div className="mt-2 space-y-1.5">
         {rows.map((row) => (
@@ -1767,7 +1981,6 @@ function RoleLegend({
   segments,
   yesLabel,
   noLabel,
-  abstainLabel,
   pendingLabel,
   unit,
 }: {
@@ -1776,7 +1989,6 @@ function RoleLegend({
   // Legacy props for CC only (no breakdown data from API)
   yesLabel?: string;
   noLabel?: string;
-  abstainLabel?: string;
   pendingLabel?: string;
   unit: string;
 }) {
@@ -1787,9 +1999,13 @@ function RoleLegend({
   const items = segments && segments.length > 0
     ? segments.map((seg) => ({
         label: seg.label,
+        type: seg.type,
         value: formatAdaValue(seg.value),
-        color: `${seg.color}73`, // Apply 45% opacity to match donut inactive state
-        border: seg.type === "abstain" || seg.type === "notVoted" || seg.type === "excluded"
+        // For ANC with black color, don't apply opacity to keep it black
+        color: seg.type === "alwaysNoConfidence" && seg.color === "#000000"
+          ? seg.color
+          : `${seg.color}73`, // Apply 45% opacity to match donut inactive state
+        border: seg.type === "abstain" || seg.type === "notVoted" || seg.type === "excluded" || seg.type === "alwaysNoConfidence"
           ? "rgba(148, 163, 184, 0.85)"
           : "transparent",
       }))
@@ -1797,24 +2013,21 @@ function RoleLegend({
         // CC legacy fallback - uses SEGMENT_COLORS with 45% opacity
         {
           label: "Yes",
+          type: "yes",
           value: yesLabel ?? "0",
           color: `${SEGMENT_COLORS.yes}73`,
           border: "transparent",
         },
         {
           label: "No",
+          type: "no",
           value: noLabel ?? "0",
           color: `${SEGMENT_COLORS.no}73`,
           border: "transparent",
         },
         {
-          label: "Abstain",
-          value: abstainLabel ?? "0",
-          color: `${SEGMENT_COLORS.excluded}73`,
-          border: "rgba(148, 163, 184, 0.85)",
-        },
-        {
           label: "Not Voted",
+          type: "notVoted",
           value: pendingLabel ?? (unit === "ADA" ? "0 ₳" : "0 votes"),
           color: `${SEGMENT_COLORS.notVoted}73`,
           border: "rgba(148, 163, 184, 0.85)",
@@ -1823,10 +2036,10 @@ function RoleLegend({
 
   return (
     <div className={cn(
-      "w-full max-w-none px-2 py-0 sm:w-[240px] sm:px-3 sm:py-2 text-[10px] sm:text-xs",
+      "w-full max-w-none px-2 py-0 text-[10px] sm:text-xs",
       isGame
-        ? "border-none bg-transparent"
-        : "rounded-xl border border-border/60 bg-card/40 shadow-sm dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+        ? "sm:w-[180px] border-none bg-transparent"
+        : "sm:w-[240px] sm:px-3 sm:py-2 rounded-xl border border-border/60 bg-card/40 shadow-sm dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
     )}>
       <div className={cn(
         "mb-0.5 sm:mb-2 flex items-center justify-between text-[10px] sm:text-[11px] uppercase tracking-wide",
@@ -1835,13 +2048,19 @@ function RoleLegend({
         <span className={cn("font-semibold", isGame ? "text-white" : "dark:text-[#0bd1a2]")}>{role}</span>
         <span className={isGame ? "text-white" : "dark:text-[#0bd1a2]"}>{unit}</span>
       </div>
-      <div className="space-y-1.5">
+      <div className={cn("space-y-1.5", isGame && "space-y-1")}>
         {items.map((item) => (
           <div
             key={item.label}
-            className="flex items-start justify-between gap-2"
+            className={cn(
+              "flex items-start justify-between",
+              isGame ? "gap-1" : "gap-2"
+            )}
           >
-            <div className="flex items-start gap-2 min-w-0 flex-1">
+            <div className={cn(
+              "flex items-start min-w-0 flex-1",
+              isGame ? "gap-1.5" : "gap-2"
+            )}>
               <span
                 className="h-2.5 w-2.5 border shrink-0 mt-0.5"
                 style={{
@@ -1849,12 +2068,30 @@ function RoleLegend({
                   borderColor: item.border,
                 }}
               />
-              <span className={cn(
-                "font-semibold leading-tight",
-                isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
-              )}>
-                {item.label}
-              </span>
+              <div className="flex items-center gap-1">
+                <span className={cn(
+                  "font-semibold leading-tight",
+                  isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
+                )}>
+                  {item.label}
+                </span>
+                {item.type === "alwaysNoConfidence" && (
+                  <div className="group relative inline-block">
+                    <Info className={cn(
+                      "h-3 w-3 cursor-help",
+                      isGame ? "text-white/60" : "text-muted-foreground dark:text-[#0bd1a2]/60"
+                    )} />
+                    <div className={cn(
+                      "absolute left-0 bottom-full mb-1 hidden group-hover:block z-50 w-max max-w-[200px] rounded px-2 py-1 text-[10px] shadow-lg",
+                      isGame
+                        ? "bg-black/90 text-white border border-white/20"
+                        : "bg-popover text-popover-foreground border border-border"
+                    )}>
+                      Always No Confidence
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
             <span className={cn(
               "font-mono text-[11px] shrink-0 text-right",
@@ -1873,57 +2110,116 @@ function ExcludedBreakdownDisplay({
   role,
   breakdown,
   isInfoAction = false,
+  isExpanded,
+  setIsExpanded,
 }: {
-  role: "DRep" | "SPO";
-  breakdown: ExcludedBreakdown | null;
+  role: "DRep" | "SPO" | "CC";
+  breakdown: ExcludedBreakdown | { abstain: number } | null;
   isInfoAction?: boolean;
+  isExpanded: boolean;
+  setIsExpanded: (value: boolean) => void;
 }) {
   const { activeTheme } = useTheme();
   const isGame = activeTheme.id === "game";
 
-  if (!breakdown || breakdown.total === 0) return null;
+  if (!breakdown) return null;
 
-  const items = [
-    { label: "Active Abstain", value: breakdown.activeAbstain },
-    { label: "Always Abstain", value: breakdown.alwaysAbstain },
-    ...(breakdown.inactive !== undefined && role === "DRep"
-      ? [{ label: "Inactive", value: breakdown.inactive }]
-      : []),
-  ];
+  // CC uses simple abstain count, DRep/SPO use full breakdown
+  const isCC = role === "CC";
+  const ccAbstain = isCC && "abstain" in breakdown ? breakdown.abstain : 0;
+  const fullBreakdown = !isCC && "total" in breakdown ? breakdown : null;
+
+  // For CC: always show the excluded section (even if 0)
+  // For DRep/SPO: only show if there's actual excluded data
+  if (!isCC && (!fullBreakdown || fullBreakdown.total === 0)) return null;
+
+  const items = isCC
+    ? [{ label: "Abstain", value: ccAbstain }]
+    : [
+        { label: "Active Abstain", value: fullBreakdown!.activeAbstain },
+        { label: "Always Abstain", value: fullBreakdown!.alwaysAbstain },
+        ...(fullBreakdown!.inactive !== undefined && role === "DRep"
+          ? [{ label: "Inactive", value: fullBreakdown!.inactive }]
+          : []),
+      ];
+
+  const totalValue = isCC ? ccAbstain : fullBreakdown!.total;
 
   return (
     <div className={cn(
-      "hidden sm:block w-full max-w-[200px] sm:w-[240px] sm:max-w-none px-3 py-2 text-xs mt-1 sm:mt-2",
+      "hidden sm:block w-full max-w-[200px] sm:max-w-none text-xs mt-1 sm:mt-2",
       isGame
-        ? "border-none bg-transparent"
-        : "rounded-xl border border-dashed border-border/40 bg-card/20 dark:rounded-none dark:border-[#0bd1a2]/50 dark:bg-transparent"
+        ? "sm:w-[180px] border-none bg-transparent"
+        : "sm:w-[240px] rounded-xl border border-dashed border-border/40 bg-card/20 dark:rounded-none dark:border-[#0bd1a2]/50 dark:bg-transparent"
     )}>
-      <div className={cn(
-        "mb-2 text-[10px] uppercase tracking-wide",
-        isGame ? "text-white/60" : "text-muted-foreground/70 dark:text-[#0bd1a2]/70"
-      )}>
-        {isInfoAction ? "Excluded" : "Excluded from ratification"}
-      </div>
-      <div className="space-y-1">
-        {items.map((item) => (
-          <div
-            key={item.label}
-            className="flex items-center justify-between gap-3"
+      {/* Header with total - always visible */}
+      <div
+        className={cn(
+          "flex items-center justify-between px-3 py-2 cursor-pointer",
+          isGame ? "text-white/60" : "text-muted-foreground/70 dark:text-[#0bd1a2]/70"
+        )}
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <div className="text-[10px] uppercase tracking-wide">
+          {isInfoAction ? "Excluded" : "Excluded from ratification"}
+        </div>
+        <div className="flex items-center gap-2">
+          <span className={cn(
+            "font-mono text-[10px]",
+            isGame ? "text-white/60" : "text-muted-foreground/80 dark:text-[#0bd1a2]/70"
+          )}>
+            {isCC ? `${totalValue}` : formatAdaValue(totalValue)}
+          </span>
+          <svg
+            className={cn(
+              "h-3 w-3 transition-transform duration-300",
+              isExpanded ? "rotate-180" : "",
+              isGame ? "text-white/60" : "text-foreground dark:text-[#0bd1a2]"
+            )}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
           >
-            <span className={cn(
-              "text-[10px]",
-              isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
-            )}>
-              {item.label}
-            </span>
-            <span className={cn(
-              "font-mono text-[10px]",
-              isGame ? "text-white/60" : "text-muted-foreground/80 dark:text-[#0bd1a2]/70"
-            )}>
-              {formatAdaValue(item.value)}
-            </span>
-          </div>
-        ))}
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </div>
+
+      {/* Expandable breakdown details */}
+      <div className={cn(
+        "overflow-hidden transition-all duration-300 ease-in-out",
+        isExpanded ? "max-h-[200px] opacity-100" : "max-h-0 opacity-0"
+      )}>
+        <div className={cn(
+          "px-3 pb-2 border-t",
+          isGame ? "border-white/10" : "border-border/20 dark:border-[#0bd1a2]/20",
+          isGame && "space-y-0.5",
+          !isGame && "space-y-1"
+        )}>
+          <div className="h-2" /> {/* Spacer */}
+          {items.map((item) => (
+            <div
+              key={item.label}
+              className={cn(
+                "flex items-center justify-between",
+                isGame ? "gap-1" : "gap-3"
+              )}
+            >
+              <span className={cn(
+                "text-[10px]",
+                isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
+              )}>
+                {item.label}
+              </span>
+              <span className={cn(
+                "font-mono text-[10px]",
+                isGame ? "text-white/60" : "text-muted-foreground/80 dark:text-[#0bd1a2]/70"
+              )}>
+                {isCC ? `${item.value}` : formatAdaValue(item.value)}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

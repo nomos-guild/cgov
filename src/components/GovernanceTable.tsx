@@ -572,10 +572,12 @@ export function GovernanceTable() {
                   ? (ccData.notVotedPercent ?? 0)
                   : 100; // No CC data means 100% not voted
 
+                const rowId = action.proposalId ?? action.hash;
+
                 return (
                   <TableRow
-                    key={action.proposalId ?? action.hash}
-                    className={`proposal-row cursor-pointer transition-transform duration-300 ease-out transform-gpu hover:scale-[1.01] hover:bg-transparent border-b-0 ${
+                    key={rowId}
+                    className={`proposal-row cursor-pointer transition-all duration-300 ease-out transform-gpu hover:scale-[1.01] hover:bg-transparent border-b-0 ${
                       isFirstRow ? "first-row" : ""
                     }`}
                     onClick={() => router.push(`/governance/${action.hash}`)}
@@ -713,7 +715,9 @@ export function GovernanceTable() {
                       </div>
                     </TableCell>
                     <TableCell className="py-1 sm:py-1.5 md:border-l md:border-border/50 pl-2 sm:pl-4">
-                      <h3 className="text-sm sm:text-base font-semibold dark:text-[#0bd1a2] line-clamp-2">{action.title}</h3>
+                      <h3 className="text-sm sm:text-base font-semibold line-clamp-2 dark:text-[#0bd1a2]">
+                        {action.title}
+                      </h3>
                     </TableCell>
                     <TableCell className="hidden sm:table-cell py-1 sm:py-1.5">
                       <span className="text-[10px] sm:text-xs uppercase tracking-wide font-semibold text-foreground dark:text-[#0bd1a2]">

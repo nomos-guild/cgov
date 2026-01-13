@@ -77,7 +77,8 @@ export function GovernanceStats() {
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6 game-stats">
       {/* Proposal Counter Box */}
       <div className="rounded-2xl border border-white/8 bg-[#faf9f6] p-2.5 sm:p-3 md:p-4 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none">
-        <div className="grid grid-cols-4 sm:flex sm:flex-wrap items-center gap-2 sm:gap-4 md:gap-6 lg:gap-8">
+        <div className="flex flex-col gap-3">
+          {/* First row: Total */}
           <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-2">
             <span className="text-xl sm:text-2xl md:text-3xl font-bold dark:text-[#0bd1a2]">{stats.total}</span>
             <span className="text-[10px] sm:text-xs md:text-sm text-muted-foreground uppercase tracking-wide dark:text-[#0bd1a2]">
@@ -85,35 +86,34 @@ export function GovernanceStats() {
             </span>
           </div>
 
-          <div className="h-6 sm:h-8 w-px bg-border hidden md:block dark:bg-[#0bd1a2]/60" />
+          {/* Second row: Active, Ratified, Expired */}
+          <div className="flex items-center gap-4 sm:gap-6 md:gap-8">
+            <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-2">
+              <span className="text-lg sm:text-xl md:text-2xl font-semibold dark:text-[#0bd1a2]">
+                {stats.active}
+              </span>
+              <span className="text-[10px] sm:text-xs md:text-sm text-muted-foreground dark:text-[#0bd1a2]">
+                Active
+              </span>
+            </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-2">
-            <span className="text-lg sm:text-xl md:text-2xl font-semibold dark:text-[#0bd1a2]">
-              {stats.active}
-            </span>
-            <span className="text-[10px] sm:text-xs md:text-sm text-muted-foreground dark:text-[#0bd1a2]">
-              Active
-            </span>
-          </div>
+            <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-2">
+              <span className="text-lg sm:text-xl md:text-2xl font-semibold dark:text-[#0bd1a2]">
+                {stats.ratified}
+              </span>
+              <span className="text-[10px] sm:text-xs md:text-sm text-muted-foreground dark:text-[#0bd1a2]">
+                Ratified
+              </span>
+            </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-2">
-            <span className="text-lg sm:text-xl md:text-2xl font-semibold dark:text-[#0bd1a2]">
-              {stats.ratified}
-            </span>
-            <span className="text-[10px] sm:text-xs md:text-sm text-muted-foreground dark:text-[#0bd1a2]">
-              Ratified
-            </span>
-          </div>
-
-          <div className="h-6 sm:h-8 w-px bg-border hidden md:block dark:bg-[#0bd1a2]/60" />
-
-          <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-2">
-            <span className="text-lg sm:text-xl md:text-2xl font-semibold dark:text-[#0bd1a2]">
-              {stats.expired}
-            </span>
-            <span className="text-[10px] sm:text-xs md:text-sm text-muted-foreground dark:text-[#0bd1a2]">
-              Expired
-            </span>
+            <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-2">
+              <span className="text-lg sm:text-xl md:text-2xl font-semibold dark:text-[#0bd1a2]">
+                {stats.expired}
+              </span>
+              <span className="text-[10px] sm:text-xs md:text-sm text-muted-foreground dark:text-[#0bd1a2]">
+                Expired
+              </span>
+            </div>
           </div>
         </div>
       </div>

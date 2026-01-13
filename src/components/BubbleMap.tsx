@@ -59,46 +59,46 @@ function getVotingPowerAda(vote: VoteRecord): number {
   return 0;
 }
 
-function getVoteColors(vote: VoteRecord["vote"], voterType?: VoteRecord["voterType"]): VoteColors {
+function getVoteColors(vote: VoteRecord["vote"], voterType?: VoteRecord["voterType"], isDark: boolean = false): VoteColors {
   // CC bubbles get special styling with distinct colors and patterns
   if (voterType === "CC") {
     switch (vote) {
       case "Yes":
         return {
-          fill: "rgba(11, 140, 48, 0.9)", // More opaque for CC
-          border: "rgb(11, 140, 48)", // Stronger border matching fill
+          fill: isDark ? "rgba(11, 140, 48, 0.9)" : "rgba(34, 197, 94, 0.25)", // Softer, more elegant green for light theme
+          border: isDark ? "rgb(11, 140, 48)" : "rgb(34, 197, 94)", // Brighter green border for light theme
         };
       case "No":
         return {
-          fill: "rgba(140, 32, 11, 0.9)", // More opaque for CC
-          border: "rgb(140, 32, 11)", // Stronger border matching fill
+          fill: isDark ? "rgba(140, 32, 11, 0.9)" : "rgba(140, 32, 11, 0.2)", // Softer red for light theme
+          border: isDark ? "rgb(140, 32, 11)" : "rgb(140, 32, 11)", // Keep consistent red border
         };
       case "Abstain":
       default:
         return {
-          fill: "rgba(148, 163, 184, 0.9)", // More opaque gray for CC
-          border: "rgb(148, 163, 184)", // Stronger border
+          fill: isDark ? "rgba(148, 163, 184, 0.9)" : "rgba(148, 163, 184, 0.15)", // Very subtle gray for light theme
+          border: isDark ? "rgb(148, 163, 184)" : "rgb(100, 116, 139)", // Darker gray border for better contrast
         };
     }
   }
 
-  // Regular styling for DRep and SPO
+  // Regular styling for DRep and SPO - elegant colors for light theme
   switch (vote) {
     case "Yes":
       return {
-        fill: "rgba(11, 140, 48, 0.7)", // Less transparent green fill
-        border: "rgb(11, 140, 48)", // Stronger border
+        fill: isDark ? "rgba(11, 140, 48, 0.7)" : "rgba(34, 197, 94, 0.18)", // Very soft, elegant green
+        border: isDark ? "rgb(11, 140, 48)" : "rgb(22, 163, 74)", // Refined green border
       };
     case "No":
       return {
-        fill: "rgba(140, 32, 11, 0.7)", // Less transparent red fill
-        border: "rgb(140, 32, 11)", // Stronger border
+        fill: isDark ? "rgba(140, 32, 11, 0.7)" : "rgba(140, 32, 11, 0.15)", // Subtle, sophisticated red
+        border: isDark ? "rgb(140, 32, 11)" : "rgb(127, 29, 10)", // Deep red border
       };
     case "Abstain":
     default:
       return {
-        fill: "rgba(148, 163, 184, 0.7)", // Neutral gray fill for better contrast
-        border: "rgb(148, 163, 184)", // Stronger gray border
+        fill: isDark ? "rgba(148, 163, 184, 0.7)" : "rgba(148, 163, 184, 0.12)", // Barely-there gray
+        border: isDark ? "rgb(148, 163, 184)" : "rgb(100, 116, 139)", // Medium slate border
       };
   }
 }
@@ -188,7 +188,7 @@ export function BubbleMap({ votes }: BubbleMapProps) {
       // Skip root node
       if (node.data && node.data.vote && !node.children) {
         const vote = node.data.vote as VoteRecord;
-        const palette = getVoteColors(vote.vote, vote.voterType);
+        const palette = getVoteColors(vote.vote, vote.voterType, isDark);
 
         bubbles.push({
           x: node.x,
@@ -354,7 +354,29 @@ export function BubbleMap({ votes }: BubbleMapProps) {
             preserveAspectRatio="xMidYMid meet"
           >
             <defs>
-              <filter id="bubble-shadow" x="-200%" y="-200%" width="500%" height="500%">
+              {/* Light theme elegant shadows - softer and more refined */}
+              <filter id="bubble-shadow-light" x="-200%" y="-200%" width="500%" height="500%">
+                <feGaussianBlur in="SourceAlpha" stdDeviation="8" result="blur"/>
+                <feOffset dx="0" dy="3" in="blur" result="offsetblur"/>
+                <feFlood floodColor="rgba(0, 0, 0)" floodOpacity="0.08" result="shadowColor"/>
+                <feComposite in="shadowColor" in2="offsetblur" operator="in" result="shadow"/>
+                <feMerge>
+                  <feMergeNode in="shadow"/>
+                  <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+              </filter>
+              <filter id="bubble-shadow-hover-light" x="-200%" y="-200%" width="500%" height="500%">
+                <feGaussianBlur in="SourceAlpha" stdDeviation="12" result="blur"/>
+                <feOffset dx="0" dy="6" in="blur" result="offsetblur"/>
+                <feFlood floodColor="rgba(0, 0, 0)" floodOpacity="0.12" result="shadowColor"/>
+                <feComposite in="shadowColor" in2="offsetblur" operator="in" result="shadow"/>
+                <feMerge>
+                  <feMergeNode in="shadow"/>
+                  <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+              </filter>
+              {/* Dark theme shadows - stronger */}
+              <filter id="bubble-shadow-dark" x="-200%" y="-200%" width="500%" height="500%">
                 <feGaussianBlur in="SourceAlpha" stdDeviation="15" result="blur"/>
                 <feOffset dx="0" dy="12" in="blur" result="offsetblur"/>
                 <feFlood floodColor="rgba(15, 23, 42)" floodOpacity="0.25" result="shadowColor"/>
@@ -364,7 +386,7 @@ export function BubbleMap({ votes }: BubbleMapProps) {
                   <feMergeNode in="SourceGraphic"/>
                 </feMerge>
               </filter>
-              <filter id="bubble-shadow-hover" x="-200%" y="-200%" width="500%" height="500%">
+              <filter id="bubble-shadow-hover-dark" x="-200%" y="-200%" width="500%" height="500%">
                 <feGaussianBlur in="SourceAlpha" stdDeviation="20" result="blur"/>
                 <feOffset dx="0" dy="16" in="blur" result="offsetblur"/>
                 <feFlood floodColor="rgba(15, 23, 42)" floodOpacity="0.35" result="shadowColor"/>
@@ -401,19 +423,48 @@ export function BubbleMap({ votes }: BubbleMapProps) {
                   <feMergeNode in="SourceGraphic"/>
                 </feMerge>
               </filter>
-              {/* CC bubble pattern - diagonal stripes */}
-              <pattern id="cc-pattern-yes" x="0" y="0" width="8" height="8" patternUnits="userSpaceOnUse">
+              {/* CC bubble pattern - elegant diagonal stripes for light theme */}
+              <pattern id="cc-pattern-yes-light" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
+                <rect width="10" height="10" fill="rgba(34, 197, 94, 0.25)"/>
+                <path d="M0,0 L10,10 M-2,8 L2,12 M8,-2 L12,2" stroke="rgba(34, 197, 94, 0.35)" strokeWidth="1.5"/>
+              </pattern>
+              <pattern id="cc-pattern-no-light" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
+                <rect width="10" height="10" fill="rgba(140, 32, 11, 0.2)"/>
+                <path d="M0,0 L10,10 M-2,8 L2,12 M8,-2 L12,2" stroke="rgba(140, 32, 11, 0.3)" strokeWidth="1.5"/>
+              </pattern>
+              <pattern id="cc-pattern-abstain-light" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
+                <rect width="10" height="10" fill="rgba(148, 163, 184, 0.15)"/>
+                <path d="M0,0 L10,10 M-2,8 L2,12 M8,-2 L12,2" stroke="rgba(100, 116, 139, 0.25)" strokeWidth="1.5"/>
+              </pattern>
+              {/* CC bubble pattern - dark theme (original) */}
+              <pattern id="cc-pattern-yes-dark" x="0" y="0" width="8" height="8" patternUnits="userSpaceOnUse">
                 <rect width="8" height="8" fill="rgba(11, 140, 48, 0.9)"/>
                 <path d="M0,0 L8,8" stroke="rgba(11, 140, 48, 0.5)" strokeWidth="1.5"/>
               </pattern>
-              <pattern id="cc-pattern-no" x="0" y="0" width="8" height="8" patternUnits="userSpaceOnUse">
+              <pattern id="cc-pattern-no-dark" x="0" y="0" width="8" height="8" patternUnits="userSpaceOnUse">
                 <rect width="8" height="8" fill="rgba(140, 32, 11, 0.9)"/>
                 <path d="M0,0 L8,8" stroke="rgba(140, 32, 11, 0.5)" strokeWidth="1.5"/>
               </pattern>
-              <pattern id="cc-pattern-abstain" x="0" y="0" width="8" height="8" patternUnits="userSpaceOnUse">
+              <pattern id="cc-pattern-abstain-dark" x="0" y="0" width="8" height="8" patternUnits="userSpaceOnUse">
                 <rect width="8" height="8" fill="rgba(148, 163, 184, 0.9)"/>
                 <path d="M0,0 L8,8" stroke="rgba(148, 163, 184, 0.5)" strokeWidth="1.5"/>
               </pattern>
+              {/* Elegant radial gradients for light theme bubbles */}
+              <radialGradient id="bubble-gradient-yes-light">
+                <stop offset="0%" stopColor="rgba(34, 197, 94, 0.22)"/>
+                <stop offset="70%" stopColor="rgba(34, 197, 94, 0.18)"/>
+                <stop offset="100%" stopColor="rgba(34, 197, 94, 0.12)"/>
+              </radialGradient>
+              <radialGradient id="bubble-gradient-no-light">
+                <stop offset="0%" stopColor="rgba(140, 32, 11, 0.18)"/>
+                <stop offset="70%" stopColor="rgba(140, 32, 11, 0.15)"/>
+                <stop offset="100%" stopColor="rgba(140, 32, 11, 0.1)"/>
+              </radialGradient>
+              <radialGradient id="bubble-gradient-abstain-light">
+                <stop offset="0%" stopColor="rgba(148, 163, 184, 0.15)"/>
+                <stop offset="70%" stopColor="rgba(148, 163, 184, 0.12)"/>
+                <stop offset="100%" stopColor="rgba(148, 163, 184, 0.08)"/>
+              </radialGradient>
               {/* Game theme text gradient */}
               <linearGradient id="game-text-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
                 <stop offset="0%" stopColor="rgba(255, 255, 255, 0.9)"/>
@@ -442,28 +493,58 @@ export function BubbleMap({ votes }: BubbleMapProps) {
               </filter>
             </defs>
           {visibleBubbles.map((bubble, index) => {
-            const palette = getVoteColors(bubble.vote.vote, bubble.vote.voterType);
+            const palette = getVoteColors(bubble.vote.vote, bubble.vote.voterType, isDark);
             const isCC = bubble.vote.voterType === "CC";
             const isHovered = hoveredBubbleId === `${bubble.vote.voterId}-${index}`;
             const scale = isHovered ? 1.1 : 1;
-            const filters = isHovered ? "url(#bubble-shadow-hover)" : "url(#bubble-shadow)";
 
-            // CC bubbles get pattern fill and thicker border
-            const patternId = isCC 
-              ? (bubble.vote.vote === "Yes" ? "cc-pattern-yes" : bubble.vote.vote === "No" ? "cc-pattern-no" : "cc-pattern-abstain")
-              : null;
-            
-            // Game theme: gradient fills (dark on right, normal on left)
-            const getGameFill = () => {
+            // Get appropriate shadow filter based on theme and hover state
+            const getShadowFilter = () => {
+              if (isGame) return ""; // No shadow for game theme
+              if (isDark) {
+                return isHovered ? "url(#bubble-shadow-hover-dark)" : "url(#bubble-shadow-dark)";
+              }
+              return isHovered ? "url(#bubble-shadow-hover-light)" : "url(#bubble-shadow-light)";
+            };
+
+            const filters = getShadowFilter();
+
+            // Get appropriate fill based on theme and voter type
+            const getFillColor = () => {
+              // Game theme: gradient fills (dark on right, normal on left)
+              if (isGame) {
+                switch (bubble.vote.vote) {
+                  case "Yes": return "url(#game-bubble-yes)";
+                  case "No": return "url(#game-bubble-no)";
+                  default: return "url(#game-bubble-abstain)";
+                }
+              }
+
+              // Dark theme: transparent fill
+              if (isDark) {
+                return "transparent";
+              }
+
+              // Light theme: elegant fills
+              // CC bubbles get pattern fill
+              if (isCC) {
+                switch (bubble.vote.vote) {
+                  case "Yes": return "url(#cc-pattern-yes-light)";
+                  case "No": return "url(#cc-pattern-no-light)";
+                  default: return "url(#cc-pattern-abstain-light)";
+                }
+              }
+
+              // Regular bubbles get radial gradient fill
               switch (bubble.vote.vote) {
-                case "Yes": return "url(#game-bubble-yes)";
-                case "No": return "url(#game-bubble-no)";
-                default: return "url(#game-bubble-abstain)";
+                case "Yes": return "url(#bubble-gradient-yes-light)";
+                case "No": return "url(#bubble-gradient-no-light)";
+                default: return "url(#bubble-gradient-abstain-light)";
               }
             };
-            
-            const fillColor = isGame ? getGameFill() : isDark ? "transparent" : patternId ? `url(#${patternId})` : palette.fill;
-            const strokeWidth = isGame ? "0" : isDark ? "1.4" : isCC ? "3" : "2";
+
+            const fillColor = getFillColor();
+            const strokeWidth = isGame ? "0" : isDark ? "1.4" : isCC ? "2.5" : "1.8";
             const strokeColor = isGame ? "transparent" : palette.border;
 
             // Find index in sorted bubbles for animation timing

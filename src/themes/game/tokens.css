@@ -178,6 +178,40 @@
     0 5px 10px rgba(0, 0, 0, 0.4);
 }
 
+[data-theme="game"] .game-expand-btn {
+  position: relative;
+  background: linear-gradient(to bottom, #171717, #242424);
+  border: 1px solid #292929;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 1),
+    0 10px 20px rgba(0, 0, 0, 0.4);
+  transition: all 0.2s ease;
+}
+
+[data-theme="game"] .game-expand-btn::before {
+  content: "";
+  position: absolute;
+  top: -2px;
+  right: -1px;
+  bottom: -1px;
+  left: -1px;
+  background: linear-gradient(to bottom, #292929, #000000);
+  z-index: -1;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+  opacity: 1;
+}
+
+[data-theme="game"] .game-expand-btn:hover {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+[data-theme="game"] .game-expand-btn:hover::before {
+  opacity: 0;
+}
+
 [data-theme="game"] .game-nav-input {
   position: relative;
   background: linear-gradient(to bottom, #171717, #242424);
