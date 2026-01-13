@@ -249,7 +249,7 @@ export function buildDonutSegments(
       percent: (segments.alwaysNoConfidence / total) * 100,
       value: segments.alwaysNoConfidence,
       color: alwaysNoConfidenceColor,
-      label: "Always No Confidence",
+      label: "ANC",
     });
   }
 
@@ -309,7 +309,7 @@ export function buildLegendSegments(
       percent: total > 0 ? (segments.alwaysNoConfidence / total) * 100 : 0,
       value: segments.alwaysNoConfidence,
       color: alwaysNoConfidenceColor,
-      label: "Always No Confidence",
+      label: "ANC",
     },
     {
       type: "notVoted",

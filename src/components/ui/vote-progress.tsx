@@ -360,12 +360,13 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
               >
               {data.map((entry, index) => {
                 const baseColor = getColor(entry, index);
+                const isAlwaysNoConfidence = entry.type === "alwaysNoConfidence";
                 return (
                   <Cell
                     key={`cell-${index}`}
                     fill={baseColor}
-                    stroke="transparent"
-                    strokeWidth={0}
+                    stroke={isAlwaysNoConfidence ? "rgba(156, 163, 175, 0.8)" : "transparent"}
+                    strokeWidth={isAlwaysNoConfidence ? 1 : 0}
                     style={{
                       transition: "all 0.2s ease-in-out",
                       transform:
@@ -401,7 +402,14 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
         )}
         <div
           className="recharts-no-box relative overflow-visible"
-          style={{ width: 132, height: 132, minWidth: 132, minHeight: 132, cursor: 'inherit' }}
+          style={{
+            width: 132,
+            height: 132,
+            minWidth: 132,
+            minHeight: 132,
+            cursor: 'inherit',
+            filter: isDark ? 'none' : 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15)) drop-shadow(0 -2px 4px rgba(0, 0, 0, 0.08))'
+          }}
           onMouseLeave={(e) => {
             // Ensure we're actually leaving the container, not just moving to a child.
             // In some edge cases, relatedTarget may be a non-Node (e.g. window), which
@@ -478,6 +486,7 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
                 const isPending = entry.type === "pending";
                 const isExcluded = entry.type === "excluded";
                 const isNotVoted = entry.type === "notVoted";
+                const isAlwaysNoConfidence = entry.type === "alwaysNoConfidence";
                 const baseColor = getColor(entry, index);
 
                 // Determine stroke color
@@ -487,12 +496,14 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
                   strokeColor = entry.color;
                 } else if (isAbstain || isPending || isExcluded || isNotVoted) {
                   strokeColor = "rgba(15, 23, 42, 0.35)";
+                } else if (isAlwaysNoConfidence) {
+                  strokeColor = "rgba(156, 163, 175, 0.8)";
                 } else {
                   strokeColor = "transparent";
                 }
 
                 // Determine stroke width
-                const needsStroke = isAbstain || isPending || isExcluded || isNotVoted;
+                const needsStroke = isAbstain || isPending || isExcluded || isNotVoted || isAlwaysNoConfidence;
                 const strokeWidth = isDark ? 1.4 : needsStroke ? 1.2 : 0;
 
                 return (
