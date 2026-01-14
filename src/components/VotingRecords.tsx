@@ -100,9 +100,17 @@ function MultiSelectDropdown({
   }, [isOpen, onOpenChange]);
 
   const handleToggle = (value: string) => {
-    if (selected.includes(value)) {
+    // If currently all items are selected or no items are selected (showing "All")
+    // clicking any specific item should select only that item
+    if (isAllSelected || selected.length === 0) {
+      onSelectionChange([value]);
+    }
+    // If the clicked item is already selected, deselect it
+    else if (selected.includes(value)) {
       onSelectionChange(selected.filter((v) => v !== value));
-    } else {
+    }
+    // Otherwise, add it to the selection
+    else {
       onSelectionChange([...selected, value]);
     }
   };
