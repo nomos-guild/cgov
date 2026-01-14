@@ -86,6 +86,29 @@ function epochToTimestamp(epoch: number): number {
 }
 
 /**
+ * Convert IPFS URI to a gateway URL
+ * Supports: ipfs://<cid>, ipfs:<cid>, <cid>
+ */
+function convertIpfsToGateway(uri: string): string {
+  if (!uri) return uri;
+
+  // Check if it's an IPFS URI
+  const ipfsMatch = uri.match(/^(?:ipfs:\/\/|ipfs:)(.+)$/i);
+  if (ipfsMatch) {
+    const cid = ipfsMatch[1];
+    return `https://ipfs.io/ipfs/${cid}`;
+  }
+
+  // Check if it's a raw CID (starts with Qm or b for CIDv0/v1)
+  if (/^(Qm[a-zA-Z0-9]{44}|b[a-z2-7]{58})/.test(uri)) {
+    return `https://ipfs.io/ipfs/${uri}`;
+  }
+
+  // Return original URI if not IPFS
+  return uri;
+}
+
+/**
  * Legacy governance actions with special voting rules
  */
 const LEGACY_NON_APPLICABLE_DREP_ACTIONS = [
@@ -816,7 +839,8 @@ export default function GovernanceDetail() {
                           </h4>
                           <div className="space-y-2 proposal-detail-content">
                             {contentPreview.references.map((ref, index) => {
-                              const href = ref.uri || ref.label || "#";
+                              const originalUri = ref.uri || ref.label || "#";
+                              const href = convertIpfsToGateway(originalUri);
                               const label = ref.label || ref.uri || href;
                               return (
                                 <a

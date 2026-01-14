@@ -254,11 +254,19 @@ export function GovernanceTable() {
   const remainingProposals = filteredActions.length - INITIAL_PROPOSALS_LIMIT;
 
   const handleToggleType = (type: ProposalType) => {
-    const isChecked = selectedTypes.includes(type);
-    const nextSelection = isChecked
-      ? selectedTypes.filter((item) => item !== type)
-      : [...selectedTypes, type];
-    dispatch(setSelectedTypes(nextSelection));
+    // If currently all items are selected or no items are selected (showing "All")
+    // clicking any specific item should select only that item
+    if (isAllSelected || selectedTypes.length === 0) {
+      dispatch(setSelectedTypes([type]));
+    }
+    // If the clicked item is already selected, deselect it
+    else if (selectedTypes.includes(type)) {
+      dispatch(setSelectedTypes(selectedTypes.filter((item) => item !== type)));
+    }
+    // Otherwise, add it to the selection
+    else {
+      dispatch(setSelectedTypes([...selectedTypes, type]));
+    }
   };
 
   const handleSelectAll = () => {
@@ -274,11 +282,19 @@ export function GovernanceTable() {
   };
 
   const handleToggleStatus = (status: ProposalStatus) => {
-    const isChecked = selectedStatuses.includes(status);
-    const nextSelection = isChecked
-      ? selectedStatuses.filter((item) => item !== status)
-      : [...selectedStatuses, status];
-    dispatch(setSelectedStatuses(nextSelection));
+    // If currently all items are selected or no items are selected (showing "All")
+    // clicking any specific item should select only that item
+    if (isAllStatusesSelected || selectedStatuses.length === 0) {
+      dispatch(setSelectedStatuses([status]));
+    }
+    // If the clicked item is already selected, deselect it
+    else if (selectedStatuses.includes(status)) {
+      dispatch(setSelectedStatuses(selectedStatuses.filter((item) => item !== status)));
+    }
+    // Otherwise, add it to the selection
+    else {
+      dispatch(setSelectedStatuses([...selectedStatuses, status]));
+    }
   };
 
   const handleSelectAllStatuses = () => {
