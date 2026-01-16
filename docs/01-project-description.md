@@ -2,16 +2,20 @@
 
 ## Overview
 
-Cardano Governance Tracking Dashboard built with Next.js/TypeScript to monitor on-chain governance actions and voting records.
+Cardano Governance Tracking Dashboard built with Next.js/TypeScript to monitor on-chain governance actions and voting records. Implements CIP-1694 governance visualization for the Conway era.
 
 ## Features
 
-- Aggregate governance statistics dashboard
-- Filterable governance actions table (by type: Info actions, Treasury withdrawals, New constitutions)
+- Aggregate governance statistics dashboard with NCL (Net Change Limit) tracking
+- Filterable governance actions table (by type and status)
 - Detailed governance action pages with voting records
-- DRep and SPO voting data with percentages and ADA amounts
-- Search and filter voting records by DRep name/ID and vote type
-- Status tracking: Active, Ratified, Expired, Approved, Not approved
+- Three voter types: DRep (stake-weighted), SPO (stake-weighted), CC (count-based)
+- Vote breakdown visualization with donut charts
+- Search and filter voting records by voter name/ID, vote type, and rationale
+- Export voting rationales (JSON, Markdown, CSV)
+- Threshold progress indicators per voter type
+- Dark/Light/Game theme support
+- Wallet connection for vote submission (Mesh SDK)
 
 ## Tech Stack
 
@@ -19,100 +23,252 @@ Cardano Governance Tracking Dashboard built with Next.js/TypeScript to monitor o
 - Next.js Pages Router (/, /governance/[hash], /404)
 - Redux Toolkit (state management)
 - Radix UI + Tailwind CSS (shadcn/ui style components)
+- Recharts (donut charts, line charts)
+- D3.js (bubble map visualization)
 - date-fns, lucide-react
-- Mesh SDK (Cardano blockchain integration)
+- Mesh SDK (Cardano wallet integration)
 
 ## Project Structure
 
 ```text
 src/
 ├── components/
-│   ├── ui/                    # shadcn-ui components (button, card, table, etc.)
-│   ├── GovernanceStats.tsx    # Statistics cards
-│   ├── GovernanceTable.tsx    # Actions table with tabs
-│   └── VotingRecords.tsx      # Votes table with search/filter
+│   ├── ui/                           # shadcn-ui components (button, card, table, vote-progress, etc.)
+│   ├── layout/                       # Layout components (Header, Footer)
+│   ├── governance/                   # Governance-specific components (VoteOnProposal, VoteButtons)
+│   ├── GovernanceStats.tsx           # Statistics cards with NCL progress
+│   ├── GovernanceTable.tsx           # Actions table with filtering
+│   ├── VotingRecords.tsx             # Votes table with search/filter/export
+│   ├── VotingSummary.tsx             # Vote count statistics
+│   ├── BubbleMap.tsx                 # D3.js voter visualization
+│   └── ProposalContent.tsx           # Markdown content renderer
 ├── pages/
-│   ├── index.tsx              # Dashboard
-│   ├── governance/[hash].tsx  # Detail view
-│   ├── 404.tsx                # 404 page
-│   ├── _app.tsx               # Next.js app wrapper
-│   └── _document.tsx          # Next.js document wrapper
+│   ├── index.tsx                     # Dashboard
+│   ├── governance/[hash].tsx         # Detail view
+│   ├── 404.tsx                       # 404 page
+│   ├── _app.tsx                      # Next.js app wrapper
+│   ├── _document.tsx                 # Next.js document wrapper
+│   └── api/                          # API routes
+│       ├── overview/
+│       │   ├── index.ts              # GET /api/overview
+│       │   ├── proposals.ts          # GET /api/overview/proposals
+│       │   └── ncl/
+│       │       ├── index.ts          # GET /api/overview/ncl
+│       │       └── [year].ts         # GET /api/overview/ncl/:year
+│       └── proposal/
+│           └── [id].ts               # GET /api/proposal/:id
 ├── store/
-│   ├── index.ts               # Redux store
-│   ├── governanceSlice.ts     # Governance state slice
-│   └── hooks.ts               # Redux hooks
-├── data/
-│   └── mockData.ts            # Mock governance data
+│   ├── index.ts                      # Redux store
+│   ├── governanceSlice.ts            # Governance state slice
+│   └── hooks.ts                      # Redux hooks
+├── services/
+│   └── api.ts                        # API service layer with data transformations
 ├── types/
-│   └── governance.ts          # TypeScript types
-└── lib/
-    └── utils.ts               # Utility functions
+│   └── governance.ts                 # TypeScript types (339 lines)
+├── lib/
+│   ├── utils.ts                      # General utilities
+│   ├── theme.tsx                     # Theme provider
+│   ├── voteBreakdownCalculator.ts    # Vote calculation logic
+│   ├── governanceVotingEligibility.ts # Voter eligibility matrix
+│   ├── voteMath.ts                   # Numeric utilities
+│   └── exportRationales.ts           # Vote export functions
+├── utils/
+│   └── apiHelper.ts                  # Server-side API authentication
+├── config/
+│   └── api.ts                        # API endpoint configuration
+└── themes/                           # Theme definitions (light, dark, game)
 ```
 
 ## Data Models
 
+See [voting-stuff.md](voting-stuff.md) for complete type definitions.
+
+### Core Types
+
+```typescript
+// Proposal status values
+type ProposalStatus = "Active" | "Ratified" | "Enacted" | "Expired" | "Closed";
+
+// Proposal type values
+type ProposalType =
+  | "InfoAction"
+  | "HardForkInitiation"
+  | "ParameterChange"
+  | "NoConfidence"
+  | "UpdateCommittee"
+  | "NewConstitution"
+  | "Treasury";
+
+// Voter types
+type VoterType = "DRep" | "SPO" | "CC";
+
+// Vote options
+type Vote = "Yes" | "No" | "Abstain";
+```
+
+### GovernanceAction (Summary)
+
 ```typescript
 interface GovernanceAction {
-  hash: string;
+  // Identifiers
+  hash: string;                    // txHash:certIndex for routing
+  proposalId?: string;             // gov_action bech32 format
+  txHash?: string;
+
+  // Content
   title: string;
   type: string;
-  status: "Active" | "Ratified" | "Expired" | "Approved" | "Not approved";
+  status: ProposalStatus;
   constitutionality: string;
+
+  // DRep voting (ADA-weighted)
   drepYesPercent: number;
   drepNoPercent: number;
-  drepYesAda: string;
-  drepNoAda: string;
+  drepAbstainPercent?: number;
+  drepYesAda: number;
+  drepNoAda: number;
+  drepAbstainAda?: number;
+
+  // SPO voting (ADA-weighted, optional by action type)
   spoYesPercent?: number;
   spoNoPercent?: number;
-  spoYesAda?: string;
-  spoNoAda?: string;
+  spoAbstainPercent?: number;
+  spoYesAda?: number;
+  spoNoAda?: number;
+  spoAbstainAda?: number;
+
+  // CC voting (count-based, optional by action type)
+  ccYesPercent?: number;
+  ccNoPercent?: number;
+  ccAbstainPercent?: number;
+  ccYesCount?: number;
+  ccNoCount?: number;
+  ccAbstainCount?: number;
+
+  // Vote totals
   totalYes: number;
   totalNo: number;
   totalAbstain: number;
+
+  // Epoch info
   submissionEpoch: number;
   expiryEpoch: number;
-}
 
-interface VoteRecord {
-  drepId: string;
-  drepName: string;
-  vote: "Yes" | "No" | "Abstain";
-  votingPower: string;
-  votingPowerAda: number;
-  anchorUrl?: string;
-  anchorHash?: string;
-  votedAt: string;
+  // Backend-provided thresholds
+  threshold?: {
+    ccThreshold: number | null;
+    drepThreshold: number | null;
+    spoThreshold: number | null;
+  };
+
+  // Backend-provided pass/fail status
+  votingStatus?: {
+    ccPassing: boolean | null;
+    drepPassing: boolean | null;
+    spoPassing: boolean | null;
+  };
+
+  // Detailed vote breakdowns
+  drepBreakdown?: VoteBreakdown;
+  spoBreakdown?: VoteBreakdown;
+  rawVotingPowerValues?: RawVotingPowerValues;
 }
 ```
 
-## Current Implementation
+### VoteRecord
 
-### Mock Data
+```typescript
+interface VoteRecord {
+  voterType?: "DRep" | "SPO" | "CC";
+  voterId?: string;
+  voterName?: string;
+  vote: "Yes" | "No" | "Abstain";
+  votingPower: string;           // Lovelace string
+  votingPowerAda: number;        // Converted ADA
+  anchorUrl?: string;
+  anchorHash?: string;
+  rationale?: string;            // Plain text or CIP-100/CIP-136 JSON
+  votedAt: string;
+  txHash?: string;
+}
+```
 
-- 7 governance actions in src/data/mockData.ts
-- 2 detailed actions with descriptions/rationale in src/data/mockData.ts
-- Vote records generated by `generateMockVotes()` function
+### VoteBreakdown
 
-### Status Colors
+```typescript
+interface VoteBreakdown {
+  activeYes: string;           // Lovelace
+  activeNo: string;
+  activeAbstain: string;
+  alwaysAbstain: string;
+  alwaysNoConfidence: string;
+  inactive: string;            // DRep only
+  notVoted: string;
+}
+```
 
-- Active → green
-- Approved/Ratified → blue
-- Expired → gray
-- Not approved → red
+## API Architecture
 
-### Hash Display
+### Data Flow
 
-- Stored: Full hash
-- Displayed: Full hash on detail page, no truncation in current implementation
+```
+Backend API (Cgov API)
+    ↓
+Next.js API Routes (/api/*)
+    ↓ apiHelper.ts adds API key
+Frontend Service (api.ts)
+    ↓ transforms lovelace → ADA
+Redux Store (governanceSlice.ts)
+    ↓
+UI Components
+```
 
-### Responsive Breakpoints
+### Environment Variables
 
-- Mobile: Single column
-- Tablet: 2-column grids
-- Desktop: 3-column grids
+```bash
+BACKEND_API_URL=http://localhost:3001  # Backend base URL
+BACKEND_API_KEY=<secret>               # API authentication key
+```
+
+## Governance Rules
+
+See [cardano-governance-reference.md](cardano-governance-reference.md) for complete CIP-1694 reference.
+
+### Voter Eligibility Matrix
+
+| Proposal Type | DRep | SPO | CC |
+|---------------|:----:|:---:|:---:|
+| No Confidence | ✓ | ✓ | ✗ |
+| Update Committee (normal) | ✓ (67%) | ✓ | ✗ |
+| Update Committee (no-confidence state) | ✓ (60%) | ✓ | ✗ |
+| New Constitution | ✓ | ✗ | ✓ |
+| Hard Fork Initiation | ✓ (60%) | ✓ | ✓ |
+| Protocol Parameter Change (network/economic/technical) | ✓ (67%) | ✗ | ✓ |
+| Protocol Parameter Change (governance) | ✓ (75%) | ✗ | ✓ |
+| Treasury Withdrawals | ✓ | ✗ | ✓ |
+| Info Action | ✓ | ✓ | ✓ |
+
+> **Note:** UpdateCommittee threshold varies based on CC state per Conway Ledger spec (Sec 12.2).
+
+### Status Meanings
+
+| Status | Description | Color |
+|--------|-------------|-------|
+| Active | Voting ongoing | Green |
+| Ratified | Passed voting, awaiting enactment | Blue |
+| Enacted | Applied to chain | Blue |
+| Expired | Voting ended without ratification | Gray |
+| Closed | Expired/dropped Info actions | Gray |
 
 ## User Flows
 
-**Dashboard**: View statistics → Filter by type → Click action → Navigate to detail
+**Dashboard**: View statistics → Filter by type/status → Click action → Navigate to detail
 
-**Detail View**: Read description → Search votes → Filter by vote type → Read IPFS rationales
+**Detail View**: Read description → View vote breakdown charts → Search/filter votes → Export rationales → Submit vote (with wallet)
+
+## Related Documentation
+
+- [voting-stuff.md](voting-stuff.md) - Complete type definitions and API reference for MCP server
+- [cardano-governance-reference.md](cardano-governance-reference.md) - Official CIP-1694 governance rules
+- [voting-calculation-audit.md](voting-calculation-audit.md) - Audit of voting calculation implementation
+- [theming-guide.md](theming-guide.md) - Theme system documentation

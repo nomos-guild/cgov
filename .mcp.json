@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "cardano-governance": {
+      "command": "node",
+      "args": ["mcp-governance/dist/index.js"]
+    },
+    "cgov-project": {
+      "command": "node",
+      "args": ["mcp-cgov/dist/index.js"]
+    }
+  }
+}
