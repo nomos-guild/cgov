@@ -522,59 +522,6 @@ export function GovernanceTable() {
                 <h3 className={`text-sm font-semibold line-clamp-2 ${isGame ? "text-white" : "dark:text-[#0bd1a2]"}`}>
                   {action.title}
                 </h3>
-                {/* Threshold Progress - Mobile */}
-                {action.threshold && (
-                  <div className="flex flex-col gap-1 mt-2">
-                    {action.threshold.drepThreshold !== null && canRoleVoteOnAction(action.type, "DRep") && (
-                      <div className="flex items-center gap-1.5 text-[10px]">
-                        <span className="text-muted-foreground w-24">DRep Threshold</span>
-                        <div className="w-16 h-1.5 rounded-full bg-white dark:bg-muted/50 overflow-hidden">
-                          <div
-                            className={action.drepYesPercent >= (action.threshold.drepThreshold * 100) ? "h-full bg-green-500" : "h-full bg-black dark:bg-primary"}
-                            style={{ width: `${Math.min(100, (action.drepYesPercent / (action.threshold.drepThreshold * 100)) * 100)}%` }}
-                          />
-                        </div>
-                        <span className={`flex items-center gap-1 ${isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"}`}>
-                          <span className="w-10 text-center px-1.5 py-0.5 rounded bg-white dark:bg-[#0bd1a2]/10">{action.drepYesPercent.toFixed(0)}%</span>
-                          <span>/</span>
-                          <span className="w-10 text-center px-1.5 py-0.5 rounded bg-white dark:bg-[#0bd1a2]/10">{(action.threshold.drepThreshold * 100).toFixed(0)}%</span>
-                        </span>
-                      </div>
-                    )}
-                    {action.threshold.spoThreshold !== null && canRoleVoteOnAction(action.type, "SPO") && (
-                      <div className="flex items-center gap-1.5 text-[10px]">
-                        <span className="text-muted-foreground w-24">SPO Threshold</span>
-                        <div className="w-16 h-1.5 rounded-full bg-white dark:bg-muted/50 overflow-hidden">
-                          <div
-                            className={(action.spoYesPercent ?? 0) >= (action.threshold.spoThreshold * 100) ? "h-full bg-green-500" : "h-full bg-black dark:bg-primary"}
-                            style={{ width: `${Math.min(100, ((action.spoYesPercent ?? 0) / (action.threshold.spoThreshold * 100)) * 100)}%` }}
-                          />
-                        </div>
-                        <span className={`flex items-center gap-1 ${isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"}`}>
-                          <span className="w-10 text-center px-1.5 py-0.5 rounded bg-white dark:bg-[#0bd1a2]/10">{(action.spoYesPercent ?? 0).toFixed(0)}%</span>
-                          <span>/</span>
-                          <span className="w-10 text-center px-1.5 py-0.5 rounded bg-white dark:bg-[#0bd1a2]/10">{(action.threshold.spoThreshold * 100).toFixed(0)}%</span>
-                        </span>
-                      </div>
-                    )}
-                    {action.threshold.ccThreshold !== null && canRoleVoteOnAction(action.type, "CC") && (
-                      <div className="flex items-center gap-1.5 text-[10px]">
-                        <span className="text-muted-foreground w-24">CC Threshold</span>
-                        <div className="w-16 h-1.5 rounded-full bg-white dark:bg-muted/50 overflow-hidden">
-                          <div
-                            className={(action.ccYesPercent ?? 0) >= (action.threshold.ccThreshold * 100) ? "h-full bg-green-500" : "h-full bg-black dark:bg-primary"}
-                            style={{ width: `${Math.min(100, ((action.ccYesPercent ?? 0) / (action.threshold.ccThreshold * 100)) * 100)}%` }}
-                          />
-                        </div>
-                        <span className={`flex items-center gap-1 ${isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"}`}>
-                          <span className="w-10 text-center px-1.5 py-0.5 rounded bg-white dark:bg-[#0bd1a2]/10">{(action.ccYesPercent ?? 0).toFixed(0)}%</span>
-                          <span>/</span>
-                          <span className="w-10 text-center px-1.5 py-0.5 rounded bg-white dark:bg-[#0bd1a2]/10">{(action.threshold.ccThreshold * 100).toFixed(0)}%</span>
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
             </Link>
           ))}
@@ -787,59 +734,6 @@ export function GovernanceTable() {
                       <h3 className="text-sm sm:text-base font-semibold line-clamp-2 dark:text-[#0bd1a2]">
                         {action.title}
                       </h3>
-                      {/* Threshold Progress */}
-                      {action.threshold && (
-                        <div className="flex flex-col gap-1 mt-1.5">
-                          {action.threshold.drepThreshold !== null && showDrep && (
-                            <div className="flex items-center gap-1.5 text-[10px]">
-                              <span className="text-muted-foreground w-24">DRep Threshold</span>
-                              <div className="w-20 h-1.5 rounded-full bg-white dark:bg-muted/50 overflow-hidden">
-                                <div
-                                  className={action.drepYesPercent >= (action.threshold.drepThreshold * 100) ? "h-full bg-green-500" : "h-full bg-black dark:bg-primary"}
-                                  style={{ width: `${Math.min(100, (action.drepYesPercent / (action.threshold.drepThreshold * 100)) * 100)}%` }}
-                                />
-                              </div>
-                              <span className="flex items-center gap-1 text-foreground dark:text-[#0bd1a2]">
-                                <span className="w-10 text-center px-1.5 py-0.5 rounded bg-white dark:bg-[#0bd1a2]/10">{action.drepYesPercent.toFixed(0)}%</span>
-                                <span>/</span>
-                                <span className="w-10 text-center px-1.5 py-0.5 rounded bg-white dark:bg-[#0bd1a2]/10">{(action.threshold.drepThreshold * 100).toFixed(0)}%</span>
-                              </span>
-                            </div>
-                          )}
-                          {action.threshold.spoThreshold !== null && showSpo && (
-                            <div className="flex items-center gap-1.5 text-[10px]">
-                              <span className="text-muted-foreground w-24">SPO Threshold</span>
-                              <div className="w-20 h-1.5 rounded-full bg-white dark:bg-muted/50 overflow-hidden">
-                                <div
-                                  className={(action.spoYesPercent ?? 0) >= (action.threshold.spoThreshold * 100) ? "h-full bg-green-500" : "h-full bg-black dark:bg-primary"}
-                                  style={{ width: `${Math.min(100, ((action.spoYesPercent ?? 0) / (action.threshold.spoThreshold * 100)) * 100)}%` }}
-                                />
-                              </div>
-                              <span className="flex items-center gap-1 text-foreground dark:text-[#0bd1a2]">
-                                <span className="w-10 text-center px-1.5 py-0.5 rounded bg-white dark:bg-[#0bd1a2]/10">{(action.spoYesPercent ?? 0).toFixed(0)}%</span>
-                                <span>/</span>
-                                <span className="w-10 text-center px-1.5 py-0.5 rounded bg-white dark:bg-[#0bd1a2]/10">{(action.threshold.spoThreshold * 100).toFixed(0)}%</span>
-                              </span>
-                            </div>
-                          )}
-                          {action.threshold.ccThreshold !== null && showCc && (
-                            <div className="flex items-center gap-1.5 text-[10px]">
-                              <span className="text-muted-foreground w-24">CC Threshold</span>
-                              <div className="w-20 h-1.5 rounded-full bg-white dark:bg-muted/50 overflow-hidden">
-                                <div
-                                  className={(action.ccYesPercent ?? 0) >= (action.threshold.ccThreshold * 100) ? "h-full bg-green-500" : "h-full bg-black dark:bg-primary"}
-                                  style={{ width: `${Math.min(100, ((action.ccYesPercent ?? 0) / (action.threshold.ccThreshold * 100)) * 100)}%` }}
-                                />
-                              </div>
-                              <span className="flex items-center gap-1 text-foreground dark:text-[#0bd1a2]">
-                                <span className="w-10 text-center px-1.5 py-0.5 rounded bg-white dark:bg-[#0bd1a2]/10">{(action.ccYesPercent ?? 0).toFixed(0)}%</span>
-                                <span>/</span>
-                                <span className="w-10 text-center px-1.5 py-0.5 rounded bg-white dark:bg-[#0bd1a2]/10">{(action.threshold.ccThreshold * 100).toFixed(0)}%</span>
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      )}
                     </TableCell>
                     <TableCell className="hidden sm:table-cell py-1 sm:py-1.5">
                       <span className="text-[10px] sm:text-xs uppercase tracking-wide font-semibold text-foreground dark:text-[#0bd1a2]">

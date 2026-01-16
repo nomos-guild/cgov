@@ -1,0 +1,20 @@
+{
+  "name": "cardano-governance-mcp",
+  "version": "1.0.0",
+  "description": "MCP server providing Cardano Conway-era governance rules and specifications",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "typescript": "^5",
+    "tsx": "^4"
+  }
+}

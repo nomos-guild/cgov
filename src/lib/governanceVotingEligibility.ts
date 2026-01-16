@@ -3,12 +3,14 @@ import { PROPOSAL_TYPES } from "@/types/governance";
 
 type RoleEligibility = Record<VoterType, boolean>;
 
+// Voter eligibility matrix per Conway Ledger formal specification (Fig. 42)
+// See: docs/conway-ledger.pdf
 const ELIGIBILITY: Record<ProposalType, RoleEligibility> = {
   NoConfidence: { SPO: true, DRep: true, CC: false },
-  UpdateCommittee: { SPO: true, DRep: true, CC: false },
+  UpdateCommittee: { SPO: true, DRep: true, CC: false }, // DRep threshold: 67% (normal) or 60% (CC no-confidence state)
   NewConstitution: { SPO: false, DRep: true, CC: true },
-  HardForkInitiation: { SPO: true, DRep: false, CC: true },
-  ParameterChange: { SPO: false, DRep: true, CC: true },
+  HardForkInitiation: { SPO: true, DRep: true, CC: true }, // All three bodies vote: CC (2/3), DRep (60%), SPO (51%)
+  ParameterChange: { SPO: false, DRep: true, CC: true }, // DRep threshold: 67% (network/economic/technical) or 75% (governance)
   Treasury: { SPO: false, DRep: true, CC: true },
   InfoAction: { SPO: true, DRep: true, CC: true },
 };
