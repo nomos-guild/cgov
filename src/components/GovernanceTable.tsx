@@ -607,8 +607,9 @@ export function GovernanceTable() {
                         {showDrep ? (
                           (() => {
                             const actionTypeCode = getGovernanceActionTypeCode(action.governanceActionType || action.type);
+                            const drepTotalVotePower = action.rawVotingPowerValues?.drep_total_vote_power;
                             const drepSegments = action.drepBreakdown
-                              ? buildDonutSegments(action.drepBreakdown, actionTypeCode, true)
+                              ? buildDonutSegments(action.drepBreakdown, actionTypeCode, true, drepTotalVotePower)
                               : null;
                             return (
                               <VoteProgress
@@ -651,8 +652,9 @@ export function GovernanceTable() {
                         {showSpo ? (
                           (() => {
                             const actionTypeCode = getGovernanceActionTypeCode(action.governanceActionType || action.type);
+                            const spoTotalVotePower = action.rawVotingPowerValues?.spo_total_vote_power;
                             const spoSegments = action.spoBreakdown
-                              ? buildDonutSegments(action.spoBreakdown, actionTypeCode, false)
+                              ? buildDonutSegments(action.spoBreakdown, actionTypeCode, false, spoTotalVotePower)
                               : null;
                             return (
                               <VoteProgress

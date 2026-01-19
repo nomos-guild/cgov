@@ -70,20 +70,38 @@ function lovelaceToAda(lovelace: string | undefined | null): number {
 
 /**
  * Calculate donut chart segment values from breakdown
+ * @param breakdown - Vote breakdown data
+ * @param includeInactive - Whether to include inactive stake (false for SPO)
+ * @param totalVotePowerLovelace - Optional total vote power in lovelace to calculate notVoted if missing
  */
 export function calculateDonutSegments(
   breakdown: VoteBreakdown,
-  includeInactive: boolean = true // false for SPO
+  includeInactive: boolean = true, // false for SPO
+  totalVotePowerLovelace?: string
 ): DonutSegmentValues {
+  const activeYes = lovelaceToAda(breakdown.activeYes);
+  const activeNo = lovelaceToAda(breakdown.activeNo);
+  const activeAbstain = lovelaceToAda(breakdown.activeAbstain);
+  const alwaysAbstain = lovelaceToAda(breakdown.alwaysAbstain);
+  const alwaysNoConfidence = lovelaceToAda(breakdown.alwaysNoConfidence);
+  const inactive = includeInactive ? lovelaceToAda(breakdown.inactive) : 0;
+
+  // Calculate notVoted: use provided value, or calculate from total if available
+  let notVoted = lovelaceToAda(breakdown.notVoted);
+
+  // If notVoted is 0 or missing and we have total vote power, calculate it
+  if (notVoted === 0 && totalVotePowerLovelace) {
+    const totalVotePower = lovelaceToAda(totalVotePowerLovelace);
+    const votedSum = activeYes + activeNo + activeAbstain + alwaysAbstain + alwaysNoConfidence + inactive;
+    notVoted = Math.max(0, totalVotePower - votedSum);
+  }
+
   return {
-    yes: lovelaceToAda(breakdown.activeYes),
-    no: lovelaceToAda(breakdown.activeNo),
-    alwaysNoConfidence: lovelaceToAda(breakdown.alwaysNoConfidence),
-    notVoted: lovelaceToAda(breakdown.notVoted),
-    excluded:
-      lovelaceToAda(breakdown.activeAbstain) +
-      lovelaceToAda(breakdown.alwaysAbstain) +
-      (includeInactive ? lovelaceToAda(breakdown.inactive) : 0),
+    yes: activeYes,
+    no: activeNo,
+    alwaysNoConfidence,
+    notVoted,
+    excluded: activeAbstain + alwaysAbstain + inactive,
   };
 }
 
@@ -200,13 +218,18 @@ export function getGovernanceActionTypeCode(
 /**
  * Build donut segments array for VoteProgress component
  * Only includes segments with values > 0 (for donut chart rendering)
+ * @param breakdown - Vote breakdown data
+ * @param actionType - Governance action type code
+ * @param includeInactive - Whether to include inactive stake (false for SPO)
+ * @param totalVotePowerLovelace - Optional total vote power in lovelace to calculate notVoted if missing
  */
 export function buildDonutSegments(
   breakdown: VoteBreakdown,
   actionType: GovernanceActionTypeCode,
-  includeInactive: boolean = true
+  includeInactive: boolean = true,
+  totalVotePowerLovelace?: string
 ): VoteSegment[] {
-  const segments = calculateDonutSegments(breakdown, includeInactive);
+  const segments = calculateDonutSegments(breakdown, includeInactive, totalVotePowerLovelace);
 
   // Calculate total excluding the "excluded" segment since it doesn't
   // impact ratification. The donut should show only ratification-impacting
@@ -272,13 +295,18 @@ export function buildDonutSegments(
 
 /**
  * Build legend segments array - always includes all categories (even with 0 values)
+ * @param breakdown - Vote breakdown data
+ * @param actionType - Governance action type code
+ * @param includeInactive - Whether to include inactive stake (false for SPO)
+ * @param totalVotePowerLovelace - Optional total vote power in lovelace to calculate notVoted if missing
  */
 export function buildLegendSegments(
   breakdown: VoteBreakdown,
   actionType: GovernanceActionTypeCode,
-  includeInactive: boolean = true
+  includeInactive: boolean = true,
+  totalVotePowerLovelace?: string
 ): VoteSegment[] {
-  const segments = calculateDonutSegments(breakdown, includeInactive);
+  const segments = calculateDonutSegments(breakdown, includeInactive, totalVotePowerLovelace);
 
   const total =
     segments.yes +

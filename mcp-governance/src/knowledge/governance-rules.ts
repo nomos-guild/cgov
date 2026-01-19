@@ -285,35 +285,151 @@ export const DREP_PREDEFINED_DELEGATIONS = {
 // VOTE CALCULATION FORMULAS
 // =============================================================================
 
+/**
+ * CRITICAL: Threshold Progress Calculation
+ *
+ * The threshold progress shows how close a proposal is to reaching the required
+ * threshold for ratification. The formula is:
+ *
+ *   Yes % = (yesTotal / (yesTotal + noTotal)) * 100
+ *
+ * CRITICAL: notVoted stake counts as NO (except for abstain/inactive which are excluded)
+ *
+ * DRep Calculation:
+ * - NoConfidence: yes = activeYes + alwaysNoConfidence, no = activeNo + notVoted
+ * - Other actions: yes = activeYes, no = activeNo + alwaysNoConfidence + notVoted
+ *
+ * SPO Calculation (epoch 534+):
+ * - HardFork: yes = activeYes, no = activeNo + alwaysNoConfidence + alwaysAbstain + notVoted
+ * - NoConfidence: yes = activeYes + alwaysNoConfidence, no = activeNo + notVoted
+ * - Other actions: yes = activeYes, no = activeNo + alwaysNoConfidence + notVoted
+ *
+ * Example (Treasury Withdrawal with 67% threshold, newly submitted):
+ *   - activeYes: 100M ADA (a few DReps voted)
+ *   - activeNo: 50M ADA
+ *   - alwaysNoConfidence: 500M ADA
+ *   - notVoted: 10B ADA (most haven't voted yet)
+ *   - yesTotal: 100M ADA
+ *   - noTotal: 50M + 500M + 10B = 10.55B ADA
+ *   - Current progress: (100M / 10.65B) * 100 = 0.94%
+ *   - This makes sense! Newly submitted = low approval
+ *
+ * Source: cgov-project MCP get_vote_calculation_rules
+ */
 export const VOTE_CALCULATION = {
+  thresholdProgress: {
+    description: "How to calculate progress toward meeting a threshold",
+    critical: "notVoted stake counts as NO! Formula: yes / (yes + no) where no includes notVoted",
+    formulas: {
+      drep: {
+        noConfidence: {
+          yes: "activeYes + alwaysNoConfidence",
+          no: "activeNo + notVoted"
+        },
+        otherActions: {
+          yes: "activeYes",
+          no: "activeNo + alwaysNoConfidence + notVoted"
+        },
+        formula: "yesTotal / (yesTotal + noTotal) * 100",
+        dataFields: {
+          activeYes: "drep_active_yes_vote_power",
+          activeNo: "drep_active_no_vote_power",
+          alwaysNoConfidence: "drep_always_no_confidence_power",
+          notVoted: "drepBreakdown.notVoted"
+        }
+      },
+      spo: {
+        hardFork: {
+          yes: "activeYes",
+          no: "activeNo + alwaysNoConfidence + alwaysAbstain + notVoted"
+        },
+        noConfidence: {
+          yes: "activeYes + alwaysNoConfidence",
+          no: "activeNo + notVoted"
+        },
+        otherActions: {
+          yes: "activeYes",
+          no: "activeNo + alwaysNoConfidence + notVoted"
+        },
+        formula: "yesTotal / (yesTotal + noTotal) * 100",
+        dataFields: {
+          activeYes: "spo_active_yes_vote_power",
+          activeNo: "spo_active_no_vote_power",
+          alwaysNoConfidence: "spo_always_no_confidence_power",
+          alwaysAbstain: "spo_always_abstain_vote_power",
+          notVoted: "spoBreakdown.notVoted"
+        }
+      },
+      cc: {
+        numerator: "ccYesCount",
+        denominator: "ccYesCount + ccNoCount + ccPendingCount (or default 7 if no votes)",
+        formula: "(ccYesCount / totalMembers) * 100"
+      }
+    }
+  },
   drepVoteRatio: {
-    description: "DRep vote acceptance ratio",
-    formula: "yesVotes / (yesVotes + noVotes)",
+    description: "DRep threshold progress calculation",
+    formula: "yesTotal / (yesTotal + noTotal)",
+    noConfidence: {
+      yes: "activeYes + alwaysNoConfidence",
+      no: "activeNo + notVoted"
+    },
+    other: {
+      yes: "activeYes",
+      no: "activeNo + alwaysNoConfidence + notVoted"
+    },
+    wrongFormulas: [
+      "DO NOT USE: activeYes / totalVotePower (notVoted not counted correctly)",
+      "DO NOT USE: activeYes / (activeYes + activeNo) (missing alwaysNoConfidence and notVoted)",
+      "DO NOT USE: activeYes / (activeYes + activeNo + alwaysNoConfidence) (missing notVoted!)"
+    ],
     notes: [
-      "Abstain votes are excluded from the calculation",
-      "Inactive DRep stake is excluded",
-      "AlwaysAbstain delegation is excluded",
-      "AlwaysNoConfidence counts as YES for NoConfidence, NO for others"
+      "notVoted stake counts as NO for threshold calculation",
+      "Abstain and inactive are completely excluded",
+      "AlwaysNoConfidence counts as YES for NoConfidence actions, NO for others"
     ]
   },
   spoVoteRatio: {
-    description: "SPO vote acceptance ratio",
-    formula: "yesVotes / totalActiveStake",
+    description: "SPO threshold progress calculation (epoch 534+)",
+    formula: "yesTotal / (yesTotal + noTotal)",
+    hardFork: {
+      yes: "activeYes",
+      no: "activeNo + alwaysNoConfidence + alwaysAbstain + notVoted"
+    },
+    noConfidence: {
+      yes: "activeYes + alwaysNoConfidence",
+      no: "activeNo + notVoted"
+    },
+    other: {
+      yes: "activeYes",
+      no: "activeNo + alwaysNoConfidence + notVoted"
+    },
+    wrongFormulas: [
+      "DO NOT USE: activeYes / totalVotePower",
+      "DO NOT USE: activeYes / (activeYes + activeNo + alwaysNoConfidence) (missing notVoted!)"
+    ],
     notes: [
-      "For Hard Fork: AlwaysAbstain counts as NO",
-      "NotVoted stake handling varies by action type and epoch",
-      "Epoch 534 introduced new calculation rules"
+      "notVoted stake counts as NO for threshold calculation",
+      "For HardFork: alwaysAbstain also counts as NO",
+      "Abstain (except for HardFork) is excluded"
     ]
   },
   ccVoteRatio: {
-    description: "Constitutional Committee vote acceptance ratio",
-    formula: "yesMemberCount / totalActiveMembers",
+    description: "Constitutional Committee threshold progress calculation",
+    formula: "ccYesCount / totalCCMembers",
     notes: [
       "Count-based, not stake-weighted",
-      "Expired CC members don't count",
-      "Requires quorum to be met"
+      "Total members = yesCount + noCount + pendingCount",
+      "Default to 7 members if no vote data available",
+      "Expired CC members don't count toward total"
     ]
-  }
+  },
+  commonMistakes: [
+    "CRITICAL: Not including notVoted in the NO total - this makes newly submitted proposals show high approval!",
+    "Using totalVotePower as denominator instead of yes+no",
+    "For NoConfidence: forgetting to add alwaysNoConfidence to yes total",
+    "For HardFork: forgetting that alwaysAbstain counts as NO"
+  ]
 };
 
 // =============================================================================
@@ -370,6 +486,36 @@ export const GOVERNANCE_ACTION_LIFECYCLE = {
       "Deposit NOT returned if action is dropped due to conflicting action"
     ]
   }
+};
+
+// =============================================================================
+// CURRENCY UNITS AND CONVERSIONS
+// =============================================================================
+
+export const CURRENCY_UNITS = {
+  lovelace: {
+    description: "The smallest unit of ADA (like satoshis for Bitcoin)",
+    relation: "1 ADA = 1,000,000 lovelace",
+    usage: "All on-chain values are stored in lovelace"
+  },
+  ada: {
+    description: "The primary currency unit of Cardano",
+    relation: "1 ADA = 1,000,000 lovelace",
+    usage: "Display unit for user interfaces"
+  },
+  conversion: {
+    lovelaceToAda: "lovelace / 1,000,000",
+    adaToLovelace: "ada * 1,000,000"
+  },
+  apiDataFormats: {
+    drep_total_vote_power: "Stored in LOVELACE - divide by 1,000,000 to get ADA",
+    spo_total_vote_power: "Stored in LOVELACE - divide by 1,000,000 to get ADA",
+    yesLovelace: "Stored in LOVELACE - divide by 1,000,000 to get ADA",
+    noLovelace: "Stored in LOVELACE - divide by 1,000,000 to get ADA",
+    abstainLovelace: "Stored in LOVELACE - divide by 1,000,000 to get ADA",
+    votingPower: "Stored in LOVELACE - divide by 1,000,000 to get ADA"
+  },
+  importantNote: "ALWAYS check if a value is in lovelace or ADA before performing calculations. Mixing units will result in values that are off by a factor of 1,000,000."
 };
 
 // =============================================================================

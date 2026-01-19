@@ -21,6 +21,7 @@ import {
   GOVERNANCE_ACTION_LIFECYCLE,
   EPOCH_CONSTANTS,
   CC_RULES,
+  CURRENCY_UNITS,
   type GovernanceActionType,
   type VoterType,
 } from "./knowledge/governance-rules.js";
@@ -224,6 +225,14 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           },
           required: ["query"]
         }
+      },
+      {
+        name: "get_currency_units",
+        description: "Get information about Cardano currency units (lovelace/ADA) and conversion rules. IMPORTANT: All on-chain values are in lovelace, not ADA. 1 ADA = 1,000,000 lovelace.",
+        inputSchema: {
+          type: "object",
+          properties: {}
+        }
       }
     ]
   };
@@ -383,13 +392,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const formulaKey = voterType === "DRep" ? "drepVoteRatio"
                        : voterType === "SPO" ? "spoVoteRatio"
                        : "ccVoteRatio";
+      const thresholdKey = voterType.toLowerCase() as "drep" | "spo" | "cc";
 
       return {
         content: [{
           type: "text",
           text: JSON.stringify({
             voterType,
-            ...VOTE_CALCULATION[formulaKey]
+            ...VOTE_CALCULATION[formulaKey as keyof typeof VOTE_CALCULATION],
+            thresholdProgressFormula: VOTE_CALCULATION.thresholdProgress.formulas[thresholdKey],
+            criticalNote: VOTE_CALCULATION.thresholdProgress.critical,
+            commonMistakes: VOTE_CALCULATION.commonMistakes
           }, null, 2)
         }]
       };
@@ -525,6 +538,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             resultCount: results.length,
             results
           }, null, 2)
+        }]
+      };
+    }
+
+    case "get_currency_units": {
+      return {
+        content: [{
+          type: "text",
+          text: JSON.stringify(CURRENCY_UNITS, null, 2)
         }]
       };
     }

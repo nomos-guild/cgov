@@ -233,7 +233,7 @@ interface VoteBreakdown {
 ```
 
 #### RawVotingPowerValues
-Raw voting power from API by voter group.
+Raw voting power from API by voter group. Field names use snake_case as returned by the API.
 
 ```typescript
 interface RawVotingPowerValues {

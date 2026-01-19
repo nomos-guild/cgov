@@ -271,7 +271,7 @@ export default function GovernanceDetail() {
   const [isCcExcludedExpanded, setIsCcExcludedExpanded] = useState<boolean>(false);
   const [curveRoleFilter, setCurveRoleFilter] =
     useState<RoleFilter>("All");
-  const [selectedTab, setSelectedTab] = useState<string>("live-voting");
+  const [selectedTab, setSelectedTab] = useState<string>("thresholds");
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Track the hash we're currently showing to detect route changes
@@ -422,7 +422,27 @@ export default function GovernanceDetail() {
     let noPower = 0;
     let abstainPower = 0;
 
-    return votesWithDates.map((vote, index) => {
+    // Start with a zero point so lines begin at 0 ADA
+    const firstVote = votesWithDates[0];
+    const firstLabel = firstVote?.date && !Number.isNaN(firstVote.date.getTime())
+      ? firstVote.date.toLocaleString(undefined, {
+          month: "short",
+          day: "numeric",
+        })
+      : "Start";
+
+    const timelinePoints: TimelinePoint[] = [{
+      label: `${firstLabel}#start`,
+      displayLabel: firstLabel,
+      yesCount: 0,
+      noCount: 0,
+      abstainCount: 0,
+      yesPower: 0,
+      noPower: 0,
+      abstainPower: 0,
+    }];
+
+    votesWithDates.forEach((vote, index) => {
       const power = vote.votingPowerAda || 0;
 
       switch (vote.vote) {
@@ -448,7 +468,7 @@ export default function GovernanceDetail() {
             })
           : `Vote ${index + 1}`;
 
-      return {
+      timelinePoints.push({
         label: `${label}#${index}`, // Add unique index to ensure each point is distinct
         displayLabel: label, // Keep clean label for display
         yesCount,
@@ -457,8 +477,10 @@ export default function GovernanceDetail() {
         yesPower,
         noPower,
         abstainPower,
-      };
+      });
     });
+
+    return timelinePoints;
   }, [allVotes, curveRoleFilter]);
 
   // Show ADA amounts for DRep/SPO (and "All" which includes them)
@@ -521,28 +543,34 @@ export default function GovernanceDetail() {
   );
 
   // Calculate DRep donut segments from breakdown data
+  // Pass total DRep vote power to calculate notVoted if missing from backend
   const drepDonutSegments = useMemo(() => {
     if (!selectedAction?.drepBreakdown) return null;
-    return buildDonutSegments(selectedAction.drepBreakdown, actionTypeCode, true);
-  }, [selectedAction?.drepBreakdown, actionTypeCode]);
+    const drepTotalVotePower = selectedAction.rawVotingPowerValues?.drep_total_vote_power;
+    return buildDonutSegments(selectedAction.drepBreakdown, actionTypeCode, true, drepTotalVotePower);
+  }, [selectedAction?.drepBreakdown, selectedAction?.rawVotingPowerValues?.drep_total_vote_power, actionTypeCode]);
 
   // Calculate DRep legend segments (always includes all categories)
   const drepLegendSegments = useMemo(() => {
     if (!selectedAction?.drepBreakdown) return null;
-    return buildLegendSegments(selectedAction.drepBreakdown, actionTypeCode, true);
-  }, [selectedAction?.drepBreakdown, actionTypeCode]);
+    const drepTotalVotePower = selectedAction.rawVotingPowerValues?.drep_total_vote_power;
+    return buildLegendSegments(selectedAction.drepBreakdown, actionTypeCode, true, drepTotalVotePower);
+  }, [selectedAction?.drepBreakdown, selectedAction?.rawVotingPowerValues?.drep_total_vote_power, actionTypeCode]);
 
   // Calculate SPO donut segments from breakdown data (no inactive for SPO)
+  // Pass total SPO vote power to calculate notVoted if missing from backend
   const spoDonutSegments = useMemo(() => {
     if (!selectedAction?.spoBreakdown) return null;
-    return buildDonutSegments(selectedAction.spoBreakdown, actionTypeCode, false);
-  }, [selectedAction?.spoBreakdown, actionTypeCode]);
+    const spoTotalVotePower = selectedAction.rawVotingPowerValues?.spo_total_vote_power;
+    return buildDonutSegments(selectedAction.spoBreakdown, actionTypeCode, false, spoTotalVotePower);
+  }, [selectedAction?.spoBreakdown, selectedAction?.rawVotingPowerValues?.spo_total_vote_power, actionTypeCode]);
 
   // Calculate SPO legend segments (always includes all categories)
   const spoLegendSegments = useMemo(() => {
     if (!selectedAction?.spoBreakdown) return null;
-    return buildLegendSegments(selectedAction.spoBreakdown, actionTypeCode, false);
-  }, [selectedAction?.spoBreakdown, actionTypeCode]);
+    const spoTotalVotePower = selectedAction.rawVotingPowerValues?.spo_total_vote_power;
+    return buildLegendSegments(selectedAction.spoBreakdown, actionTypeCode, false, spoTotalVotePower);
+  }, [selectedAction?.spoBreakdown, selectedAction?.rawVotingPowerValues?.spo_total_vote_power, actionTypeCode]);
 
   // Calculate DRep excluded breakdown (for separate display)
   const drepExcludedBreakdown = useMemo(() => {
@@ -906,6 +934,16 @@ export default function GovernanceDetail() {
                   <div className="flex flex-col gap-3 sm:gap-4">
                     <div className="flex flex-col gap-2 sm:gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <TabsList className="flex-1 flex-wrap justify-start gap-1.5 sm:gap-2 bg-transparent p-0 py-2 overflow-x-auto overflow-visible">
+                        <TabsTrigger
+                          value="thresholds"
+                          className={
+                            isGame
+                              ? "game-tab-btn data-[state=active]:game-tab-btn-active text-[10px] sm:text-xs"
+                              : "rounded-md border border-white/8 bg-white text-black px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold uppercase tracking-wide transform-gpu transition-transform transition-shadow duration-450 ease-in-out shadow-[0_12px_30px_rgba(15,23,42,0.25)] data-[state=active]:bg-black data-[state=active]:text-white hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon"
+                          }
+                        >
+                          Thresholds
+                        </TabsTrigger>
                         <TabsTrigger
                           value="live-voting"
                           className={
@@ -1525,6 +1563,254 @@ export default function GovernanceDetail() {
                             </div>
                           </div>
                         </TabsContent>
+
+                        {/* Thresholds */}
+                        <TabsContent value="thresholds" className="mt-0">
+                          <div className={cn(
+                            "p-4 sm:p-5 space-y-6",
+                            isGame
+                              ? "game-detail-card"
+                              : "rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+                          )}>
+                            {/* Total Voting Power Section */}
+                            <div className="space-y-3">
+                              <h4 className={cn(
+                                "text-sm font-semibold",
+                                isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
+                              )}>
+                                Total Voting Power
+                              </h4>
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                {/* DRep Total */}
+                                {selectedAction.threshold?.drepThreshold !== null && selectedAction.threshold?.drepThreshold !== undefined && (
+                                  <div className={cn(
+                                    "p-3 rounded-lg",
+                                    isGame ? "bg-white/10" : "bg-gray-100 dark:bg-gray-800"
+                                  )}>
+                                    <div className={cn(
+                                      "text-xs",
+                                      isGame ? "text-white/60" : "text-muted-foreground"
+                                    )}>
+                                      DReps
+                                    </div>
+                                    <div className={cn(
+                                      "text-lg font-semibold",
+                                      isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
+                                    )}>
+                                      {selectedAction.rawVotingPowerValues?.drep_total_vote_power
+                                        ? formatAdaValue(Number(selectedAction.rawVotingPowerValues.drep_total_vote_power) / 1_000_000)
+                                        : "N/A"}
+                                    </div>
+                                  </div>
+                                )}
+                                {/* SPO Total */}
+                                {selectedAction.threshold?.spoThreshold !== null && selectedAction.threshold?.spoThreshold !== undefined && (
+                                  <div className={cn(
+                                    "p-3 rounded-lg",
+                                    isGame ? "bg-white/10" : "bg-gray-100 dark:bg-gray-800"
+                                  )}>
+                                    <div className={cn(
+                                      "text-xs",
+                                      isGame ? "text-white/60" : "text-muted-foreground"
+                                    )}>
+                                      SPOs
+                                    </div>
+                                    <div className={cn(
+                                      "text-lg font-semibold",
+                                      isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
+                                    )}>
+                                      {selectedAction.rawVotingPowerValues?.spo_total_vote_power
+                                        ? formatAdaValue(Number(selectedAction.rawVotingPowerValues.spo_total_vote_power) / 1_000_000)
+                                        : "N/A"}
+                                    </div>
+                                  </div>
+                                )}
+                                {/* CC Total */}
+                                {selectedAction.threshold?.ccThreshold !== null && selectedAction.threshold?.ccThreshold !== undefined && (() => {
+                                  // CC total members: use sum of votes if available, otherwise default to 7
+                                  const ccTotalMembers = (ccYesCount + ccNoCount + ccPendingCount) || 7;
+                                  return (
+                                    <div className={cn(
+                                      "p-3 rounded-lg",
+                                      isGame ? "bg-white/10" : "bg-gray-100 dark:bg-gray-800"
+                                    )}>
+                                      <div className={cn(
+                                        "text-xs",
+                                        isGame ? "text-white/60" : "text-muted-foreground"
+                                      )}>
+                                        CC Members
+                                      </div>
+                                      <div className={cn(
+                                        "text-lg font-semibold",
+                                        isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
+                                      )}>
+                                        {ccTotalMembers} members
+                                      </div>
+                                    </div>
+                                  );
+                                })()}
+                              </div>
+                            </div>
+
+                            {/* Threshold Progress Section */}
+                            <div className="space-y-4">
+                              <h4 className={cn(
+                                "text-sm font-semibold",
+                                isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
+                              )}>
+                                Approval Progress
+                              </h4>
+
+                              {/* DRep Threshold */}
+                              {selectedAction.threshold?.drepThreshold !== null && selectedAction.threshold?.drepThreshold !== undefined && (() => {
+                                const thresholdPercent = selectedAction.threshold.drepThreshold * 100;
+                                // Use donut chart percentage as placeholder until API provides correct threshold data
+                                const currentPercent = selectedAction.drepYesPercent ?? 0;
+
+                                return (
+                                  <div className="space-y-2">
+                                    <div className="flex justify-between items-center">
+                                      <span className={cn(
+                                        "text-sm font-medium",
+                                        isGame ? "text-white" : "text-foreground"
+                                      )}>
+                                        DReps
+                                      </span>
+                                      <span className={cn(
+                                        "text-sm",
+                                        isGame ? "text-white/70" : "text-muted-foreground"
+                                      )}>
+                                        {currentPercent.toFixed(1)}% / {thresholdPercent.toFixed(1)}%
+                                      </span>
+                                    </div>
+                                    <div className="relative">
+                                      <Progress
+                                        value={Math.min(currentPercent, 100)}
+                                        className={cn(
+                                          "h-3",
+                                          isGame ? "bg-white/20" : "bg-gray-200 dark:bg-gray-700"
+                                        )}
+                                        indicatorClassName={
+                                          isGame
+                                            ? "bg-gray-400"
+                                            : "bg-black dark:bg-[#0bd1a2]"
+                                        }
+                                      />
+                                      {/* Threshold marker */}
+                                      <div
+                                        className="absolute top-0 h-3 w-0.5 bg-black dark:bg-white"
+                                        style={{ left: `${thresholdPercent}%` }}
+                                      />
+                                    </div>
+                                  </div>
+                                );
+                              })()}
+
+                              {/* SPO Threshold */}
+                              {selectedAction.threshold?.spoThreshold !== null && selectedAction.threshold?.spoThreshold !== undefined && (() => {
+                                const thresholdPercent = selectedAction.threshold.spoThreshold * 100;
+                                // Use donut chart percentage as placeholder until API provides correct threshold data
+                                const currentPercent = selectedAction.spoYesPercent ?? 0;
+
+                                return (
+                                  <div className="space-y-2">
+                                    <div className="flex justify-between items-center">
+                                      <span className={cn(
+                                        "text-sm font-medium",
+                                        isGame ? "text-white" : "text-foreground"
+                                      )}>
+                                        SPOs
+                                      </span>
+                                      <span className={cn(
+                                        "text-sm",
+                                        isGame ? "text-white/70" : "text-muted-foreground"
+                                      )}>
+                                        {currentPercent.toFixed(1)}% / {thresholdPercent.toFixed(1)}%
+                                      </span>
+                                    </div>
+                                    <div className="relative">
+                                      <Progress
+                                        value={Math.min(currentPercent, 100)}
+                                        className={cn(
+                                          "h-3",
+                                          isGame ? "bg-white/20" : "bg-gray-200 dark:bg-gray-700"
+                                        )}
+                                        indicatorClassName={
+                                          isGame
+                                            ? "bg-gray-400"
+                                            : "bg-black dark:bg-[#0bd1a2]"
+                                        }
+                                      />
+                                      {/* Threshold marker */}
+                                      <div
+                                        className="absolute top-0 h-3 w-0.5 bg-black dark:bg-white"
+                                        style={{ left: `${thresholdPercent}%` }}
+                                      />
+                                    </div>
+                                  </div>
+                                );
+                              })()}
+
+                              {/* CC Threshold */}
+                              {selectedAction.threshold?.ccThreshold !== null && selectedAction.threshold?.ccThreshold !== undefined && (() => {
+                                // Calculate CC progress: yes count / total members (default to 7 if no data)
+                                const totalMembers = (ccYesCount + ccNoCount + ccPendingCount) || 7;
+                                const currentPercent = (ccYesCount / totalMembers) * 100;
+                                const thresholdPercent = selectedAction.threshold.ccThreshold * 100;
+
+                                return (
+                                  <div className="space-y-2">
+                                    <div className="flex justify-between items-center">
+                                      <span className={cn(
+                                        "text-sm font-medium",
+                                        isGame ? "text-white" : "text-foreground"
+                                      )}>
+                                        Constitutional Committee
+                                      </span>
+                                      <span className={cn(
+                                        "text-sm",
+                                        isGame ? "text-white/70" : "text-muted-foreground"
+                                      )}>
+                                        {currentPercent.toFixed(1)}% / {thresholdPercent.toFixed(1)}%
+                                      </span>
+                                    </div>
+                                    <div className="relative">
+                                      <Progress
+                                        value={Math.min(currentPercent, 100)}
+                                        className={cn(
+                                          "h-3",
+                                          isGame ? "bg-white/20" : "bg-gray-200 dark:bg-gray-700"
+                                        )}
+                                        indicatorClassName={
+                                          isGame
+                                            ? "bg-gray-400"
+                                            : "bg-black dark:bg-[#0bd1a2]"
+                                        }
+                                      />
+                                      {/* Threshold marker */}
+                                      <div
+                                        className="absolute top-0 h-3 w-0.5 bg-black dark:bg-white"
+                                        style={{ left: `${thresholdPercent}%` }}
+                                      />
+                                    </div>
+                                  </div>
+                                );
+                              })()}
+                            </div>
+
+                            {/* No thresholds available message */}
+                            {selectedAction.threshold?.drepThreshold === null &&
+                             selectedAction.threshold?.spoThreshold === null &&
+                             selectedAction.threshold?.ccThreshold === null && (
+                              <p className={cn(
+                                "text-sm",
+                                isGame ? "text-white/70" : "text-muted-foreground"
+                              )}>
+                                No threshold data available for this proposal.
+                              </p>
+                            )}
+                          </div>
+                        </TabsContent>
                       </>
                   </div>
                 </Tabs>
@@ -1535,28 +1821,35 @@ export default function GovernanceDetail() {
             <div className="space-y-6">
               {/* Time Until Expiry Card */}
               {selectedAction && (() => {
-                // Calculate expiry based on 30 days from submission
+                // Calculate expiry based on epoch, not days
+                // Governance actions expire at the END of the expiryEpoch
                 const now = Date.now();
                 const currentEpoch = getCurrentEpoch();
                 const submissionEpoch = selectedAction.submissionEpoch > 0
                   ? selectedAction.submissionEpoch
                   : currentEpoch;
 
-                // Convert submission epoch to timestamp
+                // Get expiry epoch (default to submission + 6 epochs if not set)
+                // The "Valid Until Epoch" is expiryEpoch - 1, meaning voting ends at the end of that epoch
+                const expiryEpoch = selectedAction.expiryEpoch > 0
+                  ? selectedAction.expiryEpoch
+                  : submissionEpoch + 6;
+
+                // Calculate timestamps for the start and end of the voting period
                 const submissionTimestamp = epochToTimestamp(submissionEpoch);
+                // Voting ends at the END of (expiryEpoch - 1), which is the START of expiryEpoch
+                const expiryTimestamp = epochToTimestamp(expiryEpoch);
 
-                // Calculate expiry as 30 days from submission
-                const DAYS_UNTIL_EXPIRY = 30;
-                const expiryTimestamp = submissionTimestamp + (DAYS_UNTIL_EXPIRY * 24 * 60 * 60 * 1000);
-
-                // Calculate time remaining in milliseconds
+                // Calculate time remaining until end of voting period
                 const timeRemaining = Math.max(0, expiryTimestamp - now);
                 const daysRemaining = Math.floor(timeRemaining / (24 * 60 * 60 * 1000));
 
-                // Calculate progress (days elapsed out of 30)
-                const totalDuration = DAYS_UNTIL_EXPIRY * 24 * 60 * 60 * 1000;
-                const timeElapsed = Math.min(totalDuration, Math.max(0, now - submissionTimestamp));
-                const progressPercent = (timeElapsed / totalDuration) * 100;
+                // Calculate progress based on epochs
+                const totalEpochs = expiryEpoch - submissionEpoch;
+                const epochsElapsed = currentEpoch - submissionEpoch;
+                const progressPercent = totalEpochs > 0
+                  ? Math.min(100, Math.max(0, (epochsElapsed / totalEpochs) * 100))
+                  : 0;
 
                 return (
                   <Card className={cn("p-6", isGame && "game-detail-card")}>
@@ -1645,7 +1938,7 @@ export default function GovernanceDetail() {
                                 "py-2 pr-4",
                                 isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
                               )}>
-                                Deadline Date
+                                Epoch Boundary
                               </td>
                               <td className={cn(
                                 "py-2 font-semibold whitespace-nowrap",
@@ -1731,7 +2024,7 @@ export default function GovernanceDetail() {
                     <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                       <LineChart
                         data={voteTimelineData}
-                        margin={{ top: 5, right: 30, left: -20, bottom: 5 }}
+                        margin={{ top: 5, right: 30, left: -10, bottom: 5 }}
                       >
                         <CartesianGrid strokeDasharray="3 3" className="stroke-border/60" />
                         <XAxis

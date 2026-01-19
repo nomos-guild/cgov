@@ -55,8 +55,10 @@ export type GovernanceActionTypeCode =
 /**
  * Raw voting power values by voter group and status as returned by the API.
  * All values are stringified lovelace amounts for maximum precision.
+ * Note: API returns snake_case field names (converted from Prisma camelCase).
  */
 export interface RawVotingPowerValues {
+  // DRep voting power values
   drep_active_abstain_vote_power?: string;
   drep_active_no_vote_power?: string;
   drep_active_yes_vote_power?: string;
@@ -64,6 +66,7 @@ export interface RawVotingPowerValues {
   drep_always_no_confidence_power?: string;
   drep_inactive_vote_power?: string;
   drep_total_vote_power?: string;
+  // SPO voting power values
   spo_active_abstain_vote_power?: string;
   spo_active_no_vote_power?: string;
   spo_active_yes_vote_power?: string;

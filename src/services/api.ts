@@ -158,15 +158,6 @@ export async function fetchGovernanceActionDetail(
       API_ENDPOINTS.proposalDetail(proposalId)
     );
 
-    // Dev-only logging of raw detail payload (pre-transform)
-    if (process.env.NODE_ENV !== "production") {
-      // eslint-disable-next-line no-console
-      console.log("[API] /proposal detail raw response", {
-        proposalId,
-        data,
-      });
-    }
-
     return transformGovernanceActionDetail(data);
   } catch (error) {
     console.error(`Failed to fetch proposal ${proposalId}:`, error);
