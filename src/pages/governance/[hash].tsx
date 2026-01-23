@@ -271,7 +271,7 @@ export default function GovernanceDetail() {
   const [isCcExcludedExpanded, setIsCcExcludedExpanded] = useState<boolean>(false);
   const [curveRoleFilter, setCurveRoleFilter] =
     useState<RoleFilter>("All");
-  const [selectedTab, setSelectedTab] = useState<string>("thresholds");
+  const [selectedTab, setSelectedTab] = useState<string>("live-voting");
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Track the hash we're currently showing to detect route changes
@@ -935,16 +935,6 @@ export default function GovernanceDetail() {
                     <div className="flex flex-col gap-2 sm:gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <TabsList className="flex-1 flex-wrap justify-start gap-1.5 sm:gap-2 bg-transparent p-0 py-2 overflow-x-auto overflow-visible">
                         <TabsTrigger
-                          value="thresholds"
-                          className={
-                            isGame
-                              ? "game-tab-btn data-[state=active]:game-tab-btn-active text-[10px] sm:text-xs"
-                              : "rounded-md border border-white/8 bg-white text-black px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold uppercase tracking-wide transform-gpu transition-transform transition-shadow duration-450 ease-in-out shadow-[0_12px_30px_rgba(15,23,42,0.25)] data-[state=active]:bg-black data-[state=active]:text-white hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon"
-                          }
-                        >
-                          Thresholds
-                        </TabsTrigger>
-                        <TabsTrigger
                           value="live-voting"
                           className={
                             isGame
@@ -953,6 +943,16 @@ export default function GovernanceDetail() {
                           }
                         >
                           Live Voting
+                        </TabsTrigger>
+                        <TabsTrigger
+                          value="thresholds"
+                          className={
+                            isGame
+                              ? "game-tab-btn data-[state=active]:game-tab-btn-active text-[10px] sm:text-xs"
+                              : "rounded-md border border-white/8 bg-white text-black px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold uppercase tracking-wide transform-gpu transition-transform transition-shadow duration-450 ease-in-out shadow-[0_12px_30px_rgba(15,23,42,0.25)] data-[state=active]:bg-black data-[state=active]:text-white hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon"
+                          }
+                        >
+                          Thresholds
                         </TabsTrigger>
                         <TabsTrigger
                           value="bubble-map"

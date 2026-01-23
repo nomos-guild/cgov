@@ -26,6 +26,7 @@ import {
   API_ARCHITECTURE,
   COMPONENT_PATTERNS,
   THEMING,
+  DASHBOARD,
   CODING_CONVENTIONS,
   COMMON_TASKS,
   ALL_KNOWLEDGE,
@@ -242,7 +243,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           properties: {
             task: {
               type: "string",
-              enum: ["addNewComponent", "addNewApiEndpoint", "modifyVoteCalculation", "addVoterEligibility", "addNewTheme"],
+              enum: ["addNewComponent", "addNewApiEndpoint", "modifyVoteCalculation", "addVoterEligibility", "addNewTheme", "addNewChart"],
               description: "The task to get guidance for",
             },
           },
@@ -273,6 +274,23 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         inputSchema: {
           type: "object",
           properties: {},
+          required: [],
+        },
+      },
+
+      // Dashboard Tool
+      {
+        name: "get_dashboard_info",
+        description: "Get information about the customizable dashboard including layout system, charts, and persistence",
+        inputSchema: {
+          type: "object",
+          properties: {
+            aspect: {
+              type: "string",
+              enum: ["layoutSystem", "chartRegistry", "localStorage", "zIndexLayers", "userInteractions", "all"],
+              description: "Specific aspect of the dashboard to get info about",
+            },
+          },
           required: [],
         },
       },
@@ -760,6 +778,28 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       };
     }
 
+    case "get_dashboard_info": {
+      const aspect = args?.aspect as string | undefined;
+      if (aspect && aspect !== "all" && DASHBOARD[aspect as keyof typeof DASHBOARD]) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({ [aspect]: DASHBOARD[aspect as keyof typeof DASHBOARD] }, null, 2),
+            },
+          ],
+        };
+      }
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(DASHBOARD, null, 2),
+          },
+        ],
+      };
+    }
+
     default:
       throw new Error(`Unknown tool: ${name}`);
   }
@@ -824,6 +864,12 @@ server.setRequestHandler(ListResourcesRequestSchema, async () => {
         uri: "cgov://data-conventions",
         name: "Data Conventions",
         description: "Data format conventions (lovelace/ADA, ID formats, etc.)",
+        mimeType: "application/json",
+      },
+      {
+        uri: "cgov://dashboard",
+        name: "Dashboard",
+        description: "Customizable dashboard with draggable/resizable charts",
         mimeType: "application/json",
       },
       {
@@ -935,6 +981,17 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
             uri,
             mimeType: "application/json",
             text: JSON.stringify(DATA_CONVENTIONS, null, 2),
+          },
+        ],
+      };
+
+    case "cgov://dashboard":
+      return {
+        contents: [
+          {
+            uri,
+            mimeType: "application/json",
+            text: JSON.stringify(DASHBOARD, null, 2),
           },
         ],
       };

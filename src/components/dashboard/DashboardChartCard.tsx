@@ -1,0 +1,205 @@
+import { useRef, useCallback, useState } from "react";
+import { GripVertical } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useTheme } from "@/lib/theme";
+import type { ChartDefinition, ChartLayout } from "@/types/dashboard";
+
+interface DashboardChartCardProps {
+  chart: ChartDefinition;
+  layout: ChartLayout;
+  isLoading?: boolean;
+  isActive?: boolean;
+  onActivate: () => void;
+  onDrag: (deltaX: number, deltaY: number) => void;
+  onResize: (deltaWidth: number, deltaHeight: number, direction: string) => void;
+}
+
+export function DashboardChartCard({
+  chart,
+  layout,
+  isLoading,
+  isActive,
+  onActivate,
+  onDrag,
+  onResize,
+}: DashboardChartCardProps) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const { activeTheme } = useTheme();
+  const isDark = activeTheme.isDark;
+  const [isDragging, setIsDragging] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
+
+  // Handle drag
+  const handleDragStart = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragging(true);
+      onActivate(); // Bring to front
+
+      const startX = e.clientX;
+      const startY = e.clientY;
+
+      const handleMouseMove = (moveEvent: MouseEvent) => {
+        const deltaX = moveEvent.clientX - startX;
+        const deltaY = moveEvent.clientY - startY;
+        onDrag(deltaX, deltaY);
+      };
+
+      const handleMouseUp = () => {
+        setIsDragging(false);
+        document.removeEventListener("mousemove", handleMouseMove);
+        document.removeEventListener("mouseup", handleMouseUp);
+      };
+
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+    },
+    [onDrag, onActivate]
+  );
+
+  // Handle resize
+  const handleResizeStart = useCallback(
+    (direction: string) => (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsResizing(true);
+      onActivate(); // Bring to front
+
+      const startX = e.clientX;
+      const startY = e.clientY;
+
+      const handleMouseMove = (moveEvent: MouseEvent) => {
+        const deltaX = moveEvent.clientX - startX;
+        const deltaY = moveEvent.clientY - startY;
+        onResize(deltaX, deltaY, direction);
+      };
+
+      const handleMouseUp = () => {
+        setIsResizing(false);
+        document.removeEventListener("mousemove", handleMouseMove);
+        document.removeEventListener("mouseup", handleMouseUp);
+      };
+
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+    },
+    [onResize, onActivate]
+  );
+
+  const ChartComponent = chart.component;
+
+  // Handle click to bring to front
+  const handleClick = useCallback(() => {
+    onActivate();
+  }, [onActivate]);
+
+  return (
+    <div
+      ref={cardRef}
+      className="absolute group"
+      style={{
+        left: `${layout.x}px`,
+        top: `${layout.y}px`,
+        width: `${layout.width}px`,
+        height: `${layout.height}px`,
+        zIndex: isActive ? 50 : 1,
+        transition: isDragging || isResizing ? "none" : "box-shadow 0.2s",
+      }}
+      onClick={handleClick}
+      data-chart-card
+    >
+      {/* Drag handle */}
+      <div
+        onMouseDown={handleDragStart}
+        className={cn(
+          "absolute top-2 right-2 z-20 p-1.5 rounded-md cursor-grab active:cursor-grabbing transition-opacity opacity-0 group-hover:opacity-100",
+          isDark
+            ? "bg-black/70 hover:bg-black/90 text-[#0bd1a2]"
+            : "bg-white/90 hover:bg-white text-gray-600 shadow-sm"
+        )}
+        aria-label={`Drag to move ${chart.title}`}
+      >
+        <GripVertical className="h-4 w-4" />
+      </div>
+
+      {/* Resize handles - visible on hover */}
+      {/* East (right) */}
+      <div
+        onMouseDown={handleResizeStart("e")}
+        className={cn(
+          "absolute top-1/2 -translate-y-1/2 -right-1 w-2 h-16 cursor-ew-resize z-30 opacity-0 group-hover:opacity-100 transition-opacity rounded",
+          isDark ? "hover:bg-[#0bd1a2]/50" : "hover:bg-blue-500/50"
+        )}
+      />
+
+      {/* West (left) */}
+      <div
+        onMouseDown={handleResizeStart("w")}
+        className={cn(
+          "absolute top-1/2 -translate-y-1/2 -left-1 w-2 h-16 cursor-ew-resize z-30 opacity-0 group-hover:opacity-100 transition-opacity rounded",
+          isDark ? "hover:bg-[#0bd1a2]/50" : "hover:bg-blue-500/50"
+        )}
+      />
+
+      {/* South (bottom) */}
+      <div
+        onMouseDown={handleResizeStart("s")}
+        className={cn(
+          "absolute left-1/2 -translate-x-1/2 -bottom-1 w-16 h-2 cursor-ns-resize z-30 opacity-0 group-hover:opacity-100 transition-opacity rounded",
+          isDark ? "hover:bg-[#0bd1a2]/50" : "hover:bg-blue-500/50"
+        )}
+      />
+
+      {/* North (top) */}
+      <div
+        onMouseDown={handleResizeStart("n")}
+        className={cn(
+          "absolute left-1/2 -translate-x-1/2 -top-1 w-16 h-2 cursor-ns-resize z-30 opacity-0 group-hover:opacity-100 transition-opacity rounded",
+          isDark ? "hover:bg-[#0bd1a2]/50" : "hover:bg-blue-500/50"
+        )}
+      />
+
+      {/* Southeast (corner) */}
+      <div
+        onMouseDown={handleResizeStart("se")}
+        className={cn(
+          "absolute -bottom-1 -right-1 w-4 h-4 cursor-nwse-resize z-30 opacity-0 group-hover:opacity-100 transition-opacity rounded",
+          isDark ? "hover:bg-[#0bd1a2]/70" : "hover:bg-blue-500/70"
+        )}
+      />
+
+      {/* Southwest (corner) */}
+      <div
+        onMouseDown={handleResizeStart("sw")}
+        className={cn(
+          "absolute -bottom-1 -left-1 w-4 h-4 cursor-nesw-resize z-30 opacity-0 group-hover:opacity-100 transition-opacity rounded",
+          isDark ? "hover:bg-[#0bd1a2]/70" : "hover:bg-blue-500/70"
+        )}
+      />
+
+      {/* Northeast (corner) */}
+      <div
+        onMouseDown={handleResizeStart("ne")}
+        className={cn(
+          "absolute -top-1 -right-1 w-4 h-4 cursor-nesw-resize z-30 opacity-0 group-hover:opacity-100 transition-opacity rounded",
+          isDark ? "hover:bg-[#0bd1a2]/70" : "hover:bg-blue-500/70"
+        )}
+      />
+
+      {/* Northwest (corner) */}
+      <div
+        onMouseDown={handleResizeStart("nw")}
+        className={cn(
+          "absolute -top-1 -left-1 w-4 h-4 cursor-nwse-resize z-30 opacity-0 group-hover:opacity-100 transition-opacity rounded",
+          isDark ? "hover:bg-[#0bd1a2]/70" : "hover:bg-blue-500/70"
+        )}
+      />
+
+      {/* Chart content */}
+      <div className="h-full w-full overflow-hidden">
+        <ChartComponent isLoading={isLoading} className="h-full w-full" />
+      </div>
+    </div>
+  );
+}

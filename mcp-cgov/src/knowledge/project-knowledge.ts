@@ -23,6 +23,7 @@ export const PROJECT_OVERVIEW = {
   },
   features: [
     "Aggregate governance statistics dashboard with NCL tracking",
+    "Customizable dashboard with drag-and-drop, resizable charts",
     "Filterable governance actions table (by type and status)",
     "Detailed governance action pages with voting records",
     "Three voter types: DRep (stake-weighted), SPO (stake-weighted), CC (count-based)",
@@ -48,6 +49,22 @@ export const FILE_STRUCTURE = {
       governance: "Governance-specific components (VoteOnProposal.tsx, VoteButtons.tsx)",
       wallet: "Wallet connection components (ConnectWalletButton.tsx, ConnectWalletModal.tsx)",
       providers: "React context providers (MeshProviderWrapper.tsx)",
+      dashboard: {
+        description: "Customizable dashboard with draggable/resizable charts",
+        files: [
+          "DashboardProvider.tsx - Context + localStorage persistence",
+          "DashboardGrid.tsx - Free-form canvas container",
+          "DashboardChartCard.tsx - Draggable/resizable card wrapper",
+          "ChartVisibilityDropdown.tsx - Show/hide chart selector",
+        ],
+        charts: [
+          "ProposalStatusChart.tsx - Active/Ratified/Enacted counts",
+          "ProposalTypeChart.tsx - Pie chart by action type",
+          "NCLProgressChart.tsx - Treasury NCL gauges",
+          "VotingPowerChart.tsx - DRep/SPO voting breakdown",
+          "ParticipationChart.tsx - Vote participation rates",
+        ],
+      },
       keyFiles: [
         "GovernanceStats.tsx - Statistics cards with NCL progress",
         "GovernanceTable.tsx - Actions table with filtering",
@@ -60,7 +77,8 @@ export const FILE_STRUCTURE = {
     pages: {
       description: "Next.js Pages Router pages",
       routes: {
-        "/": "index.tsx - Dashboard",
+        "/": "index.tsx - Landing page with statistics",
+        "/dashboard": "dashboard.tsx - Customizable charts dashboard",
         "/governance/[hash]": "governance/[hash].tsx - Proposal detail view",
         "/404": "404.tsx - Not found page",
       },
@@ -90,6 +108,7 @@ export const FILE_STRUCTURE = {
     types: {
       description: "TypeScript type definitions",
       "governance.ts": "All governance-related types (~339 lines)",
+      "dashboard.ts": "Dashboard types (ChartId, ChartLayout, DashboardConfig)",
     },
     lib: {
       description: "Core business logic utilities",
@@ -248,6 +267,39 @@ export const TYPE_DEFINITIONS = {
         enactedProposals: "Enacted proposal count",
         expiredProposals: "Expired proposal count",
         closedProposals: "Closed proposal count",
+      },
+    },
+    ChartId: {
+      description: "Identifier for dashboard charts",
+      values: ["proposal-status", "proposal-type", "ncl-progress", "voting-power", "participation"],
+    },
+    ChartLayout: {
+      description: "Pixel-based positioning for dashboard charts",
+      fields: {
+        x: "X position in pixels from left",
+        y: "Y position in pixels from top",
+        width: "Width in pixels (min: 280, max: 1200)",
+        height: "Height in pixels (min: 200, max: 800)",
+      },
+    },
+    DashboardConfig: {
+      description: "Persisted dashboard configuration (localStorage)",
+      fields: {
+        visibleCharts: "Array of ChartId for visible charts",
+        layouts: "Record<ChartId, ChartLayout> for positions",
+        version: "Schema version for migrations",
+      },
+    },
+    ChartDefinition: {
+      description: "Registry entry for dashboard charts",
+      fields: {
+        id: "ChartId identifier",
+        title: "Display title",
+        description: "Description for customize dropdown",
+        component: "React component type",
+        defaultVisible: "Whether visible by default",
+        defaultLayout: "Default ChartLayout",
+        icon: "Optional Lucide icon component",
       },
     },
   },
@@ -482,6 +534,42 @@ export const COMPONENT_PATTERNS = {
       description: "Markdown content renderer for proposal descriptions",
       library: "react-markdown with remark-gfm",
     },
+    DashboardProvider: {
+      description: "Context provider for dashboard state and localStorage persistence",
+      contextValues: [
+        "config - Current DashboardConfig",
+        "mounted - SSR safety flag",
+        "getLayout(chartId) - Get chart position/size",
+        "updateLayout(chartId, partial) - Update chart position/size",
+        "toggleChartVisibility(chartId) - Show/hide a chart",
+        "resetToDefaults() - Reset all settings",
+      ],
+      storageKey: "dashboard-config",
+    },
+    DashboardGrid: {
+      description: "Free-form canvas container for chart cards",
+      features: [
+        "position: relative container",
+        "Cards use position: absolute with pixel coordinates",
+        "No grid snapping - cards can be placed anywhere",
+        "Overlapping allowed for flexible repositioning",
+        "Container height auto-expands based on card positions",
+      ],
+    },
+    DashboardChartCard: {
+      description: "Draggable and resizable chart card wrapper",
+      features: [
+        "Drag-to-move via grip handle",
+        "Resize from all 8 directions (edges + corners)",
+        "Click/drag/resize brings card to front (z-index)",
+        "Resize handles appear on hover",
+      ],
+      zIndexLayers: {
+        inactive: 1,
+        active: 50,
+        dropdown: 100,
+      },
+    },
   },
   stateManagement: {
     library: "Redux Toolkit",
@@ -511,6 +599,69 @@ export const THEMING = {
     "themes/[theme]/components.tsx": "Theme-specific component overrides",
   },
   usage: "ThemeProvider wraps app, useTheme hook for access",
+};
+
+// =============================================================================
+// DASHBOARD
+// =============================================================================
+
+export const DASHBOARD = {
+  description: "Customizable dashboard with draggable/resizable charts, persisted to localStorage",
+  location: "src/components/dashboard/",
+  layoutSystem: {
+    type: "Pure pixel-based positioning (no grid snapping)",
+    container: "position: relative with auto-expanding height",
+    cards: "position: absolute with pixel coordinates",
+    overlapping: "Allowed for flexible repositioning",
+    constraints: {
+      minWidth: 280,
+      minHeight: 200,
+      maxWidth: 1200,
+      maxHeight: 800,
+    },
+  },
+  defaultLayouts: {
+    "proposal-status": { x: 0, y: 0, width: 380, height: 320 },
+    "proposal-type": { x: 396, y: 0, width: 380, height: 320 },
+    "ncl-progress": { x: 792, y: 0, width: 380, height: 320 },
+    "voting-power": { x: 0, y: 336, width: 580, height: 320 },
+    "participation": { x: 596, y: 336, width: 580, height: 320 },
+  },
+  zIndexLayers: {
+    inactiveCard: 1,
+    activeCard: 50,
+    customizeDropdown: 100,
+  },
+  localStorage: {
+    key: "dashboard-config",
+    schema: {
+      visibleCharts: "ChartId[]",
+      layouts: "Record<ChartId, ChartLayout>",
+      version: "number (current: 6)",
+    },
+  },
+  ssrSafety: {
+    pattern: "mounted state pattern",
+    description: "Uses useState(false) + useEffect to detect client-side hydration",
+    reason: "Prevents hydration mismatches when localStorage differs from server defaults",
+  },
+  chartRegistry: {
+    location: "src/components/dashboard/charts/index.ts",
+    charts: [
+      { id: "proposal-status", title: "Proposal Status", description: "Active/Ratified/Enacted counts" },
+      { id: "proposal-type", title: "Proposal Types", description: "Pie chart by action type" },
+      { id: "ncl-progress", title: "NCL Progress", description: "Treasury NCL gauges" },
+      { id: "voting-power", title: "Voting Power", description: "DRep/SPO voting breakdown" },
+      { id: "participation", title: "Participation", description: "Vote participation rates" },
+    ],
+  },
+  userInteractions: {
+    moveCard: "Drag grip handle icon (top-right of card)",
+    resizeCard: "Drag edges or corners (8 resize handles)",
+    bringToFront: "Click anywhere on card",
+    showHideCharts: "Customize dropdown button",
+    resetDefaults: "Reset button in customize dropdown",
+  },
 };
 
 // =============================================================================
@@ -603,6 +754,41 @@ export const COMMON_TASKS = {
       "Add to theme selector UI",
     ],
   },
+  addNewChart: {
+    steps: [
+      "Create chart component in src/components/dashboard/charts/",
+      "Use ChartProps interface ({ isLoading, className })",
+      "Use useTheme() for dark/light styling",
+      "Use Redux selectors for data",
+      "Add ChartId to src/types/dashboard.ts",
+      "Add default layout to DEFAULT_CHART_LAYOUTS",
+      "Register in src/components/dashboard/charts/index.ts CHART_REGISTRY",
+      "Export from charts/index.ts",
+    ],
+    pattern: `
+export function MyNewChart({ isLoading, className }: ChartProps) {
+  const { activeTheme } = useTheme();
+  const isDark = activeTheme.isDark;
+  const data = useSelector(selectSomeData);
+
+  if (isLoading || !data) {
+    return <ChartSkeleton className={className} />;
+  }
+
+  return (
+    <div className={cn(
+      "rounded-2xl p-4 h-full",
+      isDark ? "bg-[#1a1a2e] border border-[#0bd1a2]" : "bg-white border shadow-sm",
+      className
+    )}>
+      <h3 className={cn("text-lg font-semibold mb-4", isDark ? "text-[#0bd1a2]" : "text-gray-900")}>
+        Chart Title
+      </h3>
+      {/* Chart content using Recharts */}
+    </div>
+  );
+}`,
+  },
 };
 
 // =============================================================================
@@ -619,6 +805,7 @@ export const ALL_KNOWLEDGE = {
   apiArchitecture: API_ARCHITECTURE,
   componentPatterns: COMPONENT_PATTERNS,
   theming: THEMING,
+  dashboard: DASHBOARD,
   codingConventions: CODING_CONVENTIONS,
   commonTasks: COMMON_TASKS,
 };
