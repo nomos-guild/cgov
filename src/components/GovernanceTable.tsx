@@ -3,7 +3,9 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import { VoteProgress } from "@/components/ui/vote-progress";
+import { cn } from "@/lib/utils";
 import {
   Table,
   TableBody,
@@ -522,6 +524,67 @@ export function GovernanceTable() {
                 <h3 className={`text-sm font-semibold line-clamp-2 ${isGame ? "text-white" : "dark:text-[#0bd1a2]"}`}>
                   {action.title}
                 </h3>
+                {/* Threshold Progress Bars */}
+                {action.threshold && (action.threshold.drepThreshold !== null || action.threshold.spoThreshold !== null || action.threshold.ccThreshold !== null) && (
+                  <div className="mt-2 space-y-1.5 max-w-[200px]">
+                    {/* DRep Threshold */}
+                    {action.threshold.drepThreshold !== null && action.threshold.drepThreshold !== undefined && (() => {
+                      const thresholdPercent = action.threshold!.drepThreshold! * 100;
+                      const currentPercent = action.drepYesPercent ?? 0;
+                      return (
+                        <div className="space-y-0.5">
+                          <div className="flex justify-between items-center">
+                            <span className={cn("text-[10px] font-medium", isGame ? "text-white/80" : "text-muted-foreground")}>DReps</span>
+                            <span className={cn("text-[10px]", isGame ? "text-white/60" : "text-muted-foreground")}>{currentPercent.toFixed(1)}% / {thresholdPercent.toFixed(1)}%</span>
+                          </div>
+                          <div className="relative">
+                            <Progress value={Math.min(currentPercent, 100)} className={cn("h-1.5", isGame ? "bg-white/20" : "bg-gray-200 dark:bg-gray-700")} indicatorClassName={isGame ? "bg-gray-400" : "bg-black dark:bg-[#0bd1a2]"} />
+                            <div className="absolute top-0 h-1.5 w-0.5 bg-black dark:bg-white" style={{ left: `${thresholdPercent}%` }} />
+                          </div>
+                        </div>
+                      );
+                    })()}
+                    {/* SPO Threshold */}
+                    {action.threshold.spoThreshold !== null && action.threshold.spoThreshold !== undefined && (() => {
+                      const thresholdPercent = action.threshold!.spoThreshold! * 100;
+                      const currentPercent = action.spoYesPercent ?? 0;
+                      return (
+                        <div className="space-y-0.5">
+                          <div className="flex justify-between items-center">
+                            <span className={cn("text-[10px] font-medium", isGame ? "text-white/80" : "text-muted-foreground")}>SPOs</span>
+                            <span className={cn("text-[10px]", isGame ? "text-white/60" : "text-muted-foreground")}>{currentPercent.toFixed(1)}% / {thresholdPercent.toFixed(1)}%</span>
+                          </div>
+                          <div className="relative">
+                            <Progress value={Math.min(currentPercent, 100)} className={cn("h-1.5", isGame ? "bg-white/20" : "bg-gray-200 dark:bg-gray-700")} indicatorClassName={isGame ? "bg-gray-400" : "bg-black dark:bg-[#0bd1a2]"} />
+                            <div className="absolute top-0 h-1.5 w-0.5 bg-black dark:bg-white" style={{ left: `${thresholdPercent}%` }} />
+                          </div>
+                        </div>
+                      );
+                    })()}
+                    {/* CC Threshold */}
+                    {action.threshold.ccThreshold !== null && action.threshold.ccThreshold !== undefined && (() => {
+                      const ccData = action.cc;
+                      const ccYesCount = ccData?.yesCount ?? 0;
+                      const ccNoCount = ccData?.noCount ?? 0;
+                      const ccNotVotedCount = ccData?.notVotedCount ?? 0;
+                      const totalMembers = (ccYesCount + ccNoCount + ccNotVotedCount) || 7;
+                      const currentPercent = (ccYesCount / totalMembers) * 100;
+                      const thresholdPercent = action.threshold!.ccThreshold! * 100;
+                      return (
+                        <div className="space-y-0.5">
+                          <div className="flex justify-between items-center">
+                            <span className={cn("text-[10px] font-medium", isGame ? "text-white/80" : "text-muted-foreground")}>CC</span>
+                            <span className={cn("text-[10px]", isGame ? "text-white/60" : "text-muted-foreground")}>{currentPercent.toFixed(1)}% / {thresholdPercent.toFixed(1)}%</span>
+                          </div>
+                          <div className="relative">
+                            <Progress value={Math.min(currentPercent, 100)} className={cn("h-1.5", isGame ? "bg-white/20" : "bg-gray-200 dark:bg-gray-700")} indicatorClassName={isGame ? "bg-gray-400" : "bg-black dark:bg-[#0bd1a2]"} />
+                            <div className="absolute top-0 h-1.5 w-0.5 bg-black dark:bg-white" style={{ left: `${thresholdPercent}%` }} />
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
               </div>
             </Link>
           ))}
@@ -732,10 +795,71 @@ export function GovernanceTable() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="py-1 sm:py-1.5 md:border-l md:border-border/50 pl-2 sm:pl-4">
-                      <h3 className="text-sm sm:text-base font-semibold line-clamp-2 dark:text-[#0bd1a2]">
+                    <TableCell className="py-0.5 sm:py-1 md:border-l md:border-border/50 pl-2 sm:pl-4">
+                      <h3 className="text-sm sm:text-base font-semibold line-clamp-1 dark:text-[#0bd1a2]">
                         {action.title}
                       </h3>
+                      {/* Threshold Progress Bars */}
+                      {action.threshold && (action.threshold.drepThreshold !== null || action.threshold.spoThreshold !== null || action.threshold.ccThreshold !== null) && (
+                        <div className="mt-1 space-y-1 max-w-[280px]">
+                          {/* DRep Threshold */}
+                          {action.threshold.drepThreshold !== null && action.threshold.drepThreshold !== undefined && (() => {
+                            const thresholdPercent = action.threshold!.drepThreshold! * 100;
+                            const currentPercent = action.drepYesPercent ?? 0;
+                            return (
+                              <div className="space-y-0.5">
+                                <div className="flex justify-between items-center">
+                                  <span className={cn("text-[10px] font-medium", isGame ? "text-white/80" : "text-muted-foreground")}>DReps</span>
+                                  <span className={cn("text-[10px]", isGame ? "text-white/60" : "text-muted-foreground")}>{currentPercent.toFixed(1)}% / {thresholdPercent.toFixed(1)}%</span>
+                                </div>
+                                <div className="relative">
+                                  <Progress value={Math.min(currentPercent, 100)} className={cn("h-1.5", isGame ? "bg-white/20" : "bg-gray-200 dark:bg-gray-700")} indicatorClassName={isGame ? "bg-gray-400" : "bg-black dark:bg-[#0bd1a2]"} />
+                                  <div className="absolute top-0 h-1.5 w-0.5 bg-black dark:bg-white" style={{ left: `${thresholdPercent}%` }} />
+                                </div>
+                              </div>
+                            );
+                          })()}
+                          {/* SPO Threshold */}
+                          {action.threshold.spoThreshold !== null && action.threshold.spoThreshold !== undefined && (() => {
+                            const thresholdPercent = action.threshold!.spoThreshold! * 100;
+                            const currentPercent = action.spoYesPercent ?? 0;
+                            return (
+                              <div className="space-y-0.5">
+                                <div className="flex justify-between items-center">
+                                  <span className={cn("text-[10px] font-medium", isGame ? "text-white/80" : "text-muted-foreground")}>SPOs</span>
+                                  <span className={cn("text-[10px]", isGame ? "text-white/60" : "text-muted-foreground")}>{currentPercent.toFixed(1)}% / {thresholdPercent.toFixed(1)}%</span>
+                                </div>
+                                <div className="relative">
+                                  <Progress value={Math.min(currentPercent, 100)} className={cn("h-1.5", isGame ? "bg-white/20" : "bg-gray-200 dark:bg-gray-700")} indicatorClassName={isGame ? "bg-gray-400" : "bg-black dark:bg-[#0bd1a2]"} />
+                                  <div className="absolute top-0 h-1.5 w-0.5 bg-black dark:bg-white" style={{ left: `${thresholdPercent}%` }} />
+                                </div>
+                              </div>
+                            );
+                          })()}
+                          {/* CC Threshold */}
+                          {action.threshold.ccThreshold !== null && action.threshold.ccThreshold !== undefined && (() => {
+                            const ccData = action.cc;
+                            const ccYesCount = ccData?.yesCount ?? 0;
+                            const ccNoCount = ccData?.noCount ?? 0;
+                            const ccNotVotedCount = ccData?.notVotedCount ?? 0;
+                            const totalMembers = (ccYesCount + ccNoCount + ccNotVotedCount) || 7;
+                            const currentPercent = (ccYesCount / totalMembers) * 100;
+                            const thresholdPercent = action.threshold!.ccThreshold! * 100;
+                            return (
+                              <div className="space-y-0.5">
+                                <div className="flex justify-between items-center">
+                                  <span className={cn("text-[10px] font-medium", isGame ? "text-white/80" : "text-muted-foreground")}>CC</span>
+                                  <span className={cn("text-[10px]", isGame ? "text-white/60" : "text-muted-foreground")}>{currentPercent.toFixed(1)}% / {thresholdPercent.toFixed(1)}%</span>
+                                </div>
+                                <div className="relative">
+                                  <Progress value={Math.min(currentPercent, 100)} className={cn("h-1.5", isGame ? "bg-white/20" : "bg-gray-200 dark:bg-gray-700")} indicatorClassName={isGame ? "bg-gray-400" : "bg-black dark:bg-[#0bd1a2]"} />
+                                  <div className="absolute top-0 h-1.5 w-0.5 bg-black dark:bg-white" style={{ left: `${thresholdPercent}%` }} />
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell className="hidden sm:table-cell py-1 sm:py-1.5">
                       <span className="text-[10px] sm:text-xs uppercase tracking-wide font-semibold text-foreground dark:text-[#0bd1a2]">

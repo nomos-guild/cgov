@@ -43,6 +43,29 @@ export function Header() {
             <Brand />
           </Link>
 
+          <nav className="flex items-center gap-2 sm:gap-3">
+            <Link
+              href="/"
+              className={
+                isGame
+                  ? "flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center bg-white transition-colors hover:bg-[#0bd1a2]"
+                  : "flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center bg-white transition-colors hover:bg-black"
+              }
+              aria-label="Proposals"
+              title="Proposals"
+            />
+            <Link
+              href="/dashboard"
+              className={
+                isGame
+                  ? "flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-white transition-colors hover:bg-[#0bd1a2]"
+                  : "flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-white transition-colors hover:bg-black"
+              }
+              aria-label="Dashboard"
+              title="Dashboard"
+            />
+          </nav>
+
           <div className="flex items-center gap-2 sm:gap-6">
             <ThemeToggle />
             <div className="flex items-center gap-1.5 sm:gap-3">
