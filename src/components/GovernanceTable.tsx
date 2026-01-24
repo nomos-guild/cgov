@@ -33,7 +33,7 @@ import {
   buildDonutSegments,
   getGovernanceActionTypeCode,
 } from "@/lib/voteBreakdownCalculator";
-import { canRoleVoteOnAction } from "@/lib/governanceVotingEligibility";
+import { canRoleVoteOnAction, getVoteDataPresence } from "@/lib/governanceVotingEligibility";
 // import { VoteButtons } from "@/components/governance/VoteButtons";
 
 const TYPE_LABELS: Record<ProposalType, string> = {
@@ -94,6 +94,30 @@ const STATUS_LABELS: Record<ProposalStatus, string> = {
 
 function getStatusColor(status: GovernanceAction["status"]): string {
   return status === "Active" ? "text-foreground" : "text-foreground/60";
+}
+
+function getStatusIndicatorColor(
+  status: GovernanceAction["status"],
+  isGame: boolean
+): { color: string; animate: boolean } | null {
+  switch (status) {
+    case "Active":
+      return { color: "bg-green-500", animate: true };
+    case "Ratified":
+    case "Enacted":
+      return {
+        color: isGame ? "bg-green-400" : "bg-green-500 dark:bg-[#0bd1a2]",
+        animate: false,
+      };
+    case "Expired":
+    case "Closed":
+      return {
+        color: isGame ? "bg-red-400" : "bg-red-500 dark:bg-[#8C200B]",
+        animate: false,
+      };
+    default:
+      return null;
+  }
 }
 
 function getTypeLabel(type: GovernanceAction["type"]): string {
@@ -510,12 +534,19 @@ export function GovernanceTable() {
                     {getTypeLabel(action.type)}
                   </span>
                   <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide shrink-0">
-                    {action.status === "Active" && (
-                      <span className="relative flex h-1.5 w-1.5">
-                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-500 opacity-75"></span>
-                        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-green-500"></span>
-                      </span>
-                    )}
+                    {(() => {
+                      const indicator = getStatusIndicatorColor(action.status, isGame);
+                      if (!indicator) return null;
+                      if (indicator.animate) {
+                        return (
+                          <span className="relative flex h-1.5 w-1.5">
+                            <span className={`absolute inline-flex h-full w-full animate-ping rounded-full ${indicator.color} opacity-75`}></span>
+                            <span className={`relative inline-flex h-1.5 w-1.5 rounded-full ${indicator.color}`}></span>
+                          </span>
+                        );
+                      }
+                      return <span className={`inline-flex h-1.5 w-1.5 rounded-full ${indicator.color}`}></span>;
+                    })()}
                     <span className={`${getStatusColor(action.status)} dark:text-[#0bd1a2]`}>
                       {action.status}
                     </span>
@@ -621,9 +652,10 @@ export function GovernanceTable() {
                 const isFirstRow = index === 0;
                 // Only show donut charts for roles that are eligible to vote on this action type
                 // This follows Cardano governance rules (e.g., DRep doesn't vote on Hard Fork Initiation)
-                const showDrep = canRoleVoteOnAction(action.type, "DRep");
-                const showSpo = canRoleVoteOnAction(action.type, "SPO");
-                const showCc = canRoleVoteOnAction(action.type, "CC");
+                const voteData = getVoteDataPresence(action);
+                const showDrep = canRoleVoteOnAction(action.type, "DRep", action.threshold, voteData);
+                const showSpo = canRoleVoteOnAction(action.type, "SPO", action.threshold, voteData);
+                const showCc = canRoleVoteOnAction(action.type, "CC", action.threshold, voteData);
 
                 // CC vote data (still uses legacy props - no breakdown data from API)
                 const ccData = action.cc;
@@ -868,12 +900,19 @@ export function GovernanceTable() {
                     </TableCell>
                     <TableCell className="py-1 sm:py-1.5">
                       <div className="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs uppercase tracking-wide dark:text-[#0bd1a2]">
-                        {action.status === "Active" && (
-                          <span className="relative flex h-1.5 w-1.5 sm:h-2 sm:w-2">
-                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-500 opacity-75"></span>
-                            <span className="relative inline-flex h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-green-500"></span>
-                          </span>
-                        )}
+                        {(() => {
+                          const indicator = getStatusIndicatorColor(action.status, isGame);
+                          if (!indicator) return null;
+                          if (indicator.animate) {
+                            return (
+                              <span className="relative flex h-1.5 w-1.5 sm:h-2 sm:w-2">
+                                <span className={`absolute inline-flex h-full w-full animate-ping rounded-full ${indicator.color} opacity-75`}></span>
+                                <span className={`relative inline-flex h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full ${indicator.color}`}></span>
+                              </span>
+                            );
+                          }
+                          return <span className={`inline-flex h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full ${indicator.color}`}></span>;
+                        })()}
                         <span className={getStatusColor(action.status)}>
                           {action.status}
                         </span>
