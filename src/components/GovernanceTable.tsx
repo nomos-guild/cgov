@@ -576,8 +576,12 @@ export function GovernanceTable() {
                       );
                     })()}
                     {/* SPO Threshold */}
-                    {action.threshold.spoThreshold !== null && action.threshold.spoThreshold !== undefined && (() => {
-                      const thresholdPercent = action.threshold!.spoThreshold! * 100;
+                    {(() => {
+                      const voteData = getVoteDataPresence(action);
+                      const hasSpoData = voteData.hasSpoData || (action.threshold?.spoThreshold !== null && action.threshold?.spoThreshold !== undefined);
+                      if (!hasSpoData) return null;
+                      // Use 51% as default threshold for security-critical parameter changes
+                      const thresholdPercent = action.threshold?.spoThreshold != null ? action.threshold.spoThreshold * 100 : 51;
                       const currentPercent = action.spoYesPercent ?? 0;
                       return (
                         <div className="space-y-0.5">
@@ -852,8 +856,9 @@ export function GovernanceTable() {
                             );
                           })()}
                           {/* SPO Threshold */}
-                          {action.threshold.spoThreshold !== null && action.threshold.spoThreshold !== undefined && (() => {
-                            const thresholdPercent = action.threshold!.spoThreshold! * 100;
+                          {showSpo && (() => {
+                            // Use 51% as default threshold for security-critical parameter changes
+                            const thresholdPercent = action.threshold?.spoThreshold != null ? action.threshold.spoThreshold * 100 : 51;
                             const currentPercent = action.spoYesPercent ?? 0;
                             return (
                               <div className="space-y-0.5">
