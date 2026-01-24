@@ -44,6 +44,7 @@ import {
 import {
   canRoleVoteOnAction,
   getEligibleRoles,
+  getVoteDataPresence,
 } from "@/lib/governanceVotingEligibility";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -193,6 +194,13 @@ function isSpoNotApplicable(action: GovernanceActionDetail): boolean {
   ) {
     return true;
   }
+
+  // If there are SPO votes in the votes array, SPOs can vote (security-critical parameter changes)
+  const hasSpoVotes = action.votes?.some((v) => v.voterType === "SPO") ?? false;
+  if (hasSpoVotes) {
+    return false; // SPOs are applicable if they have votes
+  }
+
   // For non-legacy actions, prefer explicit threshold from backend:
   // if spoThreshold is null, SPOs are not eligible to vote.
   if (!isLegacyAction(action.hash) && action.threshold) {
@@ -381,7 +389,8 @@ export default function GovernanceDetail() {
 
   const eligibleRoles = useMemo<VoterType[]>(() => {
     if (!selectedAction) return [];
-    return getEligibleRoles(selectedAction.type);
+    const voteData = getVoteDataPresence(selectedAction);
+    return getEligibleRoles(selectedAction.type, selectedAction.threshold, voteData);
   }, [selectedAction]);
 
   const curveRoleOptions = useMemo<RoleFilter[]>(
@@ -689,14 +698,15 @@ export default function GovernanceDetail() {
     return null;
   }
 
+  const actionVoteData = getVoteDataPresence(selectedAction);
   const allowDRep =
-    canRoleVoteOnAction(selectedAction.type, "DRep") &&
+    canRoleVoteOnAction(selectedAction.type, "DRep", selectedAction.threshold, actionVoteData) &&
     !isDrepNotApplicable(selectedAction);
   const allowSPO =
-    canRoleVoteOnAction(selectedAction.type, "SPO") &&
+    canRoleVoteOnAction(selectedAction.type, "SPO", selectedAction.threshold, actionVoteData) &&
     !isSpoNotApplicable(selectedAction);
   const allowCC =
-    canRoleVoteOnAction(selectedAction.type, "CC") &&
+    canRoleVoteOnAction(selectedAction.type, "CC", selectedAction.threshold, actionVoteData) &&
     !isCcNotApplicable(selectedAction);
 
   // Always wire through available vote info so donuts render
@@ -704,8 +714,10 @@ export default function GovernanceDetail() {
   // to drive placeholder messaging.
   const drepInfo = selectedAction.drep;
   const spoThreshold = selectedAction.threshold?.spoThreshold;
+  // Show SPO info if threshold exists OR if there are SPO votes (security-critical parameter changes)
+  const hasSpoVotes = selectedAction.votes?.some((v) => v.voterType === "SPO") ?? false;
   const spoInfo =
-    spoThreshold !== null && spoThreshold !== undefined
+    (spoThreshold !== null && spoThreshold !== undefined) || hasSpoVotes
       ? selectedAction.spo
       : undefined;
   const ccThreshold = selectedAction.threshold?.ccThreshold;
@@ -1359,7 +1371,7 @@ export default function GovernanceDetail() {
                                       const drepVotes = votes.filter(v => v.voterType === "DRep" || (!v.voterType && v.drepId));
                                       const spoVotes = votes.filter(v => v.voterType === "SPO");
 
-                                      const eligibleRoles = getEligibleRoles(selectedAction.type);
+                                      const eligibleRoles = getEligibleRoles(selectedAction.type, selectedAction.threshold, actionVoteData);
 
                                       return (
                                         <>
@@ -1604,7 +1616,7 @@ export default function GovernanceDetail() {
                                   </div>
                                 )}
                                 {/* SPO Total */}
-                                {selectedAction.threshold?.spoThreshold !== null && selectedAction.threshold?.spoThreshold !== undefined && (
+                                {((selectedAction.threshold?.spoThreshold !== null && selectedAction.threshold?.spoThreshold !== undefined) || hasSpoVotes) && (
                                   <div className={cn(
                                     "p-3 rounded-lg",
                                     isGame ? "bg-white/10" : "bg-gray-100 dark:bg-gray-800"
@@ -1707,8 +1719,11 @@ export default function GovernanceDetail() {
                               })()}
 
                               {/* SPO Threshold */}
-                              {selectedAction.threshold?.spoThreshold !== null && selectedAction.threshold?.spoThreshold !== undefined && (() => {
-                                const thresholdPercent = selectedAction.threshold.spoThreshold * 100;
+                              {((selectedAction.threshold?.spoThreshold !== null && selectedAction.threshold?.spoThreshold !== undefined) || hasSpoVotes) && (() => {
+                                // Use 51% as default for security-critical parameter changes when SPOs can vote
+                                const thresholdPercent = selectedAction.threshold?.spoThreshold != null
+                                  ? selectedAction.threshold.spoThreshold * 100
+                                  : 51; // Default SPO threshold for security-critical changes
                                 // Use donut chart percentage as placeholder until API provides correct threshold data
                                 const currentPercent = selectedAction.spoYesPercent ?? 0;
 
@@ -2179,7 +2194,10 @@ export default function GovernanceDetail() {
                             : "border-foreground/20 dark:rounded-none dark:border-[#0bd1a2] dark:text-[#0bd1a2]"
                         )}
                       >
-                        {selectedAction.constitutionality}
+                        {/* Show "Pending" for active proposals where CC votes are still being cast */}
+                        {selectedAction.status === "Active" && selectedAction.constitutionality.toLowerCase() !== "constitutional"
+                          ? "Pending"
+                          : selectedAction.constitutionality}
                       </Badge>
                     ) : null}
                   </div>
