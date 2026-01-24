@@ -3,7 +3,8 @@ import { useDashboard } from "./DashboardProvider";
 import { DashboardChartCard } from "./DashboardChartCard";
 import { CHART_REGISTRY, getChartById } from "./charts";
 import type { ChartId } from "@/types/dashboard";
-import { LAYOUT_CONSTRAINTS } from "@/types/dashboard";
+import { LAYOUT_CONSTRAINTS, GRID_CONFIG, snapToGrid } from "@/types/dashboard";
+import { useTheme } from "@/lib/theme";
 
 interface DashboardGridProps {
   isLoading?: boolean;
@@ -13,7 +14,27 @@ export function DashboardGrid({ isLoading }: DashboardGridProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const { config, mounted, getLayout, updateLayout } = useDashboard();
   const [containerHeight, setContainerHeight] = useState(800);
+  const [containerWidth, setContainerWidth] = useState(1200);
   const [activeCardId, setActiveCardId] = useState<ChartId | null>(null);
+  const { activeTheme } = useTheme();
+  const isDark = activeTheme.isDark;
+
+  // Track container width for constraining cards
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const updateWidth = () => {
+      if (containerRef.current) {
+        setContainerWidth(containerRef.current.clientWidth);
+      }
+    };
+
+    updateWidth();
+    const resizeObserver = new ResizeObserver(updateWidth);
+    resizeObserver.observe(containerRef.current);
+
+    return () => resizeObserver.disconnect();
+  }, [mounted]);
 
   // Get visible chart definitions
   const visibleCharts = useMemo(() => {
@@ -37,19 +58,21 @@ export function DashboardGrid({ isLoading }: DashboardGridProps) {
     setContainerHeight(maxBottom + 100);
   }, [config.visibleCharts, config.layouts, getLayout, mounted]);
 
-  // Handle drag - free movement
+  // Handle drag - snap to grid and constrain to container
   const handleDrag = useCallback(
     (chartId: ChartId, deltaX: number, deltaY: number) => {
       const currentLayout = getLayout(chartId);
-      const newX = Math.max(0, currentLayout.x + deltaX);
-      const newY = Math.max(0, currentLayout.y + deltaY);
+      // Constrain X so card doesn't go off left or right edge
+      const maxX = Math.max(0, containerWidth - currentLayout.width);
+      const newX = snapToGrid(Math.max(0, Math.min(maxX, currentLayout.x + deltaX)));
+      const newY = snapToGrid(Math.max(0, currentLayout.y + deltaY));
 
       updateLayout(chartId, { x: newX, y: newY });
     },
-    [getLayout, updateLayout]
+    [getLayout, updateLayout, containerWidth]
   );
 
-  // Handle resize - free resizing
+  // Handle resize - snap to grid and constrain to container
   const handleResize = useCallback(
     (chartId: ChartId, deltaWidth: number, deltaHeight: number, direction: string) => {
       const currentLayout = getLayout(chartId);
@@ -59,36 +82,56 @@ export function DashboardGrid({ isLoading }: DashboardGridProps) {
       let newX = currentLayout.x;
       let newY = currentLayout.y;
 
-      // Handle width changes
+      // Handle width changes - snap to grid and constrain to container
       if (direction.includes("e")) {
-        newWidth = Math.max(
-          LAYOUT_CONSTRAINTS.minWidth,
-          Math.min(LAYOUT_CONSTRAINTS.maxWidth, currentLayout.width + deltaWidth)
+        // Max width is limited by container right edge
+        const maxWidthForPosition = containerWidth - currentLayout.x;
+        newWidth = snapToGrid(
+          Math.max(
+            LAYOUT_CONSTRAINTS.minWidth,
+            Math.min(LAYOUT_CONSTRAINTS.maxWidth, maxWidthForPosition, currentLayout.width + deltaWidth)
+          )
         );
       }
       if (direction.includes("w")) {
-        const proposedWidth = Math.max(LAYOUT_CONSTRAINTS.minWidth, currentLayout.width - deltaWidth);
-        newX = Math.max(0, currentLayout.x + (currentLayout.width - proposedWidth));
+        const proposedWidth = snapToGrid(Math.max(LAYOUT_CONSTRAINTS.minWidth, currentLayout.width - deltaWidth));
+        newX = snapToGrid(Math.max(0, currentLayout.x + (currentLayout.width - proposedWidth)));
         newWidth = proposedWidth;
       }
 
-      // Handle height changes
+      // Handle height changes - snap to grid
       if (direction.includes("s")) {
-        newHeight = Math.max(
-          LAYOUT_CONSTRAINTS.minHeight,
-          Math.min(LAYOUT_CONSTRAINTS.maxHeight, currentLayout.height + deltaHeight)
+        newHeight = snapToGrid(
+          Math.max(
+            LAYOUT_CONSTRAINTS.minHeight,
+            Math.min(LAYOUT_CONSTRAINTS.maxHeight, currentLayout.height + deltaHeight)
+          )
         );
       }
       if (direction.includes("n")) {
-        const proposedHeight = Math.max(LAYOUT_CONSTRAINTS.minHeight, currentLayout.height - deltaHeight);
-        newY = Math.max(0, currentLayout.y + (currentLayout.height - proposedHeight));
+        const proposedHeight = snapToGrid(Math.max(LAYOUT_CONSTRAINTS.minHeight, currentLayout.height - deltaHeight));
+        newY = snapToGrid(Math.max(0, currentLayout.y + (currentLayout.height - proposedHeight)));
         newHeight = proposedHeight;
       }
 
       updateLayout(chartId, { x: newX, y: newY, width: newWidth, height: newHeight });
     },
-    [getLayout, updateLayout]
+    [getLayout, updateLayout, containerWidth]
   );
+
+  // Grid background pattern - must be before early returns to satisfy hooks rules
+  const gridBackgroundStyle = useMemo(() => {
+    const cellSize = GRID_CONFIG.cellSize;
+    const lineColor = isDark ? "rgba(255, 255, 255, 0.04)" : "rgba(0, 0, 0, 0.04)";
+
+    return {
+      backgroundImage: `
+        linear-gradient(to right, ${lineColor} 1px, transparent 1px),
+        linear-gradient(to bottom, ${lineColor} 1px, transparent 1px)
+      `,
+      backgroundSize: `${cellSize}px ${cellSize}px`,
+    };
+  }, [isDark]);
 
   // Don't render until mounted
   if (!mounted) {
@@ -119,8 +162,11 @@ export function DashboardGrid({ isLoading }: DashboardGridProps) {
   return (
     <div
       ref={containerRef}
-      className="relative w-full"
-      style={{ minHeight: `${containerHeight}px` }}
+      className="relative w-full rounded-lg"
+      style={{
+        minHeight: `${containerHeight}px`,
+        ...gridBackgroundStyle,
+      }}
     >
       {visibleCharts.map(({ id, chart }) => {
         const layout = getLayout(id);

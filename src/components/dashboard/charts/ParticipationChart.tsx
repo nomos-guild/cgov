@@ -13,11 +13,13 @@ import {
 } from "recharts";
 import { ChartSkeleton } from "./ChartSkeleton";
 import type { ChartProps } from "@/types/dashboard";
+import { getChartColors, chartCardClassName, chartCardGameClassName } from "../chartTheme";
 
 export function ParticipationChart({ isLoading, className }: ChartProps) {
   const { actions } = useAppSelector((state) => state.governance);
   const { activeTheme } = useTheme();
-  const isDark = activeTheme.isDark;
+  const chartColors = getChartColors(activeTheme.id);
+  const isGame = activeTheme.id === "game";
 
   const data = useMemo(() => {
     // Count proposals by participation level
@@ -67,69 +69,71 @@ export function ParticipationChart({ isLoading, className }: ChartProps) {
   const hasData = data.length > 0 && data.some((d) => d.count > 0);
 
   const getBarColor = (range: string) => {
-    if (isDark) return "#0bd1a2";
     switch (range) {
       case "0-25%":
-        return "#ef4444";
+        return chartColors.participationLow;
       case "25-50%":
-        return "#f97316";
+        return chartColors.participationMedLow;
       case "50-75%":
-        return "#eab308";
+        return chartColors.participationMedHigh;
       case "75-100%":
-        return "#22c55e";
+        return chartColors.participationHigh;
       default:
-        return "#6b7280";
+        return chartColors.primaryMuted;
     }
   };
 
   return (
     <div
       className={cn(
-        "rounded-2xl border border-white/8 bg-[#faf9f6] p-4 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none h-full",
+        chartCardClassName,
+        isGame && chartCardGameClassName,
         className
       )}
     >
-      <h3 className="text-sm font-semibold mb-4 dark:text-[#0bd1a2]">
+      <h3 className="text-sm font-semibold mb-4 dark:text-[#0bd1a2]" style={isGame ? { color: chartColors.tooltipText } : undefined}>
         DRep Participation
       </h3>
 
       {!hasData ? (
         <p className="text-sm text-muted-foreground">No active proposals</p>
       ) : (
-        <ResponsiveContainer width="100%" height={200}>
-          <BarChart
+        <div className="flex-1 min-h-0">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
             data={data}
             margin={{ top: 5, right: 5, left: -20, bottom: 5 }}
           >
             <XAxis
               dataKey="range"
-              tick={{ fontSize: 11, fill: isDark ? "#0bd1a2" : "#6b7280" }}
-              axisLine={{ stroke: isDark ? "#0bd1a2" : "#e5e7eb" }}
+              tick={{ fontSize: 11, fill: chartColors.axisText }}
+              axisLine={{ stroke: chartColors.axisLine }}
               tickLine={false}
             />
             <YAxis
-              tick={{ fontSize: 11, fill: isDark ? "#0bd1a2" : "#6b7280" }}
-              axisLine={{ stroke: isDark ? "#0bd1a2" : "#e5e7eb" }}
+              tick={{ fontSize: 11, fill: chartColors.axisText }}
+              axisLine={{ stroke: chartColors.axisLine }}
               tickLine={false}
               allowDecimals={false}
             />
             <Tooltip
               contentStyle={{
-                backgroundColor: isDark ? "#1a1a2e" : "#ffffff",
-                border: isDark ? "1px solid #0bd1a2" : "1px solid #e5e7eb",
-                borderRadius: isDark ? "0" : "8px",
-                color: isDark ? "#0bd1a2" : "#1f2937",
+                backgroundColor: chartColors.tooltipBg,
+                border: `1px solid ${chartColors.tooltipBorder}`,
+                borderRadius: activeTheme.isDark ? "0" : "8px",
+                color: chartColors.tooltipText,
               }}
               formatter={(value) => [`${value} proposals`]}
               labelFormatter={(label) => `Participation: ${label}`}
             />
-            <Bar dataKey="count" radius={isDark ? 0 : [4, 4, 0, 0]}>
+            <Bar dataKey="count" radius={activeTheme.isDark ? 0 : [4, 4, 0, 0]}>
               {data.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={getBarColor(entry.range)} />
               ))}
             </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       )}
     </div>
   );

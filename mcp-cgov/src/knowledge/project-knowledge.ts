@@ -53,9 +53,10 @@ export const FILE_STRUCTURE = {
         description: "Customizable dashboard with draggable/resizable charts",
         files: [
           "DashboardProvider.tsx - Context + localStorage persistence",
-          "DashboardGrid.tsx - Free-form canvas container",
+          "DashboardGrid.tsx - Grid-snapping canvas container (20px grid)",
           "DashboardChartCard.tsx - Draggable/resizable card wrapper",
-          "ChartVisibilityDropdown.tsx - Show/hide chart selector",
+          "ChartVisibilityDropdown.tsx - Show/hide + drag-reorder chart selector",
+          "chartTheme.ts - Centralized chart colors for all themes",
         ],
         charts: [
           "ProposalStatusChart.tsx - Active/Ratified/Enacted counts",
@@ -63,6 +64,8 @@ export const FILE_STRUCTURE = {
           "NCLProgressChart.tsx - Treasury NCL gauges",
           "VotingPowerChart.tsx - DRep/SPO voting breakdown",
           "ParticipationChart.tsx - Vote participation rates",
+          "ProposalSubmissionChart.tsx - Monthly submission timeline",
+          "ChartSkeleton.tsx - Loading placeholder with theme support",
         ],
       },
       keyFiles: [
@@ -271,23 +274,42 @@ export const TYPE_DEFINITIONS = {
     },
     ChartId: {
       description: "Identifier for dashboard charts",
-      values: ["proposal-status", "proposal-type", "ncl-progress", "voting-power", "participation"],
+      values: ["proposal-status", "proposal-type", "ncl-progress", "voting-power", "participation", "proposal-submission"],
     },
     ChartLayout: {
-      description: "Pixel-based positioning for dashboard charts",
+      description: "Grid-snapped positioning for dashboard charts (20px grid)",
       fields: {
-        x: "X position in pixels from left",
-        y: "Y position in pixels from top",
-        width: "Width in pixels (min: 280, max: 1200)",
-        height: "Height in pixels (min: 200, max: 800)",
+        x: "X position in pixels from left (snapped to 20px grid)",
+        y: "Y position in pixels from top (snapped to 20px grid)",
+        width: "Width in pixels (min: 280, max: 1200, snapped to grid)",
+        height: "Height in pixels (min: 200, max: 800, snapped to grid)",
       },
     },
     DashboardConfig: {
       description: "Persisted dashboard configuration (localStorage)",
       fields: {
         visibleCharts: "Array of ChartId for visible charts",
+        chartOrder: "Array of ChartId for customize menu ordering",
         layouts: "Record<ChartId, ChartLayout> for positions",
-        version: "Schema version for migrations",
+        version: "Schema version for migrations (current: 9)",
+      },
+    },
+    ChartThemeColors: {
+      description: "Theme-specific color palette for charts",
+      location: "src/components/dashboard/chartTheme.ts",
+      fields: {
+        status: "active, ratified, enacted, expired, closed - Status bar colors",
+        votes: "yes, no, abstain - Vote colors",
+        participation: "participationLow/MedLow/MedHigh/High - Participation level colors",
+        palette: "Array of colors for categorical data (pie charts)",
+        chrome: "axisLine, axisText, gridLine - Chart axis/grid styling",
+        tooltip: "tooltipBg, tooltipBorder, tooltipText - Tooltip styling",
+        primary: "primary, primaryMuted - Primary accent colors",
+      },
+      themes: {
+        light: "Colorful status bars, cream backgrounds, rounded corners",
+        dark: "Monochrome cyan (#0bd1a2), sharp corners, transparent backgrounds",
+        game: "White/gray scale, semi-transparent dark backgrounds, heavy shadows",
       },
     },
     ChartDefinition: {
@@ -540,20 +562,23 @@ export const COMPONENT_PATTERNS = {
         "config - Current DashboardConfig",
         "mounted - SSR safety flag",
         "getLayout(chartId) - Get chart position/size",
-        "updateLayout(chartId, partial) - Update chart position/size",
+        "updateLayout(chartId, partial) - Update chart position/size (auto-snaps to grid)",
         "toggleChartVisibility(chartId) - Show/hide a chart",
+        "reorderCharts(fromIndex, toIndex) - Reorder charts in customize menu",
         "resetToDefaults() - Reset all settings",
       ],
       storageKey: "dashboard-config",
     },
     DashboardGrid: {
-      description: "Free-form canvas container for chart cards",
+      description: "Grid-snapping canvas container for chart cards",
       features: [
-        "position: relative container",
-        "Cards use position: absolute with pixel coordinates",
-        "No grid snapping - cards can be placed anywhere",
+        "position: relative container with visual 20px grid background",
+        "Cards use position: absolute with grid-snapped coordinates",
+        "Grid snapping on drag and resize (20px cell size)",
         "Overlapping allowed for flexible repositioning",
         "Container height auto-expands based on card positions",
+        "Container width tracked via ResizeObserver to prevent overflow",
+        "Cards constrained to not exceed container right edge",
       ],
     },
     DashboardChartCard: {
@@ -599,6 +624,49 @@ export const THEMING = {
     "themes/[theme]/components.tsx": "Theme-specific component overrides",
   },
   usage: "ThemeProvider wraps app, useTheme hook for access",
+  chartTheming: {
+    location: "src/components/dashboard/chartTheme.ts",
+    description: "Centralized chart color configuration for all themes",
+    exports: {
+      lightChartColors: "Light theme chart colors (colorful, warm cream bg)",
+      darkChartColors: "Dark theme chart colors (monochrome cyan #0bd1a2)",
+      gameChartColors: "Game theme chart colors (white/gray scale)",
+      getChartColors: "getChartColors(themeId: string): ChartThemeColors",
+      chartCardClassName: "Shared Tailwind classes for chart card containers",
+      chartCardGameClassName: "CSS class for game-theme specific styling",
+    },
+    themeCharacteristics: {
+      light: {
+        background: "#faf9f6 (warm cream)",
+        corners: "rounded-2xl",
+        shadows: "shadow-[0_12px_30px_rgba(15,23,42,0.25)]",
+        colors: "Multi-color (green, blue, orange, purple, etc.)",
+      },
+      dark: {
+        background: "transparent",
+        corners: "rounded-none (sharp)",
+        shadows: "none",
+        border: "1px solid #0bd1a2 (cyan)",
+        colors: "Monochrome cyan (#0bd1a2)",
+      },
+      game: {
+        background: "rgba(12, 12, 12, 0.5) (semi-transparent dark)",
+        corners: "border-radius: 2px",
+        shadows: "Heavy (0 12px 28px rgba(0,0,0,0.5))",
+        colors: "White/gray scale (#ffffff, #d1d5db, #9ca3af, etc.)",
+        cssClass: ".dashboard-chart-card in themes/game/tokens.css",
+      },
+    },
+    pattern: `
+const { activeTheme } = useTheme();
+const chartColors = getChartColors(activeTheme.id);
+const isGame = activeTheme.id === "game";
+
+// Use chartColors for Recharts components:
+<XAxis tick={{ fill: chartColors.axisText }} />
+<Tooltip contentStyle={{ backgroundColor: chartColors.tooltipBg }} />
+<Bar fill={chartColors.yes} />`,
+  },
 };
 
 // =============================================================================
@@ -609,23 +677,29 @@ export const DASHBOARD = {
   description: "Customizable dashboard with draggable/resizable charts, persisted to localStorage",
   location: "src/components/dashboard/",
   layoutSystem: {
-    type: "Pure pixel-based positioning (no grid snapping)",
-    container: "position: relative with auto-expanding height",
-    cards: "position: absolute with pixel coordinates",
+    type: "Grid-snapped positioning (20px grid cells)",
+    container: "position: relative with auto-expanding height, visual grid background",
+    cards: "position: absolute with grid-snapped pixel coordinates",
     overlapping: "Allowed for flexible repositioning",
+    gridConfig: {
+      cellSize: 20,
+      snapFunction: "snapToGrid(value) = Math.round(value / 20) * 20",
+    },
     constraints: {
       minWidth: 280,
       minHeight: 200,
       maxWidth: 1200,
       maxHeight: 800,
+      rightEdge: "Cards cannot be resized beyond container right edge",
     },
   },
   defaultLayouts: {
     "proposal-status": { x: 0, y: 0, width: 380, height: 320 },
-    "proposal-type": { x: 396, y: 0, width: 380, height: 320 },
-    "ncl-progress": { x: 792, y: 0, width: 380, height: 320 },
-    "voting-power": { x: 0, y: 336, width: 580, height: 320 },
-    "participation": { x: 596, y: 336, width: 580, height: 320 },
+    "proposal-type": { x: 400, y: 0, width: 380, height: 320 },
+    "ncl-progress": { x: 800, y: 0, width: 380, height: 320 },
+    "voting-power": { x: 0, y: 340, width: 580, height: 320 },
+    "participation": { x: 600, y: 340, width: 580, height: 320 },
+    "proposal-submission": { x: 0, y: 680, width: 580, height: 320 },
   },
   zIndexLayers: {
     inactiveCard: 1,
@@ -636,8 +710,9 @@ export const DASHBOARD = {
     key: "dashboard-config",
     schema: {
       visibleCharts: "ChartId[]",
+      chartOrder: "ChartId[] (customize menu order)",
       layouts: "Record<ChartId, ChartLayout>",
-      version: "number (current: 6)",
+      version: "number (current: 9)",
     },
   },
   ssrSafety: {
@@ -648,18 +723,20 @@ export const DASHBOARD = {
   chartRegistry: {
     location: "src/components/dashboard/charts/index.ts",
     charts: [
-      { id: "proposal-status", title: "Proposal Status", description: "Active/Ratified/Enacted counts" },
-      { id: "proposal-type", title: "Proposal Types", description: "Pie chart by action type" },
-      { id: "ncl-progress", title: "NCL Progress", description: "Treasury NCL gauges" },
-      { id: "voting-power", title: "Voting Power", description: "DRep/SPO voting breakdown" },
-      { id: "participation", title: "Participation", description: "Vote participation rates" },
+      { id: "proposal-status", title: "Proposal Status", description: "Active/Ratified/Enacted bar chart" },
+      { id: "proposal-type", title: "Proposal Types", description: "Donut chart by action type" },
+      { id: "ncl-progress", title: "NCL Progress", description: "Treasury NCL progress bars" },
+      { id: "voting-power", title: "Voting Power", description: "DRep/SPO stacked bar chart" },
+      { id: "participation", title: "Participation", description: "DRep participation histogram" },
+      { id: "proposal-submission", title: "Proposal Submission", description: "Monthly submission line chart" },
     ],
   },
   userInteractions: {
     moveCard: "Drag grip handle icon (top-right of card)",
-    resizeCard: "Drag edges or corners (8 resize handles)",
+    resizeCard: "Drag edges or corners (8 resize handles), snaps to 20px grid",
     bringToFront: "Click anywhere on card",
-    showHideCharts: "Customize dropdown button",
+    showHideCharts: "Customize dropdown with checkboxes",
+    reorderCharts: "Drag-and-drop chart items in customize menu (grip handle)",
     resetDefaults: "Reset button in customize dropdown",
   },
 };
@@ -669,6 +746,12 @@ export const DASHBOARD = {
 // =============================================================================
 
 export const CODING_CONVENTIONS = {
+  assistantBehavior: {
+    brevity: "Keep responses short and concise - no long explanations",
+    noSummaries: "Never write long code summaries after completing tasks",
+    actionFocused: "Focus on doing the work, not explaining it",
+    bulletPoints: "Use bullet points for lists, not paragraphs",
+  },
   typescript: {
     strictMode: true,
     preferInterfaces: "Use interface for object types, type for unions",
@@ -758,33 +841,59 @@ export const COMMON_TASKS = {
     steps: [
       "Create chart component in src/components/dashboard/charts/",
       "Use ChartProps interface ({ isLoading, className })",
-      "Use useTheme() for dark/light styling",
+      "Import getChartColors, chartCardClassName, chartCardGameClassName from ../chartTheme",
+      "Use getChartColors(activeTheme.id) for theme-aware colors",
       "Use Redux selectors for data",
-      "Add ChartId to src/types/dashboard.ts",
-      "Add default layout to DEFAULT_CHART_LAYOUTS",
+      "Add ChartId to src/types/dashboard.ts (CHART_IDS and ChartId type)",
+      "Add default layout to DEFAULT_CHART_LAYOUTS (grid-aligned, multiples of 20px)",
+      "Add to DEFAULT_CHART_ORDER array",
       "Register in src/components/dashboard/charts/index.ts CHART_REGISTRY",
       "Export from charts/index.ts",
     ],
     pattern: `
+import { getChartColors, chartCardClassName, chartCardGameClassName } from "../chartTheme";
+
 export function MyNewChart({ isLoading, className }: ChartProps) {
   const { activeTheme } = useTheme();
-  const isDark = activeTheme.isDark;
-  const data = useSelector(selectSomeData);
+  const chartColors = getChartColors(activeTheme.id);
+  const isGame = activeTheme.id === "game";
+  const data = useAppSelector(selectSomeData);
 
-  if (isLoading || !data) {
+  if (isLoading) {
     return <ChartSkeleton className={className} />;
   }
 
   return (
     <div className={cn(
-      "rounded-2xl p-4 h-full",
-      isDark ? "bg-[#1a1a2e] border border-[#0bd1a2]" : "bg-white border shadow-sm",
+      chartCardClassName,
+      isGame && chartCardGameClassName,
       className
     )}>
-      <h3 className={cn("text-lg font-semibold mb-4", isDark ? "text-[#0bd1a2]" : "text-gray-900")}>
+      <h3
+        className="text-sm font-semibold mb-4 dark:text-[#0bd1a2]"
+        style={isGame ? { color: chartColors.tooltipText } : undefined}
+      >
         Chart Title
       </h3>
-      {/* Chart content using Recharts */}
+      <div className="flex-1 min-h-0">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data}>
+            <XAxis
+              tick={{ fill: chartColors.axisText }}
+              axisLine={{ stroke: chartColors.axisLine }}
+            />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: chartColors.tooltipBg,
+                border: \`1px solid \${chartColors.tooltipBorder}\`,
+                borderRadius: activeTheme.isDark ? "0" : "8px",
+                color: chartColors.tooltipText,
+              }}
+            />
+            <Bar dataKey="value" fill={chartColors.primary} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }`,

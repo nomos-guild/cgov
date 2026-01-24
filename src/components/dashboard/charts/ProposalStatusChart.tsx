@@ -13,19 +13,13 @@ import {
 } from "recharts";
 import { ChartSkeleton } from "./ChartSkeleton";
 import type { ChartProps } from "@/types/dashboard";
-
-const STATUS_COLORS = {
-  Active: "#22c55e",
-  Ratified: "#3b82f6",
-  Enacted: "#8b5cf6",
-  Expired: "#f97316",
-  Closed: "#6b7280",
-};
+import { getChartColors, chartCardClassName, chartCardGameClassName } from "../chartTheme";
 
 export function ProposalStatusChart({ isLoading, className }: ChartProps) {
   const { actions } = useAppSelector((state) => state.governance);
   const { activeTheme } = useTheme();
-  const isDark = activeTheme.isDark;
+  const chartColors = getChartColors(activeTheme.id);
+  const isGame = activeTheme.id === "game";
 
   const data = useMemo(() => {
     const statusCounts = {
@@ -42,12 +36,20 @@ export function ProposalStatusChart({ isLoading, className }: ChartProps) {
       }
     });
 
+    const statusToColor: Record<string, string> = {
+      Active: chartColors.active,
+      Ratified: chartColors.ratified,
+      Enacted: chartColors.enacted,
+      Expired: chartColors.expired,
+      Closed: chartColors.closed,
+    };
+
     return Object.entries(statusCounts).map(([status, count]) => ({
       status,
       count,
-      fill: STATUS_COLORS[status as keyof typeof STATUS_COLORS],
+      fill: statusToColor[status],
     }));
-  }, [actions]);
+  }, [actions, chartColors]);
 
   if (isLoading) {
     return <ChartSkeleton className={className} />;
@@ -56,45 +58,48 @@ export function ProposalStatusChart({ isLoading, className }: ChartProps) {
   return (
     <div
       className={cn(
-        "rounded-2xl border border-white/8 bg-[#faf9f6] p-4 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none h-full",
+        chartCardClassName,
+        isGame && chartCardGameClassName,
         className
       )}
     >
-      <h3 className="text-sm font-semibold mb-4 dark:text-[#0bd1a2]">
+      <h3 className="text-sm font-semibold mb-4 dark:text-[#0bd1a2]" style={isGame ? { color: chartColors.tooltipText } : undefined}>
         Proposal Status
       </h3>
-      <ResponsiveContainer width="100%" height={200}>
-        <BarChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+      <div className="flex-1 min-h-0">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
           <XAxis
             dataKey="status"
-            tick={{ fontSize: 11, fill: isDark ? "#0bd1a2" : "#6b7280" }}
-            axisLine={{ stroke: isDark ? "#0bd1a2" : "#e5e7eb" }}
+            tick={{ fontSize: 11, fill: chartColors.axisText }}
+            axisLine={{ stroke: chartColors.axisLine }}
             tickLine={false}
           />
           <YAxis
-            tick={{ fontSize: 11, fill: isDark ? "#0bd1a2" : "#6b7280" }}
-            axisLine={{ stroke: isDark ? "#0bd1a2" : "#e5e7eb" }}
+            tick={{ fontSize: 11, fill: chartColors.axisText }}
+            axisLine={{ stroke: chartColors.axisLine }}
             tickLine={false}
             allowDecimals={false}
           />
           <Tooltip
             contentStyle={{
-              backgroundColor: isDark ? "#1a1a2e" : "#ffffff",
-              border: isDark ? "1px solid #0bd1a2" : "1px solid #e5e7eb",
-              borderRadius: isDark ? "0" : "8px",
-              color: isDark ? "#0bd1a2" : "#1f2937",
+              backgroundColor: chartColors.tooltipBg,
+              border: `1px solid ${chartColors.tooltipBorder}`,
+              borderRadius: activeTheme.isDark ? "0" : "8px",
+              color: chartColors.tooltipText,
             }}
           />
-          <Bar dataKey="count" radius={isDark ? 0 : [4, 4, 0, 0]}>
+          <Bar dataKey="count" radius={activeTheme.isDark ? 0 : [4, 4, 0, 0]}>
             {data.map((entry, index) => (
               <Cell
                 key={`cell-${index}`}
-                fill={isDark ? "#0bd1a2" : entry.fill}
+                fill={entry.fill}
               />
             ))}
           </Bar>
         </BarChart>
-      </ResponsiveContainer>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }

@@ -1333,3 +1333,43 @@
   }
 }
 
+/* Dashboard Chart Cards */
+[data-theme="game"] .dashboard-chart-card {
+  background: rgba(12, 12, 12, 0.5) !important;
+  border: none !important;
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.5),
+    0 4px 12px rgba(0, 0, 0, 0.35) !important;
+  border-radius: 2px !important;
+}
+
+[data-theme="game"] .dashboard-chart-card,
+[data-theme="game"] .dashboard-chart-card * {
+  color: #ffffff !important;
+}
+
+[data-theme="game"] .dashboard-chart-card h3 {
+  color: #ffffff !important;
+}
+
+[data-theme="game"] .dashboard-chart-card .recharts-text {
+  fill: rgba(255, 255, 255, 0.8) !important;
+}
+
+[data-theme="game"] .dashboard-chart-card .recharts-cartesian-axis-line,
+[data-theme="game"] .dashboard-chart-card .recharts-cartesian-axis-tick-line {
+  stroke: rgba(255, 255, 255, 0.3) !important;
+}
+
+[data-theme="game"] .dashboard-chart-card .recharts-tooltip-wrapper .recharts-default-tooltip {
+  background: rgba(12, 12, 12, 0.95) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 4px !important;
+}
+
+@media (max-width: 639px) {
+  [data-theme="game"] .dashboard-chart-card {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+  }
+}
+

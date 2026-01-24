@@ -1,20 +1,32 @@
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/lib/theme";
+import { chartCardClassName, chartCardGameClassName } from "../chartTheme";
 
 interface ChartSkeletonProps {
   className?: string;
 }
 
 export function ChartSkeleton({ className }: ChartSkeletonProps) {
+  const { activeTheme } = useTheme();
+  const isGame = activeTheme.id === "game";
+
   return (
     <div
       className={cn(
-        "rounded-2xl border border-white/8 bg-[#faf9f6] p-4 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none",
+        chartCardClassName,
+        isGame && chartCardGameClassName,
         className
       )}
     >
       <div className="animate-pulse">
-        <div className="h-5 w-32 bg-muted rounded mb-4" />
-        <div className="h-[200px] bg-muted rounded" />
+        <div className={cn(
+          "h-5 w-32 bg-muted rounded mb-4",
+          isGame && "bg-white/10"
+        )} />
+        <div className={cn(
+          "h-[200px] bg-muted rounded",
+          isGame && "bg-white/10"
+        )} />
       </div>
     </div>
   );

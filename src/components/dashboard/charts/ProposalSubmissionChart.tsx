@@ -12,6 +12,7 @@ import {
 } from "recharts";
 import { ChartSkeleton } from "./ChartSkeleton";
 import type { ChartProps } from "@/types/dashboard";
+import { getChartColors, chartCardClassName, chartCardGameClassName } from "../chartTheme";
 
 /**
  * Convert a Cardano epoch number to an approximate Date.
@@ -55,7 +56,8 @@ interface MonthlyData {
 export function ProposalSubmissionChart({ isLoading, className }: ChartProps) {
   const { actions } = useAppSelector((state) => state.governance);
   const { activeTheme } = useTheme();
-  const isDark = activeTheme.isDark;
+  const chartColors = getChartColors(activeTheme.id);
+  const isGame = activeTheme.id === "game";
 
   const data = useMemo(() => {
     if (actions.length === 0) {
@@ -117,16 +119,17 @@ export function ProposalSubmissionChart({ isLoading, className }: ChartProps) {
   return (
     <div
       className={cn(
-        "rounded-2xl border border-white/8 bg-[#faf9f6] p-4 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none h-full flex flex-col",
+        chartCardClassName,
+        isGame && chartCardGameClassName,
         className
       )}
     >
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold dark:text-[#0bd1a2]">
+        <h3 className="text-sm font-semibold dark:text-[#0bd1a2]" style={isGame ? { color: chartColors.tooltipText } : undefined}>
           Proposal Submission
         </h3>
         {hasData && (
-          <span className="text-xs text-muted-foreground">
+          <span className="text-xs text-muted-foreground" style={isGame ? { color: chartColors.axisText } : undefined}>
             {totalProposals} total proposals
           </span>
         )}
@@ -143,24 +146,24 @@ export function ProposalSubmissionChart({ isLoading, className }: ChartProps) {
             >
               <XAxis
                 dataKey="label"
-                tick={{ fontSize: 10, fill: isDark ? "#0bd1a2" : "#6b7280" }}
-                axisLine={{ stroke: isDark ? "#0bd1a2" : "#e5e7eb" }}
+                tick={{ fontSize: 10, fill: chartColors.axisText }}
+                axisLine={{ stroke: chartColors.axisLine }}
                 tickLine={false}
                 interval="preserveStartEnd"
                 minTickGap={50}
               />
               <YAxis
-                tick={{ fontSize: 11, fill: isDark ? "#0bd1a2" : "#6b7280" }}
-                axisLine={{ stroke: isDark ? "#0bd1a2" : "#e5e7eb" }}
+                tick={{ fontSize: 11, fill: chartColors.axisText }}
+                axisLine={{ stroke: chartColors.axisLine }}
                 tickLine={false}
                 allowDecimals={false}
               />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: isDark ? "#1a1a2e" : "#ffffff",
-                  border: isDark ? "1px solid #0bd1a2" : "1px solid #e5e7eb",
-                  borderRadius: isDark ? "0" : "8px",
-                  color: isDark ? "#0bd1a2" : "#1f2937",
+                  backgroundColor: chartColors.tooltipBg,
+                  border: `1px solid ${chartColors.tooltipBorder}`,
+                  borderRadius: activeTheme.isDark ? "0" : "8px",
+                  color: chartColors.tooltipText,
                 }}
                 formatter={(value) => [`${value} proposals`, "Submitted"]}
                 labelFormatter={(label) => label}
@@ -168,15 +171,15 @@ export function ProposalSubmissionChart({ isLoading, className }: ChartProps) {
               <Line
                 type="monotone"
                 dataKey="count"
-                stroke={isDark ? "#0bd1a2" : "#3b82f6"}
+                stroke={chartColors.primary}
                 strokeWidth={2}
                 dot={{
-                  fill: isDark ? "#0bd1a2" : "#3b82f6",
+                  fill: chartColors.primary,
                   strokeWidth: 0,
                   r: 3,
                 }}
                 activeDot={{
-                  fill: isDark ? "#0bd1a2" : "#3b82f6",
+                  fill: chartColors.primary,
                   strokeWidth: 0,
                   r: 5,
                 }}

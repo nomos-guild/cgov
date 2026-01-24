@@ -11,6 +11,7 @@ import {
   DEFAULT_CHART_LAYOUTS,
   ALL_CHART_IDS,
   LAYOUT_CONSTRAINTS,
+  snapToGrid,
 } from "@/types/dashboard";
 
 const STORAGE_KEY = "dashboard-config";
@@ -45,6 +46,7 @@ function parseStoredConfig(stored: string | null): DashboardConfig | null {
       }
 
       // Build layouts from saved data or defaults
+      // Snap all values to grid for consistency
       const layouts = { ...DEFAULT_CHART_LAYOUTS };
 
       if (parsed.layouts) {
@@ -52,17 +54,32 @@ function parseStoredConfig(stored: string | null): DashboardConfig | null {
           const saved = parsed.layouts[id];
           if (saved && typeof saved.x === "number" && typeof saved.y === "number") {
             layouts[id] = {
-              x: Math.max(0, saved.x),
-              y: Math.max(0, saved.y),
-              width: Math.max(LAYOUT_CONSTRAINTS.minWidth, Math.min(LAYOUT_CONSTRAINTS.maxWidth, saved.width || 380)),
-              height: Math.max(LAYOUT_CONSTRAINTS.minHeight, Math.min(LAYOUT_CONSTRAINTS.maxHeight, saved.height || 320)),
+              x: snapToGrid(Math.max(0, saved.x)),
+              y: snapToGrid(Math.max(0, saved.y)),
+              width: snapToGrid(Math.max(LAYOUT_CONSTRAINTS.minWidth, Math.min(LAYOUT_CONSTRAINTS.maxWidth, saved.width || 380))),
+              height: snapToGrid(Math.max(LAYOUT_CONSTRAINTS.minHeight, Math.min(LAYOUT_CONSTRAINTS.maxHeight, saved.height || 320))),
             };
           }
         }
       }
 
+      // Parse chart order, ensuring all charts are included
+      let chartOrder: ChartId[] = [];
+      if (Array.isArray(parsed.chartOrder)) {
+        chartOrder = parsed.chartOrder.filter((id: string) =>
+          ALL_CHART_IDS.includes(id as ChartId)
+        ) as ChartId[];
+      }
+      // Add any missing charts to the end of the order
+      for (const chartId of ALL_CHART_IDS) {
+        if (!chartOrder.includes(chartId)) {
+          chartOrder.push(chartId);
+        }
+      }
+
       return {
         visibleCharts: validVisible,
+        chartOrder,
         layouts,
         version: DEFAULT_DASHBOARD_CONFIG.version,
       };
@@ -146,6 +163,18 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  const reorderCharts = useCallback((fromIndex: number, toIndex: number) => {
+    setConfig((prev) => {
+      const newOrder = [...prev.chartOrder];
+      const [removed] = newOrder.splice(fromIndex, 1);
+      newOrder.splice(toIndex, 0, removed);
+      return {
+        ...prev,
+        chartOrder: newOrder,
+      };
+    });
+  }, []);
+
   const resetToDefaults = useCallback(() => {
     setConfig(DEFAULT_DASHBOARD_CONFIG);
   }, []);
@@ -160,6 +189,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
         setVisibleCharts,
         getLayout,
         updateLayout,
+        reorderCharts,
         resetToDefaults,
       }}
     >
@@ -179,6 +209,7 @@ export function useDashboard(): DashboardContextValue {
       setVisibleCharts: () => {},
       getLayout: (chartId) => DEFAULT_CHART_LAYOUTS[chartId],
       updateLayout: () => {},
+      reorderCharts: () => {},
       resetToDefaults: () => {},
     };
   }

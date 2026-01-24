@@ -13,17 +13,13 @@ import {
 } from "recharts";
 import { ChartSkeleton } from "./ChartSkeleton";
 import type { ChartProps } from "@/types/dashboard";
-
-const VOTE_COLORS = {
-  yes: "#22c55e",
-  no: "#ef4444",
-  abstain: "#6b7280",
-};
+import { getChartColors, chartCardClassName, chartCardGameClassName } from "../chartTheme";
 
 export function VotingPowerChart({ isLoading, className }: ChartProps) {
   const { actions } = useAppSelector((state) => state.governance);
   const { activeTheme } = useTheme();
-  const isDark = activeTheme.isDark;
+  const chartColors = getChartColors(activeTheme.id);
+  const isGame = activeTheme.id === "game";
 
   const data = useMemo(() => {
     // Aggregate voting power across all active actions
@@ -75,19 +71,21 @@ export function VotingPowerChart({ isLoading, className }: ChartProps) {
   return (
     <div
       className={cn(
-        "rounded-2xl border border-white/8 bg-[#faf9f6] p-4 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none h-full",
+        chartCardClassName,
+        isGame && chartCardGameClassName,
         className
       )}
     >
-      <h3 className="text-sm font-semibold mb-4 dark:text-[#0bd1a2]">
+      <h3 className="text-sm font-semibold mb-4 dark:text-[#0bd1a2]" style={isGame ? { color: chartColors.tooltipText } : undefined}>
         Voting Power Distribution
       </h3>
 
       {!hasData ? (
         <p className="text-sm text-muted-foreground">No active proposals with votes</p>
       ) : (
-        <ResponsiveContainer width="100%" height={200}>
-          <BarChart
+        <div className="flex-1 min-h-0">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
             data={data}
             layout="vertical"
             margin={{ top: 5, right: 5, left: 10, bottom: 5 }}
@@ -95,56 +93,58 @@ export function VotingPowerChart({ isLoading, className }: ChartProps) {
             <XAxis
               type="number"
               domain={[0, 100]}
-              tick={{ fontSize: 11, fill: isDark ? "#0bd1a2" : "#6b7280" }}
-              axisLine={{ stroke: isDark ? "#0bd1a2" : "#e5e7eb" }}
+              tick={{ fontSize: 11, fill: chartColors.axisText }}
+              axisLine={{ stroke: chartColors.axisLine }}
               tickLine={false}
               tickFormatter={(value) => `${value}%`}
             />
             <YAxis
               type="category"
               dataKey="name"
-              tick={{ fontSize: 11, fill: isDark ? "#0bd1a2" : "#6b7280" }}
-              axisLine={{ stroke: isDark ? "#0bd1a2" : "#e5e7eb" }}
+              tick={{ fontSize: 11, fill: chartColors.axisText }}
+              axisLine={{ stroke: chartColors.axisLine }}
               tickLine={false}
               width={40}
             />
             <Tooltip
               contentStyle={{
-                backgroundColor: isDark ? "#1a1a2e" : "#ffffff",
-                border: isDark ? "1px solid #0bd1a2" : "1px solid #e5e7eb",
-                borderRadius: isDark ? "0" : "8px",
-                color: isDark ? "#0bd1a2" : "#1f2937",
+                backgroundColor: chartColors.tooltipBg,
+                border: `1px solid ${chartColors.tooltipBorder}`,
+                borderRadius: activeTheme.isDark ? "0" : "8px",
+                color: chartColors.tooltipText,
               }}
               formatter={(value) => [`${Number(value).toFixed(1)}%`]}
             />
             <Legend
               wrapperStyle={{
                 fontSize: "11px",
+                color: chartColors.axisText,
               }}
             />
             <Bar
               dataKey="yes"
               name="Yes"
               stackId="a"
-              fill={isDark ? "#0bd1a2" : VOTE_COLORS.yes}
+              fill={chartColors.yes}
               radius={0}
             />
             <Bar
               dataKey="no"
               name="No"
               stackId="a"
-              fill={isDark ? "#ff6b6b" : VOTE_COLORS.no}
+              fill={chartColors.no}
               radius={0}
             />
             <Bar
               dataKey="abstain"
               name="Abstain"
               stackId="a"
-              fill={isDark ? "#4a5568" : VOTE_COLORS.abstain}
+              fill={chartColors.abstain}
               radius={0}
             />
-          </BarChart>
-        </ResponsiveContainer>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       )}
     </div>
   );
