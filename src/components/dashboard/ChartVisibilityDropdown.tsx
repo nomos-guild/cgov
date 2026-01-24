@@ -1,16 +1,58 @@
-import { useState, useRef, useEffect } from "react";
-import { Settings, Check, RotateCcw } from "lucide-react";
+import { useState, useRef, useEffect, useMemo } from "react";
+import { Settings, Check, RotateCcw, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDashboard } from "./DashboardProvider";
-import { CHART_REGISTRY } from "./charts";
+import { getChartById } from "./charts";
 import { useTheme } from "@/lib/theme";
 
 export function ChartVisibilityDropdown() {
   const [isOpen, setIsOpen] = useState(false);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const { config, toggleChartVisibility, resetToDefaults, mounted } = useDashboard();
+  const { config, toggleChartVisibility, reorderCharts, resetToDefaults, mounted } = useDashboard();
   const { activeTheme } = useTheme();
   const isDark = activeTheme.isDark;
+
+  // Get charts in the user's custom order
+  const orderedCharts = useMemo(() => {
+    return config.chartOrder
+      .map((id) => getChartById(id))
+      .filter((chart) => chart !== undefined);
+  }, [config.chartOrder]);
+
+  // Drag and drop handlers
+  const handleDragStart = (index: number) => (e: React.DragEvent) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", index.toString());
+  };
+
+  const handleDragOver = (index: number) => (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (draggedIndex !== null && draggedIndex !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = (toIndex: number) => (e: React.DragEvent) => {
+    e.preventDefault();
+    if (draggedIndex !== null && draggedIndex !== toIndex) {
+      reorderCharts(draggedIndex, toIndex);
+    }
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -104,31 +146,52 @@ export function ChartVisibilityDropdown() {
             </div>
 
             <div className="space-y-1">
-              {CHART_REGISTRY.map((chart) => {
+              {orderedCharts.map((chart, index) => {
                 const isVisible = config.visibleCharts.includes(chart.id);
                 const Icon = chart.icon;
+                const isDragging = draggedIndex === index;
+                const isDragOver = dragOverIndex === index;
 
                 return (
-                  <button
+                  <div
                     key={chart.id}
-                    onClick={() => toggleChartVisibility(chart.id)}
+                    draggable
+                    onDragStart={handleDragStart(index)}
+                    onDragOver={handleDragOver(index)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop(index)}
+                    onDragEnd={handleDragEnd}
                     className={cn(
-                      "w-full flex items-center gap-3 px-2 py-2 rounded-md text-left transition-colors",
+                      "w-full flex items-center gap-2 px-2 py-2 rounded-md text-left transition-all",
                       isDark
                         ? "hover:bg-[#0bd1a2]/10"
-                        : "hover:bg-gray-50"
+                        : "hover:bg-gray-50",
+                      isDragging && "opacity-50",
+                      isDragOver && (isDark ? "bg-[#0bd1a2]/20 border-t-2 border-[#0bd1a2]" : "bg-blue-50 border-t-2 border-blue-400")
                     )}
                   >
+                    {/* Drag handle */}
                     <div
                       className={cn(
-                        "flex-shrink-0 w-5 h-5 rounded border flex items-center justify-center",
+                        "flex-shrink-0 cursor-grab active:cursor-grabbing p-0.5 rounded",
+                        isDark ? "text-[#0bd1a2]/50 hover:text-[#0bd1a2]" : "text-gray-400 hover:text-gray-600"
+                      )}
+                    >
+                      <GripVertical className="h-4 w-4" />
+                    </div>
+
+                    {/* Checkbox */}
+                    <button
+                      onClick={() => toggleChartVisibility(chart.id)}
+                      className={cn(
+                        "flex-shrink-0 w-5 h-5 rounded border flex items-center justify-center transition-colors",
                         isVisible
                           ? isDark
                             ? "bg-[#0bd1a2] border-[#0bd1a2]"
                             : "bg-black border-black"
                           : isDark
-                            ? "border-[#0bd1a2]/50"
-                            : "border-gray-300"
+                            ? "border-[#0bd1a2]/50 hover:border-[#0bd1a2]"
+                            : "border-gray-300 hover:border-gray-400"
                       )}
                     >
                       {isVisible && (
@@ -139,7 +202,7 @@ export function ChartVisibilityDropdown() {
                           )}
                         />
                       )}
-                    </div>
+                    </button>
 
                     {Icon && (
                       <Icon
@@ -168,7 +231,7 @@ export function ChartVisibilityDropdown() {
                         {chart.description}
                       </div>
                     </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>
