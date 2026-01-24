@@ -1,4 +1,4 @@
-import type { ProposalType, VoterType, GovernanceAction, GovernanceActionDetail, VoteRecord } from "@/types/governance";
+import type { ProposalType, VoterType, GovernanceAction, VoteRecord } from "@/types/governance";
 import { PROPOSAL_TYPES } from "@/types/governance";
 
 type RoleEligibility = Record<VoterType, boolean>;
