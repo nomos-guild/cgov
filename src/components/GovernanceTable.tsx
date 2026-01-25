@@ -578,9 +578,8 @@ export function GovernanceTable() {
                     {/* SPO Threshold */}
                     {(() => {
                       const voteData = getVoteDataPresence(action);
-                      const hasSpoData = voteData.hasSpoData || (action.threshold?.spoThreshold !== null && action.threshold?.spoThreshold !== undefined);
-                      if (!hasSpoData) return null;
-                      // Use 51% as default threshold for security-critical parameter changes
+                      const spoCanVote = canRoleVoteOnAction(action.type, "SPO", action.threshold, voteData);
+                      if (!spoCanVote) return null;
                       const thresholdPercent = action.threshold?.spoThreshold != null ? action.threshold.spoThreshold * 100 : 51;
                       const currentPercent = action.spoYesPercent ?? 0;
                       return (
@@ -857,7 +856,6 @@ export function GovernanceTable() {
                           })()}
                           {/* SPO Threshold */}
                           {showSpo && (() => {
-                            // Use 51% as default threshold for security-critical parameter changes
                             const thresholdPercent = action.threshold?.spoThreshold != null ? action.threshold.spoThreshold * 100 : 51;
                             const currentPercent = action.spoYesPercent ?? 0;
                             return (
