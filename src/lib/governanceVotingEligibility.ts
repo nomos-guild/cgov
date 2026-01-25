@@ -159,9 +159,11 @@ export function getVoteDataPresence(action: ActionWithOptionalVotes): VoteDataPr
   const hasCcVotesInArray = (action.ccVotes?.length ?? 0) > 0;
 
   return {
-    hasSpoData: !!(action.spoBreakdown || action.spoYesPercent !== undefined || action.spo || hasSpoVotesInArray),
-    hasDrepData: !!(action.drepBreakdown || action.drepYesPercent !== undefined || action.drep || hasDrepVotesInArray),
-    hasCcData: !!(action.ccYesPercent !== undefined || action.cc || hasCcVotesInArray),
+    // Only consider SPO data present if there's actual breakdown data, vote info object, or votes in array
+    // Don't use spoYesPercent as it might be 0 for all proposals
+    hasSpoData: !!(action.spoBreakdown || action.spo || hasSpoVotesInArray),
+    hasDrepData: !!(action.drepBreakdown || action.drep || hasDrepVotesInArray),
+    hasCcData: !!(action.cc || hasCcVotesInArray),
   };
 }
 
