@@ -576,8 +576,11 @@ export function GovernanceTable() {
                       );
                     })()}
                     {/* SPO Threshold */}
-                    {action.threshold.spoThreshold !== null && action.threshold.spoThreshold !== undefined && (() => {
-                      const thresholdPercent = action.threshold!.spoThreshold! * 100;
+                    {(() => {
+                      const voteData = getVoteDataPresence(action);
+                      const spoCanVote = canRoleVoteOnAction(action.type, "SPO", action.threshold, voteData);
+                      if (!spoCanVote) return null;
+                      const thresholdPercent = action.threshold?.spoThreshold != null ? action.threshold.spoThreshold * 100 : 51;
                       const currentPercent = action.spoYesPercent ?? 0;
                       return (
                         <div className="space-y-0.5">
@@ -852,8 +855,8 @@ export function GovernanceTable() {
                             );
                           })()}
                           {/* SPO Threshold */}
-                          {action.threshold.spoThreshold !== null && action.threshold.spoThreshold !== undefined && (() => {
-                            const thresholdPercent = action.threshold!.spoThreshold! * 100;
+                          {showSpo && (() => {
+                            const thresholdPercent = action.threshold?.spoThreshold != null ? action.threshold.spoThreshold * 100 : 51;
                             const currentPercent = action.spoYesPercent ?? 0;
                             return (
                               <div className="space-y-0.5">

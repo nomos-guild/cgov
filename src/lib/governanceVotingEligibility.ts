@@ -158,10 +158,18 @@ export function getVoteDataPresence(action: ActionWithOptionalVotes): VoteDataPr
   // Check if there are CC votes
   const hasCcVotesInArray = (action.ccVotes?.length ?? 0) > 0;
 
+  // Check if spoBreakdown has actual non-zero values (not just exists)
+  const spoBreakdownHasData = action.spoBreakdown && (
+    BigInt(action.spoBreakdown.activeYes || "0") > BigInt(0) ||
+    BigInt(action.spoBreakdown.activeNo || "0") > BigInt(0) ||
+    BigInt(action.spoBreakdown.activeAbstain || "0") > BigInt(0)
+  );
+
   return {
-    hasSpoData: !!(action.spoBreakdown || action.spoYesPercent !== undefined || action.spo || hasSpoVotesInArray),
-    hasDrepData: !!(action.drepBreakdown || action.drepYesPercent !== undefined || action.drep || hasDrepVotesInArray),
-    hasCcData: !!(action.ccYesPercent !== undefined || action.cc || hasCcVotesInArray),
+    // Only consider SPO data present if there are actual votes
+    hasSpoData: !!(spoBreakdownHasData || hasSpoVotesInArray),
+    hasDrepData: !!(action.drepBreakdown || action.drep || hasDrepVotesInArray),
+    hasCcData: !!(action.cc || hasCcVotesInArray),
   };
 }
 
