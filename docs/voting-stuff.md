@@ -4,7 +4,7 @@ This document provides a complete reference for how the cgov application handles
 
 ---
 
-## Table of Contents
+## Table of Content
 
 1. [Architecture Overview](#architecture-overview)
 2. [Data Flow](#data-flow)
