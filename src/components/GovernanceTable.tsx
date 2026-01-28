@@ -561,7 +561,13 @@ export function GovernanceTable() {
                     {/* DRep Threshold */}
                     {action.threshold.drepThreshold !== null && action.threshold.drepThreshold !== undefined && (() => {
                       const thresholdPercent = action.threshold!.drepThreshold! * 100;
-                      const currentPercent = action.drepYesPercent ?? 0;
+                      // Use calculated percentage from breakdown
+                      const actionTypeCode = getGovernanceActionTypeCode(action.governanceActionType || action.type);
+                      const drepTotalVotePower = action.rawVotingPowerValues?.drep_total_vote_power;
+                      const drepSegments = action.drepBreakdown
+                        ? buildDonutSegments(action.drepBreakdown, actionTypeCode, true, drepTotalVotePower)
+                        : null;
+                      const currentPercent = drepSegments?.find(s => s.type === "yes")?.percent ?? action.drepYesPercent ?? 0;
                       return (
                         <div className="space-y-0.5">
                           <div className="flex justify-between items-center">
@@ -581,7 +587,13 @@ export function GovernanceTable() {
                       const spoCanVote = canRoleVoteOnAction(action.type, "SPO", action.threshold, voteData);
                       if (!spoCanVote) return null;
                       const thresholdPercent = action.threshold?.spoThreshold != null ? action.threshold.spoThreshold * 100 : 51;
-                      const currentPercent = action.spoYesPercent ?? 0;
+                      // Use calculated percentage from breakdown
+                      const actionTypeCode = getGovernanceActionTypeCode(action.governanceActionType || action.type);
+                      const spoTotalVotePower = action.rawVotingPowerValues?.spo_total_vote_power;
+                      const spoSegments = action.spoBreakdown
+                        ? buildDonutSegments(action.spoBreakdown, actionTypeCode, false, spoTotalVotePower)
+                        : null;
+                      const currentPercent = spoSegments?.find(s => s.type === "yes")?.percent ?? action.spoYesPercent ?? 0;
                       return (
                         <div className="space-y-0.5">
                           <div className="flex justify-between items-center">
@@ -840,7 +852,13 @@ export function GovernanceTable() {
                           {/* DRep Threshold */}
                           {action.threshold.drepThreshold !== null && action.threshold.drepThreshold !== undefined && (() => {
                             const thresholdPercent = action.threshold!.drepThreshold! * 100;
-                            const currentPercent = action.drepYesPercent ?? 0;
+                            // Use calculated percentage from breakdown (already computed above for donut)
+                            const actionTypeCode = getGovernanceActionTypeCode(action.governanceActionType || action.type);
+                            const drepTotalVotePower = action.rawVotingPowerValues?.drep_total_vote_power;
+                            const drepSegmentsForBar = action.drepBreakdown
+                              ? buildDonutSegments(action.drepBreakdown, actionTypeCode, true, drepTotalVotePower)
+                              : null;
+                            const currentPercent = drepSegmentsForBar?.find(s => s.type === "yes")?.percent ?? action.drepYesPercent ?? 0;
                             return (
                               <div className="space-y-0.5">
                                 <div className="flex justify-between items-center">
@@ -857,7 +875,13 @@ export function GovernanceTable() {
                           {/* SPO Threshold */}
                           {showSpo && (() => {
                             const thresholdPercent = action.threshold?.spoThreshold != null ? action.threshold.spoThreshold * 100 : 51;
-                            const currentPercent = action.spoYesPercent ?? 0;
+                            // Use calculated percentage from breakdown (already computed above for donut)
+                            const actionTypeCode = getGovernanceActionTypeCode(action.governanceActionType || action.type);
+                            const spoTotalVotePower = action.rawVotingPowerValues?.spo_total_vote_power;
+                            const spoSegmentsForBar = action.spoBreakdown
+                              ? buildDonutSegments(action.spoBreakdown, actionTypeCode, false, spoTotalVotePower)
+                              : null;
+                            const currentPercent = spoSegmentsForBar?.find(s => s.type === "yes")?.percent ?? action.spoYesPercent ?? 0;
                             return (
                               <div className="space-y-0.5">
                                 <div className="flex justify-between items-center">
@@ -873,12 +897,12 @@ export function GovernanceTable() {
                           })()}
                           {/* CC Threshold */}
                           {action.threshold.ccThreshold !== null && action.threshold.ccThreshold !== undefined && (() => {
-                            const ccData = action.cc;
-                            const ccYesCount = ccData?.yesCount ?? 0;
-                            const ccNoCount = ccData?.noCount ?? 0;
-                            const ccNotVotedCount = ccData?.notVotedCount ?? 0;
-                            const totalMembers = (ccYesCount + ccNoCount + ccNotVotedCount) || 7;
-                            const currentPercent = (ccYesCount / totalMembers) * 100;
+                            const ccDataForBar = action.cc;
+                            const ccYesCountForBar = ccDataForBar?.yesCount ?? 0;
+                            const ccNoCountForBar = ccDataForBar?.noCount ?? 0;
+                            const ccNotVotedCountForBar = ccDataForBar?.notVotedCount ?? 0;
+                            const totalMembers = (ccYesCountForBar + ccNoCountForBar + ccNotVotedCountForBar) || 7;
+                            const currentPercent = (ccYesCountForBar / totalMembers) * 100;
                             const thresholdPercent = action.threshold!.ccThreshold! * 100;
                             return (
                               <div className="space-y-0.5">
