@@ -47,8 +47,8 @@ export default function Home() {
           content="Integrated Cardano on-chain platform"
         />
       </Head>
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 md:px-6 md:py-8">
+      <div className="min-h-screen bg-background overflow-visible">
+        <div className="container mx-auto px-3 pt-8 pb-4 sm:px-4 sm:pt-10 sm:pb-6 md:px-6 md:pt-12 md:pb-8 overflow-visible">
           <div className="mb-4 sm:mb-6 md:mb-8 text-left">
             <h1 className="landing-title text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-2 sm:mb-3 md:mb-4 text-black dark:text-foreground">
               Cardano Governance

@@ -327,3 +327,99 @@
   -ms-overflow-style: none !important;
   scrollbar-width: none !important;
 }
+
+/* Dim-responsive card effects - enhance shadows and highlights when dimming */
+:root {
+  --dim-intensity: 0;
+}
+
+/* Target actual card components, not containers */
+[data-theme="light"] .rounded-lg.border.bg-card,
+[data-theme="light"] .glass-card {
+  transition: box-shadow 0.3s ease, filter 0.3s ease;
+  box-shadow:
+    /* Base shadows - always visible */
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -2px rgba(0, 0, 0, 0.1),
+    0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    /* Dim-enhanced shadows */
+    0 calc(10px + var(--dim-intensity) * 20px) calc(20px + var(--dim-intensity) * 40px) calc(-5px) rgba(0, 0, 0, calc(0.05 + var(--dim-intensity) * 0.35)),
+    /* Top highlight glow when dimming */
+    0 calc(var(--dim-intensity) * -2px) calc(var(--dim-intensity) * 10px) rgba(255, 255, 255, calc(var(--dim-intensity) * 0.5)),
+    /* Outer glow halo when dimming */
+    0 0 calc(var(--dim-intensity) * 25px) calc(var(--dim-intensity) * 5px) rgba(255, 255, 255, calc(var(--dim-intensity) * 0.12));
+  filter: brightness(calc(1 + var(--dim-intensity) * 0.15));
+}
+
+/* Proposal cards - specific styling with overflow handling */
+[data-theme="light"] .rounded-xl.border.bg-\[\#faf9f6\] {
+  transition: box-shadow 0.3s ease, filter 0.3s ease;
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 8px 20px rgba(15, 23, 42, 0.15),
+    0 calc(8px + var(--dim-intensity) * 16px) calc(16px + var(--dim-intensity) * 32px) rgba(0, 0, 0, calc(0.1 + var(--dim-intensity) * 0.25)),
+    0 calc(var(--dim-intensity) * -2px) calc(var(--dim-intensity) * 8px) rgba(255, 255, 255, calc(var(--dim-intensity) * 0.4)),
+    0 0 calc(var(--dim-intensity) * 20px) calc(var(--dim-intensity) * 4px) rgba(255, 255, 255, calc(var(--dim-intensity) * 0.1));
+  filter: brightness(calc(1 + var(--dim-intensity) * 0.12));
+}
+
+/* Header and footer - base shadow + dim enhancements */
+[data-theme="light"] header {
+  transition: box-shadow 0.3s ease, filter 0.3s ease;
+  box-shadow:
+    /* Base shadow */
+    0 1px 3px rgba(0, 0, 0, 0.1),
+    0 2px 6px rgba(0, 0, 0, 0.05),
+    /* Dim-enhanced */
+    0 calc(2px + var(--dim-intensity) * 10px) calc(6px + var(--dim-intensity) * 30px) rgba(0, 0, 0, calc(0.05 + var(--dim-intensity) * 0.25)),
+    0 calc(var(--dim-intensity) * -1px) calc(var(--dim-intensity) * 6px) rgba(255, 255, 255, calc(var(--dim-intensity) * 0.35));
+  filter: brightness(calc(1 + var(--dim-intensity) * 0.12));
+}
+
+[data-theme="light"] footer {
+  transition: box-shadow 0.3s ease, filter 0.3s ease;
+  box-shadow:
+    /* Base shadow */
+    0 -1px 3px rgba(0, 0, 0, 0.05),
+    /* Dim-enhanced */
+    0 calc(-2px - var(--dim-intensity) * 8px) calc(6px + var(--dim-intensity) * 20px) rgba(0, 0, 0, calc(0.03 + var(--dim-intensity) * 0.2)),
+    0 calc(var(--dim-intensity) * 1px) calc(var(--dim-intensity) * 6px) rgba(255, 255, 255, calc(var(--dim-intensity) * 0.3));
+  filter: brightness(calc(1 + var(--dim-intensity) * 0.1));
+}
+
+/* Buttons - base shadow + dim enhancements */
+[data-theme="light"] .shadow-soft {
+  transition: box-shadow 0.3s ease, filter 0.3s ease;
+  box-shadow:
+    /* Base shadows */
+    0 2px 4px rgba(0, 0, 0, 0.1),
+    0 4px 8px rgba(0, 0, 0, 0.08),
+    /* Dim-enhanced shadows */
+    0 calc(4px + var(--dim-intensity) * 8px) calc(8px + var(--dim-intensity) * 16px) rgba(0, 0, 0, calc(0.05 + var(--dim-intensity) * 0.2)),
+    /* Top highlight when dimming */
+    0 calc(var(--dim-intensity) * -1px) calc(var(--dim-intensity) * 5px) rgba(255, 255, 255, calc(var(--dim-intensity) * 0.4)),
+    /* Outer glow when dimming */
+    0 0 calc(var(--dim-intensity) * 15px) calc(var(--dim-intensity) * 3px) rgba(255, 255, 255, calc(var(--dim-intensity) * 0.15));
+  filter: brightness(calc(1 + var(--dim-intensity) * 0.15));
+}
+
+/* Prevent scrollbar from appearing due to shadow overflow */
+[data-theme="light"] .space-y-3,
+[data-theme="light"] .min-h-screen,
+[data-theme="light"] .container,
+[data-theme="light"] .main-content,
+[data-theme="light"] #app-brightness-wrapper {
+  overflow-x: visible !important;
+  overflow-y: visible !important;
+}
+
+/* Ensure proposal card containers don't clip shadows */
+[data-theme="light"] .sm\:hidden.space-y-3 {
+  overflow: visible !important;
+  padding-bottom: 1.5rem;
+}
+
+/* Prevent horizontal scrollbar on page */
+[data-theme="light"] body {
+  overflow-x: hidden;
+}

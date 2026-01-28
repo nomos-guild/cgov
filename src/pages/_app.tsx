@@ -17,11 +17,13 @@ export default function App({ Component, pageProps }: AppProps) {
           <Head>
             <link rel="icon" href="/favicon.ico?v=2" />
           </Head>
-          <Header />
-          <main className="main-content">
-            <Component {...pageProps} />
-          </main>
-          <Footer />
+          <div id="app-brightness-wrapper" className="min-h-screen flex flex-col">
+            <Header />
+            <main className="main-content">
+              <Component {...pageProps} />
+            </main>
+            <Footer />
+          </div>
         </Provider>
       </ThemeProvider>
     </MeshProviderWrapper>
