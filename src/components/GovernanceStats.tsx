@@ -74,7 +74,7 @@ export function GovernanceStats() {
   };
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6 game-stats">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mb-4 md:mb-6 game-stats">
       {/* Proposal Counter Box */}
       <div className="rounded-2xl border border-white/8 bg-[#faf9f6] p-2.5 sm:p-3 md:p-4 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none">
         <div className="flex flex-col gap-3">
