@@ -534,7 +534,7 @@ export function GovernanceTable() {
       ) : (
         <>
         {/* Mobile card layout */}
-        <div className="sm:hidden space-y-3">
+        <div className="sm:hidden space-y-3 pb-6 overflow-visible">
           {displayedActions.map((action) => (
             <Link
               key={action.proposalId ?? action.hash}
