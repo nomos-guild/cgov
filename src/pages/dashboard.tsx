@@ -13,7 +13,7 @@ import {
   DashboardProvider,
   DashboardGrid,
   ChartVisibilityDropdown,
-} from "@/components/dashboard";
+} from "@/components/dashboards/shared";
 
 function DashboardContent() {
   const dispatch = useAppDispatch();

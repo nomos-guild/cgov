@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
 import { ChartSkeleton } from "./ChartSkeleton";
 import type { ChartProps } from "@/types/dashboard";
-import { getChartColors, chartCardClassName, chartCardGameClassName } from "../chartTheme";
+import { getChartColors, chartCardClassName, chartCardGameClassName } from "@/components/dashboards/shared/chartTheme";
 
 export function NCLProgressChart({ isLoading, className }: ChartProps) {
   const { nclDataList } = useAppSelector((state) => state.governance);
