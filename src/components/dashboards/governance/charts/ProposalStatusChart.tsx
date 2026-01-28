@@ -13,7 +13,7 @@ import {
 } from "recharts";
 import { ChartSkeleton } from "./ChartSkeleton";
 import type { ChartProps } from "@/types/dashboard";
-import { getChartColors, chartCardClassName, chartCardGameClassName } from "../chartTheme";
+import { getChartColors, chartCardClassName, chartCardGameClassName } from "@/components/dashboards/shared/chartTheme";
 
 export function ProposalStatusChart({ isLoading, className }: ChartProps) {
   const { actions } = useAppSelector((state) => state.governance);

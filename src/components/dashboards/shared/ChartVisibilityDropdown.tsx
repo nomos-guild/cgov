@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { Settings, Check, RotateCcw, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDashboard } from "./DashboardProvider";
-import { getChartById } from "./charts";
+import { getChartById } from "@/components/dashboards/governance/charts";
 import { useTheme } from "@/lib/theme";
 
 export function ChartVisibilityDropdown() {

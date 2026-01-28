@@ -1,7 +1,7 @@
 import { useMemo, useCallback, useRef, useState, useEffect } from "react";
 import { useDashboard } from "./DashboardProvider";
 import { DashboardChartCard } from "./DashboardChartCard";
-import { CHART_REGISTRY, getChartById } from "./charts";
+import { CHART_REGISTRY, getChartById } from "@/components/dashboards/governance/charts";
 import type { ChartId } from "@/types/dashboard";
 import { LAYOUT_CONSTRAINTS, GRID_CONFIG, snapToGrid } from "@/types/dashboard";
 import { useTheme } from "@/lib/theme";

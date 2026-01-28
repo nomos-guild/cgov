@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/lib/theme";
-import { chartCardClassName, chartCardGameClassName } from "../chartTheme";
+import { chartCardClassName, chartCardGameClassName } from "@/components/dashboards/shared/chartTheme";
 
 interface ChartSkeletonProps {
   className?: string;
