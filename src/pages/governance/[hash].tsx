@@ -1676,8 +1676,8 @@ export default function GovernanceDetail() {
                               {/* DRep Threshold */}
                               {selectedAction.threshold?.drepThreshold !== null && selectedAction.threshold?.drepThreshold !== undefined && (() => {
                                 const thresholdPercent = selectedAction.threshold.drepThreshold * 100;
-                                // Use donut chart percentage as placeholder until API provides correct threshold data
-                                const currentPercent = selectedAction.drepYesPercent ?? 0;
+                                // Use calculated percentage from breakdown segments
+                                const currentPercent = drepDonutSegments?.find(s => s.type === "yes")?.percent ?? selectedAction.drepYesPercent ?? 0;
 
                                 return (
                                   <div className="space-y-2">
@@ -1724,8 +1724,8 @@ export default function GovernanceDetail() {
                                 const thresholdPercent = selectedAction.threshold?.spoThreshold != null
                                   ? selectedAction.threshold.spoThreshold * 100
                                   : 51; // Default SPO threshold for security-critical changes
-                                // Use donut chart percentage as placeholder until API provides correct threshold data
-                                const currentPercent = selectedAction.spoYesPercent ?? 0;
+                                // Use calculated percentage from breakdown segments
+                                const currentPercent = spoDonutSegments?.find(s => s.type === "yes")?.percent ?? selectedAction.spoYesPercent ?? 0;
 
                                 return (
                                   <div className="space-y-2">
