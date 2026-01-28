@@ -26,7 +26,7 @@ import type {
   ProposalStatus,
 } from "@/types/governance";
 import { PROPOSAL_TYPES } from "@/types/governance";
-import { ChevronDown, Search } from "lucide-react";
+import { ChevronDown, Search, LayoutList, LayoutGrid } from "lucide-react";
 import { deriveCcAbstainCount } from "@/lib/voteMath";
 import { useTheme } from "@/lib/theme";
 import {
@@ -152,6 +152,7 @@ export function GovernanceTable() {
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
   const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
   const [showAllProposals, setShowAllProposals] = useState(false);
+  const [viewMode, setViewMode] = useState<"default" | "compact">("default");
   const filterMenuRef = useRef<HTMLDivElement | null>(null);
   const statusMenuRef = useRef<HTMLDivElement | null>(null);
   const isAllSelected = selectedTypes.length === PROPOSAL_TYPES.length;
@@ -502,6 +503,24 @@ export function GovernanceTable() {
                 </div>
               ) : null}
             </div>
+            {/* View toggle */}
+            <Button
+              variant="outline"
+              size="sm"
+              className={
+                isGame
+                  ? "game-nav-btn h-9 sm:h-10 px-2.5 sm:px-3"
+                  : "h-8 sm:h-9 min-h-0 px-2.5 sm:px-3 py-2 btn-neon rounded-2xl hover:bg-black hover:text-white transition-none dark:hover:bg-[#0bd1a2] dark:hover:text-black dark:rounded-none"
+              }
+              aria-label={viewMode === "default" ? "Switch to compact view" : "Switch to default view"}
+              onClick={() => setViewMode(viewMode === "default" ? "compact" : "default")}
+            >
+              {viewMode === "default" ? (
+                <LayoutGrid className="h-4 w-4" />
+              ) : (
+                <LayoutList className="h-4 w-4" />
+              )}
+            </Button>
           </div>
         </div>
       </div>
@@ -649,9 +668,10 @@ export function GovernanceTable() {
           )}
         </div>
 
-        {/* Desktop table layout */}
-        <div className="hidden sm:block rounded-2xl border border-white/8 bg-[#faf9f6] overflow-hidden shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none game-proposals-card">
-          <Table>
+        {/* Desktop table layout - Default view */}
+        {viewMode === "default" && (
+        <div className="hidden sm:block rounded-2xl border border-white/8 bg-[#faf9f6] overflow-x-auto shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none game-proposals-card">
+          <Table className="min-w-[600px]">
             <TableHeader>
               <TableRow className="proposal-header-row hover:bg-transparent">
                 <TableHead className="hidden md:table-cell w-[30px] px-0 text-center h-8 sm:h-10 py-1 sm:py-2 text-xs sm:text-sm">DRep</TableHead>
@@ -966,6 +986,153 @@ export function GovernanceTable() {
             </div>
           )}
         </div>
+        )}
+
+        {/* Desktop table layout - Compact view */}
+        {viewMode === "compact" && (
+        <div className="hidden sm:block rounded-2xl border border-white/8 bg-[#faf9f6] overflow-x-auto shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none game-proposals-card">
+          <Table>
+            <TableHeader>
+              <TableRow className="proposal-header-row hover:bg-transparent">
+                <TableHead className="pl-3 sm:pl-4 h-8 sm:h-10 py-1 sm:py-2 text-xs sm:text-sm">Proposal Title</TableHead>
+                <TableHead className="w-[140px] h-8 sm:h-10 py-1 sm:py-2 text-xs sm:text-sm">Type</TableHead>
+                <TableHead className="w-[100px] h-8 sm:h-10 py-1 sm:py-2 text-xs sm:text-sm text-center">DRep</TableHead>
+                <TableHead className="w-[100px] h-8 sm:h-10 py-1 sm:py-2 text-xs sm:text-sm text-center">SPO</TableHead>
+                <TableHead className="w-[100px] h-8 sm:h-10 py-1 sm:py-2 text-xs sm:text-sm text-center">CC</TableHead>
+                <TableHead className="w-[80px] h-8 sm:h-10 py-1 sm:py-2 text-xs sm:text-sm">Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {displayedActions.map((action) => {
+                const rowId = action.proposalId ?? action.hash;
+                const voteData = getVoteDataPresence(action);
+                const showDrep = canRoleVoteOnAction(action.type, "DRep", action.threshold, voteData);
+                const showSpo = canRoleVoteOnAction(action.type, "SPO", action.threshold, voteData);
+                const showCc = canRoleVoteOnAction(action.type, "CC", action.threshold, voteData);
+                const actionTypeCode = getGovernanceActionTypeCode(action.governanceActionType || action.type);
+
+                // DRep calculations
+                const drepThreshold = action.threshold?.drepThreshold;
+                const drepTotalVotePower = action.rawVotingPowerValues?.drep_total_vote_power;
+                const drepSegments = action.drepBreakdown
+                  ? buildDonutSegments(action.drepBreakdown, actionTypeCode, true, drepTotalVotePower)
+                  : null;
+                const drepYes = drepSegments?.find(s => s.type === "yes")?.percent ?? action.drepYesPercent ?? 0;
+
+                // SPO calculations
+                const spoThreshold = action.threshold?.spoThreshold;
+                const spoTotalVotePower = action.rawVotingPowerValues?.spo_total_vote_power;
+                const spoSegments = action.spoBreakdown
+                  ? buildDonutSegments(action.spoBreakdown, actionTypeCode, false, spoTotalVotePower)
+                  : null;
+                const spoYes = spoSegments?.find(s => s.type === "yes")?.percent ?? action.spoYesPercent ?? 0;
+
+                // CC calculations
+                const ccThreshold = action.threshold?.ccThreshold;
+                const ccData = action.cc;
+                const ccYesCount = ccData?.yesCount ?? 0;
+                const ccNoCount = ccData?.noCount ?? 0;
+                const ccNotVotedCount = ccData?.notVotedCount ?? 0;
+                const ccTotalMembers = (ccYesCount + ccNoCount + ccNotVotedCount) || 7;
+                const ccYes = (ccYesCount / ccTotalMembers) * 100;
+
+                return (
+                  <TableRow
+                    key={rowId}
+                    className="proposal-row cursor-pointer transition-colors hover:bg-muted/50 border-b-0"
+                    onClick={() => router.push(`/governance/${action.hash}`)}
+                  >
+                    <TableCell className="py-2 pl-3 sm:pl-4 max-w-[300px]">
+                      <h3 className="text-sm font-medium truncate dark:text-[#0bd1a2]">
+                        {action.title}
+                      </h3>
+                    </TableCell>
+                    <TableCell className="py-2 whitespace-nowrap">
+                      <span className="text-[10px] sm:text-xs uppercase tracking-wide font-semibold text-foreground dark:text-[#0bd1a2]">
+                        {getTypeLabel(action.type)}
+                      </span>
+                    </TableCell>
+                    <TableCell className="py-2 text-center whitespace-nowrap">
+                      {showDrep && drepThreshold != null ? (
+                        <span className={cn(
+                          "text-xs font-medium",
+                          drepYes >= drepThreshold * 100 ? "text-green-600 dark:text-green-400" : "text-foreground dark:text-[#0bd1a2]"
+                        )}>
+                          {drepYes.toFixed(1)}%
+                          <span className="text-muted-foreground text-[10px] ml-1">/ {(drepThreshold * 100).toFixed(0)}%</span>
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="py-2 text-center whitespace-nowrap">
+                      {showSpo && spoThreshold != null ? (
+                        <span className={cn(
+                          "text-xs font-medium",
+                          spoYes >= spoThreshold * 100 ? "text-green-600 dark:text-green-400" : "text-foreground dark:text-[#0bd1a2]"
+                        )}>
+                          {spoYes.toFixed(1)}%
+                          <span className="text-muted-foreground text-[10px] ml-1">/ {(spoThreshold * 100).toFixed(0)}%</span>
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="py-2 text-center whitespace-nowrap">
+                      {showCc && ccThreshold != null ? (
+                        <span className={cn(
+                          "text-xs font-medium",
+                          ccYes >= ccThreshold * 100 ? "text-green-600 dark:text-green-400" : "text-foreground dark:text-[#0bd1a2]"
+                        )}>
+                          {ccYes.toFixed(1)}%
+                          <span className="text-muted-foreground text-[10px] ml-1">/ {(ccThreshold * 100).toFixed(0)}%</span>
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="py-2 whitespace-nowrap">
+                      <div className="flex items-center gap-1.5 text-[10px] sm:text-xs uppercase tracking-wide dark:text-[#0bd1a2]">
+                        {(() => {
+                          const indicator = getStatusIndicatorColor(action.status, isGame);
+                          if (!indicator) return null;
+                          if (indicator.animate) {
+                            return (
+                              <span className="relative flex h-1.5 w-1.5">
+                                <span className={`absolute inline-flex h-full w-full animate-ping rounded-full ${indicator.color} opacity-75`}></span>
+                                <span className={`relative inline-flex h-1.5 w-1.5 rounded-full ${indicator.color}`}></span>
+                              </span>
+                            );
+                          }
+                          return <span className={`inline-flex h-1.5 w-1.5 rounded-full ${indicator.color}`}></span>;
+                        })()}
+                        <span className={getStatusColor(action.status)}>
+                          {action.status}
+                        </span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+          {hasMoreProposals && !showAllProposals && (
+            <div className="p-4">
+              <Button
+                variant="outline"
+                onClick={() => setShowAllProposals(true)}
+                className={
+                  isGame
+                    ? "game-nav-btn w-full"
+                    : "w-full bg-white text-black hover:bg-black hover:text-white transition-colors shadow-[0_8px_16px_rgba(15,23,42,0.2)] btn-neon"
+                }
+              >
+                Show {remainingProposals} more proposals
+              </Button>
+            </div>
+          )}
+        </div>
+        )}
         </>
       )}
     </div>

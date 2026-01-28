@@ -935,7 +935,7 @@ export default function GovernanceDetail() {
             {/* Left Column - Tabs for donuts, bubble map, curves, details */}
             <div className="space-y-4 sm:space-y-5 md:space-y-6 lg:col-span-2">
               <Card className={cn(
-                "info-container p-3 sm:p-4 md:p-6 dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none dark:rounded-none",
+                "info-container p-3 sm:p-4 md:p-6 overflow-hidden dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none dark:rounded-none",
                 isGame && "game-voting-card"
               )}>
                 <Tabs
@@ -1006,7 +1006,7 @@ export default function GovernanceDetail() {
                             <div className="space-y-0 sm:space-y-4">
                               {/* Mobile: horizontal donut + legend. Desktop: horizontal row with vertical stacks */}
                               <div className={cn(
-                                "flex flex-col -space-y-20 sm:space-y-0 sm:flex-row sm:flex-nowrap sm:items-start sm:justify-start",
+                                "flex flex-col -space-y-20 sm:space-y-0 sm:flex-row sm:flex-wrap xl:flex-nowrap sm:items-start sm:justify-start",
                                 isGame ? "sm:gap-2 md:gap-3" : "sm:gap-4 md:gap-6"
                               )}>
                                 {/* DRep */}
@@ -1592,7 +1592,7 @@ export default function GovernanceDetail() {
                               )}>
                                 Total Voting Power
                               </h4>
-                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                 {/* DRep Total */}
                                 {selectedAction.threshold?.drepThreshold !== null && selectedAction.threshold?.drepThreshold !== undefined && (
                                   <div className={cn(
