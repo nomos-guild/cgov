@@ -30,7 +30,7 @@ export async function callApi(args: CallApiArgs) {
       ...args.headers,
     },
     body: args.body,
-    cache: "no-cache",
+    next: { revalidate: 60 },
   });
 
   if (args.isJson !== false) {
