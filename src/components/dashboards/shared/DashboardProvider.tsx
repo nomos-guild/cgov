@@ -5,12 +5,14 @@ import type {
   ChartLayout,
   DashboardConfig,
   DashboardContextValue,
+  TextElement,
 } from "@/types/dashboard";
 import {
   DEFAULT_DASHBOARD_CONFIG,
   DEFAULT_CHART_LAYOUTS,
   ALL_CHART_IDS,
   LAYOUT_CONSTRAINTS,
+  TEXT_ELEMENT_CONSTRAINTS,
   snapToGrid,
 } from "@/types/dashboard";
 
@@ -77,10 +79,20 @@ function parseStoredConfig(stored: string | null): DashboardConfig | null {
         }
       }
 
+      // Parse text elements
+      let textElements: TextElement[] = [];
+      if (Array.isArray(parsed.textElements)) {
+        textElements = parsed.textElements.filter(
+          (el: TextElement) =>
+            el && typeof el.id === "string" && typeof el.text === "string"
+        );
+      }
+
       return {
         visibleCharts: validVisible,
         chartOrder,
         layouts,
+        textElements,
         version: DEFAULT_DASHBOARD_CONFIG.version,
       };
     }
@@ -179,6 +191,70 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     setConfig(DEFAULT_DASHBOARD_CONFIG);
   }, []);
 
+  const addTextElement = useCallback(() => {
+    const newElement: TextElement = {
+      id: `text-${Date.now()}`,
+      text: "",
+      x: snapToGrid(20),
+      y: snapToGrid(20),
+      width: TEXT_ELEMENT_CONSTRAINTS.defaultWidth,
+      height: TEXT_ELEMENT_CONSTRAINTS.defaultHeight,
+      fontSize: TEXT_ELEMENT_CONSTRAINTS.defaultFontSize,
+    };
+    setConfig((prev) => ({
+      ...prev,
+      textElements: [...prev.textElements, newElement],
+    }));
+  }, []);
+
+  const updateTextElement = useCallback((id: string, updates: Partial<TextElement>) => {
+    setConfig((prev) => ({
+      ...prev,
+      textElements: prev.textElements.map((el) =>
+        el.id === id ? { ...el, ...updates } : el
+      ),
+    }));
+  }, []);
+
+  const removeTextElement = useCallback((id: string) => {
+    setConfig((prev) => ({
+      ...prev,
+      textElements: prev.textElements.filter((el) => el.id !== id),
+    }));
+  }, []);
+
+  const exportConfig = useCallback((): string => {
+    try {
+      const exportData = {
+        ...config,
+        exportedAt: Date.now(),
+      };
+      const jsonString = JSON.stringify(exportData);
+      // Encode to base64 for easy sharing
+      return btoa(jsonString);
+    } catch {
+      return "";
+    }
+  }, [config]);
+
+  const importConfig = useCallback(
+    (code: string): { success: boolean; error?: string } => {
+      try {
+        // Decode from base64
+        const jsonString = atob(code.trim());
+        const parsed = parseStoredConfig(jsonString);
+        if (parsed) {
+          setConfig(parsed);
+          return { success: true };
+        }
+        return { success: false, error: "Invalid dashboard configuration" };
+      } catch {
+        return { success: false, error: "Invalid share code format" };
+      }
+    },
+    []
+  );
+
   return (
     <DashboardContext.Provider
       value={{
@@ -191,6 +267,11 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
         updateLayout,
         reorderCharts,
         resetToDefaults,
+        addTextElement,
+        updateTextElement,
+        removeTextElement,
+        exportConfig,
+        importConfig,
       }}
     >
       {children}
@@ -211,6 +292,11 @@ export function useDashboard(): DashboardContextValue {
       updateLayout: () => {},
       reorderCharts: () => {},
       resetToDefaults: () => {},
+      addTextElement: () => {},
+      updateTextElement: () => {},
+      removeTextElement: () => {},
+      exportConfig: () => "",
+      importConfig: () => ({ success: false, error: "Context not available" }),
     };
   }
   return context;
