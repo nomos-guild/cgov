@@ -1,17 +1,23 @@
+import type { GetStaticProps, InferGetStaticPropsType } from "next";
 import Head from "next/head";
 import { GovernanceStats } from "@/components/GovernanceStats";
 import { GovernanceTable } from "@/components/GovernanceTable";
-import { useGovernanceDataLoader } from "@/hooks/useGovernanceData";
+import { useGovernanceDataLoader, type InitialGovernanceData } from "@/hooks/useGovernanceData";
+import { fetchAllGovernanceData } from "@/lib/serverFetch";
 import { Card } from "@/components/ui/card";
 import { GameLoader } from "@/components/ui/game-loader";
 import { useTheme } from "@/lib/theme";
 
-export default function Home() {
+interface HomeProps {
+  initialData: InitialGovernanceData;
+}
+
+export default function Home({ initialData }: InferGetStaticPropsType<typeof getStaticProps>) {
   const { activeTheme } = useTheme();
   const isGame = activeTheme.id === "game";
 
-  // SWR-based data loading with caching and deduplication
-  const { isLoading, error, hasData, refresh } = useGovernanceDataLoader();
+  // SWR-based data loading with ISR fallback data for instant hydration
+  const { isLoading, error, hasData, refresh } = useGovernanceDataLoader(initialData);
   const showLoadingSpinner = isLoading && !hasData && !error;
 
   return (
@@ -82,3 +88,39 @@ export default function Home() {
     </>
   );
 }
+
+/**
+ * Incremental Static Regeneration (ISR)
+ * Pre-fetches data at build time and revalidates every 60 seconds
+ * Users get instant HTML with data already embedded
+ */
+export const getStaticProps: GetStaticProps<HomeProps> = async () => {
+  try {
+    const { actions, overview, nclData } = await fetchAllGovernanceData();
+
+    return {
+      props: {
+        initialData: {
+          actions,
+          overview,
+          nclData,
+        },
+      },
+      // Revalidate every 60 seconds in production
+      revalidate: 60,
+    };
+  } catch (error) {
+    console.error("Failed to fetch data for ISR:", error);
+    // Return empty data - client will fetch
+    return {
+      props: {
+        initialData: {
+          actions: [],
+          overview: null,
+          nclData: [],
+        },
+      },
+      revalidate: 30, // Retry sooner on error
+    };
+  }
+};
