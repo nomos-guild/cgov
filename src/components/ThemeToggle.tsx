@@ -159,7 +159,7 @@ export function ThemeToggle() {
   return (
     <div className="flex items-center gap-2">
       {!isGame && resolvedTheme === "light" && (
-        <div className="relative">
+        <div className="relative hidden sm:block">
           <Button
             ref={sunButtonRef}
             variant="ghost"
@@ -191,21 +191,22 @@ export function ThemeToggle() {
           )}
         </div>
       )}
-      <Select value={theme} onValueChange={(value) => setTheme(value as typeof theme)} onOpenChange={setIsOpen}>
-        <SelectTrigger
-          aria-label="Select theme"
-          className={
-            isGame
-              ? "game-nav-btn nav-link styled-button h-10 px-4 min-w-[170px]"
-              : "h-10 w-[180px] justify-between rounded-full border-input bg-background/80 text-foreground shadow-soft btn-neon ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:ring-offset-0 focus:border-black data-[state=open]:ring-0 data-[state=open]:ring-transparent data-[state=open]:ring-offset-0 data-[state=open]:border-black dark:focus:border-[#0bd1a2] dark:data-[state=open]:border-[#0bd1a2]"
-          }
-        >
-          <div className="flex items-center gap-2">
-            {isGame ? currentIcon : (resolvedTheme === "dark" && <Moon className="h-4 w-4" />)}
-            <SelectValue placeholder="Theme" />
-          </div>
-        </SelectTrigger>
-      <SelectContent
+      <div className="[&_button>svg.shrink-0]:hidden sm:[&_button>svg.shrink-0]:block">
+        <Select value={theme} onValueChange={(value) => setTheme(value as typeof theme)} onOpenChange={setIsOpen}>
+          <SelectTrigger
+            aria-label="Select theme"
+            className={
+              isGame
+                ? "game-nav-btn nav-link styled-button h-10 px-2 sm:px-4 min-w-0 sm:min-w-[170px]"
+                : "h-10 w-10 sm:w-[180px] justify-center sm:justify-between rounded-full border-input bg-background/80 text-foreground shadow-soft btn-neon ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:ring-offset-0 focus:border-black data-[state=open]:ring-0 data-[state=open]:ring-transparent data-[state=open]:ring-offset-0 data-[state=open]:border-black dark:focus:border-[#0bd1a2] dark:data-[state=open]:border-[#0bd1a2]"
+            }
+          >
+            <div className="flex items-center gap-2">
+              {isGame ? currentIcon : (resolvedTheme === "dark" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />)}
+              <span className="hidden sm:inline"><SelectValue placeholder="Theme" /></span>
+            </div>
+          </SelectTrigger>
+        <SelectContent
         align="end"
         className={
           isGame
@@ -232,8 +233,9 @@ export function ThemeToggle() {
             </SelectItem>
           );
         })}
-      </SelectContent>
-    </Select>
+        </SelectContent>
+      </Select>
+      </div>
     </div>
   );
 }
