@@ -138,15 +138,29 @@ const swrConfig = {
 };
 
 /**
- * Hook for fetching governance actions with SWR caching
+ * Initial data from ISR/SSR for hydration
  */
-export function useGovernanceActions() {
+export interface InitialGovernanceData {
+  actions?: GovernanceAction[];
+  overview?: OverviewSummary | null;
+  nclData?: NCLDisplayData[];
+}
+
+/**
+ * Hook for fetching governance actions with SWR caching
+ * @param fallbackData - Initial data from getStaticProps for instant hydration
+ */
+export function useGovernanceActions(fallbackData?: GovernanceAction[]) {
   const dispatch = useAppDispatch();
 
   const { data, error, isLoading, mutate } = useSWR<GovernanceAction[]>(
     API_ENDPOINTS.proposals,
     fetcher,
-    swrConfig
+    {
+      ...swrConfig,
+      fallbackData,
+      revalidateOnMount: !fallbackData, // Skip initial fetch if we have fallback data
+    }
   );
 
   // Transform data and sync to Redux
@@ -159,7 +173,7 @@ export function useGovernanceActions() {
 
   return {
     actions: data ? data.map(transformGovernanceAction) : [],
-    isLoading,
+    isLoading: !fallbackData && isLoading,
     error: error?.message ?? null,
     refresh: mutate,
   };
@@ -167,14 +181,19 @@ export function useGovernanceActions() {
 
 /**
  * Hook for fetching overview summary with SWR caching
+ * @param fallbackData - Initial data from getStaticProps for instant hydration
  */
-export function useOverviewSummary() {
+export function useOverviewSummary(fallbackData?: OverviewSummary | null) {
   const dispatch = useAppDispatch();
 
   const { data, error, isLoading, mutate } = useSWR<OverviewSummary>(
     API_ENDPOINTS.overview,
     fetcher,
-    swrConfig
+    {
+      ...swrConfig,
+      fallbackData: fallbackData ?? undefined,
+      revalidateOnMount: !fallbackData,
+    }
   );
 
   // Sync to Redux
@@ -186,7 +205,7 @@ export function useOverviewSummary() {
 
   return {
     overview: data ?? null,
-    isLoading,
+    isLoading: !fallbackData && isLoading,
     error: error?.message ?? null,
     refresh: mutate,
   };
@@ -194,30 +213,36 @@ export function useOverviewSummary() {
 
 /**
  * Hook for fetching NCL data with SWR caching
+ * @param fallbackData - Initial data from getStaticProps for instant hydration
  */
-export function useNCLData() {
+export function useNCLData(fallbackData?: NCLDisplayData[]) {
   const dispatch = useAppDispatch();
 
+  // Convert fallback to raw format for SWR (it will be transformed)
   const { data, error, isLoading, mutate } = useSWR<NCLYearData[]>(
     API_ENDPOINTS.ncl,
     fetcher,
     {
       ...swrConfig,
       dedupingInterval: 300000, // NCL data is very stable, 5 min deduping
+      revalidateOnMount: !fallbackData,
     }
   );
 
   // Transform and sync to Redux
   useEffect(() => {
-    if (data) {
+    // Use fallback data if available and no fresh data yet
+    if (fallbackData && !data) {
+      dispatch(setNCLDataList(fallbackData));
+    } else if (data) {
       const transformed = data.map(transformNCLData);
       dispatch(setNCLDataList(transformed));
     }
-  }, [data, dispatch]);
+  }, [data, fallbackData, dispatch]);
 
   return {
-    nclData: data ? data.map(transformNCLData) : [],
-    isLoading,
+    nclData: data ? data.map(transformNCLData) : (fallbackData ?? []),
+    isLoading: !fallbackData && isLoading,
     error: error?.message ?? null,
     refresh: mutate,
   };
@@ -226,16 +251,19 @@ export function useNCLData() {
 /**
  * Combined hook that fetches all governance data
  * Use this in pages to ensure data is loaded with SWR caching
+ * @param initialData - Pre-fetched data from getStaticProps for instant hydration
  */
-export function useGovernanceDataLoader() {
-  const actions = useGovernanceActions();
-  const overview = useOverviewSummary();
-  const ncl = useNCLData();
+export function useGovernanceDataLoader(initialData?: InitialGovernanceData) {
+  const actions = useGovernanceActions(initialData?.actions);
+  const overview = useOverviewSummary(initialData?.overview);
+  const ncl = useNCLData(initialData?.nclData);
+
+  const hasInitialData = Boolean(initialData?.actions?.length);
 
   return {
     isLoading: actions.isLoading || overview.isLoading || ncl.isLoading,
     error: actions.error || overview.error || ncl.error,
-    hasData: actions.actions.length > 0,
+    hasData: hasInitialData || actions.actions.length > 0,
     refresh: () => {
       actions.refresh();
       overview.refresh();
