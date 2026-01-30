@@ -1,11 +1,5 @@
-import { useEffect, useRef } from "react";
 import Head from "next/head";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import {
-  loadGovernanceActions,
-  loadOverviewSummary,
-  loadNCLData,
-} from "@/store/governanceSlice";
+import { useGovernanceDataLoader } from "@/hooks/useGovernanceData";
 import { Card } from "@/components/ui/card";
 import { GameLoader } from "@/components/ui/game-loader";
 import { useTheme } from "@/lib/theme";
@@ -16,27 +10,11 @@ import {
 } from "@/components/dashboards/shared";
 
 function DashboardContent() {
-  const dispatch = useAppDispatch();
   const { activeTheme } = useTheme();
   const isGame = activeTheme.id === "game";
-  const { isLoadingActions, isLoadingOverview, isLoadingNCL, actionsError, overviewError, nclError, actions } =
-    useAppSelector((state) => state.governance);
 
-  // Prevent duplicate fetches during React StrictMode double-mount
-  const hasFetched = useRef(false);
-
-  useEffect(() => {
-    if (hasFetched.current) return;
-    hasFetched.current = true;
-
-    dispatch(loadGovernanceActions());
-    dispatch(loadOverviewSummary());
-    dispatch(loadNCLData());
-  }, [dispatch]);
-
-  const isLoading = isLoadingActions || isLoadingOverview || isLoadingNCL;
-  const error = actionsError || overviewError || nclError;
-  const hasData = actions.length > 0;
+  // SWR-based data loading with caching and deduplication
+  const { isLoading, error, hasData, refresh } = useGovernanceDataLoader();
   const showLoadingSpinner = isLoading && !hasData && !error;
 
   return (
@@ -69,11 +47,7 @@ function DashboardContent() {
                 </p>
                 <p className="text-xs sm:text-sm text-muted-foreground">{error}</p>
                 <button
-                  onClick={() => {
-                    dispatch(loadGovernanceActions());
-                    dispatch(loadOverviewSummary());
-                    dispatch(loadNCLData());
-                  }}
+                  onClick={refresh}
                   className="mt-3 sm:mt-4 px-3 sm:px-4 py-1.5 sm:py-2 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
                 >
                   Retry

@@ -1,12 +1,40 @@
+import dynamic from "next/dynamic";
 import { BarChart3, PieChart, Gauge, Users, Vote, TrendingUp } from "lucide-react";
-import { ProposalStatusChart } from "./ProposalStatusChart";
-import { ProposalTypeChart } from "./ProposalTypeChart";
-import { NCLProgressChart } from "./NCLProgressChart";
-import { VotingPowerChart } from "./VotingPowerChart";
-import { ParticipationChart } from "./ParticipationChart";
-import { ProposalSubmissionChart } from "./ProposalSubmissionChart";
+import { ChartSkeleton } from "./ChartSkeleton";
 import type { ChartDefinition } from "@/types/dashboard";
 import { DEFAULT_CHART_LAYOUTS } from "@/types/dashboard";
+
+// Lazy load all chart components to reduce initial bundle size
+// Each chart imports Recharts (~800KB), so lazy loading significantly improves initial load
+const ProposalStatusChart = dynamic(
+  () => import("./ProposalStatusChart").then((mod) => mod.ProposalStatusChart),
+  { loading: () => <ChartSkeleton />, ssr: false }
+);
+
+const ProposalTypeChart = dynamic(
+  () => import("./ProposalTypeChart").then((mod) => mod.ProposalTypeChart),
+  { loading: () => <ChartSkeleton />, ssr: false }
+);
+
+const NCLProgressChart = dynamic(
+  () => import("./NCLProgressChart").then((mod) => mod.NCLProgressChart),
+  { loading: () => <ChartSkeleton />, ssr: false }
+);
+
+const VotingPowerChart = dynamic(
+  () => import("./VotingPowerChart").then((mod) => mod.VotingPowerChart),
+  { loading: () => <ChartSkeleton />, ssr: false }
+);
+
+const ParticipationChart = dynamic(
+  () => import("./ParticipationChart").then((mod) => mod.ParticipationChart),
+  { loading: () => <ChartSkeleton />, ssr: false }
+);
+
+const ProposalSubmissionChart = dynamic(
+  () => import("./ProposalSubmissionChart").then((mod) => mod.ProposalSubmissionChart),
+  { loading: () => <ChartSkeleton />, ssr: false }
+);
 
 export const CHART_REGISTRY: ChartDefinition[] = [
   {
@@ -69,10 +97,13 @@ export function getChartById(id: string): ChartDefinition | undefined {
   return CHART_REGISTRY.find((chart) => chart.id === id);
 }
 
+// Re-export components for direct use (these are lazy-loaded versions)
 export { ChartSkeleton } from "./ChartSkeleton";
-export { ProposalStatusChart } from "./ProposalStatusChart";
-export { ProposalTypeChart } from "./ProposalTypeChart";
-export { NCLProgressChart } from "./NCLProgressChart";
-export { VotingPowerChart } from "./VotingPowerChart";
-export { ParticipationChart } from "./ParticipationChart";
-export { ProposalSubmissionChart } from "./ProposalSubmissionChart";
+export {
+  ProposalStatusChart,
+  ProposalTypeChart,
+  NCLProgressChart,
+  VotingPowerChart,
+  ParticipationChart,
+  ProposalSubmissionChart,
+};

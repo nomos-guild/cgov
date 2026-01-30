@@ -22,6 +22,7 @@ export default async function handler(
     });
 
     const data = await response.json();
+    res.setHeader("Cache-Control", "public, s-maxage=120, stale-while-revalidate=600");
     return res.status(response.status).json(data);
   } catch (error) {
     console.error("Proposal detail API error:", error);
