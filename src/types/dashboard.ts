@@ -31,6 +31,26 @@ export interface ChartLayout {
 export type ChartLayoutMap = Record<ChartId, ChartLayout>;
 
 /**
+ * Text element for custom titles/labels on the dashboard
+ */
+export interface TextElement {
+  /** Unique identifier */
+  id: string;
+  /** Text content */
+  text: string;
+  /** X position in pixels from left */
+  x: number;
+  /** Y position in pixels from top */
+  y: number;
+  /** Width in pixels */
+  width: number;
+  /** Height in pixels */
+  height: number;
+  /** Font size in pixels */
+  fontSize: number;
+}
+
+/**
  * Configuration for dashboard layout and visibility
  */
 export interface DashboardConfig {
@@ -40,6 +60,8 @@ export interface DashboardConfig {
   chartOrder: ChartId[];
   /** Layout configuration for each chart */
   layouts: ChartLayoutMap;
+  /** Text elements on the dashboard */
+  textElements: TextElement[];
   /** Version for future migrations */
   version: number;
 }
@@ -83,6 +105,11 @@ export interface DashboardContextValue {
   updateLayout: (chartId: ChartId, layout: Partial<ChartLayout>) => void;
   reorderCharts: (fromIndex: number, toIndex: number) => void;
   resetToDefaults: () => void;
+  addTextElement: () => void;
+  updateTextElement: (id: string, updates: Partial<TextElement>) => void;
+  removeTextElement: (id: string) => void;
+  exportConfig: () => string;
+  importConfig: (code: string) => { success: boolean; error?: string };
 }
 
 /**
@@ -129,6 +156,22 @@ export const LAYOUT_CONSTRAINTS = {
 };
 
 /**
+ * Text element constraints
+ */
+export const TEXT_ELEMENT_CONSTRAINTS = {
+  minWidth: 100,
+  minHeight: 40,
+  maxWidth: 800,
+  maxHeight: 200,
+  defaultWidth: 200,
+  defaultHeight: 40,
+  minFontSize: 12,
+  maxFontSize: 48,
+  defaultFontSize: 18,
+  fontSizeStep: 2,
+};
+
+/**
  * Snap a pixel value to the nearest grid cell
  */
 export function snapToGrid(value: number): number {
@@ -169,5 +212,6 @@ export const DEFAULT_DASHBOARD_CONFIG: DashboardConfig = {
   visibleCharts: ALL_CHART_IDS,
   chartOrder: ALL_CHART_IDS,
   layouts: DEFAULT_CHART_LAYOUTS,
-  version: 9, // Bumped for chart ordering feature
+  textElements: [],
+  version: 10, // Bumped for text elements feature
 };

@@ -9,7 +9,8 @@ interface DashboardChartCardProps {
   layout: ChartLayout;
   isLoading?: boolean;
   isActive?: boolean;
-  onActivate: () => void;
+  isSelected?: boolean;
+  onActivate: (e?: React.MouseEvent) => void;
   onDrag: (deltaX: number, deltaY: number) => void;
   onResize: (deltaWidth: number, deltaHeight: number, direction: string) => void;
 }
@@ -19,6 +20,7 @@ export function DashboardChartCard({
   layout,
   isLoading,
   isActive,
+  isSelected,
   onActivate,
   onDrag,
   onResize,
@@ -90,21 +92,27 @@ export function DashboardChartCard({
   const ChartComponent = chart.component;
 
   // Handle click to bring to front
-  const handleClick = useCallback(() => {
-    onActivate();
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    onActivate(e);
   }, [onActivate]);
 
   return (
     <div
       ref={cardRef}
-      className="absolute group"
+      className="absolute group rounded-lg"
       style={{
         left: `${layout.x}px`,
         top: `${layout.y}px`,
         width: `${layout.width}px`,
         height: `${layout.height}px`,
-        zIndex: isActive ? 50 : 1,
+        zIndex: isActive ? 50 : isSelected ? 10 : 1,
         transition: isDragging || isResizing ? "none" : "box-shadow 0.2s",
+        ...(isSelected && {
+          animation: "selection-glow 1.5s ease-in-out infinite",
+          boxShadow: isDark
+            ? "0 0 8px rgba(11, 209, 162, 0.6), 0 0 16px rgba(11, 209, 162, 0.4), 0 0 24px rgba(11, 209, 162, 0.2)"
+            : "0 0 8px rgba(0, 0, 0, 0.5), 0 0 16px rgba(0, 0, 0, 0.35), 0 0 24px rgba(0, 0, 0, 0.2)",
+        }),
       }}
       onClick={handleClick}
       data-chart-card
@@ -197,7 +205,14 @@ export function DashboardChartCard({
       />
 
       {/* Chart content */}
-      <div className="h-full w-full overflow-hidden">
+      <div
+        className={cn(
+          "h-full w-full overflow-hidden rounded-2xl",
+          isDark
+            ? "border border-[#0bd1a2] bg-transparent"
+            : "border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)]"
+        )}
+      >
         <ChartComponent isLoading={isLoading} className="h-full w-full" />
       </div>
     </div>

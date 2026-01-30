@@ -1,6 +1,7 @@
 export { DashboardProvider, useDashboard } from "./DashboardProvider";
 export { DashboardGrid } from "./DashboardGrid";
 export { DashboardChartCard } from "./DashboardChartCard";
+export { DashboardTextElement } from "./DashboardTextElement";
 export { ChartVisibilityDropdown } from "./ChartVisibilityDropdown";
 export {
   getChartColors,

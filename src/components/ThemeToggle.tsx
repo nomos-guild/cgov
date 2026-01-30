@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { Moon, Sun, Gamepad2 } from "lucide-react";
+import { Moon, Sun } from "lucide-react";
 import { useTheme } from "@/lib/theme";
 import {
   Select,
@@ -202,7 +202,7 @@ export function ThemeToggle() {
             }
           >
             <div className="flex items-center gap-2">
-              {isGame ? currentIcon : (resolvedTheme === "dark" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />)}
+              <span className="sm:hidden">{isGame ? currentIcon : (resolvedTheme === "dark" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />)}</span>
               <span className="hidden sm:inline"><SelectValue placeholder="Theme" /></span>
             </div>
           </SelectTrigger>
@@ -214,25 +214,16 @@ export function ThemeToggle() {
             : "w-[200px] rounded-none dark:rounded-none dark:border dark:border-[#0bd1a2] dark:bg-black dark:text-[#0bd1a2]"
         }
       >
-        {themes.map((option, index) => {
-          const icon =
-            option.id === "dark" ? <Moon className="h-4 w-4" /> :
-            option.id === "game" ? <Gamepad2 className="h-4 w-4" /> :
-            null;
-          return (
+        {themes.map((option, index) => (
             <SelectItem
               key={option.id}
               value={option.id}
               className={selectItemClass}
               style={isGame ? { ["--delay" as string]: `${index * 40}ms` } : undefined}
             >
-              <span className="flex items-center gap-2">
-                {icon}
-                {option.label}
-              </span>
+              {option.label}
             </SelectItem>
-          );
-        })}
+          ))}
         </SelectContent>
       </Select>
       </div>
