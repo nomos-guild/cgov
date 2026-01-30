@@ -17,6 +17,7 @@ export const PROJECT_OVERVIEW = {
     language: "TypeScript 5",
     ui: ["React 18", "Radix UI", "Tailwind CSS", "shadcn/ui"],
     state: "Redux Toolkit",
+    dataFetching: "SWR (stale-while-revalidate)",
     charts: ["Recharts", "D3.js"],
     wallet: "Mesh SDK",
     router: "Next.js Pages Router",
@@ -80,8 +81,8 @@ export const FILE_STRUCTURE = {
     pages: {
       description: "Next.js Pages Router pages",
       routes: {
-        "/": "index.tsx - Landing page with statistics",
-        "/dashboard": "dashboard.tsx - Customizable charts dashboard",
+        "/": "index.tsx - Landing page with ISR (getStaticProps, revalidate: 60s)",
+        "/dashboard": "dashboard.tsx - Customizable charts dashboard (client-side SWR)",
         "/governance/[hash]": "governance/[hash].tsx - Proposal detail view",
         "/404": "404.tsx - Not found page",
       },
@@ -104,6 +105,12 @@ export const FILE_STRUCTURE = {
         "hooks.ts": "Typed Redux hooks (useAppDispatch, useAppSelector)",
       },
     },
+    hooks: {
+      description: "Custom React hooks for data fetching with SWR",
+      files: {
+        "useGovernanceData.ts": "SWR-based data hooks with caching and Redux sync",
+      },
+    },
     services: {
       description: "API service layer",
       "api.ts": "Frontend API service with data transformations (lovelace → ADA)",
@@ -122,6 +129,7 @@ export const FILE_STRUCTURE = {
         "governanceVotingEligibility.ts": "Voter eligibility matrix per Conway spec",
         "voteMath.ts": "Numeric utilities for vote calculations",
         "exportRationales.ts": "Vote export functions (JSON, CSV, Markdown)",
+        "serverFetch.ts": "Server-side data fetching for ISR/SSG (getStaticProps)",
       },
     },
     utils: {
@@ -465,11 +473,35 @@ export const VOTE_CALCULATION = {
 export const API_ARCHITECTURE = {
   dataFlow: [
     "Backend API (Cgov API) - external service",
-    "Next.js API Routes (/api/*) - adds X-API-Key header server-side",
-    "Frontend Service (src/services/api.ts) - transforms lovelace → ADA",
-    "Redux Store (governanceSlice.ts) - state management",
+    "Next.js API Routes (/api/*) - adds X-API-Key header + Cache-Control headers",
+    "SWR Hooks (src/hooks/useGovernanceData.ts) - client-side caching with stale-while-revalidate",
+    "Redux Store (governanceSlice.ts) - state management (synced by SWR hooks)",
     "UI Components - display data",
   ],
+  caching: {
+    description: "Multi-layer caching for performance",
+    serverSide: {
+      isr: "Incremental Static Regeneration on index.tsx (revalidate: 60s)",
+      serverFetch: "src/lib/serverFetch.ts for getStaticProps data fetching",
+    },
+    httpCaching: {
+      description: "Cache-Control headers on API routes",
+      overview: "s-maxage=60, stale-while-revalidate=300",
+      proposals: "s-maxage=60, stale-while-revalidate=300",
+      ncl: "s-maxage=300, stale-while-revalidate=600",
+      proposalDetail: "s-maxage=120, stale-while-revalidate=600",
+    },
+    clientSide: {
+      library: "SWR (stale-while-revalidate)",
+      hooks: "src/hooks/useGovernanceData.ts",
+      features: [
+        "Automatic request deduplication (60s window)",
+        "Fallback data from ISR for instant hydration",
+        "Background revalidation",
+        "Redux sync for component compatibility",
+      ],
+    },
+  },
   serverSideAuth: {
     description: "API keys are only used server-side in Next.js API routes",
     helper: "src/utils/apiHelper.ts - callApi() adds X-API-Key header",
@@ -721,7 +753,8 @@ export const DASHBOARD = {
     reason: "Prevents hydration mismatches when localStorage differs from server defaults",
   },
   chartRegistry: {
-    location: "src/components/dashboard/charts/index.ts",
+    location: "src/components/dashboards/governance/charts/index.tsx",
+    lazyLoading: "All charts use next/dynamic with ssr: false for code splitting",
     charts: [
       { id: "proposal-status", title: "Proposal Status", description: "Active/Ratified/Enacted bar chart" },
       { id: "proposal-type", title: "Proposal Types", description: "Donut chart by action type" },
@@ -738,6 +771,83 @@ export const DASHBOARD = {
     showHideCharts: "Customize dropdown with checkboxes",
     reorderCharts: "Drag-and-drop chart items in customize menu (grip handle)",
     resetDefaults: "Reset button in customize dropdown",
+  },
+};
+
+// =============================================================================
+// PERFORMANCE OPTIMIZATIONS
+// =============================================================================
+
+export const PERFORMANCE = {
+  description: "Performance optimizations for fast initial load and smooth navigation",
+  strategies: {
+    isr: {
+      description: "Incremental Static Regeneration for instant page loads",
+      location: "src/pages/index.tsx",
+      how: "getStaticProps pre-fetches data at build time, revalidates every 60s",
+      benefit: "Users get instant HTML with data embedded, no API wait",
+    },
+    swrCaching: {
+      description: "Client-side caching with stale-while-revalidate pattern",
+      location: "src/hooks/useGovernanceData.ts",
+      hooks: [
+        "useGovernanceActions(fallbackData?) - Proposals with 60s deduping",
+        "useOverviewSummary(fallbackData?) - Overview stats with 60s deduping",
+        "useNCLData(fallbackData?) - NCL data with 5min deduping",
+        "useGovernanceDataLoader(initialData?) - Combined hook for pages",
+      ],
+      features: [
+        "Request deduplication within 60s window",
+        "Fallback data support for ISR hydration",
+        "Background revalidation",
+        "Automatic Redux sync",
+      ],
+    },
+    httpCaching: {
+      description: "Cache-Control headers on API routes",
+      location: "src/pages/api/",
+      headers: {
+        overview: "public, s-maxage=60, stale-while-revalidate=300",
+        proposals: "public, s-maxage=60, stale-while-revalidate=300",
+        ncl: "public, s-maxage=300, stale-while-revalidate=600",
+        proposalDetail: "public, s-maxage=120, stale-while-revalidate=600",
+      },
+    },
+    lazyLoading: {
+      description: "Code splitting for chart components",
+      location: "src/components/dashboards/governance/charts/index.tsx",
+      how: "next/dynamic with ssr: false, ChartSkeleton loading state",
+      benefit: "Recharts (~800KB) only loads when dashboard is visited",
+    },
+    serverFetch: {
+      description: "Server-side data fetching for ISR",
+      location: "src/lib/serverFetch.ts",
+      functions: [
+        "fetchGovernanceActionsServer() - Fetches and transforms proposals",
+        "fetchOverviewSummaryServer() - Fetches overview stats",
+        "fetchNCLDataServer() - Fetches NCL data",
+        "fetchAllGovernanceData() - Combined fetch for getStaticProps",
+      ],
+      note: "Sanitizes data with JSON.parse(JSON.stringify()) to remove undefined values",
+    },
+  },
+  dataFlow: {
+    firstVisit: [
+      "1. Next.js serves pre-rendered HTML with ISR data embedded",
+      "2. React hydrates with fallback data (instant display)",
+      "3. SWR skips initial fetch (revalidateOnMount: false when fallback exists)",
+      "4. Data synced to Redux for component compatibility",
+    ],
+    subsequentVisits: [
+      "1. Browser serves cached HTML (if within revalidate window)",
+      "2. SWR serves cached data from previous session",
+      "3. Background revalidation if data is stale",
+    ],
+    navigation: [
+      "1. SWR deduplicates requests within 60s window",
+      "2. Same data shared between home and dashboard pages",
+      "3. No redundant API calls",
+    ],
   },
 };
 
@@ -915,6 +1025,7 @@ export const ALL_KNOWLEDGE = {
   componentPatterns: COMPONENT_PATTERNS,
   theming: THEMING,
   dashboard: DASHBOARD,
+  performance: PERFORMANCE,
   codingConventions: CODING_CONVENTIONS,
   commonTasks: COMMON_TASKS,
 };
