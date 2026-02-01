@@ -2,10 +2,8 @@
 
 # dependencies
 /node_modules
-/mcp-governance/node_modules
-/mcp-governance/dist
-/mcp-cgov/node_modules
-/mcp-cgov/dist
+/.claude/mcp/*/node_modules
+/.claude/mcp/*/dist
 /.pnp
 .pnp.*
 .yarn/*
@@ -46,5 +44,5 @@ next-env.d.ts
 package-lock.json
 
 # Claude Code temporary files
-.claude/
+.claude/settings.local.json
 tmpclaude-*
