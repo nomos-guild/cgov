@@ -39,83 +39,83 @@ export interface ChartThemeColors {
 }
 
 export const lightChartColors: ChartThemeColors = {
-  // Status - distinct colors
-  active: "#22c55e", // green
-  ratified: "#3b82f6", // blue
-  enacted: "#8b5cf6", // purple
-  expired: "#f97316", // orange
-  closed: "#6b7280", // gray
+  // Status - warm, muted tones matching beige aesthetic
+  active: "#2d8a6e", // muted teal-green
+  ratified: "#3d7ea6", // muted blue
+  enacted: "#7c5aa3", // muted purple
+  expired: "#c2793d", // warm amber/orange
+  closed: "#8b7e74", // warm gray
 
-  // Votes
-  yes: "#22c55e",
-  no: "#ef4444",
-  abstain: "#94a3b8",
+  // Votes - semantic colors, slightly muted
+  yes: "#2d8a6e", // muted green
+  no: "#c04c4c", // muted red
+  abstain: "#a39890", // warm gray
 
-  // Participation levels
-  participationLow: "#ef4444",
-  participationMedLow: "#f97316",
-  participationMedHigh: "#eab308",
-  participationHigh: "#22c55e",
+  // Participation levels - warm gradient
+  participationLow: "#c04c4c", // muted red
+  participationMedLow: "#c2793d", // warm amber
+  participationMedHigh: "#b5963c", // warm gold
+  participationHigh: "#2d8a6e", // muted green
 
-  // Palette for categorical data
+  // Palette for categorical data - harmonious warm tones
   palette: [
-    "#3b82f6", // blue
-    "#22c55e", // green
-    "#f97316", // orange
-    "#8b5cf6", // purple
-    "#ec4899", // pink
-    "#14b8a6", // teal
-    "#f59e0b", // amber
+    "#3d7ea6", // muted blue
+    "#2d8a6e", // muted teal-green
+    "#c2793d", // warm amber
+    "#7c5aa3", // muted purple
+    "#b56576", // dusty rose
+    "#4a8f8f", // teal
+    "#9c7a3c", // warm gold
   ],
 
-  // Chart chrome
-  axisLine: "#d1d5db",
-  axisText: "#6b7280",
-  gridLine: "#e5e7eb",
-  tooltipBg: "#ffffff",
-  tooltipBorder: "#e5e7eb",
-  tooltipText: "#1f2937",
+  // Chart chrome - warm grays matching beige theme
+  axisLine: "#d4cdc4", // warm light gray
+  axisText: "#6b6259", // warm dark gray
+  gridLine: "#e8e2da", // warm very light gray
+  tooltipBg: "#faf9f6", // matches light theme background
+  tooltipBorder: "#d4cdc4", // warm border
+  tooltipText: "#2d2926", // warm near-black
 
   // Primary
-  primary: "#000000",
-  primaryMuted: "#6b7280",
+  primary: "#2d2926", // warm black (matches foreground)
+  primaryMuted: "#8b7e74", // warm gray
 };
 
 export const darkChartColors: ChartThemeColors = {
-  // Status - all cyan in dark theme for consistency
-  active: "#0bd1a2",
-  ratified: "#0bd1a2",
-  enacted: "#0bd1a2",
-  expired: "#0bd1a2",
-  closed: "#0bd1a2",
+  // Status - cyan variations for subtle distinction
+  active: "#0bd1a2", // primary cyan
+  ratified: "#08a883", // darker cyan
+  enacted: "#0eb8a0", // mid cyan
+  expired: "#06c9b5", // cyan-teal
+  closed: "#069b7d", // muted cyan
 
   // Votes - cyan for yes, muted red for no
   yes: "#0bd1a2",
-  no: "#ff6b6b",
+  no: "#8C200B", // dark red matching theme
   abstain: "#4a5568",
 
-  // Participation - all cyan
-  participationLow: "#0bd1a2",
-  participationMedLow: "#0bd1a2",
-  participationMedHigh: "#0bd1a2",
-  participationHigh: "#0bd1a2",
+  // Participation - cyan gradient
+  participationLow: "#069b7d", // muted cyan
+  participationMedLow: "#08a883", // darker cyan
+  participationMedHigh: "#0eb8a0", // mid cyan
+  participationHigh: "#0bd1a2", // bright cyan
 
-  // Palette - cyan variations
+  // Palette - subtle cyan variations for charts
   palette: [
-    "#0bd1a2",
-    "#0bd1a2",
-    "#0bd1a2",
-    "#0bd1a2",
-    "#0bd1a2",
-    "#0bd1a2",
-    "#0bd1a2",
+    "#0bd1a2", // primary cyan
+    "#08a883", // darker cyan
+    "#06c9b5", // cyan-teal
+    "#0eb8a0", // mid cyan
+    "#069b7d", // muted cyan
+    "#05b399", // teal-cyan
+    "#0ac4a0", // light cyan
   ],
 
   // Chart chrome
-  axisLine: "#0bd1a2",
-  axisText: "#0bd1a2",
-  gridLine: "rgba(11, 209, 162, 0.2)",
-  tooltipBg: "#1a1a2e",
+  axisLine: "rgba(11, 209, 162, 0.5)",
+  axisText: "rgba(11, 209, 162, 0.8)",
+  gridLine: "rgba(11, 209, 162, 0.15)",
+  tooltipBg: "#131320",
   tooltipBorder: "#0bd1a2",
   tooltipText: "#0bd1a2",
 
@@ -125,46 +125,46 @@ export const darkChartColors: ChartThemeColors = {
 };
 
 export const gameChartColors: ChartThemeColors = {
-  // Status - white/gray scale
-  active: "#ffffff",
-  ratified: "#d1d5db",
-  enacted: "#9ca3af",
-  expired: "#6b7280",
-  closed: "#4b5563",
+  // Status - high contrast grayscale with green accent
+  active: "#00ff66", // neon green for active
+  ratified: "#e0e0e0", // bright white
+  enacted: "#b0b0b0", // light gray
+  expired: "#707070", // medium gray
+  closed: "#404040", // dark gray
 
-  // Votes
-  yes: "#22cc44",
-  no: "#cc2222",
-  abstain: "#6b7280",
+  // Votes - retro neon colors
+  yes: "#00ff66", // neon green
+  no: "#ff3333", // neon red
+  abstain: "#606060", // medium gray
 
-  // Participation levels - white scale
-  participationLow: "#4b5563",
-  participationMedLow: "#6b7280",
-  participationMedHigh: "#9ca3af",
-  participationHigh: "#ffffff",
+  // Participation levels - grayscale gradient
+  participationLow: "#404040", // dark gray
+  participationMedLow: "#707070", // medium gray
+  participationMedHigh: "#b0b0b0", // light gray
+  participationHigh: "#00ff66", // neon green for high
 
-  // Palette - whites and grays
+  // Palette - alternating white/gray with green accent
   palette: [
-    "#ffffff",
-    "#e5e7eb",
-    "#d1d5db",
-    "#9ca3af",
-    "#6b7280",
-    "#4b5563",
-    "#374151",
+    "#00ff66", // neon green (primary)
+    "#e0e0e0", // bright white
+    "#909090", // mid gray
+    "#c0c0c0", // light gray
+    "#606060", // darker gray
+    "#d0d0d0", // off-white
+    "#505050", // dark gray
   ],
 
-  // Chart chrome
-  axisLine: "rgba(255, 255, 255, 0.3)",
-  axisText: "rgba(255, 255, 255, 0.8)",
-  gridLine: "rgba(255, 255, 255, 0.1)",
-  tooltipBg: "rgba(12, 12, 12, 0.95)",
-  tooltipBorder: "rgba(255, 255, 255, 0.2)",
+  // Chart chrome - crisp white on black
+  axisLine: "rgba(255, 255, 255, 0.25)",
+  axisText: "rgba(255, 255, 255, 0.7)",
+  gridLine: "rgba(255, 255, 255, 0.08)",
+  tooltipBg: "rgba(8, 8, 8, 0.95)",
+  tooltipBorder: "rgba(255, 255, 255, 0.15)",
   tooltipText: "#ffffff",
 
   // Primary
-  primary: "#ffffff",
-  primaryMuted: "rgba(255, 255, 255, 0.5)",
+  primary: "#00ff66", // neon green for line charts
+  primaryMuted: "rgba(255, 255, 255, 0.4)",
 };
 
 /**
@@ -186,8 +186,8 @@ export function getChartColors(themeId: string): ChartThemeColors {
  * Includes all theme variations
  */
 export const chartCardClassName =
-  "rounded-2xl border border-white/8 bg-[#faf9f6] p-4 shadow-[0_12px_30px_rgba(15,23,42,0.25)] " +
-  "dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none " +
+  "rounded-xl border border-[#d4cdc4] bg-[#faf9f6] p-4 shadow-[0_8px_24px_rgba(45,41,38,0.08)] " +
+  "dark:rounded-none dark:border-[rgba(11,209,162,0.4)] dark:bg-[rgba(19,19,32,0.6)] dark:shadow-[0_4px_20px_rgba(11,209,162,0.1)] " +
   "h-full flex flex-col";
 
 /**
