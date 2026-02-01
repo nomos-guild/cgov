@@ -16,36 +16,41 @@ Cardano Governance Tracking Dashboard for monitoring on-chain governance actions
 ## Project Structure
 
 ```
-src/
-├── components/
-│   ├── dashboards/           # Dashboard system
-│   │   ├── shared/           # Shared infrastructure (DashboardProvider, DashboardGrid, etc.)
-│   │   ├── governance/       # Governance dashboard charts
-│   │   ├── drep/             # DRep dashboard (placeholder)
-│   │   └── phil/             # Phil's dashboard (placeholder)
-│   ├── ui/                   # shadcn/ui base components
-│   ├── layout/               # Header, Footer
-│   ├── governance/           # Voting components
-│   └── wallet/               # Wallet connection
-├── pages/
-│   ├── api/                  # Server-side API routes (proxy to backend)
-│   ├── governance/[hash].tsx # Proposal detail
-│   ├── dashboard.tsx         # Customizable dashboard
-│   └── index.tsx             # Landing page
-├── store/
-│   ├── governanceSlice.ts    # Redux state + async thunks
-│   └── hooks.ts              # useAppDispatch, useAppSelector
-├── services/
-│   └── api.ts                # API client with lovelace→ADA transforms
-├── types/
-│   ├── governance.ts         # GovernanceAction, VoteRecord, etc.
-│   └── dashboard.ts          # ChartId, ChartLayout, DashboardConfig
-├── lib/
-│   ├── theme.tsx             # Theme provider (light/dark/game)
-│   ├── voteBreakdownCalculator.ts  # Vote calculation by action type
-│   └── governanceVotingEligibility.ts  # Voter eligibility matrix
-└── config/
-    └── api.ts                # Backend endpoint config
+├── .claude/                  # Claude Code tooling
+│   ├── mcp/                  # MCP servers for AI assistance
+│   │   ├── cardano-governance/  # CIP-1694 governance rules
+│   │   └── cgov-project/        # Project-specific knowledge
+│   └── skills/               # Reusable task templates
+├── src/
+│   ├── components/
+│   │   ├── dashboards/           # Dashboard system
+│   │   │   ├── shared/           # Shared infrastructure (DashboardProvider, DashboardGrid, etc.)
+│   │   │   ├── governance/       # Governance dashboard charts
+│   │   │   ├── drep/             # DRep dashboard (placeholder)
+│   │   │   └── phil/             # Phil's dashboard (placeholder)
+│   │   ├── ui/                   # shadcn/ui base components
+│   │   ├── layout/               # Header, Footer
+│   │   ├── governance/           # Voting components
+│   │   └── wallet/               # Wallet connection
+│   ├── pages/
+│   │   ├── api/                  # Server-side API routes (proxy to backend)
+│   │   ├── governance/[hash].tsx # Proposal detail
+│   │   ├── dashboard.tsx         # Customizable dashboard
+│   │   └── index.tsx             # Landing page
+│   ├── store/
+│   │   ├── governanceSlice.ts    # Redux state + async thunks
+│   │   └── hooks.ts              # useAppDispatch, useAppSelector
+│   ├── services/
+│   │   └── api.ts                # API client with lovelace→ADA transforms
+│   ├── types/
+│   │   ├── governance.ts         # GovernanceAction, VoteRecord, etc.
+│   │   └── dashboard.ts          # ChartId, ChartLayout, DashboardConfig
+│   ├── lib/
+│   │   ├── theme.tsx             # Theme provider (light/dark/game)
+│   │   ├── voteBreakdownCalculator.ts  # Vote calculation by action type
+│   │   └── governanceVotingEligibility.ts  # Voter eligibility matrix
+│   └── config/
+│       └── api.ts                # Backend endpoint config
 ```
 
 ## Key Patterns
@@ -121,11 +126,29 @@ Three themes: `light`, `dark`, `game`
 - `activeTheme.id` for conditional styling
 - `activeTheme.isDark` for dark mode checks
 
-## MCP Servers Available
+## Claude Code Tooling
 
-Use these tools for project-specific queries:
-- `mcp__cgov-project__*` - Project structure, types, conventions
-- `mcp__cardano-governance__*` - CIP-1694 governance rules, thresholds, eligibility
+### MCP Servers (`.claude/mcp/`)
+
+Two MCP servers provide AI-assisted knowledge:
+
+- **`mcp__cgov-project__*`** - Project structure, types, conventions, component info
+- **`mcp__cardano-governance__*`** - CIP-1694 governance rules, thresholds, voter eligibility
+
+To rebuild MCP servers after changes:
+```bash
+cd .claude/mcp/cardano-governance && npm run build
+cd .claude/mcp/cgov-project && npm run build
+```
+
+### Skills (`.claude/skills/`)
+
+Reusable task templates for common operations:
+- `add-chart` - Add a new dashboard chart
+- `add-dashboard` - Create a new dashboard with chart registry
+- `add-api-route` - Add a new API endpoint
+- `add-thunk` - Add a Redux async thunk
+- `cgov-build` - Build and validate the project
 
 ## Common Tasks
 

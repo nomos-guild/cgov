@@ -1,0 +1,174 @@
+---
+name: add-thunk
+description: Add a Redux async thunk with loading/error states to governanceSlice. Use when adding new async data fetching.
+argument-hint: [thunkName] [serviceFunction]
+allowed-tools: Read, Edit, Grep
+---
+
+# Add Redux Async Thunk
+
+Add a new async thunk to the governance slice with proper loading/error state management.
+
+## Arguments
+
+- `$0` - Thunk name in camelCase (e.g., `loadVoterStats`)
+- `$1` - Service function name (e.g., `fetchVoterStats`)
+
+## Instructions
+
+### Step 1: Update State Interface
+
+Edit `src/store/governanceSlice.ts` - add to `GovernanceState` interface:
+
+```typescript
+// Data
+${dataPropertyName}: ${DataType} | null;
+
+// Loading state
+isLoading${PascalCaseName}: boolean;
+
+// Error state
+${camelCaseName}Error: string | null;
+```
+
+### Step 2: Update Initial State
+
+Add to `initialState`:
+
+```typescript
+${dataPropertyName}: null,
+isLoading${PascalCaseName}: false,
+${camelCaseName}Error: null,
+```
+
+### Step 3: Add Import
+
+Add the service function import at the top:
+
+```typescript
+import { ${$1} } from "@/services/api";
+```
+
+### Step 4: Create Async Thunk
+
+Add after existing thunks (before `const governanceSlice = createSlice`):
+
+```typescript
+export const ${$0} = createAsyncThunk(
+  "governance/${$0}",
+  async (${paramIfNeeded}, { rejectWithValue }) => {
+    try {
+      const data = await ${$1}(${paramIfNeeded});
+      if (!data) {
+        return rejectWithValue("${Human readable name} not found");
+      }
+      return data;
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Failed to load ${human readable name}"
+      );
+    }
+  }
+);
+```
+
+### Step 5: Add Reducer (Optional)
+
+If you need a setter action, add to `reducers`:
+
+```typescript
+set${PascalCaseName}: (state, action: PayloadAction<${DataType} | null>) => {
+  state.${dataPropertyName} = action.payload;
+  state.${camelCaseName}Error = null;
+},
+```
+
+### Step 6: Add Extra Reducers
+
+Add to `extraReducers` builder:
+
+```typescript
+// Load ${human readable name}
+builder
+  .addCase(${$0}.pending, (state) => {
+    state.isLoading${PascalCaseName} = true;
+    state.${camelCaseName}Error = null;
+  })
+  .addCase(${$0}.fulfilled, (state, action) => {
+    state.isLoading${PascalCaseName} = false;
+    state.${dataPropertyName} = action.payload;
+  })
+  .addCase(${$0}.rejected, (state, action) => {
+    state.isLoading${PascalCaseName} = false;
+    state.${camelCaseName}Error = action.payload as string;
+  });
+```
+
+### Step 7: Export Action (if setter added)
+
+Add to exports:
+
+```typescript
+export const {
+  // ... existing exports
+  set${PascalCaseName},
+} = governanceSlice.actions;
+```
+
+## Thunk Patterns
+
+### Without Parameters
+```typescript
+export const loadStats = createAsyncThunk(
+  "governance/loadStats",
+  async (_, { rejectWithValue }) => {
+    // ...
+  }
+);
+```
+
+### With Single Parameter
+```typescript
+export const loadDetail = createAsyncThunk(
+  "governance/loadDetail",
+  async (id: string, { rejectWithValue }) => {
+    // ...
+  }
+);
+```
+
+### With Multiple Parameters
+```typescript
+export const loadFiltered = createAsyncThunk(
+  "governance/loadFiltered",
+  async ({ type, status }: { type: string; status: string }, { rejectWithValue }) => {
+    // ...
+  }
+);
+```
+
+## Naming Conventions
+
+| Thunk Name | State Property | Loading State | Error State |
+|------------|----------------|---------------|-------------|
+| `loadVoterStats` | `voterStats` | `isLoadingVoterStats` | `voterStatsError` |
+| `loadDRepDetails` | `drepDetails` | `isLoadingDRepDetails` | `drepDetailsError` |
+
+## After Creation
+
+1. Import and dispatch the thunk in your component:
+   ```typescript
+   import { ${$0} } from "@/store/governanceSlice";
+   const dispatch = useAppDispatch();
+
+   useEffect(() => {
+     dispatch(${$0}());
+   }, [dispatch]);
+   ```
+
+2. Select data and loading state:
+   ```typescript
+   const { ${dataPropertyName}, isLoading${PascalCaseName} } = useAppSelector(
+     (state) => state.governance
+   );
+   ```
