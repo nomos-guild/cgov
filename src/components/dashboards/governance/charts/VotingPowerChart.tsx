@@ -13,7 +13,7 @@ import {
 } from "recharts";
 import { ChartSkeleton } from "./ChartSkeleton";
 import type { ChartProps } from "@/types/dashboard";
-import { getChartColors, chartCardClassName, chartCardGameClassName } from "@/components/dashboards/shared/chartTheme";
+import { getChartColors, ChartTooltip, chartCardClassName, chartCardGameClassName } from "@/components/dashboards/shared/chartTheme";
 
 export function VotingPowerChart({ isLoading, className }: ChartProps) {
   const { actions } = useAppSelector((state) => state.governance);
@@ -107,13 +107,12 @@ export function VotingPowerChart({ isLoading, className }: ChartProps) {
               width={40}
             />
             <Tooltip
-              contentStyle={{
-                backgroundColor: chartColors.tooltipBg,
-                border: `1px solid ${chartColors.tooltipBorder}`,
-                borderRadius: activeTheme.isDark ? "0" : "8px",
-                color: chartColors.tooltipText,
-              }}
-              formatter={(value) => [`${Number(value).toFixed(1)}%`]}
+              content={
+                <ChartTooltip
+                  themeId={activeTheme.id}
+                  valueFormatter={(value) => `${Number(value).toFixed(1)}%`}
+                />
+              }
             />
             <Legend
               wrapperStyle={{

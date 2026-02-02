@@ -12,7 +12,7 @@ import {
 } from "recharts";
 import { ChartSkeleton } from "./ChartSkeleton";
 import type { ChartProps } from "@/types/dashboard";
-import { getChartColors, chartCardClassName, chartCardGameClassName } from "@/components/dashboards/shared/chartTheme";
+import { getChartColors, ChartTooltip, chartCardClassName, chartCardGameClassName } from "@/components/dashboards/shared/chartTheme";
 
 /**
  * Convert a Cardano epoch number to an approximate Date.
@@ -159,14 +159,12 @@ export function ProposalSubmissionChart({ isLoading, className }: ChartProps) {
                 allowDecimals={false}
               />
               <Tooltip
-                contentStyle={{
-                  backgroundColor: chartColors.tooltipBg,
-                  border: `1px solid ${chartColors.tooltipBorder}`,
-                  borderRadius: activeTheme.isDark ? "0" : "8px",
-                  color: chartColors.tooltipText,
-                }}
-                formatter={(value) => [`${value} proposals`, "Submitted"]}
-                labelFormatter={(label) => label}
+                content={
+                  <ChartTooltip
+                    themeId={activeTheme.id}
+                    valueFormatter={(value) => `${value} proposals`}
+                  />
+                }
               />
               <Line
                 type="monotone"

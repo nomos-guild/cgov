@@ -51,6 +51,16 @@ export interface TextElement {
 }
 
 /**
+ * Page margin configuration
+ */
+export interface PageMargins {
+  /** Left margin in pixels */
+  left: number;
+  /** Right margin in pixels */
+  right: number;
+}
+
+/**
  * Configuration for dashboard layout and visibility
  */
 export interface DashboardConfig {
@@ -62,6 +72,8 @@ export interface DashboardConfig {
   layouts: ChartLayoutMap;
   /** Text elements on the dashboard */
   textElements: TextElement[];
+  /** Page margin settings */
+  pageMargins: PageMargins;
   /** Version for future migrations */
   version: number;
 }
@@ -108,6 +120,7 @@ export interface DashboardContextValue {
   addTextElement: () => void;
   updateTextElement: (id: string, updates: Partial<TextElement>) => void;
   removeTextElement: (id: string) => void;
+  updatePageMargins: (margins: Partial<PageMargins>) => void;
   exportConfig: () => string;
   importConfig: (code: string) => { success: boolean; error?: string };
 }
@@ -172,6 +185,24 @@ export const TEXT_ELEMENT_CONSTRAINTS = {
 };
 
 /**
+ * Page margin constraints
+ */
+export const PAGE_MARGIN_CONSTRAINTS = {
+  min: 24, // Minimum margin - handles can't go closer than 24px from screen edge (widest content)
+  max: 300, // Maximum margin - handles can't go further than 300px from screen edge (narrowest content)
+  step: 10,
+  default: 24,
+};
+
+/**
+ * Default page margins - approximates the centered container layout
+ */
+export const DEFAULT_PAGE_MARGINS: PageMargins = {
+  left: 200,
+  right: 200,
+};
+
+/**
  * Snap a pixel value to the nearest grid cell
  */
 export function snapToGrid(value: number): number {
@@ -213,5 +244,6 @@ export const DEFAULT_DASHBOARD_CONFIG: DashboardConfig = {
   chartOrder: ALL_CHART_IDS,
   layouts: DEFAULT_CHART_LAYOUTS,
   textElements: [],
-  version: 10, // Bumped for text elements feature
+  pageMargins: DEFAULT_PAGE_MARGINS,
+  version: 12, // Bumped for centered default margins
 };

@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { ChartSkeleton } from "./ChartSkeleton";
 import type { ChartProps } from "@/types/dashboard";
-import { getChartColors, chartCardClassName, chartCardGameClassName } from "@/components/dashboards/shared/chartTheme";
+import { getChartColors, ChartTooltip, chartCardClassName, chartCardGameClassName } from "@/components/dashboards/shared/chartTheme";
 
 const TYPE_LABELS: Record<string, string> = {
   InfoAction: "Info",
@@ -79,15 +79,7 @@ export function ProposalTypeChart({ isLoading, className }: ChartProps) {
                 />
               ))}
             </Pie>
-            <Tooltip
-              contentStyle={{
-                backgroundColor: chartColors.tooltipBg,
-                border: `1px solid ${chartColors.tooltipBorder}`,
-                borderRadius: activeTheme.isDark ? "0" : "8px",
-                color: chartColors.tooltipText,
-              }}
-              formatter={(value, name) => [value, name]}
-            />
+            <Tooltip content={<ChartTooltip themeId={activeTheme.id} />} />
             <Legend
               wrapperStyle={{
                 fontSize: "11px",

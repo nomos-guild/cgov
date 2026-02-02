@@ -3,6 +3,8 @@ export { DashboardGrid } from "./DashboardGrid";
 export { DashboardChartCard } from "./DashboardChartCard";
 export { DashboardTextElement } from "./DashboardTextElement";
 export { ChartVisibilityDropdown } from "./ChartVisibilityDropdown";
+export { DashboardSidePanel } from "./DashboardSidePanel";
+export { DashboardMarginHandles } from "./DashboardMarginHandles";
 export {
   getChartColors,
   chartCardClassName,

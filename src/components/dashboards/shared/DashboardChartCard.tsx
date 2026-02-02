@@ -1,5 +1,5 @@
 import { useRef, useCallback, useState } from "react";
-import { GripVertical } from "lucide-react";
+import { GripVertical, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/lib/theme";
 import type { ChartDefinition, ChartLayout } from "@/types/dashboard";
@@ -13,6 +13,7 @@ interface DashboardChartCardProps {
   onActivate: (e?: React.MouseEvent) => void;
   onDrag: (deltaX: number, deltaY: number) => void;
   onResize: (deltaWidth: number, deltaHeight: number, direction: string) => void;
+  onHide?: () => void;
 }
 
 export function DashboardChartCard({
@@ -24,6 +25,7 @@ export function DashboardChartCard({
   onActivate,
   onDrag,
   onResize,
+  onHide,
 }: DashboardChartCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const { activeTheme } = useTheme();
@@ -118,20 +120,44 @@ export function DashboardChartCard({
       onClick={handleClick}
       data-chart-card
     >
-      {/* Drag handle */}
-      <div
-        onMouseDown={handleDragStart}
-        className={cn(
-          "absolute top-2 right-2 z-20 p-1.5 rounded-md cursor-grab active:cursor-grabbing transition-opacity opacity-0 group-hover:opacity-100",
-          isGame
-            ? "bg-black/70 hover:bg-black/90 text-white"
-            : isDark
-              ? "bg-black/70 hover:bg-black/90 text-[#0bd1a2]"
-              : "bg-white/90 hover:bg-white text-gray-600 shadow-sm"
+      {/* Card controls - drag handle and close button */}
+      <div className="absolute top-2 right-2 z-20 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        {/* Drag handle */}
+        <div
+          onMouseDown={handleDragStart}
+          className={cn(
+            "p-1.5 rounded-md cursor-grab active:cursor-grabbing",
+            isGame
+              ? "bg-black/70 hover:bg-black/90 text-white"
+              : isDark
+                ? "bg-black/70 hover:bg-black/90 text-[#0bd1a2]"
+                : "bg-white/90 hover:bg-white text-gray-600 shadow-sm"
+          )}
+          aria-label={`Drag to move ${chart.title}`}
+        >
+          <GripVertical className="h-4 w-4" />
+        </div>
+
+        {/* Close button */}
+        {onHide && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onHide();
+            }}
+            className={cn(
+              "p-1.5 rounded-md cursor-pointer",
+              isGame
+                ? "bg-black/70 hover:bg-red-600/90 text-white"
+                : isDark
+                  ? "bg-black/70 hover:bg-red-600/90 text-[#0bd1a2] hover:text-white"
+                  : "bg-white/90 hover:bg-red-500 text-gray-600 hover:text-white shadow-sm"
+            )}
+            aria-label={`Hide ${chart.title}`}
+          >
+            <X className="h-4 w-4" />
+          </button>
         )}
-        aria-label={`Drag to move ${chart.title}`}
-      >
-        <GripVertical className="h-4 w-4" />
       </div>
 
       {/* Resize handles - visible on hover */}

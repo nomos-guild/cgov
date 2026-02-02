@@ -6,13 +6,16 @@ import type {
   DashboardConfig,
   DashboardContextValue,
   TextElement,
+  PageMargins,
 } from "@/types/dashboard";
 import {
   DEFAULT_DASHBOARD_CONFIG,
   DEFAULT_CHART_LAYOUTS,
+  DEFAULT_PAGE_MARGINS,
   ALL_CHART_IDS,
   LAYOUT_CONSTRAINTS,
   TEXT_ELEMENT_CONSTRAINTS,
+  PAGE_MARGIN_CONSTRAINTS,
   snapToGrid,
 } from "@/types/dashboard";
 
@@ -88,11 +91,21 @@ function parseStoredConfig(stored: string | null): DashboardConfig | null {
         );
       }
 
+      // Parse page margins
+      let pageMargins: PageMargins = { ...DEFAULT_PAGE_MARGINS };
+      if (parsed.pageMargins && typeof parsed.pageMargins === "object") {
+        pageMargins = {
+          left: Math.max(PAGE_MARGIN_CONSTRAINTS.min, Math.min(PAGE_MARGIN_CONSTRAINTS.max, parsed.pageMargins.left ?? 0)),
+          right: Math.max(PAGE_MARGIN_CONSTRAINTS.min, Math.min(PAGE_MARGIN_CONSTRAINTS.max, parsed.pageMargins.right ?? 0)),
+        };
+      }
+
       return {
         visibleCharts: validVisible,
         chartOrder,
         layouts,
         textElements,
+        pageMargins,
         version: DEFAULT_DASHBOARD_CONFIG.version,
       };
     }
@@ -223,6 +236,16 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  const updatePageMargins = useCallback((margins: Partial<PageMargins>) => {
+    setConfig((prev) => ({
+      ...prev,
+      pageMargins: {
+        left: Math.max(PAGE_MARGIN_CONSTRAINTS.min, Math.min(PAGE_MARGIN_CONSTRAINTS.max, margins.left ?? prev.pageMargins.left)),
+        right: Math.max(PAGE_MARGIN_CONSTRAINTS.min, Math.min(PAGE_MARGIN_CONSTRAINTS.max, margins.right ?? prev.pageMargins.right)),
+      },
+    }));
+  }, []);
+
   const exportConfig = useCallback((): string => {
     try {
       const exportData = {
@@ -270,6 +293,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
         addTextElement,
         updateTextElement,
         removeTextElement,
+        updatePageMargins,
         exportConfig,
         importConfig,
       }}
@@ -295,6 +319,7 @@ export function useDashboard(): DashboardContextValue {
       addTextElement: () => {},
       updateTextElement: () => {},
       removeTextElement: () => {},
+      updatePageMargins: () => {},
       exportConfig: () => "",
       importConfig: () => ({ success: false, error: "Context not available" }),
     };

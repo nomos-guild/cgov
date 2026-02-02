@@ -1,12 +1,12 @@
-# journey Changelog
-
-All notable changes to this skill will be documented in this file.
+# Journey Skill Changelog
 
 ## [1.0.0] - 2026-02-02
 
 ### Initial Release
-- Save session summaries to `.claude/journeys/`
-- List, read, and search journey files
-- Structured format for learnings, decisions, and patterns
-- Tag system for categorization
-- Guidelines for effective journey documentation
+- Created journey skill for session learning logs
+- Defined standard journey template structure
+- Added commands: create, list, read, recent
+- Documented writing guidelines and common tags
+
+### Purpose
+Journeys create institutional memory that persists across Claude Code sessions, capturing not just what changed but why and what was learned.

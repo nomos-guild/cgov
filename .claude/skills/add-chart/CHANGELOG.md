@@ -2,6 +2,38 @@
 
 All notable changes to this skill will be documented in this file.
 
+## [1.4.0] - 2026-02-02
+
+### Fixed
+- **Tooltip styling section completely rewritten** - Removed unreliable `contentStyle` prop approach
+- Now uses `ChartTooltip` custom component which actually works
+
+### Added
+- Import for `ChartTooltip` in component template
+- Examples showing `valueFormatter` and `labelFormatter` props
+- Note explaining what ChartTooltip provides per theme
+
+### Journey-driven
+Based on dashboard-polish-and-tooltip-fix journey. Key learning: Recharts `contentStyle` prop doesn't reliably apply styles (especially background colors). Custom content components are the only reliable approach.
+
+---
+
+## [1.3.0] - 2026-02-02
+
+### Added
+- DashboardChartCard Props table documenting `isSelected`, `onHide`, `onSelect`, `onDragStart`
+- Data Attributes section explaining `data-chart-card` for selection exclusion
+- Hide button (X icon) mention in wrapper diagram
+
+### Documentation
+- Code example now shows `data-chart-card` attribute on wrapper
+- Explains relationship between data attributes and selection system
+
+### Journey-driven
+Based on dashboard-side-panel-and-theming journey learnings about selection exclusion patterns.
+
+---
+
 ## [1.2.0] - 2026-02-02
 
 ### Fixed

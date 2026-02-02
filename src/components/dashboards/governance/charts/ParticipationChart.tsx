@@ -13,7 +13,7 @@ import {
 } from "recharts";
 import { ChartSkeleton } from "./ChartSkeleton";
 import type { ChartProps } from "@/types/dashboard";
-import { getChartColors, chartCardClassName, chartCardGameClassName } from "@/components/dashboards/shared/chartTheme";
+import { getChartColors, ChartTooltip, chartCardClassName, chartCardGameClassName } from "@/components/dashboards/shared/chartTheme";
 
 export function ParticipationChart({ isLoading, className }: ChartProps) {
   const { actions } = useAppSelector((state) => state.governance);
@@ -117,14 +117,13 @@ export function ParticipationChart({ isLoading, className }: ChartProps) {
               allowDecimals={false}
             />
             <Tooltip
-              contentStyle={{
-                backgroundColor: chartColors.tooltipBg,
-                border: `1px solid ${chartColors.tooltipBorder}`,
-                borderRadius: activeTheme.isDark ? "0" : "8px",
-                color: chartColors.tooltipText,
-              }}
-              formatter={(value) => [`${value} proposals`]}
-              labelFormatter={(label) => `Participation: ${label}`}
+              content={
+                <ChartTooltip
+                  themeId={activeTheme.id}
+                  labelFormatter={(label) => `Participation: ${label}`}
+                  valueFormatter={(value) => `${value} proposals`}
+                />
+              }
             />
             <Bar dataKey="count" radius={activeTheme.isDark ? 0 : [4, 4, 0, 0]}>
               {data.map((entry, index) => (
