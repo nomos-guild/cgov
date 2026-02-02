@@ -90,8 +90,4 @@ Use skill → /skill-feedback {skill} → feedback accumulates →
 - `CLAUDE.md` updated with evolution system docs
 - Future: All skills can now evolve through this system
 
-## Open Questions / Next Steps
 
-- Should journeys be auto-suggested at end of significant sessions?
-- Could MCP server index journeys for semantic search?
-- Should there be a "daily standup" summary of recent journeys?
