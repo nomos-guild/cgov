@@ -2,6 +2,21 @@
 
 All notable changes to this skill will be documented in this file.
 
+## [1.2.0] - 2026-02-02
+
+### Fixed
+- Light theme code example now shows `border-none bg-white` instead of grey border
+- Updated Theme System table to clarify light theme has pure white cards
+
+### Added
+- Key principle: "Light theme cards: pure white, NO borders, shadow only"
+
+### Feedback-driven
+Based on 2 feedback entries. Key pattern addressed:
+- Light theme cards had grey borders when they should be pure white with shadow only
+
+---
+
 ## [1.1.0] - 2026-02-02
 
 ### Fixed

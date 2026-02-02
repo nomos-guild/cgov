@@ -186,8 +186,8 @@ export function getChartColors(themeId: string): ChartThemeColors {
  * Includes all theme variations
  */
 export const chartCardClassName =
-  "rounded-xl border border-[#d4cdc4] bg-[#faf9f6] p-4 shadow-[0_8px_24px_rgba(45,41,38,0.08)] " +
-  "dark:rounded-none dark:border-[rgba(11,209,162,0.4)] dark:bg-[rgba(19,19,32,0.6)] dark:shadow-[0_4px_20px_rgba(11,209,162,0.1)] " +
+  "rounded-xl border-none bg-white p-4 shadow-[0_8px_24px_rgba(45,41,38,0.12)] " +
+  "dark:rounded-none dark:border dark:border-[rgba(11,209,162,0.4)] dark:bg-[rgba(19,19,32,0.6)] dark:shadow-[0_4px_20px_rgba(11,209,162,0.1)] " +
   "h-full flex flex-col";
 
 /**

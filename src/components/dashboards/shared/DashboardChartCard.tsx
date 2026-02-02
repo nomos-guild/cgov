@@ -28,6 +28,7 @@ export function DashboardChartCard({
   const cardRef = useRef<HTMLDivElement>(null);
   const { activeTheme } = useTheme();
   const isDark = activeTheme.isDark;
+  const isGame = activeTheme.id === "game";
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
 
@@ -122,9 +123,11 @@ export function DashboardChartCard({
         onMouseDown={handleDragStart}
         className={cn(
           "absolute top-2 right-2 z-20 p-1.5 rounded-md cursor-grab active:cursor-grabbing transition-opacity opacity-0 group-hover:opacity-100",
-          isDark
-            ? "bg-black/70 hover:bg-black/90 text-[#0bd1a2]"
-            : "bg-white/90 hover:bg-white text-gray-600 shadow-sm"
+          isGame
+            ? "bg-black/70 hover:bg-black/90 text-white"
+            : isDark
+              ? "bg-black/70 hover:bg-black/90 text-[#0bd1a2]"
+              : "bg-white/90 hover:bg-white text-gray-600 shadow-sm"
         )}
         aria-label={`Drag to move ${chart.title}`}
       >
@@ -137,7 +140,7 @@ export function DashboardChartCard({
         onMouseDown={handleResizeStart("e")}
         className={cn(
           "absolute top-1/2 -translate-y-1/2 -right-1 w-2 h-16 cursor-ew-resize z-30 opacity-0 group-hover:opacity-100 transition-opacity rounded",
-          isDark ? "hover:bg-[#0bd1a2]/50" : "hover:bg-blue-500/50"
+          isGame ? "hover:bg-white/50" : isDark ? "hover:bg-[#0bd1a2]/50" : "hover:bg-blue-500/50"
         )}
       />
 
@@ -146,7 +149,7 @@ export function DashboardChartCard({
         onMouseDown={handleResizeStart("w")}
         className={cn(
           "absolute top-1/2 -translate-y-1/2 -left-1 w-2 h-16 cursor-ew-resize z-30 opacity-0 group-hover:opacity-100 transition-opacity rounded",
-          isDark ? "hover:bg-[#0bd1a2]/50" : "hover:bg-blue-500/50"
+          isGame ? "hover:bg-white/50" : isDark ? "hover:bg-[#0bd1a2]/50" : "hover:bg-blue-500/50"
         )}
       />
 
@@ -155,7 +158,7 @@ export function DashboardChartCard({
         onMouseDown={handleResizeStart("s")}
         className={cn(
           "absolute left-1/2 -translate-x-1/2 -bottom-1 w-16 h-2 cursor-ns-resize z-30 opacity-0 group-hover:opacity-100 transition-opacity rounded",
-          isDark ? "hover:bg-[#0bd1a2]/50" : "hover:bg-blue-500/50"
+          isGame ? "hover:bg-white/50" : isDark ? "hover:bg-[#0bd1a2]/50" : "hover:bg-blue-500/50"
         )}
       />
 
@@ -164,7 +167,7 @@ export function DashboardChartCard({
         onMouseDown={handleResizeStart("n")}
         className={cn(
           "absolute left-1/2 -translate-x-1/2 -top-1 w-16 h-2 cursor-ns-resize z-30 opacity-0 group-hover:opacity-100 transition-opacity rounded",
-          isDark ? "hover:bg-[#0bd1a2]/50" : "hover:bg-blue-500/50"
+          isGame ? "hover:bg-white/50" : isDark ? "hover:bg-[#0bd1a2]/50" : "hover:bg-blue-500/50"
         )}
       />
 
@@ -173,7 +176,7 @@ export function DashboardChartCard({
         onMouseDown={handleResizeStart("se")}
         className={cn(
           "absolute -bottom-1 -right-1 w-4 h-4 cursor-nwse-resize z-30 opacity-0 group-hover:opacity-100 transition-opacity rounded",
-          isDark ? "hover:bg-[#0bd1a2]/70" : "hover:bg-blue-500/70"
+          isGame ? "hover:bg-white/70" : isDark ? "hover:bg-[#0bd1a2]/70" : "hover:bg-blue-500/70"
         )}
       />
 
@@ -182,7 +185,7 @@ export function DashboardChartCard({
         onMouseDown={handleResizeStart("sw")}
         className={cn(
           "absolute -bottom-1 -left-1 w-4 h-4 cursor-nesw-resize z-30 opacity-0 group-hover:opacity-100 transition-opacity rounded",
-          isDark ? "hover:bg-[#0bd1a2]/70" : "hover:bg-blue-500/70"
+          isGame ? "hover:bg-white/70" : isDark ? "hover:bg-[#0bd1a2]/70" : "hover:bg-blue-500/70"
         )}
       />
 
@@ -191,7 +194,7 @@ export function DashboardChartCard({
         onMouseDown={handleResizeStart("ne")}
         className={cn(
           "absolute -top-1 -right-1 w-4 h-4 cursor-nesw-resize z-30 opacity-0 group-hover:opacity-100 transition-opacity rounded",
-          isDark ? "hover:bg-[#0bd1a2]/70" : "hover:bg-blue-500/70"
+          isGame ? "hover:bg-white/70" : isDark ? "hover:bg-[#0bd1a2]/70" : "hover:bg-blue-500/70"
         )}
       />
 
@@ -200,17 +203,19 @@ export function DashboardChartCard({
         onMouseDown={handleResizeStart("nw")}
         className={cn(
           "absolute -top-1 -left-1 w-4 h-4 cursor-nwse-resize z-30 opacity-0 group-hover:opacity-100 transition-opacity rounded",
-          isDark ? "hover:bg-[#0bd1a2]/70" : "hover:bg-blue-500/70"
+          isGame ? "hover:bg-white/70" : isDark ? "hover:bg-[#0bd1a2]/70" : "hover:bg-blue-500/70"
         )}
       />
 
       {/* Chart content */}
       <div
         className={cn(
-          "h-full w-full overflow-hidden rounded-2xl",
-          isDark
-            ? "border border-[#0bd1a2] bg-transparent"
-            : "border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)]"
+          "h-full w-full overflow-hidden",
+          isGame
+            ? "rounded-sm border-none bg-transparent"
+            : isDark
+              ? "rounded-2xl border border-[#0bd1a2] bg-transparent"
+              : "rounded-2xl border-none bg-white shadow-[0_12px_30px_rgba(15,23,42,0.25)]"
         )}
       >
         <ChartComponent isLoading={isLoading} className="h-full w-full" />
