@@ -1,0 +1,23 @@
+skill: add-chart
+timestamp: 2026-02-02T07:35:00Z
+outcome: partial
+context: "Reviewing the add-chart skill for potential issues and template accuracy"
+
+strengths:
+  - "CHART_REGISTRY update instructions were clear"
+  - "The component template was useful"
+  - "Dashboard integration with drag/resize worked well"
+
+corrections:
+  - "Game theme cards incorrectly get colored borders - had to remove green borders from game theme"
+
+suggestions:
+  - "Update template to not add colored borders in game theme - game theme should have no colored borders on cards"
+
+code_fixes:
+  - file: "Template in SKILL.md"
+    description: "Game theme border styling is incorrect"
+    diff: |
+      # The template suggests borders that don't match game theme
+      # Game theme cards should NOT have colored borders
+      # Current template may lead to green/colored borders in game mode
