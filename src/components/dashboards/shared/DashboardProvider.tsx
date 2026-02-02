@@ -6,13 +6,17 @@ import type {
   DashboardConfig,
   DashboardContextValue,
   TextElement,
+  PageMargins,
+  ColorPickerTarget,
 } from "@/types/dashboard";
 import {
   DEFAULT_DASHBOARD_CONFIG,
   DEFAULT_CHART_LAYOUTS,
+  DEFAULT_PAGE_MARGINS,
   ALL_CHART_IDS,
   LAYOUT_CONSTRAINTS,
   TEXT_ELEMENT_CONSTRAINTS,
+  PAGE_MARGIN_CONSTRAINTS,
   snapToGrid,
 } from "@/types/dashboard";
 
@@ -88,11 +92,21 @@ function parseStoredConfig(stored: string | null): DashboardConfig | null {
         );
       }
 
+      // Parse page margins
+      let pageMargins: PageMargins = { ...DEFAULT_PAGE_MARGINS };
+      if (parsed.pageMargins && typeof parsed.pageMargins === "object") {
+        pageMargins = {
+          left: Math.max(PAGE_MARGIN_CONSTRAINTS.min, Math.min(PAGE_MARGIN_CONSTRAINTS.max, parsed.pageMargins.left ?? 0)),
+          right: Math.max(PAGE_MARGIN_CONSTRAINTS.min, Math.min(PAGE_MARGIN_CONSTRAINTS.max, parsed.pageMargins.right ?? 0)),
+        };
+      }
+
       return {
         visibleCharts: validVisible,
         chartOrder,
         layouts,
         textElements,
+        pageMargins,
         version: DEFAULT_DASHBOARD_CONFIG.version,
       };
     }
@@ -105,6 +119,28 @@ function parseStoredConfig(stored: string | null): DashboardConfig | null {
 export function DashboardProvider({ children }: { children: ReactNode }) {
   const [config, setConfig] = useState<DashboardConfig>(DEFAULT_DASHBOARD_CONFIG);
   const [mounted, setMounted] = useState(false);
+
+  // Side panel state
+  const [isSidePanelOpen, setIsSidePanelOpen] = useState(false);
+  const [sidePanelTab, setSidePanelTab] = useState("charts");
+  const [colorPickerTarget, setColorPickerTargetState] = useState<ColorPickerTarget | null>(null);
+
+  // Set color picker target and open side panel
+  const setColorPickerTarget = useCallback((target: ColorPickerTarget | null) => {
+    setColorPickerTargetState(target);
+    if (target) {
+      setSidePanelTab("colors");
+      setIsSidePanelOpen(true);
+    }
+  }, []);
+
+  const setSidePanelOpen = useCallback((open: boolean) => {
+    setIsSidePanelOpen(open);
+    if (!open) {
+      // Clear color picker target when closing panel
+      setColorPickerTargetState(null);
+    }
+  }, []);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -223,6 +259,16 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  const updatePageMargins = useCallback((margins: Partial<PageMargins>) => {
+    setConfig((prev) => ({
+      ...prev,
+      pageMargins: {
+        left: Math.max(PAGE_MARGIN_CONSTRAINTS.min, Math.min(PAGE_MARGIN_CONSTRAINTS.max, margins.left ?? prev.pageMargins.left)),
+        right: Math.max(PAGE_MARGIN_CONSTRAINTS.min, Math.min(PAGE_MARGIN_CONSTRAINTS.max, margins.right ?? prev.pageMargins.right)),
+      },
+    }));
+  }, []);
+
   const exportConfig = useCallback((): string => {
     try {
       const exportData = {
@@ -270,8 +316,15 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
         addTextElement,
         updateTextElement,
         removeTextElement,
+        updatePageMargins,
         exportConfig,
         importConfig,
+        colorPickerTarget,
+        setColorPickerTarget,
+        isSidePanelOpen,
+        setSidePanelOpen,
+        sidePanelTab,
+        setSidePanelTab,
       }}
     >
       {children}
@@ -295,8 +348,15 @@ export function useDashboard(): DashboardContextValue {
       addTextElement: () => {},
       updateTextElement: () => {},
       removeTextElement: () => {},
+      updatePageMargins: () => {},
       exportConfig: () => "",
       importConfig: () => ({ success: false, error: "Context not available" }),
+      colorPickerTarget: null,
+      setColorPickerTarget: () => {},
+      isSidePanelOpen: false,
+      setSidePanelOpen: () => {},
+      sidePanelTab: "charts",
+      setSidePanelTab: () => {},
     };
   }
   return context;

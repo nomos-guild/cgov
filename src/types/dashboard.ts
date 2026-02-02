@@ -51,6 +51,16 @@ export interface TextElement {
 }
 
 /**
+ * Page margin configuration
+ */
+export interface PageMargins {
+  /** Left margin in pixels */
+  left: number;
+  /** Right margin in pixels */
+  right: number;
+}
+
+/**
  * Configuration for dashboard layout and visibility
  */
 export interface DashboardConfig {
@@ -62,6 +72,8 @@ export interface DashboardConfig {
   layouts: ChartLayoutMap;
   /** Text elements on the dashboard */
   textElements: TextElement[];
+  /** Page margin settings */
+  pageMargins: PageMargins;
   /** Version for future migrations */
   version: number;
 }
@@ -93,6 +105,20 @@ export interface ChartDefinition {
 }
 
 /**
+ * Color picker target for side panel
+ */
+export interface ColorPickerTarget {
+  /** Chart ID being edited */
+  chartId: string;
+  /** Chart title for display */
+  chartTitle: string;
+  /** Element key within the chart (e.g., "_cardBg", "line", "slice-0") */
+  elementKey: string;
+  /** Human-readable label for the element */
+  elementLabel: string;
+}
+
+/**
  * Context value for dashboard state
  */
 export interface DashboardContextValue {
@@ -108,8 +134,21 @@ export interface DashboardContextValue {
   addTextElement: () => void;
   updateTextElement: (id: string, updates: Partial<TextElement>) => void;
   removeTextElement: (id: string) => void;
+  updatePageMargins: (margins: Partial<PageMargins>) => void;
   exportConfig: () => string;
   importConfig: (code: string) => { success: boolean; error?: string };
+  /** Color picker state for side panel */
+  colorPickerTarget: ColorPickerTarget | null;
+  /** Set the color picker target (opens side panel Colors tab) */
+  setColorPickerTarget: (target: ColorPickerTarget | null) => void;
+  /** Whether the side panel is open */
+  isSidePanelOpen: boolean;
+  /** Open/close the side panel */
+  setSidePanelOpen: (open: boolean) => void;
+  /** Active tab in the side panel */
+  sidePanelTab: string;
+  /** Set the active tab in the side panel */
+  setSidePanelTab: (tab: string) => void;
 }
 
 /**
@@ -172,6 +211,24 @@ export const TEXT_ELEMENT_CONSTRAINTS = {
 };
 
 /**
+ * Page margin constraints
+ */
+export const PAGE_MARGIN_CONSTRAINTS = {
+  min: 24, // Minimum margin - handles can't go closer than 24px from screen edge (widest content)
+  max: 300, // Maximum margin - handles can't go further than 300px from screen edge (narrowest content)
+  step: 10,
+  default: 24,
+};
+
+/**
+ * Default page margins - approximates the centered container layout
+ */
+export const DEFAULT_PAGE_MARGINS: PageMargins = {
+  left: 200,
+  right: 200,
+};
+
+/**
  * Snap a pixel value to the nearest grid cell
  */
 export function snapToGrid(value: number): number {
@@ -213,5 +270,6 @@ export const DEFAULT_DASHBOARD_CONFIG: DashboardConfig = {
   chartOrder: ALL_CHART_IDS,
   layouts: DEFAULT_CHART_LAYOUTS,
   textElements: [],
-  version: 10, // Bumped for text elements feature
+  pageMargins: DEFAULT_PAGE_MARGINS,
+  version: 12, // Bumped for centered default margins
 };

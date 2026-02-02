@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import Head from "next/head";
 import { useGovernanceDataLoader } from "@/hooks/useGovernanceData";
 import { Card } from "@/components/ui/card";
@@ -6,16 +7,26 @@ import { useTheme } from "@/lib/theme";
 import {
   DashboardProvider,
   DashboardGrid,
-  ChartVisibilityDropdown,
+  DashboardSidePanel,
+  DashboardMarginHandles,
+  useDashboard,
 } from "@/components/dashboards/shared";
+import { ChartColorsProvider } from "@/components/dashboards/shared/ChartColorsContext";
 
 function DashboardContent() {
   const { activeTheme } = useTheme();
   const isGame = activeTheme.id === "game";
+  const { config, mounted } = useDashboard();
+  const gridAreaRef = useRef<HTMLDivElement>(null);
 
   // SWR-based data loading with caching and deduplication
   const { isLoading, error, hasData, refresh } = useGovernanceDataLoader();
   const showLoadingSpinner = isLoading && !hasData && !error;
+
+  // Calculate padding based on margins (minimum padding for header area)
+  const minPadding = 24; // Minimum padding in pixels
+  const leftPadding = Math.max(minPadding, config.pageMargins.left);
+  const rightPadding = Math.max(minPadding, config.pageMargins.right);
 
   return (
     <>
@@ -24,7 +35,17 @@ function DashboardContent() {
         <meta name="description" content="CGOV Dashboard - Governance Overview" />
       </Head>
       <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 md:px-6 md:py-8">
+        {/* Margin handles - only show when mounted to avoid hydration mismatch */}
+        {mounted && <DashboardMarginHandles containerRef={gridAreaRef} />}
+
+        {/* Full-width container with dynamic padding */}
+        <div
+          className="py-4 sm:py-6 md:py-8 transition-[padding] duration-75"
+          style={{
+            paddingLeft: leftPadding,
+            paddingRight: rightPadding,
+          }}
+        >
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 sm:mb-6 md:mb-8">
             <div className="text-left">
@@ -35,7 +56,7 @@ function DashboardContent() {
                 Your customizable governance overview
               </p>
             </div>
-            <ChartVisibilityDropdown />
+            <DashboardSidePanel />
           </div>
 
           {/* Error state */}
@@ -76,7 +97,9 @@ function DashboardContent() {
 
           {/* Dashboard Grid */}
           {(hasData || (!isLoading && !error)) && !showLoadingSpinner && (
-            <DashboardGrid isLoading={isLoading} />
+            <div ref={gridAreaRef}>
+              <DashboardGrid isLoading={isLoading} />
+            </div>
           )}
         </div>
       </div>
@@ -87,7 +110,9 @@ function DashboardContent() {
 export default function Dashboard() {
   return (
     <DashboardProvider>
-      <DashboardContent />
+      <ChartColorsProvider>
+        <DashboardContent />
+      </ChartColorsProvider>
     </DashboardProvider>
   );
 }

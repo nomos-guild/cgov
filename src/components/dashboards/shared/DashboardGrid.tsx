@@ -20,13 +20,14 @@ interface SelectionBox {
 
 export function DashboardGrid({ isLoading }: DashboardGridProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const { config, mounted, getLayout, updateLayout, updateTextElement, removeTextElement } = useDashboard();
+  const { config, mounted, getLayout, updateLayout, updateTextElement, removeTextElement, toggleChartVisibility } = useDashboard();
   const [containerHeight, setContainerHeight] = useState(800);
   const [containerWidth, setContainerWidth] = useState(1200);
   const [activeElementId, setActiveElementId] = useState<string | null>(null);
   const [selectedElements, setSelectedElements] = useState<Set<string>>(new Set());
   const [selectionBox, setSelectionBox] = useState<SelectionBox | null>(null);
   const [isSelecting, setIsSelecting] = useState(false);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const { activeTheme } = useTheme();
   const isDark = activeTheme.isDark;
 
@@ -46,6 +47,38 @@ export function DashboardGrid({ isLoading }: DashboardGridProps) {
 
     return () => resizeObserver.disconnect();
   }, [mounted]);
+
+  // Mark initial load as complete after a short delay to avoid constraining on page load
+  useEffect(() => {
+    if (!mounted) return;
+    const timer = setTimeout(() => {
+      setInitialLoadComplete(true);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [mounted]);
+
+  // Constrain cards and text elements when container width shrinks
+  // Only run after initial load is complete to avoid repositioning on page load
+  useEffect(() => {
+    if (!mounted || !initialLoadComplete || containerWidth < 400) return;
+
+    // Check and constrain chart positions
+    for (const chartId of config.visibleCharts) {
+      const layout = getLayout(chartId);
+      const maxX = Math.max(0, containerWidth - layout.width);
+      if (layout.x > maxX) {
+        updateLayout(chartId, { x: snapToGrid(maxX) });
+      }
+    }
+
+    // Check and constrain text element positions
+    for (const textElement of config.textElements) {
+      const maxX = Math.max(0, containerWidth - textElement.width);
+      if (textElement.x > maxX) {
+        updateTextElement(textElement.id, { x: snapToGrid(maxX) });
+      }
+    }
+  }, [containerWidth, mounted, initialLoadComplete, config.visibleCharts, config.textElements, getLayout, updateLayout, updateTextElement]);
 
   // Get visible chart definitions
   const visibleCharts = useMemo(() => {
@@ -197,17 +230,25 @@ export function DashboardGrid({ isLoading }: DashboardGridProps) {
     return { x, y, width, height };
   }, []);
 
-  // Handle mouse down on container for selection box
-  const handleContainerMouseDown = useCallback(
-    (e: React.MouseEvent) => {
-      // Only start selection if clicking on the container background (not on a card)
-      if ((e.target as HTMLElement).closest("[data-chart-card], [data-text-element]")) {
+  // Handle mouse down for selection box - now at document level
+  useEffect(() => {
+    const handleMouseDown = (e: MouseEvent) => {
+      // Only start selection if clicking on the page background (not on a card or interactive element)
+      const target = e.target as HTMLElement;
+      if (target.closest("[data-chart-card], [data-text-element], [data-margin-handle], [data-side-panel], button, [role='button'], input, textarea, a, [data-radix-popper-content-wrapper]")) {
         return;
       }
 
+      // Check if click is within the dashboard page area (below header, within main content)
       const rect = containerRef.current?.getBoundingClientRect();
       if (!rect) return;
 
+      // Allow clicks anywhere horizontally at the grid's vertical level
+      // Check if click is within vertical bounds of the grid area (with some tolerance)
+      const isWithinVerticalBounds = e.clientY >= rect.top - 20 && e.clientY <= rect.bottom + 100;
+      if (!isWithinVerticalBounds) return;
+
+      // Calculate position relative to container (can be negative if clicking left of grid)
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
 
@@ -218,9 +259,11 @@ export function DashboardGrid({ isLoading }: DashboardGridProps) {
       if (!e.shiftKey) {
         setSelectedElements(new Set());
       }
-    },
-    []
-  );
+    };
+
+    document.addEventListener("mousedown", handleMouseDown);
+    return () => document.removeEventListener("mousedown", handleMouseDown);
+  }, []);
 
   // Handle mouse move for selection box
   useEffect(() => {
@@ -435,7 +478,6 @@ export function DashboardGrid({ isLoading }: DashboardGridProps) {
         minHeight: `${containerHeight}px`,
         ...gridBackgroundStyle,
       }}
-      onMouseDown={handleContainerMouseDown}
     >
       {visibleCharts.map(({ id, chart }) => {
         const layout = getLayout(id);
@@ -480,6 +522,7 @@ export function DashboardGrid({ isLoading }: DashboardGridProps) {
                 handleResize(id, dw, dh, dir);
               }
             }}
+            onHide={() => toggleChartVisibility(id)}
           />
         );
       })}
