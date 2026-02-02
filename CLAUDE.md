@@ -149,6 +149,72 @@ Reusable task templates for common operations:
 - `add-api-route` - Add a new API endpoint
 - `add-thunk` - Add a Redux async thunk
 - `cgov-build` - Build and validate the project
+- `skill-feedback` - Collect feedback after using a skill
+- `evolve-skill` - Evolve skills based on feedback
+
+### Skill Evolution System
+
+Skills can evolve and improve through feedback. This mimics how humans learn through practice.
+
+**Workflow:**
+```
+Use skill → /skill-feedback {skill} → Feedback accumulates → /evolve-skill {skill} → Skill improves
+```
+
+**Skill Structure:**
+```
+.claude/skills/{skill-name}/
+├── SKILL.md           # Current skill definition
+├── CHANGELOG.md       # Evolution history
+└── .versions/         # Previous versions for rollback
+    ├── 1.0.0.md
+    └── 1.1.0.md
+```
+
+**Skill Metadata** (in SKILL.md frontmatter):
+```yaml
+version: 1.0.0
+created: 2026-02-02
+last-evolved: null
+evolution-count: 0
+feedback-count: 0
+```
+
+**Commands:**
+- `/skill-feedback {skill}` - Record feedback after using a skill
+- `/evolve-skill {skill}` - Analyze feedback and propose improvements
+- `/evolve-skill --all` - Show evolution status for all skills
+- `/evolve-skill rollback {skill}` - Revert to previous version
+- `/evolve-skill versions {skill}` - List available versions
+
+**Feedback Storage:**
+Feedback files are stored in `.claude/skills/.feedback/{skill-name}/` as YAML files and tracked in git for team sharing.
+
+### Journeys (`.claude/journeys/`)
+
+Session learning logs that persist across sessions, creating institutional memory.
+
+**Purpose:** Capture what was done, learned, and discovered during coding sessions so future sessions can build on past work.
+
+**Structure:**
+```
+.claude/journeys/
+├── 2026-02-02-skill-evolution-system.md
+├── 2026-02-02-theme-fixes.md
+└── ...
+```
+
+**Commands:**
+- `/journey {title}` - Save a session summary
+- `/journey --list` - List all journeys
+- `/journey --read {file}` - Read a specific journey
+- `/journey --recent` - Show recent journeys
+
+**When to create a journey:**
+- After significant bug fixes with learnings
+- After implementing new features
+- When discovering important patterns
+- After making architectural decisions
 
 ## Common Tasks
 
