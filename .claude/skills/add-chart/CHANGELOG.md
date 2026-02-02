@@ -2,6 +2,30 @@
 
 All notable changes to this skill will be documented in this file.
 
+## [1.5.0] - 2026-02-02
+
+### Added
+- **Chart Element Color Customization** - New section documenting how to make chart elements clickable for color picker
+- Required imports for `useChartColors` and `useDashboard`
+- Setup pattern for `setColorPickerTarget` and `getColor`
+- Pie/donut chart clickable Cell examples
+- Table legend with clickable color swatches pattern
+- Progress bar color customization pattern
+- Line chart click handler configuration
+- `activeDot` with onClick for line charts
+
+### Changed
+- Line/Area chart section updated with `dot={false}` and `activeDot` patterns
+- Verification checklist expanded with color customization checks
+
+### Journey-driven
+Based on chart-color-customization journey. Key patterns:
+- Click-to-customize pattern for all chart element types
+- Donut chart with table legend structure (55%/45% split)
+- Progress component indicatorStyle for custom colors
+
+---
+
 ## [1.4.0] - 2026-02-02
 
 ### Fixed

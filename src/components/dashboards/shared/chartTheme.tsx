@@ -286,21 +286,17 @@ interface ChartTooltipProps {
 }
 
 export function ChartTooltip({
-  active,
   payload,
   label,
   themeId,
   valueFormatter,
   labelFormatter,
 }: ChartTooltipProps) {
-  if (!active || !payload || payload.length === 0) {
-    return null;
-  }
-
+  const hasData = payload && payload.length > 0;
   const isGame = themeId === "game";
   const isDark = themeId === "dark";
 
-  const containerStyle: React.CSSProperties = isGame
+  const themeStyle: React.CSSProperties = isGame
     ? {
         backgroundColor: "#080808",
         border: "1px solid rgba(255, 255, 255, 0.15)",
@@ -325,16 +321,21 @@ export function ChartTooltip({
           color: "#1a1a1a",
         };
 
+  // Don't render if no data
+  if (!hasData) {
+    return null;
+  }
+
   const displayLabel = labelFormatter ? labelFormatter(String(label)) : label;
 
   return (
-    <div style={containerStyle}>
+    <div style={themeStyle}>
       {displayLabel && (
         <p style={{ fontWeight: 600, marginBottom: "4px", fontSize: "12px" }}>
           {displayLabel}
         </p>
       )}
-      {payload.map((entry, index) => (
+      {payload?.map((entry, index) => (
         <p key={index} style={{ fontSize: "12px", margin: "2px 0" }}>
           <span style={{ color: entry.color, marginRight: "6px" }}>●</span>
           {entry.name}: {valueFormatter ? valueFormatter(entry.value) : entry.value}

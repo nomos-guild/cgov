@@ -105,6 +105,20 @@ export interface ChartDefinition {
 }
 
 /**
+ * Color picker target for side panel
+ */
+export interface ColorPickerTarget {
+  /** Chart ID being edited */
+  chartId: string;
+  /** Chart title for display */
+  chartTitle: string;
+  /** Element key within the chart (e.g., "_cardBg", "line", "slice-0") */
+  elementKey: string;
+  /** Human-readable label for the element */
+  elementLabel: string;
+}
+
+/**
  * Context value for dashboard state
  */
 export interface DashboardContextValue {
@@ -123,6 +137,18 @@ export interface DashboardContextValue {
   updatePageMargins: (margins: Partial<PageMargins>) => void;
   exportConfig: () => string;
   importConfig: (code: string) => { success: boolean; error?: string };
+  /** Color picker state for side panel */
+  colorPickerTarget: ColorPickerTarget | null;
+  /** Set the color picker target (opens side panel Colors tab) */
+  setColorPickerTarget: (target: ColorPickerTarget | null) => void;
+  /** Whether the side panel is open */
+  isSidePanelOpen: boolean;
+  /** Open/close the side panel */
+  setSidePanelOpen: (open: boolean) => void;
+  /** Active tab in the side panel */
+  sidePanelTab: string;
+  /** Set the active tab in the side panel */
+  setSidePanelTab: (tab: string) => void;
 }
 
 /**

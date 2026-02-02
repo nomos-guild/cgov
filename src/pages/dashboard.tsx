@@ -11,6 +11,7 @@ import {
   DashboardMarginHandles,
   useDashboard,
 } from "@/components/dashboards/shared";
+import { ChartColorsProvider } from "@/components/dashboards/shared/ChartColorsContext";
 
 function DashboardContent() {
   const { activeTheme } = useTheme();
@@ -109,7 +110,9 @@ function DashboardContent() {
 export default function Dashboard() {
   return (
     <DashboardProvider>
-      <DashboardContent />
+      <ChartColorsProvider>
+        <DashboardContent />
+      </ChartColorsProvider>
     </DashboardProvider>
   );
 }

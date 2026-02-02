@@ -1,7 +1,6 @@
-import { useMemo } from "react";
+import { useMemo, useCallback } from "react";
 import { useAppSelector } from "@/store/hooks";
 import { useTheme } from "@/lib/theme";
-import { cn } from "@/lib/utils";
 import {
   LineChart,
   Line,
@@ -12,7 +11,12 @@ import {
 } from "recharts";
 import { ChartSkeleton } from "./ChartSkeleton";
 import type { ChartProps } from "@/types/dashboard";
-import { getChartColors, ChartTooltip, chartCardClassName, chartCardGameClassName } from "@/components/dashboards/shared/chartTheme";
+import { getChartColors, ChartTooltip } from "@/components/dashboards/shared/chartTheme";
+import { useChartColors } from "@/components/dashboards/shared/ChartColorsContext";
+import { ChartCard } from "@/components/dashboards/shared/ChartCard";
+import { useDashboard } from "@/components/dashboards/shared/DashboardProvider";
+
+const CHART_ID = "proposal-submission";
 
 /**
  * Convert a Cardano epoch number to an approximate Date.
@@ -58,6 +62,8 @@ export function ProposalSubmissionChart({ isLoading, className }: ChartProps) {
   const { activeTheme } = useTheme();
   const chartColors = getChartColors(activeTheme.id);
   const isGame = activeTheme.id === "game";
+  const { getColor } = useChartColors();
+  const { setColorPickerTarget } = useDashboard();
 
   const data = useMemo(() => {
     if (actions.length === 0) {
@@ -109,32 +115,48 @@ export function ProposalSubmissionChart({ isLoading, className }: ChartProps) {
     return result;
   }, [actions]);
 
+  const handleLineClick = useCallback(
+    () => {
+      setColorPickerTarget({
+        chartId: CHART_ID,
+        chartTitle: "Proposal Submission",
+        elementKey: "line",
+        elementLabel: "Line color",
+      });
+    },
+    [setColorPickerTarget]
+  );
+
   if (isLoading) {
     return <ChartSkeleton className={className} />;
   }
 
   const hasData = data.length > 0;
   const totalProposals = data.reduce((sum, d) => sum + d.count, 0);
+  const lineColor = getColor(CHART_ID, "line", "#ffffff");
+
+  // Header right content - line color swatch and total
+  const headerRight = hasData ? (
+    <div className="flex items-center gap-2">
+      <span
+        className="w-4 h-1 rounded cursor-pointer hover:opacity-80"
+        style={{ backgroundColor: lineColor }}
+        onClick={handleLineClick}
+        title="Click to change line color"
+      />
+      <span className="text-xs text-muted-foreground" style={isGame ? { color: chartColors.axisText } : undefined}>
+        {totalProposals} total
+      </span>
+    </div>
+  ) : undefined;
 
   return (
-    <div
-      className={cn(
-        chartCardClassName,
-        isGame && chartCardGameClassName,
-        className
-      )}
+    <ChartCard
+      chartId={CHART_ID}
+      title="Proposal Submission"
+      className={className}
+      headerRight={headerRight}
     >
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold dark:text-[#0bd1a2]" style={isGame ? { color: chartColors.tooltipText } : undefined}>
-          Proposal Submission
-        </h3>
-        {hasData && (
-          <span className="text-xs text-muted-foreground" style={isGame ? { color: chartColors.axisText } : undefined}>
-            {totalProposals} total proposals
-          </span>
-        )}
-      </div>
-
       {!hasData ? (
         <p className="text-sm text-muted-foreground">No proposal data available</p>
       ) : (
@@ -144,6 +166,11 @@ export function ProposalSubmissionChart({ isLoading, className }: ChartProps) {
               data={data}
               margin={{ top: 5, right: 20, left: -10, bottom: 5 }}
             >
+              <defs>
+                <filter id="lineShadow" x="-50%" y="-50%" width="200%" height="200%">
+                  <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="#000" floodOpacity="0.3" />
+                </filter>
+              </defs>
               <XAxis
                 dataKey="label"
                 tick={{ fontSize: 10, fill: chartColors.axisText }}
@@ -165,27 +192,29 @@ export function ProposalSubmissionChart({ isLoading, className }: ChartProps) {
                     valueFormatter={(value) => `${value} proposals`}
                   />
                 }
+                isAnimationActive={false}
               />
               <Line
                 type="monotone"
                 dataKey="count"
-                stroke={chartColors.primary}
-                strokeWidth={2}
-                dot={{
-                  fill: chartColors.primary,
-                  strokeWidth: 0,
-                  r: 3,
-                }}
+                stroke={lineColor}
+                strokeWidth={3}
+                style={{ filter: "url(#lineShadow)", cursor: "pointer" }}
+                onClick={handleLineClick}
+                dot={false}
                 activeDot={{
-                  fill: chartColors.primary,
-                  strokeWidth: 0,
+                  fill: lineColor,
+                  stroke: "rgba(0,0,0,0.3)",
+                  strokeWidth: 2,
                   r: 5,
+                  cursor: "pointer",
+                  onClick: handleLineClick,
                 }}
               />
             </LineChart>
           </ResponsiveContainer>
         </div>
       )}
-    </div>
+    </ChartCard>
   );
 }

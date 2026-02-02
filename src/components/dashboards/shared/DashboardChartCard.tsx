@@ -1,8 +1,9 @@
 import { useRef, useCallback, useState } from "react";
-import { GripVertical, X } from "lucide-react";
+import { GripVertical, X, Palette } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/lib/theme";
 import type { ChartDefinition, ChartLayout } from "@/types/dashboard";
+import { useDashboard } from "./DashboardProvider";
 
 interface DashboardChartCardProps {
   chart: ChartDefinition;
@@ -33,6 +34,22 @@ export function DashboardChartCard({
   const isGame = activeTheme.id === "game";
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
+
+  // Color picker via side panel
+  const { setColorPickerTarget } = useDashboard();
+
+  const handlePaletteClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setColorPickerTarget({
+        chartId: chart.id,
+        chartTitle: chart.title,
+        elementKey: "_cardBg",
+        elementLabel: "Card background",
+      });
+    },
+    [chart.id, chart.title, setColorPickerTarget]
+  );
 
   // Handle drag
   const handleDragStart = useCallback(
@@ -120,7 +137,7 @@ export function DashboardChartCard({
       onClick={handleClick}
       data-chart-card
     >
-      {/* Card controls - drag handle and close button */}
+      {/* Card controls - drag handle, palette, and close button */}
       <div className="absolute top-2 right-2 z-20 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
         {/* Drag handle */}
         <div
@@ -137,6 +154,22 @@ export function DashboardChartCard({
         >
           <GripVertical className="h-4 w-4" />
         </div>
+
+        {/* Palette button */}
+        <button
+          onClick={handlePaletteClick}
+          className={cn(
+            "p-1.5 rounded-md cursor-pointer",
+            isGame
+              ? "bg-black/70 hover:bg-black/90 text-white"
+              : isDark
+                ? "bg-black/70 hover:bg-black/90 text-[#0bd1a2]"
+                : "bg-white/90 hover:bg-white text-gray-600 shadow-sm"
+          )}
+          aria-label={`Change ${chart.title} colors`}
+        >
+          <Palette className="h-4 w-4" />
+        </button>
 
         {/* Close button */}
         {onHide && (

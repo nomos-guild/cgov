@@ -7,6 +7,7 @@ import type {
   DashboardContextValue,
   TextElement,
   PageMargins,
+  ColorPickerTarget,
 } from "@/types/dashboard";
 import {
   DEFAULT_DASHBOARD_CONFIG,
@@ -118,6 +119,28 @@ function parseStoredConfig(stored: string | null): DashboardConfig | null {
 export function DashboardProvider({ children }: { children: ReactNode }) {
   const [config, setConfig] = useState<DashboardConfig>(DEFAULT_DASHBOARD_CONFIG);
   const [mounted, setMounted] = useState(false);
+
+  // Side panel state
+  const [isSidePanelOpen, setIsSidePanelOpen] = useState(false);
+  const [sidePanelTab, setSidePanelTab] = useState("charts");
+  const [colorPickerTarget, setColorPickerTargetState] = useState<ColorPickerTarget | null>(null);
+
+  // Set color picker target and open side panel
+  const setColorPickerTarget = useCallback((target: ColorPickerTarget | null) => {
+    setColorPickerTargetState(target);
+    if (target) {
+      setSidePanelTab("colors");
+      setIsSidePanelOpen(true);
+    }
+  }, []);
+
+  const setSidePanelOpen = useCallback((open: boolean) => {
+    setIsSidePanelOpen(open);
+    if (!open) {
+      // Clear color picker target when closing panel
+      setColorPickerTargetState(null);
+    }
+  }, []);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -296,6 +319,12 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
         updatePageMargins,
         exportConfig,
         importConfig,
+        colorPickerTarget,
+        setColorPickerTarget,
+        isSidePanelOpen,
+        setSidePanelOpen,
+        sidePanelTab,
+        setSidePanelTab,
       }}
     >
       {children}
@@ -322,6 +351,12 @@ export function useDashboard(): DashboardContextValue {
       updatePageMargins: () => {},
       exportConfig: () => "",
       importConfig: () => ({ success: false, error: "Context not available" }),
+      colorPickerTarget: null,
+      setColorPickerTarget: () => {},
+      isSidePanelOpen: false,
+      setSidePanelOpen: () => {},
+      sidePanelTab: "charts",
+      setSidePanelTab: () => {},
     };
   }
   return context;

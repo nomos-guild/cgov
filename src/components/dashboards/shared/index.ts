@@ -13,3 +13,4 @@ export {
   darkChartColors,
   gameChartColors,
 } from "./chartTheme";
+export { ChartCard } from "./ChartCard";

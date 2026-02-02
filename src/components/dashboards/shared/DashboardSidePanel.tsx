@@ -1,26 +1,70 @@
-import { useState, useMemo, useEffect } from "react";
-import { Settings, Check, RotateCcw, GripVertical, Plus, Type, Share2, Download, Copy, CheckCircle, X, MoveHorizontal } from "lucide-react";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { Settings, Check, RotateCcw, GripVertical, Plus, Type, Share2, Download, Copy, CheckCircle, X, MoveHorizontal, Palette, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDashboard } from "./DashboardProvider";
 import { getChartById } from "@/components/dashboards/governance/charts";
 import { useTheme } from "@/lib/theme";
-import { PAGE_MARGIN_CONSTRAINTS } from "@/types/dashboard";
+import { PAGE_MARGIN_CONSTRAINTS, ALL_CHART_IDS } from "@/types/dashboard";
+import { SidePanelColorPicker } from "./SidePanelColorPicker";
+import { useChartColors } from "./ChartColorsContext";
 
-type TabId = "charts" | "elements" | "layout" | "share";
+type TabId = "charts" | "elements" | "layout" | "share" | "colors";
 
 export function DashboardSidePanel() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabId>("charts");
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [importCode, setImportCode] = useState("");
   const [importError, setImportError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [importSuccess, setImportSuccess] = useState(false);
-  const { config, toggleChartVisibility, reorderCharts, resetToDefaults, addTextElement, updatePageMargins, exportConfig, importConfig, mounted } = useDashboard();
+  const {
+    config,
+    toggleChartVisibility,
+    reorderCharts,
+    resetToDefaults,
+    addTextElement,
+    updatePageMargins,
+    exportConfig,
+    importConfig,
+    mounted,
+    isSidePanelOpen,
+    setSidePanelOpen,
+    sidePanelTab,
+    setSidePanelTab,
+    colorPickerTarget,
+    setColorPickerTarget,
+  } = useDashboard();
   const { activeTheme } = useTheme();
   const isDark = activeTheme.isDark;
   const isGame = activeTheme.id === "game";
+
+  // Chart colors context for the color picker
+  const { getColor, setColor, resetColor, applyStyleToAllCharts } = useChartColors();
+
+  // Alias for easier use
+  const isOpen = isSidePanelOpen;
+  const setIsOpen = setSidePanelOpen;
+  const activeTab = sidePanelTab as TabId;
+  const setActiveTab = (tab: TabId) => setSidePanelTab(tab);
+
+  // Handle color change from the picker
+  const handleColorChange = useCallback((color: string) => {
+    if (colorPickerTarget) {
+      setColor(colorPickerTarget.chartId, colorPickerTarget.elementKey, color);
+    }
+  }, [colorPickerTarget, setColor]);
+
+  // Handle reset color
+  const handleResetColor = useCallback(() => {
+    if (colorPickerTarget) {
+      resetColor(colorPickerTarget.chartId, colorPickerTarget.elementKey);
+    }
+  }, [colorPickerTarget, resetColor]);
+
+  // Get current color for the picker
+  const currentColor = colorPickerTarget
+    ? getColor(colorPickerTarget.chartId, colorPickerTarget.elementKey, "#ffffff")
+    : "#ffffff";
 
   // Get charts in the user's custom order
   const orderedCharts = useMemo(() => {
@@ -66,13 +110,13 @@ export function DashboardSidePanel() {
   useEffect(() => {
     function handleEscape(event: KeyboardEvent) {
       if (event.key === "Escape") {
-        setIsOpen(false);
+        setSidePanelOpen(false);
       }
     }
 
     document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
-  }, []);
+  }, [setSidePanelOpen]);
 
   // Prevent body scroll when panel is open
   useEffect(() => {
@@ -125,8 +169,9 @@ export function DashboardSidePanel() {
 
       {/* Side Panel */}
       <div
+        data-side-panel
         className={cn(
-          "fixed top-0 right-0 h-full w-[400px] max-w-[90vw] z-50 shadow-2xl transition-transform duration-300 ease-out",
+          "fixed top-0 right-0 h-full w-[400px] max-w-[90vw] z-[100] shadow-2xl transition-transform duration-300 ease-out",
           isGame
             ? "bg-black border-l border-white/20"
             : isDark
@@ -260,6 +305,39 @@ export function DashboardSidePanel() {
             )}
           >
             Share
+          </button>
+          <button
+            onClick={() => setActiveTab("colors")}
+            className={cn(
+              "flex-1 px-4 py-2.5 text-sm font-medium transition-colors relative",
+              activeTab === "colors"
+                ? isGame
+                  ? "text-[#00ff66] border-b-2 border-[#00ff66]"
+                  : isDark
+                    ? "text-[#0bd1a2] border-b-2 border-[#0bd1a2]"
+                    : "text-gray-900 border-b-2 border-black"
+                : isGame
+                  ? "text-white/50 hover:text-white"
+                  : isDark
+                    ? "text-[#0bd1a2]/50 hover:text-[#0bd1a2]"
+                    : "text-gray-500 hover:text-gray-700"
+            )}
+          >
+            <span className="flex items-center justify-center gap-1">
+              <Palette className="h-3.5 w-3.5" />
+              {colorPickerTarget && (
+                <span
+                  className={cn(
+                    "absolute -top-1 -right-1 w-2 h-2 rounded-full",
+                    isGame
+                      ? "bg-[#00ff66]"
+                      : isDark
+                        ? "bg-[#0bd1a2]"
+                        : "bg-black"
+                  )}
+                />
+              )}
+            </span>
           </button>
         </div>
 
@@ -859,6 +937,247 @@ export function DashboardSidePanel() {
                   )}
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Colors Tab */}
+          {activeTab === "colors" && (
+            <div className="space-y-4">
+              {colorPickerTarget ? (
+                <>
+                  <SidePanelColorPicker
+                    chartTitle={colorPickerTarget.chartTitle}
+                    elementLabel={colorPickerTarget.elementLabel}
+                    currentColor={currentColor}
+                    onColorChange={handleColorChange}
+                    onReset={handleResetColor}
+                  />
+
+                  {/* Divider */}
+                  <div
+                    className={cn(
+                      "border-t pt-4",
+                      isGame
+                        ? "border-white/20"
+                        : isDark
+                          ? "border-[#0bd1a2]/30"
+                          : "border-gray-200"
+                    )}
+                  >
+                    {/* Text Color Section */}
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Type
+                          className={cn(
+                            "h-4 w-4",
+                            isGame
+                              ? "text-white"
+                              : isDark
+                                ? "text-[#0bd1a2]"
+                                : "text-gray-600"
+                          )}
+                        />
+                        <h4
+                          className={cn(
+                            "text-sm font-medium",
+                            isGame
+                              ? "text-white"
+                              : isDark
+                                ? "text-[#0bd1a2]"
+                                : "text-gray-900"
+                          )}
+                        >
+                          Chart Text Color
+                        </h4>
+                      </div>
+                      <p
+                        className={cn(
+                          "text-xs",
+                          isGame
+                            ? "text-white/50"
+                            : isDark
+                              ? "text-[#0bd1a2]/60"
+                              : "text-gray-500"
+                        )}
+                      >
+                        Customize the title and label colors for this chart
+                      </p>
+
+                      {/* Text color picker */}
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={cn(
+                            "w-10 h-10 rounded-lg border flex-shrink-0 overflow-hidden",
+                            isGame
+                              ? "border-white/30"
+                              : isDark
+                                ? "border-[#0bd1a2]/50"
+                                : "border-gray-300"
+                          )}
+                          style={{
+                            backgroundColor: getColor(colorPickerTarget.chartId, "_textColor", ""),
+                          }}
+                        >
+                          <input
+                            type="color"
+                            value={getColor(colorPickerTarget.chartId, "_textColor", isGame ? "#ffffff" : isDark ? "#0bd1a2" : "#111827")}
+                            onChange={(e) => setColor(colorPickerTarget.chartId, "_textColor", e.target.value)}
+                            className="w-full h-full cursor-pointer opacity-0"
+                            title="Pick text color"
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <input
+                            type="text"
+                            value={getColor(colorPickerTarget.chartId, "_textColor", "")}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (/^#[0-9A-Fa-f]{0,6}$/.test(val) || val === "") {
+                                if (val === "" || /^#[0-9A-Fa-f]{6}$/.test(val)) {
+                                  setColor(colorPickerTarget.chartId, "_textColor", val);
+                                }
+                              }
+                            }}
+                            placeholder={isGame ? "#ffffff" : isDark ? "#0bd1a2" : "#111827"}
+                            className={cn(
+                              "w-full text-sm px-3 py-2 rounded-lg border bg-transparent font-mono",
+                              isGame
+                                ? "border-white/30 text-white placeholder-white/40"
+                                : isDark
+                                  ? "border-[#0bd1a2]/50 text-[#0bd1a2] placeholder-[#0bd1a2]/40"
+                                  : "border-gray-300 text-gray-700 placeholder-gray-400"
+                            )}
+                          />
+                        </div>
+                        <button
+                          onClick={() => resetColor(colorPickerTarget.chartId, "_textColor")}
+                          className={cn(
+                            "p-2 transition-colors flex-shrink-0",
+                            isGame
+                              ? "rounded-none text-white/60 hover:text-[#00ff66] hover:bg-white/5"
+                              : isDark
+                                ? "rounded text-[#0bd1a2]/60 hover:text-[#0bd1a2] hover:bg-[#0bd1a2]/10"
+                                : "rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+                          )}
+                          title="Reset to default"
+                        >
+                          <RotateCcw className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Apply to all charts section */}
+                  <div
+                    className={cn(
+                      "border-t pt-4",
+                      isGame
+                        ? "border-white/20"
+                        : isDark
+                          ? "border-[#0bd1a2]/30"
+                          : "border-gray-200"
+                    )}
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Layers
+                          className={cn(
+                            "h-4 w-4",
+                            isGame
+                              ? "text-white"
+                              : isDark
+                                ? "text-[#0bd1a2]"
+                                : "text-gray-600"
+                          )}
+                        />
+                        <h4
+                          className={cn(
+                            "text-sm font-medium",
+                            isGame
+                              ? "text-white"
+                              : isDark
+                                ? "text-[#0bd1a2]"
+                                : "text-gray-900"
+                          )}
+                        >
+                          Apply to All Charts
+                        </h4>
+                      </div>
+                      <p
+                        className={cn(
+                          "text-xs",
+                          isGame
+                            ? "text-white/50"
+                            : isDark
+                              ? "text-[#0bd1a2]/60"
+                              : "text-gray-500"
+                        )}
+                      >
+                        Apply this chart&apos;s background and text settings to all other charts (including defaults)
+                      </p>
+                      <button
+                        onClick={() => {
+                          applyStyleToAllCharts(colorPickerTarget.chartId, ALL_CHART_IDS);
+                        }}
+                        className={cn(
+                          "w-full flex items-center justify-center gap-2 px-3 py-2 text-sm transition-colors",
+                          isGame
+                            ? "rounded-none bg-white/10 text-white hover:bg-white/20 hover:text-[#00ff66]"
+                            : isDark
+                              ? "rounded-md bg-[#0bd1a2]/20 text-[#0bd1a2] hover:bg-[#0bd1a2]/30"
+                              : "rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        )}
+                      >
+                        <Layers className="h-4 w-4" />
+                        Apply styles to all charts
+                      </button>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-8">
+                  <Palette
+                    className={cn(
+                      "h-12 w-12 mx-auto mb-3",
+                      isGame
+                        ? "text-white/30"
+                        : isDark
+                          ? "text-[#0bd1a2]/30"
+                          : "text-gray-300"
+                    )}
+                  />
+                  <p
+                    className={cn(
+                      "text-sm",
+                      isGame
+                        ? "text-white/60"
+                        : isDark
+                          ? "text-[#0bd1a2]/70"
+                          : "text-gray-500"
+                    )}
+                  >
+                    Click the palette icon on a chart to customize its colors
+                  </p>
+                </div>
+              )}
+
+              {/* Close color picker button when active */}
+              {colorPickerTarget && (
+                <button
+                  onClick={() => setColorPickerTarget(null)}
+                  className={cn(
+                    "w-full flex items-center justify-center gap-2 px-3 py-2 text-sm transition-colors mt-4",
+                    isGame
+                      ? "rounded-none border border-white/30 text-white hover:bg-white/10"
+                      : isDark
+                        ? "rounded-md border border-[#0bd1a2]/50 text-[#0bd1a2] hover:bg-[#0bd1a2]/10"
+                        : "rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50"
+                  )}
+                >
+                  <X className="h-4 w-4" />
+                  Done editing
+                </button>
+              )}
             </div>
           )}
         </div>

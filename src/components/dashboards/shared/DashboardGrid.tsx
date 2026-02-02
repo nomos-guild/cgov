@@ -27,6 +27,7 @@ export function DashboardGrid({ isLoading }: DashboardGridProps) {
   const [selectedElements, setSelectedElements] = useState<Set<string>>(new Set());
   const [selectionBox, setSelectionBox] = useState<SelectionBox | null>(null);
   const [isSelecting, setIsSelecting] = useState(false);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const { activeTheme } = useTheme();
   const isDark = activeTheme.isDark;
 
@@ -47,9 +48,19 @@ export function DashboardGrid({ isLoading }: DashboardGridProps) {
     return () => resizeObserver.disconnect();
   }, [mounted]);
 
-  // Constrain cards and text elements when container width shrinks
+  // Mark initial load as complete after a short delay to avoid constraining on page load
   useEffect(() => {
-    if (!mounted || containerWidth < 400) return; // Skip if not mounted or width too small
+    if (!mounted) return;
+    const timer = setTimeout(() => {
+      setInitialLoadComplete(true);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [mounted]);
+
+  // Constrain cards and text elements when container width shrinks
+  // Only run after initial load is complete to avoid repositioning on page load
+  useEffect(() => {
+    if (!mounted || !initialLoadComplete || containerWidth < 400) return;
 
     // Check and constrain chart positions
     for (const chartId of config.visibleCharts) {
@@ -67,7 +78,7 @@ export function DashboardGrid({ isLoading }: DashboardGridProps) {
         updateTextElement(textElement.id, { x: snapToGrid(maxX) });
       }
     }
-  }, [containerWidth, mounted, config.visibleCharts, config.textElements, getLayout, updateLayout, updateTextElement]);
+  }, [containerWidth, mounted, initialLoadComplete, config.visibleCharts, config.textElements, getLayout, updateLayout, updateTextElement]);
 
   // Get visible chart definitions
   const visibleCharts = useMemo(() => {
@@ -224,7 +235,7 @@ export function DashboardGrid({ isLoading }: DashboardGridProps) {
     const handleMouseDown = (e: MouseEvent) => {
       // Only start selection if clicking on the page background (not on a card or interactive element)
       const target = e.target as HTMLElement;
-      if (target.closest("[data-chart-card], [data-text-element], [data-margin-handle], button, [role='button'], input, textarea, a, [data-radix-popper-content-wrapper]")) {
+      if (target.closest("[data-chart-card], [data-text-element], [data-margin-handle], [data-side-panel], button, [role='button'], input, textarea, a, [data-radix-popper-content-wrapper]")) {
         return;
       }
 
