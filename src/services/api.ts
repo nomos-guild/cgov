@@ -16,6 +16,7 @@ import type {
   NCLDisplayData,
   ProposalReferenceObject,
 } from "@/types/governance";
+import type { DRepStats } from "@/types/drep";
 
 /**
  * Generic fetch wrapper with error handling.
@@ -396,5 +397,35 @@ function transformVoteRecord(vote: VoteRecord): VoteRecord {
     rationale: vote.rationale,
     votedAt: vote.votedAt,
     txHash: vote.txHash,
+  };
+}
+
+// =============================================================================
+// DRep API Functions
+// =============================================================================
+
+/** Raw API response for DRep stats (before transformation) */
+interface DRepStatsApiResponse {
+  totalDReps: number;
+  totalDelegatedLovelace: string;
+  totalDelegatedAda: string;
+  totalVotesCast: number;
+  activeDReps: number;
+}
+
+/**
+ * Fetch aggregate DRep statistics
+ * Returns: Total DReps, delegated ADA, votes cast, active DReps
+ */
+export async function fetchDRepStats(): Promise<DRepStats> {
+  const data = await fetchApi<DRepStatsApiResponse>(API_ENDPOINTS.drepStats);
+
+  // Transform API response - convert string ADA to number
+  return {
+    totalDReps: data.totalDReps,
+    totalDelegatedLovelace: data.totalDelegatedLovelace,
+    totalDelegatedAda: parseFloat(data.totalDelegatedAda) || 0,
+    totalVotesCast: data.totalVotesCast,
+    activeDReps: data.activeDReps,
   };
 }
