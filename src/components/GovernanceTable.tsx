@@ -1,6 +1,8 @@
 import { useMemo, useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
+import { useTranslations } from "next-intl";
+import { TranslatedText } from "@/components/TranslatedText";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
@@ -36,6 +38,7 @@ import {
 import { canRoleVoteOnAction, getVoteDataPresence } from "@/lib/governanceVotingEligibility";
 // import { VoteButtons } from "@/components/governance/VoteButtons";
 
+// Fallback labels (used when translations not available)
 const TYPE_LABELS: Record<ProposalType, string> = {
   NoConfidence: "Motion of No-Confidence",
   UpdateCommittee: "Update Committee / Terms",
@@ -139,6 +142,7 @@ function getTypeLabel(type: GovernanceAction["type"]): string {
 export function GovernanceTable() {
   const router = useRouter();
   const dispatch = useAppDispatch();
+  const t = useTranslations();
   const actions = useAppSelector((state) => state.governance.actions);
   const selectedTypes =
     useAppSelector((state) => state.governance.filters?.selectedTypes) ??
@@ -344,7 +348,7 @@ export function GovernanceTable() {
           <div className="relative flex-1 min-w-0 sm:min-w-[200px] sm:max-w-md">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-muted-foreground z-10" />
             <Input
-              placeholder="Search..."
+              placeholder={t("common.search")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className={
@@ -528,7 +532,7 @@ export function GovernanceTable() {
       {filteredActions.length === 0 ? (
         <div className="border-white/8 rounded-2xl border bg-[#faf9f6] p-6 sm:p-8 md:p-12 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none">
           <p className="text-center text-muted-foreground text-sm sm:text-base">
-            No governance actions found
+            {t("table.noActionsFound")}
           </p>
         </div>
       ) : (
@@ -572,7 +576,7 @@ export function GovernanceTable() {
                   </div>
                 </div>
                 <h3 className={`text-sm font-semibold line-clamp-2 ${isGame ? "text-white" : "dark:text-[#0bd1a2]"}`}>
-                  {action.title}
+                  <TranslatedText text={action.title} />
                 </h3>
                 {/* Threshold Progress Bars */}
                 {action.threshold && (action.threshold.drepThreshold !== null || action.threshold.spoThreshold !== null || action.threshold.ccThreshold !== null) && (
@@ -864,7 +868,7 @@ export function GovernanceTable() {
                     </TableCell>
                     <TableCell className="py-0.5 sm:py-1 md:border-l md:border-border/50 pl-2 sm:pl-4">
                       <h3 className="text-sm sm:text-base font-semibold line-clamp-1 dark:text-[#0bd1a2]">
-                        {action.title}
+                        <TranslatedText text={action.title} />
                       </h3>
                       {/* Threshold Progress Bars */}
                       {action.threshold && (action.threshold.drepThreshold !== null || action.threshold.spoThreshold !== null || action.threshold.ccThreshold !== null) && (
@@ -1044,7 +1048,7 @@ export function GovernanceTable() {
                   >
                     <TableCell className="py-2 pl-3 sm:pl-4 max-w-[300px]">
                       <h3 className="text-sm font-medium truncate dark:text-[#0bd1a2]">
-                        {action.title}
+                        <TranslatedText text={action.title} />
                       </h3>
                     </TableCell>
                     <TableCell className="py-2 whitespace-nowrap">

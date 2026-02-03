@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -66,6 +67,8 @@ interface MultiSelectDropdownProps {
   onOpenChange: (open: boolean) => void;
   isGame?: boolean;
   formatLabel?: (value: string) => string;
+  allLabel?: string;
+  selectedLabel?: (count: number) => string;
 }
 
 function MultiSelectDropdown({
@@ -77,6 +80,8 @@ function MultiSelectDropdown({
   onOpenChange,
   isGame,
   formatLabel = (v) => v,
+  allLabel = "All",
+  selectedLabel = (count) => `${count} selected`,
 }: MultiSelectDropdownProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const isAllSelected = selected.length === options.length;
@@ -127,7 +132,7 @@ function MultiSelectDropdown({
     ? label
     : selected.length === 1
       ? formatLabel(selected[0])
-      : `${selected.length} selected`;
+      : selectedLabel(selected.length);
 
   if (isGame) {
     return (
@@ -138,10 +143,10 @@ function MultiSelectDropdown({
           className="game-nav-btn flex h-10 w-full items-center justify-between px-3 py-2 text-sm"
           aria-expanded={isOpen}
         >
-          <span className={selected.length === 0 || isAllSelected ? "text-white/50" : ""}>
+          <span className={cn("truncate", selected.length === 0 || isAllSelected ? "text-white/50" : "")}>
             {displayText}
           </span>
-          <ChevronDown className="h-4 w-4 opacity-50" />
+          <ChevronDown className="h-4 w-4 opacity-50 shrink-0" />
         </button>
         {isOpen && (
           <div className="game-select-content absolute left-0 z-50 mt-1 min-w-[var(--radix-popover-trigger-width)] w-full">
@@ -151,7 +156,7 @@ function MultiSelectDropdown({
               data-state={isAllSelected ? "checked" : "unchecked"}
               onClick={handleToggleAll}
             >
-              All
+              {allLabel}
               <span className="game-switch-indicator" />
             </button>
             {options.map((option) => (
@@ -179,10 +184,10 @@ function MultiSelectDropdown({
         onClick={() => onOpenChange(!isOpen)}
         className="btn-neon flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-0 ring-offset-0 focus:outline-none focus:border-black dark:focus:border-[#0bd1a2]"
       >
-        <span>
+        <span className="truncate">
           {displayText}
         </span>
-        <ChevronDown className={cn("h-4 w-4 opacity-50 transition-transform", isOpen && "rotate-180")} />
+        <ChevronDown className={cn("h-4 w-4 opacity-50 transition-transform shrink-0", isOpen && "rotate-180")} />
       </button>
       {isOpen && (
         <div className="absolute left-0 z-50 mt-1 w-full min-w-[180px] rounded-md border border-input bg-[#faf9f6] p-1 shadow-md dark:border-[#0bd1a2] dark:bg-black">
@@ -193,7 +198,7 @@ function MultiSelectDropdown({
               onChange={handleToggleAll}
               className="h-4 w-4 accent-foreground dark:accent-[#0bd1a2]"
             />
-            <span className="font-semibold dark:text-[#0bd1a2]">All</span>
+            <span className="font-semibold dark:text-[#0bd1a2]">{allLabel}</span>
           </label>
           {options.map((option) => (
             <label
@@ -223,6 +228,13 @@ export function VotingRecords({
 }: VotingRecordsProps) {
   const { activeTheme } = useTheme();
   const isGame = activeTheme.id === "game";
+  const tCommon = useTranslations("common");
+  const tFilters = useTranslations("filters");
+  const tTable = useTranslations("table");
+  const tVoting = useTranslations("voting");
+  const tSort = useTranslations("sort");
+  const tDownload = useTranslations("download");
+  const tRationale = useTranslations("rationaleFilter");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedVotes, setSelectedVotes] = useState<string[]>([...VOTE_OPTIONS]);
   const [selectedRoles, setSelectedRoles] = useState<string[]>([...ROLE_OPTIONS]);
@@ -358,12 +370,12 @@ export function VotingRecords({
               <GameDropdown
                 value={downloadFormat || ""}
                 onValueChange={(value) => onDownloadFormatChange?.(value as "json" | "markdown" | "csv")}
-                placeholder="Download rationales"
+                placeholder={tDownload("downloadRationales")}
                 onOpenChange={(open) => handleDropdownOpenChange("download", open)}
                 options={[
-                  { value: "json", label: "JSON" },
-                  { value: "markdown", label: "Markdown" },
-                  { value: "csv", label: "CSV" },
+                  { value: "json", label: tDownload("json") },
+                  { value: "markdown", label: tDownload("markdown") },
+                  { value: "csv", label: tDownload("csv") },
                 ]}
               />
             ) : (
@@ -373,13 +385,13 @@ export function VotingRecords({
                   onDownloadFormatChange?.(value as "json" | "markdown" | "csv")
                 }
                 onOpenChange={(open) => handleDropdownOpenChange("download", open)}>
-                <SelectTrigger className="btn-neon ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:ring-offset-0 focus:border-black data-[state=open]:ring-0 data-[state=open]:ring-transparent data-[state=open]:ring-offset-0 data-[state=open]:border-black dark:focus:border-[#0bd1a2] dark:data-[state=open]:border-[#0bd1a2]">
-                  <SelectValue placeholder="Download rationales" />
+                <SelectTrigger className="btn-neon ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:ring-offset-0 focus:border-black data-[state=open]:ring-0 data-[state=open]:ring-transparent data-[state=open]:ring-offset-0 data-[state=open]:border-black dark:focus:border-[#0bd1a2] dark:data-[state=open]:border-[#0bd1a2] [&>span]:truncate">
+                  <SelectValue placeholder={tDownload("downloadRationales")} />
                 </SelectTrigger>
                 <SelectContent className="rounded-none dark:border dark:border-[#0bd1a2] dark:bg-black dark:text-[#0bd1a2] dark:rounded-none">
-                  <SelectItem className={selectItemClass} value="json">JSON</SelectItem>
-                  <SelectItem className={selectItemClass} value="markdown">Markdown</SelectItem>
-                  <SelectItem className={selectItemClass} value="csv">CSV</SelectItem>
+                  <SelectItem className={selectItemClass} value="json">{tDownload("json")}</SelectItem>
+                  <SelectItem className={selectItemClass} value="markdown">{tDownload("markdown")}</SelectItem>
+                  <SelectItem className={selectItemClass} value="csv">{tDownload("csv")}</SelectItem>
                 </SelectContent>
               </Select>
             )}
@@ -395,7 +407,7 @@ export function VotingRecords({
           <div className="relative">
             <Search className={cn("absolute left-2.5 sm:left-3 top-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 -translate-y-1/2 transform", isGame ? "text-white/50" : "text-muted-foreground")} />
             <Input
-              placeholder="Search..."
+              placeholder={tCommon("search")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className={cn("pl-8 sm:pl-10 h-8 sm:h-9 md:h-10 text-xs sm:text-sm", isGame ? "game-nav-input" : "filter-input")}
@@ -412,25 +424,29 @@ export function VotingRecords({
           <div className="flex flex-wrap gap-2 sm:gap-3 md:gap-4">
             <div className="flex-1 min-w-[120px]">
               <MultiSelectDropdown
-                label="Filter by vote"
+                label={tFilters("filterByVote")}
                 options={VOTE_OPTIONS}
                 selected={selectedVotes}
                 onSelectionChange={setSelectedVotes}
                 isOpen={openDropdownId === "vote"}
                 onOpenChange={(open) => handleDropdownOpenChange("vote", open)}
                 isGame={isGame}
-                formatLabel={(v) => v.charAt(0).toUpperCase() + v.slice(1)}
+                formatLabel={(v) => tVoting(v as "yes" | "no" | "abstain")}
+                allLabel={tCommon("all")}
+                selectedLabel={(count) => tCommon("selected", { count })}
               />
             </div>
             <div className="flex-1 min-w-[120px]">
               <MultiSelectDropdown
-                label="Filter by role"
+                label={tFilters("filterByRole")}
                 options={ROLE_OPTIONS}
                 selected={selectedRoles}
                 onSelectionChange={setSelectedRoles}
                 isOpen={openDropdownId === "role"}
                 onOpenChange={(open) => handleDropdownOpenChange("role", open)}
                 isGame={isGame}
+                allLabel={tCommon("all")}
+                selectedLabel={(count) => tCommon("selected", { count })}
               />
             </div>
             <div className="flex-1 min-w-[120px]">
@@ -438,21 +454,21 @@ export function VotingRecords({
                 <GameDropdown
                   value={timeSort}
                   onValueChange={setTimeSort}
-                  placeholder="Sort by time"
+                  placeholder={tSort("sortByTime")}
                   onOpenChange={(open) => handleDropdownOpenChange("time", open)}
                   options={[
-                    { value: "newest", label: "Newest First" },
-                    { value: "oldest", label: "Oldest First" },
+                    { value: "newest", label: tSort("newestFirst") },
+                    { value: "oldest", label: tSort("oldestFirst") },
                   ]}
                 />
               ) : (
                 <Select value={timeSort} onValueChange={setTimeSort} onOpenChange={(open) => handleDropdownOpenChange("time", open)}>
-                  <SelectTrigger className="btn-neon ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:ring-offset-0 focus:border-black data-[state=open]:ring-0 data-[state=open]:ring-transparent data-[state=open]:ring-offset-0 data-[state=open]:border-black dark:focus:border-[#0bd1a2] dark:data-[state=open]:border-[#0bd1a2]">
-                    <SelectValue placeholder="Sort by time" />
+                  <SelectTrigger className="btn-neon ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:ring-offset-0 focus:border-black data-[state=open]:ring-0 data-[state=open]:ring-transparent data-[state=open]:ring-offset-0 data-[state=open]:border-black dark:focus:border-[#0bd1a2] dark:data-[state=open]:border-[#0bd1a2] [&>span]:truncate">
+                    <SelectValue placeholder={tSort("sortByTime")} />
                   </SelectTrigger>
                   <SelectContent className="rounded-none dark:border dark:border-[#0bd1a2] dark:bg-black dark:text-[#0bd1a2] dark:rounded-none">
-                    <SelectItem className={selectItemClass} value="newest">Newest First</SelectItem>
-                    <SelectItem className={selectItemClass} value="oldest">Oldest First</SelectItem>
+                    <SelectItem className={selectItemClass} value="newest">{tSort("newestFirst")}</SelectItem>
+                    <SelectItem className={selectItemClass} value="oldest">{tSort("oldestFirst")}</SelectItem>
                   </SelectContent>
                 </Select>
               )}
@@ -462,21 +478,21 @@ export function VotingRecords({
                 <GameDropdown
                   value={rationaleFilter}
                   onValueChange={setRationaleFilter}
-                  placeholder="Filter by rationale"
+                  placeholder={tFilters("filterByRationale")}
                   onOpenChange={(open) => handleDropdownOpenChange("rationale", open)}
                   options={[
-                    { value: "all", label: "All records" },
-                    { value: "with", label: "With rationale" },
+                    { value: "all", label: tRationale("allRecords") },
+                    { value: "with", label: tRationale("withRationale") },
                   ]}
                 />
               ) : (
                 <Select value={rationaleFilter} onValueChange={setRationaleFilter} onOpenChange={(open) => handleDropdownOpenChange("rationale", open)}>
-                  <SelectTrigger className="btn-neon ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:ring-offset-0 focus:border-black data-[state=open]:ring-0 data-[state=open]:ring-transparent data-[state=open]:ring-offset-0 data-[state=open]:border-black dark:focus:border-[#0bd1a2] dark:data-[state=open]:border-[#0bd1a2]">
-                    <SelectValue placeholder="Filter by rationale" />
+                  <SelectTrigger className="btn-neon ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:ring-offset-0 focus:border-black data-[state=open]:ring-0 data-[state=open]:ring-transparent data-[state=open]:ring-offset-0 data-[state=open]:border-black dark:focus:border-[#0bd1a2] dark:data-[state=open]:border-[#0bd1a2] [&>span]:truncate">
+                    <SelectValue placeholder={tFilters("filterByRationale")} />
                   </SelectTrigger>
                   <SelectContent className="rounded-none dark:border dark:border-[#0bd1a2] dark:bg-black dark:text-[#0bd1a2] dark:rounded-none">
-                    <SelectItem className={selectItemClass} value="all">All records</SelectItem>
-                    <SelectItem className={selectItemClass} value="with">With rationale</SelectItem>
+                    <SelectItem className={selectItemClass} value="all">{tRationale("allRecords")}</SelectItem>
+                    <SelectItem className={selectItemClass} value="with">{tRationale("withRationale")}</SelectItem>
                   </SelectContent>
                 </Select>
               )}
@@ -486,23 +502,23 @@ export function VotingRecords({
                 <GameDropdown
                   value={powerSort}
                   onValueChange={setPowerSort}
-                  placeholder="Sort by voting power"
+                  placeholder={tSort("sortByVotingPower")}
                   onOpenChange={(open) => handleDropdownOpenChange("power", open)}
                   options={[
-                    { value: "none", label: "Voting Power" },
-                    { value: "high", label: "Highest Power" },
-                    { value: "low", label: "Lowest Power" },
+                    { value: "none", label: tSort("votingPower") },
+                    { value: "high", label: tSort("highestPower") },
+                    { value: "low", label: tSort("lowestPower") },
                   ]}
                 />
               ) : (
                 <Select value={powerSort} onValueChange={setPowerSort} onOpenChange={(open) => handleDropdownOpenChange("power", open)}>
-                  <SelectTrigger className="btn-neon ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:ring-offset-0 focus:border-black data-[state=open]:ring-0 data-[state=open]:ring-transparent data-[state=open]:ring-offset-0 data-[state=open]:border-black dark:focus:border-[#0bd1a2] dark:data-[state=open]:border-[#0bd1a2]">
-                    <SelectValue placeholder="Sort by voting power" />
+                  <SelectTrigger className="btn-neon ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:ring-offset-0 focus:border-black data-[state=open]:ring-0 data-[state=open]:ring-transparent data-[state=open]:ring-offset-0 data-[state=open]:border-black dark:focus:border-[#0bd1a2] dark:data-[state=open]:border-[#0bd1a2] [&>span]:truncate">
+                    <SelectValue placeholder={tSort("sortByVotingPower")} />
                   </SelectTrigger>
                   <SelectContent className="rounded-none dark:border dark:border-[#0bd1a2] dark:bg-black dark:text-[#0bd1a2] dark:rounded-none">
-                    <SelectItem className={selectItemClass} value="none">Voting Power</SelectItem>
-                    <SelectItem className={selectItemClass} value="high">Highest Power</SelectItem>
-                    <SelectItem className={selectItemClass} value="low">Lowest Power</SelectItem>
+                    <SelectItem className={selectItemClass} value="none">{tSort("votingPower")}</SelectItem>
+                    <SelectItem className={selectItemClass} value="high">{tSort("highestPower")}</SelectItem>
+                    <SelectItem className={selectItemClass} value="low">{tSort("lowestPower")}</SelectItem>
                   </SelectContent>
                 </Select>
               )}
@@ -522,7 +538,7 @@ export function VotingRecords({
             "py-12 text-center text-muted-foreground",
             isGame ? "game-detail-card" : "rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
           )}>
-            No voting records found
+            {tVoting("noVotingRecordsFound")}
           </div>
         ) : (
           displayedVotes.map((vote) => {
@@ -568,11 +584,11 @@ export function VotingRecords({
                         onClick={() => handleOpenRationale(vote)}
                         className={cn("h-7 px-2 text-[10px]", isGame ? "game-nav-btn" : "bg-white text-black hover:bg-black hover:text-white transition-colors shadow-[0_8px_16px_rgba(15,23,42,0.2)] btn-neon")}
                       >
-                        View
+                        {tCommon("view")}
                       </Button>
                     ) : (
                       <span className={cn("text-[9px]", isGame ? "text-white/40" : "text-muted-foreground/60 dark:text-[#0bd1a2]/60")}>
-                        No rationale
+                        {tVoting("noRationale")}
                       </span>
                     )}
                   </div>
@@ -587,12 +603,12 @@ export function VotingRecords({
             onClick={() => setShowAllVotes(true)}
             className={cn(
               "w-full mt-3",
-              isGame 
-                ? "game-nav-btn" 
+              isGame
+                ? "game-nav-btn"
                 : "bg-white text-black hover:bg-black hover:text-white transition-colors shadow-[0_8px_16px_rgba(15,23,42,0.2)] btn-neon"
             )}
           >
-            Show {remainingVotes} more votes
+            {tCommon("showMoreVotes", { count: remainingVotes })}
           </Button>
         )}
       </div>
@@ -609,19 +625,19 @@ export function VotingRecords({
             <Table className={isGame ? "game-voting-table" : ""}>
               <TableHeader>
                 <TableRow className={cn("voting-records-header", isGame && "border-b border-white/10")}>
-                  <TableHead className={cn("text-xs sm:text-sm", isGame ? "text-white/70" : "")}>Voter</TableHead>
-                  {hasTransactionHashes && <TableHead className={cn("hidden md:table-cell text-xs sm:text-sm", isGame ? "text-white/70" : "")}>Transaction</TableHead>}
-                  <TableHead className={cn("text-xs sm:text-sm", isGame ? "text-white/70" : "")}>Vote</TableHead>
-                  <TableHead className={cn("text-xs sm:text-sm", isGame ? "text-white/70" : "")}>Voting Power</TableHead>
-                  <TableHead className={cn("hidden md:table-cell text-xs sm:text-sm", isGame ? "text-white/70" : "")}>Voted At</TableHead>
-                  <TableHead className={cn("text-right text-xs sm:text-sm", isGame ? "text-white/70" : "")}>Rationale</TableHead>
+                  <TableHead className={cn("text-xs sm:text-sm", isGame ? "text-white/70" : "")}>{tTable("voter")}</TableHead>
+                  {hasTransactionHashes && <TableHead className={cn("hidden md:table-cell text-xs sm:text-sm", isGame ? "text-white/70" : "")}>{tTable("transaction")}</TableHead>}
+                  <TableHead className={cn("text-xs sm:text-sm", isGame ? "text-white/70" : "")}>{tTable("vote")}</TableHead>
+                  <TableHead className={cn("text-xs sm:text-sm", isGame ? "text-white/70" : "")}>{tTable("votingPower")}</TableHead>
+                  <TableHead className={cn("hidden md:table-cell text-xs sm:text-sm", isGame ? "text-white/70" : "")}>{tTable("votedAt")}</TableHead>
+                  <TableHead className={cn("text-right text-xs sm:text-sm", isGame ? "text-white/70" : "")}>{tTable("rationale")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredVotes.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={hasTransactionHashes ? 6 : 5} className="py-12 text-center text-muted-foreground">
-                      No voting records found
+                      {tVoting("noVotingRecordsFound")}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -698,7 +714,7 @@ export function VotingRecords({
                               {formatAda(vote.votingPowerAda || 0)} ADA
                             </div>
                           ) : (
-                            <div className={cn("text-[10px] sm:text-xs", isGame ? "text-white/50" : "text-muted-foreground dark:text-[#0bd1a2]")}>One member, one vote</div>
+                            <div className={cn("text-[10px] sm:text-xs", isGame ? "text-white/50" : "text-muted-foreground dark:text-[#0bd1a2]")}>{tVoting("oneMemberOneVote")}</div>
                           )}
                         </TableCell>
                         <TableCell className={cn("hidden md:table-cell py-2 sm:py-3 text-xs sm:text-sm", isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]")}>
@@ -712,11 +728,11 @@ export function VotingRecords({
                               onClick={() => handleOpenRationale(vote)}
                               className={cn("h-7 sm:h-8 px-2 sm:px-3 text-xs", isGame ? "game-nav-btn" : "bg-white text-black hover:bg-black hover:text-white transition-colors shadow-[0_12px_30px_rgba(15,23,42,0.25)] btn-neon")}
                             >
-                              View
+                              {tCommon("view")}
                             </Button>
                           ) : (
                             <span className={cn("text-[10px] sm:text-xs", isGame ? "text-white/50" : "text-muted-foreground dark:text-[#0bd1a2]")}>
-                              No rationale
+                              {tVoting("noRationale")}
                             </span>
                           )}
                         </TableCell>
@@ -735,12 +751,12 @@ export function VotingRecords({
               onClick={() => setShowAllVotes(true)}
               className={cn(
                 "w-full",
-                isGame 
-                  ? "game-nav-btn" 
+                isGame
+                  ? "game-nav-btn"
                   : "bg-white text-black hover:bg-black hover:text-white transition-colors shadow-[0_8px_16px_rgba(15,23,42,0.2)] btn-neon"
               )}
             >
-              Show {remainingVotes} more votes
+              {tCommon("showMoreVotes", { count: remainingVotes })}
             </Button>
           </div>
         )}

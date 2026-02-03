@@ -1,5 +1,8 @@
+import { useTranslations } from "next-intl";
 
 export function Footer() {
+  const t = useTranslations("footer");
+
   return (
     <footer className="border-t border-border glass mt-auto">
       <div className="container mx-auto px-4 py-8">
@@ -7,7 +10,7 @@ export function Footer() {
           <div>
             <h3 className="text-lg font-semibold mb-4">CGOV</h3>
             <p className="text-sm text-muted-foreground">
-              Built by Nomos | Mesh & SIDAN Lab.
+              {t("builtBy")}
             </p>
           </div>
         </div>

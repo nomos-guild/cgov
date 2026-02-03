@@ -1,0 +1,197 @@
+{
+  "common": {
+    "loading": "読み込み中...",
+    "error": "エラー",
+    "retry": "再試行",
+    "search": "検索...",
+    "all": "すべて",
+    "reset": "リセット",
+    "view": "表示",
+    "showMore": "さらに{count}件表示",
+    "showMoreProposals": "さらに{count}件の提案を表示",
+    "showMoreVotes": "さらに{count}件の投票を表示",
+    "selected": "{count}件選択中"
+  },
+  "meta": {
+    "homeTitle": "CGOV - カルダノ・ガバナンス・プラットフォーム",
+    "homeDescription": "統合されたカルダノ・オンチェーン・プラットフォーム",
+    "dashboardTitle": "ダッシュボード - CGOV",
+    "dashboardDescription": "CGOVダッシュボード - ガバナンスの概要",
+    "notFoundTitle": "404 - ページが見つかりません",
+    "notFoundDescription": "お探しのページは存在しません。"
+  },
+  "landing": {
+    "title": "カルダノ・ガバナンス",
+    "subtitle": "オン・チェーン・ガバナンス活動の追跡と監視"
+  },
+  "dashboard": {
+    "title": "ダッシュボード",
+    "subtitle": "カスタマイズ可能なガバナンスの概要",
+    "loadingData": "ダッシュボードのデータをロード中..."
+  },
+  "notFound": {
+    "title": "404",
+    "description": "お探しのガバナンス・アクションまたはページは存在しません。",
+    "returnHome": "ダッシュボードに戻る"
+  },
+  "stats": {
+    "total": "合計",
+    "active": "アクティブ",
+    "ratified": "承認",
+    "expired": "期限切れ",
+    "ncl": "年NCL"
+  },
+  "status": {
+    "Active": "アクティブ",
+    "Ratified": "承認",
+    "Enacted": "制定",
+    "Expired": "期限切れ",
+    "Closed": "クローズド"
+  },
+  "actionTypes": {
+    "NoConfidence": "不信任決議案",
+    "UpdateCommittee": "更新委員会／規約",
+    "NewConstitution": "憲法の最新情報",
+    "HardForkInitiation": "ハードフォーク開始",
+    "ParameterChange": "プロトコル・パラメータの変更",
+    "Treasury": "財務省の引き出し",
+    "InfoAction": "インフォアクション"
+  },
+  "filters": {
+    "filterActionTypes": "フィルター・アクションの種類",
+    "filterByStatus": "ステータスによるフィルタリング",
+    "filterByVote": "投票で絞り込む",
+    "filterByRole": "役割で絞り込む",
+    "filterByRationale": "根拠で絞り込む",
+    "actionTypes": "アクションの種類",
+    "types": "種類",
+    "status": "ステータス"
+  },
+  "table": {
+    "proposalTitle": "提案タイトル",
+    "actionType": "アクションタイプ",
+    "type": "タイプ",
+    "noActionsFound": "ガバナンス・アクションは見当たらない",
+    "voter": "投票者",
+    "transaction": "トランザクション",
+    "vote": "投票",
+    "votingPower": "投票権",
+    "votedAt": "投票日",
+    "rationale": "根拠"
+  },
+  "voting": {
+    "drep": "DRep",
+    "drepFull": "代議員",
+    "dreps": "DReps",
+    "spo": "SPO",
+    "spoFull": "ステーク・プール・オペレーター",
+    "spos": "SPOs",
+    "cc": "CC",
+    "ccFull": "憲法委員会",
+    "yes": "はい",
+    "no": "いいえ",
+    "abstain": "棄権",
+    "notVoted": "未投票",
+    "notEligible": "不適格",
+    "threshold": "しきい値",
+    "votingPower": "投票権",
+    "oneMemberOneVote": "1会員1票",
+    "noRationale": "根拠なし",
+    "noVotingRecordsFound": "投票記録なし"
+  },
+  "charts": {
+    "proposalStatus": {
+      "title": "提案状況",
+      "description": "活動中、批准済み、制定済み、および失効したプロポーザルの概要"
+    },
+    "proposalType": {
+      "title": "プロポーザルの種類",
+      "description": "ガバナンス活動タイプ別提案の分布"
+    },
+    "nclProgress": {
+      "title": "NCLの進捗状況",
+      "description": "国庫出金の純変動枠追跡"
+    },
+    "votingPower": {
+      "title": "投票権",
+      "description": "DRepとSPOの投票権分布"
+    },
+    "participation": {
+      "title": "参加",
+      "description": "プロポーザル全体のDRep参加率"
+    },
+    "proposalSubmission": {
+      "title": "プロポーザルの提出",
+      "description": "月間のプロポーザル提出件数"
+    }
+  },
+  "sort": {
+    "sortByTime": "時間順",
+    "newestFirst": "最新順",
+    "oldestFirst": "最古参ファースト",
+    "sortByVotingPower": "投票権でソート",
+    "votingPower": "投票権",
+    "highestPower": "最高出力",
+    "lowestPower": "最低出力"
+  },
+  "download": {
+    "downloadRationales": "ダウンロード",
+    "json": "JSON",
+    "markdown": "マークダウン",
+    "csv": "シーエスブイ"
+  },
+  "rationaleFilter": {
+    "allRecords": "全記録",
+    "withRationale": "根拠あり"
+  },
+  "errors": {
+    "failedToLoadData": "データのロードに失敗しました",
+    "loadingGovernanceData": "ガバナンス・データの読み込み..."
+  },
+  "accessibility": {
+    "website": "ウェブサイト",
+    "github": "ギットハブ",
+    "twitter": "X（ツイッター）",
+    "switchToCompactView": "コンパクトビューに切り替える",
+    "switchToDefaultView": "デフォルト表示に切り替える",
+    "copyTransactionHash": "トランザクション・ハッシュのコピー"
+  },
+  "footer": {
+    "builtBy": "ノモス｜メッシュ＆SIDAN Lab."
+  },
+  "language": {
+    "en": "英語",
+    "de": "ドイツ語",
+    "fr": "フランセ",
+    "es": "スペイン語",
+    "pt": "ポルトガル語",
+    "ja": "日本語",
+    "zh": "中文",
+    "selectLanguage": "言語を選択"
+  },
+  "translation": {
+    "translate": "翻訳する",
+    "translating": "翻訳...",
+    "showOriginal": "オリジナルを表示",
+    "translationFailed": "翻訳に失敗",
+    "autoTranslated": "英語からの自動翻訳"
+  },
+  "expiry": {
+    "timeUntilExpiry": "期限までの時間",
+    "day": "日",
+    "days": "日",
+    "expired": "期限切れ",
+    "subject": "件名",
+    "submissionDate": "提出日",
+    "epochBoundary": "エポック境界",
+    "submissionEpoch": "提出エポック",
+    "validUntilEpoch": "有効期限エポック"
+  },
+  "tabs": {
+    "liveVoting": "ライブ投票",
+    "thresholds": "閾値",
+    "bubbleMap": "バブルマップ",
+    "curves": "曲線",
+    "details": "詳細"
+  }
+}

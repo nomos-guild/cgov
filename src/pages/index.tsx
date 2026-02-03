@@ -1,5 +1,6 @@
 import type { GetStaticProps, InferGetStaticPropsType } from "next";
 import Head from "next/head";
+import { useTranslations } from "next-intl";
 import { GovernanceStats } from "@/components/GovernanceStats";
 import { GovernanceTable } from "@/components/GovernanceTable";
 import { useGovernanceDataLoader, type InitialGovernanceData } from "@/hooks/useGovernanceData";
@@ -10,9 +11,13 @@ import { useTheme } from "@/lib/theme";
 
 interface HomeProps {
   initialData: InitialGovernanceData;
+  messages: IntlMessages;
 }
 
+type IntlMessages = typeof import("@/messages/en.json");
+
 export default function Home({ initialData }: InferGetStaticPropsType<typeof getStaticProps>) {
+  const t = useTranslations();
   const { activeTheme } = useTheme();
   const isGame = activeTheme.id === "game";
 
@@ -23,21 +28,18 @@ export default function Home({ initialData }: InferGetStaticPropsType<typeof get
   return (
     <>
       <Head>
-        <title>CGOV - Cardano Governance Platform</title>
+        <title>{t("meta.homeTitle")}</title>
         <meta
           name="description"
-          content="Integrated Cardano on-chain platform"
+          content={t("meta.homeDescription")}
         />
       </Head>
       <div className="min-h-screen bg-background overflow-visible">
         <div className="container mx-auto px-3 pt-8 pb-4 sm:px-4 sm:pt-10 sm:pb-6 md:px-6 md:pt-12 md:pb-8 overflow-visible">
-          <div className="mb-4 sm:mb-6 md:mb-8 text-left">
-            <h1 className="landing-title text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-2 sm:mb-3 md:mb-4 text-black dark:text-foreground">
-              Cardano Governance
+          <div className="mb-6 sm:mb-8 md:mb-10 text-left">
+            <h1 className="landing-title text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-black dark:text-foreground">
+              {t("landing.title")}
             </h1>
-            <p className="landing-subtitle text-muted-foreground text-sm sm:text-base md:text-lg">
-              Track and monitor on-chain governance actions
-            </p>
           </div>
 
           {/* Error state */}
@@ -45,14 +47,14 @@ export default function Home({ initialData }: InferGetStaticPropsType<typeof get
             <Card className="p-4 sm:p-6 mb-4 sm:mb-6 border-destructive bg-destructive/10">
               <div className="text-center">
                 <p className="text-destructive font-medium mb-2 text-sm sm:text-base">
-                  Failed to load data
+                  {t("errors.failedToLoadData")}
                 </p>
                 <p className="text-xs sm:text-sm text-muted-foreground">{error}</p>
                 <button
                   onClick={refresh}
                   className="mt-3 sm:mt-4 px-3 sm:px-4 py-1.5 sm:py-2 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
                 >
-                  Retry
+                  {t("common.retry")}
                 </button>
               </div>
             </Card>
@@ -69,7 +71,7 @@ export default function Home({ initialData }: InferGetStaticPropsType<typeof get
                 <div className="flex flex-col items-center justify-center">
                   <div className="animate-spin rounded-full h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 border-b-2 border-primary mb-3 sm:mb-4"></div>
                   <p className="text-muted-foreground text-sm sm:text-base">
-                    Loading governance data...
+                    {t("errors.loadingGovernanceData")}
                   </p>
                 </div>
               </Card>
@@ -94,12 +96,16 @@ export default function Home({ initialData }: InferGetStaticPropsType<typeof get
  * Pre-fetches data at build time and revalidates every 60 seconds
  * Users get instant HTML with data already embedded
  */
-export const getStaticProps: GetStaticProps<HomeProps> = async () => {
+export const getStaticProps: GetStaticProps<HomeProps> = async ({ locale }) => {
+  // Load translations for the current locale
+  const messages = (await import(`@/messages/${locale ?? "en"}.json`)).default;
+
   try {
     const { actions, overview, nclData } = await fetchAllGovernanceData();
 
     return {
       props: {
+        messages,
         initialData: {
           actions,
           overview,
@@ -114,6 +120,7 @@ export const getStaticProps: GetStaticProps<HomeProps> = async () => {
     // Return empty data - client will fetch
     return {
       props: {
+        messages,
         initialData: {
           actions: [],
           overview: null,

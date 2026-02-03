@@ -1,0 +1,197 @@
+{
+  "common": {
+    "loading": "Carregando...",
+    "error": "Erro",
+    "retry": "Tentar novamente",
+    "search": "Pesquisar...",
+    "all": "Todos",
+    "reset": "Reiniciar",
+    "view": "Ver",
+    "showMore": "Mostrar mais {count}",
+    "showMoreProposals": "Mostrar mais {count} propostas",
+    "showMoreVotes": "Mostrar mais {count} votos",
+    "selected": "{count} selecionado(s)"
+  },
+  "meta": {
+    "homeTitle": "CGOV - Plataforma de Governação de Cardano",
+    "homeDescription": "Plataforma Cardano integrada na cadeia",
+    "dashboardTitle": "Painel de controlo - CGOV",
+    "dashboardDescription": "CGOV Dashboard - Visão geral da governação",
+    "notFoundTitle": "404 - Página não encontrada",
+    "notFoundDescription": "A página que está a procurar não existe"
+  },
+  "landing": {
+    "title": "Governação de Cardano",
+    "subtitle": "Acompanhar e monitorizar as acções de governação na cadeia"
+  },
+  "dashboard": {
+    "title": "Painel de controlo",
+    "subtitle": "A sua visão geral personalizável da governação",
+    "loadingData": "A carregar os dados do painel de controlo..."
+  },
+  "notFound": {
+    "title": "404",
+    "description": "A ação de governação ou a página que procura não existe.",
+    "returnHome": "Regressar ao painel de controlo"
+  },
+  "stats": {
+    "total": "Total",
+    "active": "Ativo",
+    "ratified": "Ratificado",
+    "expired": "Expirado",
+    "ncl": "{ano} NCL"
+  },
+  "status": {
+    "Active": "Ativo",
+    "Ratified": "Ratificado",
+    "Enacted": "Promulgada",
+    "Expired": "Expirado",
+    "Closed": "Fechado"
+  },
+  "actionTypes": {
+    "NoConfidence": "Moção de Não-Confiança",
+    "UpdateCommittee": "Atualizar o Comité / Termos",
+    "NewConstitution": "Atualização da Constituição",
+    "HardForkInitiation": "Início do Hard Fork",
+    "ParameterChange": "Alteração dos parâmetros do protocolo",
+    "Treasury": "Levantamento de Tesouraria",
+    "InfoAction": "Ação de informação"
+  },
+  "filters": {
+    "filterActionTypes": "Filtrar tipos de ação",
+    "filterByStatus": "Filtrar por estado",
+    "filterByVote": "Filtrar por votação",
+    "filterByRole": "Filtrar por função",
+    "filterByRationale": "Filtrar por lógica",
+    "actionTypes": "Tipos de ação",
+    "types": "Tipos",
+    "status": "Estado"
+  },
+  "table": {
+    "proposalTitle": "Título da proposta",
+    "actionType": "Tipo de ação",
+    "type": "Tipo",
+    "noActionsFound": "Não foram encontradas acções de governação",
+    "voter": "Eleitor",
+    "transaction": "Transação",
+    "vote": "Votação",
+    "votingPower": "Poder de voto",
+    "votedAt": "Votado em",
+    "rationale": "Justificação"
+  },
+  "voting": {
+    "drep": "DRep",
+    "drepFull": "Representantes delegados",
+    "dreps": "DReps",
+    "spo": "SPO",
+    "spoFull": "Operadores de Pool de Estacas",
+    "spos": "SPOs",
+    "cc": "CC",
+    "ccFull": "Comité Constitucional",
+    "yes": "Sim",
+    "no": "Não",
+    "abstain": "Abstenção",
+    "notVoted": "Não votado",
+    "notEligible": "Não elegível",
+    "threshold": "Limiar",
+    "votingPower": "Poder de voto",
+    "oneMemberOneVote": "Um membro, um voto",
+    "noRationale": "Sem justificação",
+    "noVotingRecordsFound": "Não foram encontrados registos de votação"
+  },
+  "charts": {
+    "proposalStatus": {
+      "title": "Estado da proposta",
+      "description": "Panorama das propostas activas, ratificadas, aprovadas e caducadas"
+    },
+    "proposalType": {
+      "title": "Tipos de propostas",
+      "description": "Distribuição das propostas por tipo de ação de governação"
+    },
+    "nclProgress": {
+      "title": "Progresso da NCL",
+      "description": "Acompanhamento do limite de variação líquida para levantamentos de tesouraria"
+    },
+    "votingPower": {
+      "title": "Poder de voto",
+      "description": "Distribuição do poder de voto da DRep e da SPO"
+    },
+    "participation": {
+      "title": "Participação",
+      "description": "Taxas de participação da DRep nas propostas"
+    },
+    "proposalSubmission": {
+      "title": "Apresentação de propostas",
+      "description": "Número de propostas apresentadas por mês ao longo do tempo"
+    }
+  },
+  "sort": {
+    "sortByTime": "Ordenar por tempo",
+    "newestFirst": "Mais recente Primeiro",
+    "oldestFirst": "Mais antigo Primeiro",
+    "sortByVotingPower": "Ordenar por poder de voto",
+    "votingPower": "Poder de voto",
+    "highestPower": "Potência máxima",
+    "lowestPower": "Potência mais baixa"
+  },
+  "download": {
+    "downloadRationales": "Descarregar os fundamentos",
+    "json": "JSON",
+    "markdown": "Marcação",
+    "csv": "CSV"
+  },
+  "rationaleFilter": {
+    "allRecords": "Todos os registos",
+    "withRationale": "Com fundamentação"
+  },
+  "errors": {
+    "failedToLoadData": "Falha no carregamento de dados",
+    "loadingGovernanceData": "Carregar dados de governação..."
+  },
+  "accessibility": {
+    "website": "Sítio Web",
+    "github": "GitHub",
+    "twitter": "X (Twitter)",
+    "switchToCompactView": "Mudar para a vista compacta",
+    "switchToDefaultView": "Mudar para a vista predefinida",
+    "copyTransactionHash": "Copiar o hash da transação"
+  },
+  "footer": {
+    "builtBy": "Criado por Nomos | Mesh & SIDAN Lab."
+  },
+  "language": {
+    "en": "Inglês",
+    "de": "Alemão",
+    "fr": "Francês",
+    "es": "Espanhol",
+    "pt": "Português",
+    "ja": "日本語",
+    "zh": "中文",
+    "selectLanguage": "Selecionar a língua"
+  },
+  "translation": {
+    "translate": "Traduzir",
+    "translating": "Traduzir...",
+    "showOriginal": "Mostrar original",
+    "translationFailed": "A tradução falhou",
+    "autoTranslated": "Traduzido automaticamente do inglês"
+  },
+  "expiry": {
+    "timeUntilExpiry": "Tempo até a expiração",
+    "day": "dia",
+    "days": "dias",
+    "expired": "Expirado",
+    "subject": "Assunto",
+    "submissionDate": "Data de submissão",
+    "epochBoundary": "Limite de época",
+    "submissionEpoch": "Época de submissão",
+    "validUntilEpoch": "Válido até a época"
+  },
+  "tabs": {
+    "liveVoting": "Votação ao vivo",
+    "thresholds": "Limiares",
+    "bubbleMap": "Mapa de bolhas",
+    "curves": "Curvas",
+    "details": "Detalhes"
+  }
+}
