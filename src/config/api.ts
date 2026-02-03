@@ -19,4 +19,10 @@ export const API_ENDPOINTS = {
   // Proposal detail endpoint (requires proposal_id parameter)
   proposalDetail: (proposalId: string) =>
     `/api/proposal/${encodeURIComponent(proposalId)}`,
+
+  // DRep endpoints
+  drepStats: "/api/dreps/stats",
+  dreps: "/api/dreps",
+  drepDetail: (drepId: string) => `/api/dreps/${encodeURIComponent(drepId)}`,
+  drepVotes: (drepId: string) => `/api/dreps/${encodeURIComponent(drepId)}/votes`,
 } as const;
