@@ -73,6 +73,8 @@ export interface DRepDetail {
   rationalesProvided: number;
   /** Percentage of proposals this DRep has voted on (0-100) */
   proposalParticipationPercent: number;
+  /** Number of wallets delegated to this DRep */
+  delegatorCount: number | null;
 }
 
 /**

@@ -1,9 +1,9 @@
 ---
 name: add-chart
-version: 1.5.0
+version: 1.6.0
 created: 2026-02-02
-last-evolved: 2026-02-02
-evolution-count: 5
+last-evolved: 2026-02-03
+evolution-count: 6
 feedback-count: 2
 description: Scaffold a new dashboard chart component with registry, types, and proper theme integration. Use when adding charts to the governance dashboard.
 argument-hint: [ChartName] [chartType]
@@ -232,6 +232,78 @@ The `ChartTooltip` component provides:
     />
   ))}
 </Pie>
+```
+
+### Light Theme Donut Chart Pattern
+
+For light theme, use white primary slices with grey graduated colors for negative/neutral items. This creates an elegant, minimal aesthetic.
+
+**Color pattern:**
+- Primary (positive): `#ffffff` (pure white)
+- Neutral: `#e2e8f0` (slate-200)
+- Negative: `#94a3b8` (slate-400)
+
+**SVG shadow filter for white slices:**
+
+```typescript
+const CHART_COLORS = {
+  game: { positive: "#22c55e", neutral: "#6b7280", negative: "#ef4444" },
+  light: { positive: "#ffffff", neutral: "#e2e8f0", negative: "#94a3b8" },
+};
+
+// In component:
+const isLight = activeTheme.id === "light";
+const colors = isGame ? CHART_COLORS.game : (isLight ? CHART_COLORS.light : CHART_COLORS.game);
+
+<PieChart>
+  <defs>
+    {isLight && (
+      <filter id="pieShadow" x="-50%" y="-50%" width="200%" height="200%">
+        <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#0f172a" floodOpacity="0.25" />
+      </filter>
+    )}
+  </defs>
+  <Pie
+    style={isLight ? { filter: "url(#pieShadow)" } : undefined}
+  >
+    {data.map((entry, index) => (
+      <Cell
+        key={`cell-${index}`}
+        fill={entry.color}
+        stroke={isLight ? "rgba(15, 23, 42, 0.15)" : "none"}
+        strokeWidth={isLight ? 2 : 0}
+      />
+    ))}
+  </Pie>
+</PieChart>
+```
+
+### Custom Legend with Square Indicators
+
+For inline legends below charts, use pure squares (not rounded) with borders for white items:
+
+```tsx
+{/* Legend */}
+<div className="flex justify-center gap-4 mt-2">
+  {data.map((item) => {
+    const isWhite = isLight && item.color === "#ffffff";
+    return (
+      <div key={item.name} className="flex items-center gap-1.5 text-xs">
+        <div
+          className="w-2.5 h-2.5"  // Pure square, no rounded-*
+          style={{
+            backgroundColor: item.color,
+            border: isWhite ? "1.5px solid rgba(15, 23, 42, 0.3)" : undefined,
+            boxShadow: isLight ? "0 1px 3px rgba(15,23,42,0.2)" : undefined,
+          }}
+        />
+        <span className={isGame ? "text-white/70" : "text-muted-foreground"}>
+          {item.name}: {item.value}
+        </span>
+      </div>
+    );
+  })}
+</div>
 ```
 
 ### Line/Area Chart

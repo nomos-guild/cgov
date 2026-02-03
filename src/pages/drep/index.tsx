@@ -1,10 +1,14 @@
+import { useState } from "react";
 import type { GetStaticProps } from "next";
 import Head from "next/head";
 import { useTranslations } from "next-intl";
 import { Card } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { GameLoader } from "@/components/ui/game-loader";
 import { useTheme } from "@/lib/theme";
 import { useDRepStats } from "@/hooks/useDRepData";
+import { DRepSunburstChart } from "@/components/dreps/DRepSunburstChart";
+import { cn } from "@/lib/utils";
 
 type IntlMessages = typeof import("@/messages/en.json");
 
@@ -39,11 +43,17 @@ export default function DRepDashboard() {
   const t = useTranslations();
   const { activeTheme } = useTheme();
   const isGame = activeTheme.id === "game";
+  const [selectedTab, setSelectedTab] = useState("drep-list");
 
   const { stats, isLoading, error, refresh } = useDRepStats();
 
   const hasData = stats !== null;
   const showLoadingSpinner = isLoading && !hasData && !error;
+
+  // Tab button styling
+  const tabButtonClass = isGame
+    ? "game-tab-btn data-[state=active]:game-tab-btn-active text-[10px] sm:text-xs"
+    : "px-3 py-1.5 text-xs sm:text-sm font-medium rounded-full transition-colors bg-secondary text-secondary-foreground hover:bg-secondary/80 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground";
 
   return (
     <>
@@ -103,39 +113,61 @@ export default function DRepDashboard() {
           {(hasData || (!isLoading && !error)) && !showLoadingSpinner && (
             <>
               {/* Stats Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <Card className="p-4">
-                  <p className="text-sm text-muted-foreground">Total DReps</p>
-                  <p className="text-2xl font-bold">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 game-drep-stats">
+                <div className="rounded-2xl border border-white/8 bg-[#faf9f6] p-4 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none">
+                  <p className="text-sm text-muted-foreground dark:text-[#0bd1a2]">Total DReps</p>
+                  <p className="text-2xl font-bold dark:text-[#0bd1a2]">
                     {stats ? formatNumber(stats.totalDReps) : "--"}
                   </p>
-                </Card>
-                <Card className="p-4">
-                  <p className="text-sm text-muted-foreground">Total Delegated ADA</p>
-                  <p className="text-2xl font-bold">
+                </div>
+                <div className="rounded-2xl border border-white/8 bg-[#faf9f6] p-4 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none">
+                  <p className="text-sm text-muted-foreground dark:text-[#0bd1a2]">Total Delegated ADA</p>
+                  <p className="text-2xl font-bold dark:text-[#0bd1a2]">
                     {stats ? `${formatCompactNumber(stats.totalDelegatedAda)} ADA` : "--"}
                   </p>
-                </Card>
-                <Card className="p-4">
-                  <p className="text-sm text-muted-foreground">Total Votes Cast</p>
-                  <p className="text-2xl font-bold">
+                </div>
+                <div className="rounded-2xl border border-white/8 bg-[#faf9f6] p-4 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none">
+                  <p className="text-sm text-muted-foreground dark:text-[#0bd1a2]">Total Votes Cast</p>
+                  <p className="text-2xl font-bold dark:text-[#0bd1a2]">
                     {stats ? formatNumber(stats.totalVotesCast) : "--"}
                   </p>
-                </Card>
-                <Card className="p-4">
-                  <p className="text-sm text-muted-foreground">Active DReps</p>
-                  <p className="text-2xl font-bold">
-                    {stats ? formatNumber(stats.activeDReps) : "--"}
-                  </p>
-                </Card>
+                </div>
               </div>
 
-              {/* DRep Table - Placeholder */}
-              <Card className="p-4 sm:p-6">
-                <div className="text-center py-12 text-muted-foreground">
-                  DRep table coming soon...
-                </div>
-              </Card>
+              {/* Tabbed Content Section */}
+              <div className={cn(
+                "rounded-2xl border border-white/8 bg-[#faf9f6] p-4 sm:p-6 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none",
+                isGame && "game-drep-content"
+              )}>
+                <Tabs
+                  value={selectedTab}
+                  onValueChange={setSelectedTab}
+                  className="w-full"
+                >
+                  <div className="flex flex-col gap-3 sm:gap-4">
+                    <TabsList className="flex-1 flex-wrap justify-start gap-1.5 sm:gap-2 bg-transparent p-0 py-2 overflow-x-auto overflow-visible">
+                      <TabsTrigger value="drep-list" className={tabButtonClass}>
+                        DRep List
+                      </TabsTrigger>
+                      <TabsTrigger value="analytics" className={tabButtonClass}>
+                        Analytics
+                      </TabsTrigger>
+                    </TabsList>
+
+                    {/* DRep List Tab */}
+                    <TabsContent value="drep-list" className="mt-0">
+                      <DRepSunburstChart />
+                    </TabsContent>
+
+                    {/* Analytics Tab */}
+                    <TabsContent value="analytics" className="mt-0">
+                      <div className="text-center py-12 text-muted-foreground">
+                        Analytics coming soon...
+                      </div>
+                    </TabsContent>
+                  </div>
+                </Tabs>
+              </div>
             </>
           )}
         </div>
