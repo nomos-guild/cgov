@@ -1,11 +1,9 @@
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { Globe, Github } from "lucide-react";
 import { useTheme } from "@/lib/theme";
-import { cn } from "@/lib/utils";
 
 function XIcon({ className }: { className?: string }) {
   return (
@@ -28,37 +26,6 @@ function DefaultBrand() {
   );
 }
 
-interface NavLinkProps {
-  href: string;
-  children: string;
-  isGame: boolean;
-}
-
-function NavLink({ href, children, isGame }: NavLinkProps) {
-  const pathname = usePathname();
-  const isActive = pathname === href || (href !== "/" && pathname?.startsWith(href));
-
-  return (
-    <Link
-      href={href}
-      className={cn(
-        "text-sm font-medium transition-colors",
-        isGame
-          ? cn(
-              "text-[#0bd1a2]/70 hover:text-[#0bd1a2]",
-              isActive && "text-[#0bd1a2]"
-            )
-          : cn(
-              "text-muted-foreground hover:text-foreground",
-              isActive && "text-foreground"
-            )
-      )}
-    >
-      {children}
-    </Link>
-  );
-}
-
 export function Header() {
   const t = useTranslations("accessibility");
   const { components, activeTheme } = useTheme();
@@ -78,13 +45,6 @@ export function Header() {
           <Link href="/" className="flex items-center space-x-2">
             <Brand />
           </Link>
-
-          {/* Navigation */}
-          <nav className="hidden sm:flex items-center gap-6">
-            <NavLink href="/" isGame={isGame}>Governance</NavLink>
-            <NavLink href="/dashboard" isGame={isGame}>Dashboard</NavLink>
-            <NavLink href="/drep" isGame={isGame}>DReps</NavLink>
-          </nav>
 
           <div className="flex items-center gap-2 sm:gap-6">
             <div className="flex items-center gap-2">
