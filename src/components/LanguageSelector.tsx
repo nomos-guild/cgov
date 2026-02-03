@@ -5,7 +5,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { locales, localeNames, type Locale } from "@/lib/i18n";
 import { useTheme } from "@/lib/theme";
