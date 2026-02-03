@@ -1,0 +1,197 @@
+{
+  "common": {
+    "loading": "Cargando...",
+    "error": "Error",
+    "retry": "Reintentar",
+    "search": "Buscar...",
+    "all": "Todos",
+    "reset": "Restablecer",
+    "view": "Ver",
+    "showMore": "Mostrar {count} más",
+    "showMoreProposals": "Mostrar {count} propuestas más",
+    "showMoreVotes": "Mostrar {count} votos más",
+    "selected": "{count} seleccionado(s)"
+  },
+  "meta": {
+    "homeTitle": "CGOV - Plataforma de Gobernanza de Cardano",
+    "homeDescription": "Plataforma Cardano integrada en la cadena",
+    "dashboardTitle": "Cuadro de mandos - CGOV",
+    "dashboardDescription": "Cuadro de mandos de la CGOV - Visión general de la gobernanza",
+    "notFoundTitle": "404 - Página no encontrada",
+    "notFoundDescription": "La página que buscas no existe"
+  },
+  "landing": {
+    "title": "Gobernanza de Cardano",
+    "subtitle": "Seguimiento y control de las acciones de gobernanza en la cadena"
+  },
+  "dashboard": {
+    "title": "Cuadro de mandos",
+    "subtitle": "Su resumen de gobernanza personalizable",
+    "loadingData": "Cargando datos del cuadro de mandos..."
+  },
+  "notFound": {
+    "title": "404",
+    "description": "La acción de gobierno o página que busca no existe.",
+    "returnHome": "Volver al panel de control"
+  },
+  "stats": {
+    "total": "Total",
+    "active": "Activo",
+    "ratified": "Ratificado",
+    "expired": "Caducado",
+    "ncl": "{año} NCL"
+  },
+  "status": {
+    "Active": "Activo",
+    "Ratified": "Ratificado",
+    "Enacted": "Promulgado",
+    "Expired": "Caducado",
+    "Closed": "Cerrado"
+  },
+  "actionTypes": {
+    "NoConfidence": "Moción de censura",
+    "UpdateCommittee": "Comité de actualización / Términos",
+    "NewConstitution": "Actualización de la Constitución",
+    "HardForkInitiation": "Inicio de la bifurcación dura",
+    "ParameterChange": "Cambio de parámetros de protocolo",
+    "Treasury": "Retirada del Tesoro",
+    "InfoAction": "Información Acción"
+  },
+  "filters": {
+    "filterActionTypes": "Tipos de acción de filtrado",
+    "filterByStatus": "Filtrar por estado",
+    "filterByVote": "Filtrar por voto",
+    "filterByRole": "Filtrar por función",
+    "filterByRationale": "Filtrar por fundamento",
+    "actionTypes": "Tipos de acción",
+    "types": "Tipos",
+    "status": "Estado"
+  },
+  "table": {
+    "proposalTitle": "Título de la propuesta",
+    "actionType": "Tipo de acción",
+    "type": "Tipo",
+    "noActionsFound": "No se han encontrado medidas de gobernanza",
+    "voter": "Votante",
+    "transaction": "Transacción",
+    "vote": "Vote",
+    "votingPower": "Poder de voto",
+    "votedAt": "Votado en",
+    "rationale": "Justificación"
+  },
+  "voting": {
+    "drep": "DRep",
+    "drepFull": "Representantes delegados",
+    "dreps": "DReps",
+    "spo": "SPO",
+    "spoFull": "Operadores de piscinas de estacas",
+    "spos": "SPOs",
+    "cc": "CC",
+    "ccFull": "Comisión Constitucional",
+    "yes": "Sí",
+    "no": "No",
+    "abstain": "Abstenerse",
+    "notVoted": "No votado",
+    "notEligible": "No admisible",
+    "threshold": "Umbral",
+    "votingPower": "Poder de voto",
+    "oneMemberOneVote": "Un miembro, un voto",
+    "noRationale": "Sin fundamento",
+    "noVotingRecordsFound": "No se ha encontrado ningún registro de votación"
+  },
+  "charts": {
+    "proposalStatus": {
+      "title": "Estado de la propuesta",
+      "description": "Panorama de las propuestas activas, ratificadas, promulgadas y expiradas"
+    },
+    "proposalType": {
+      "title": "Tipos de propuestas",
+      "description": "Distribución de las propuestas por tipo de acción de gobernanza"
+    },
+    "nclProgress": {
+      "title": "Progresos de la NCL",
+      "description": "Cambio neto Seguimiento del límite para las retiradas de tesorería"
+    },
+    "votingPower": {
+      "title": "Poder de voto",
+      "description": "Distribución del poder de voto de DRep y SPO"
+    },
+    "participation": {
+      "title": "Participación",
+      "description": "Porcentajes de participación del PPE-DE en todas las propuestas"
+    },
+    "proposalSubmission": {
+      "title": "Presentación de propuestas",
+      "description": "Número de propuestas presentadas por mes a lo largo del tiempo"
+    }
+  },
+  "sort": {
+    "sortByTime": "Ordenar por hora",
+    "newestFirst": "Lo más nuevo primero",
+    "oldestFirst": "El más antiguo primero",
+    "sortByVotingPower": "Ordenar por poder de voto",
+    "votingPower": "Poder de voto",
+    "highestPower": "Máxima potencia",
+    "lowestPower": "Potencia más baja"
+  },
+  "download": {
+    "downloadRationales": "Descargar justificaciones",
+    "json": "JSON",
+    "markdown": "Markdown",
+    "csv": "CSV"
+  },
+  "rationaleFilter": {
+    "allRecords": "Todos los registros",
+    "withRationale": "Con fundamentos"
+  },
+  "errors": {
+    "failedToLoadData": "Error al cargar datos",
+    "loadingGovernanceData": "Cargando datos de gobernanza..."
+  },
+  "accessibility": {
+    "website": "Página web",
+    "github": "GitHub",
+    "twitter": "X (Twitter)",
+    "switchToCompactView": "Cambiar a vista compacta",
+    "switchToDefaultView": "Cambiar a la vista por defecto",
+    "copyTransactionHash": "Copiar hash de transacción"
+  },
+  "footer": {
+    "builtBy": "Construido por Nomos | Mesh & SIDAN Lab."
+  },
+  "language": {
+    "en": "Inglés",
+    "de": "Deutsch",
+    "fr": "Français",
+    "es": "English",
+    "pt": "Português",
+    "ja": "日本語",
+    "zh": "中文",
+    "selectLanguage": "Seleccionar idioma"
+  },
+  "translation": {
+    "translate": "Traducir",
+    "translating": "Traducir...",
+    "showOriginal": "Mostrar original",
+    "translationFailed": "Traducción fallida",
+    "autoTranslated": "Traducción automática del inglés"
+  },
+  "expiry": {
+    "timeUntilExpiry": "Tiempo hasta la expiración",
+    "day": "día",
+    "days": "días",
+    "expired": "Expirado",
+    "subject": "Asunto",
+    "submissionDate": "Fecha de presentación",
+    "epochBoundary": "Límite de época",
+    "submissionEpoch": "Época de presentación",
+    "validUntilEpoch": "Válido hasta la época"
+  },
+  "tabs": {
+    "liveVoting": "Votación en vivo",
+    "thresholds": "Umbrales",
+    "bubbleMap": "Mapa de burbujas",
+    "curves": "Curvas",
+    "details": "Detalles"
+  }
+}

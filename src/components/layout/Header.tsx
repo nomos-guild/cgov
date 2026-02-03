@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { LanguageSelector } from "@/components/LanguageSelector";
 import { Globe, Github } from "lucide-react";
 import { useTheme } from "@/lib/theme";
 
@@ -25,6 +27,7 @@ function DefaultBrand() {
 }
 
 export function Header() {
+  const t = useTranslations("accessibility");
   const { components, activeTheme } = useTheme();
   const isGame = activeTheme.id === "game";
   const Brand = components?.HeaderBrand ?? DefaultBrand;
@@ -44,7 +47,10 @@ export function Header() {
           </Link>
 
           <div className="flex items-center gap-2 sm:gap-6">
-            <ThemeToggle />
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <LanguageSelector />
+            </div>
             <div className="flex items-center gap-1.5 sm:gap-3">
               <a
                 href="https://nomos.cgov.io/"
@@ -55,7 +61,7 @@ export function Header() {
                     ? "game-nav-btn"
                     : "flex h-7 w-7 sm:h-9 sm:w-9 items-center justify-center rounded-full bg-white text-black transition-colors hover:bg-black hover:text-white shadow-[0_12px_30px_rgba(15,23,42,0.25)] btn-neon"
                 }
-                aria-label="Website"
+                aria-label={t("website")}
               >
                 <Globe className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </a>
@@ -68,7 +74,7 @@ export function Header() {
                     ? "game-nav-btn"
                     : "flex h-7 w-7 sm:h-9 sm:w-9 items-center justify-center rounded-full bg-white text-black transition-colors hover:bg-black hover:text-white shadow-[0_12px_30px_rgba(15,23,42,0.25)] btn-neon"
                 }
-                aria-label="GitHub"
+                aria-label={t("github")}
               >
                 <Github className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </a>
@@ -81,7 +87,7 @@ export function Header() {
                     ? "game-nav-btn"
                     : "flex h-7 w-7 sm:h-9 sm:w-9 items-center justify-center rounded-full bg-white text-black transition-colors hover:bg-black hover:text-white shadow-[0_12px_30px_rgba(15,23,42,0.25)] btn-neon"
                 }
-                aria-label="X (Twitter)"
+                aria-label={t("twitter")}
               >
                 <XIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </a>

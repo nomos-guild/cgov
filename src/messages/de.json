@@ -1,0 +1,197 @@
+{
+  "common": {
+    "loading": "Laden...",
+    "error": "Fehler",
+    "retry": "Wiederholung",
+    "search": "Suche...",
+    "all": "Alle",
+    "reset": "Zurücksetzen",
+    "view": "Ansehen",
+    "showMore": "{count} weitere anzeigen",
+    "showMoreProposals": "{count} weitere Vorschläge anzeigen",
+    "showMoreVotes": "{count} weitere Stimmen anzeigen",
+    "selected": "{count} ausgewählt"
+  },
+  "meta": {
+    "homeTitle": "CGOV - Die Cardano-Governance-Plattform",
+    "homeDescription": "Integrierte Cardano-On-Chain-Plattform",
+    "dashboardTitle": "Armaturenbrett - CGOV",
+    "dashboardDescription": "CGOV Dashboard - Überblick über die Governance",
+    "notFoundTitle": "404 - Seite nicht gefunden",
+    "notFoundDescription": "Die von Ihnen gesuchte Seite existiert nicht"
+  },
+  "landing": {
+    "title": "Cardano-Governance",
+    "subtitle": "Verfolgung und Überwachung von Governance-Maßnahmen in der Kette"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Ihre anpassbare Governance-Übersicht",
+    "loadingData": "Laden von Dashboard-Daten..."
+  },
+  "notFound": {
+    "title": "404",
+    "description": "Die von Ihnen gesuchte Governance-Aktion oder Seite existiert nicht.",
+    "returnHome": "Zurück zum Dashboard"
+  },
+  "stats": {
+    "total": "Insgesamt",
+    "active": "Aktiv",
+    "ratified": "Ratifiziert",
+    "expired": "Abgelaufen",
+    "ncl": "{Jahr} NCL"
+  },
+  "status": {
+    "Active": "Aktiv",
+    "Ratified": "Ratifiziert",
+    "Enacted": "Eingetragen bei",
+    "Expired": "Abgelaufen",
+    "Closed": "Geschlossen"
+  },
+  "actionTypes": {
+    "NoConfidence": "Antrag auf Misstrauensvotum",
+    "UpdateCommittee": "Update Ausschuss / Begriffe",
+    "NewConstitution": "Aktualisierung der Verfassung",
+    "HardForkInitiation": "Hard Fork Initiierung",
+    "ParameterChange": "Änderung der Protokollparameter",
+    "Treasury": "Rückzug des Schatzamtes",
+    "InfoAction": "Info-Aktion"
+  },
+  "filters": {
+    "filterActionTypes": "Aktionsarten filtern",
+    "filterByStatus": "Nach Status filtern",
+    "filterByVote": "Nach Abstimmung filtern",
+    "filterByRole": "Nach Rolle filtern",
+    "filterByRationale": "Nach Gründen filtern",
+    "actionTypes": "Aktionsarten",
+    "types": "Typen",
+    "status": "Status"
+  },
+  "table": {
+    "proposalTitle": "Titel des Vorschlags",
+    "actionType": "Aktion Typ",
+    "type": "Typ",
+    "noActionsFound": "Keine Governance-Maßnahmen gefunden",
+    "voter": "Wähler",
+    "transaction": "Transaktion",
+    "vote": "Wählen Sie",
+    "votingPower": "Wahlkraft",
+    "votedAt": "Abgestimmt am",
+    "rationale": "Begründung"
+  },
+  "voting": {
+    "drep": "DRep",
+    "drepFull": "Delegierte Vertreter",
+    "dreps": "DReps",
+    "spo": "SPO",
+    "spoFull": "Pfahlpool-Betreiber",
+    "spos": "SPOs",
+    "cc": "CC",
+    "ccFull": "Verfassungsausschuss",
+    "yes": "Ja",
+    "no": "Nein",
+    "abstain": "Enthaltung",
+    "notVoted": "Nicht gestimmt",
+    "notEligible": "Nicht förderfähig",
+    "threshold": "Schwellenwert",
+    "votingPower": "Wahlkraft",
+    "oneMemberOneVote": "Ein Mitglied, eine Stimme",
+    "noRationale": "Keine Begründung",
+    "noVotingRecordsFound": "Keine Abstimmungsaufzeichnungen gefunden"
+  },
+  "charts": {
+    "proposalStatus": {
+      "title": "Status des Vorschlags",
+      "description": "Überblick über aktive, ratifizierte, angenommene und abgelaufene Vorschläge"
+    },
+    "proposalType": {
+      "title": "Arten von Vorschlägen",
+      "description": "Verteilung der Vorschläge nach Art der Governance-Maßnahmen"
+    },
+    "nclProgress": {
+      "title": "NCL Fortschritte",
+      "description": "Verfolgung der Nettoveränderungsgrenze für Entnahmen aus dem Schatzamt"
+    },
+    "votingPower": {
+      "title": "Wahlkraft",
+      "description": "Verteilung der Wahlkraft von DRep und SPO"
+    },
+    "participation": {
+      "title": "Teilnahme",
+      "description": "DRep-Teilnahmequoten für alle Vorschläge"
+    },
+    "proposalSubmission": {
+      "title": "Einreichung des Vorschlags",
+      "description": "Anzahl der pro Monat eingereichten Vorschläge im Zeitverlauf"
+    }
+  },
+  "sort": {
+    "sortByTime": "Sortieren nach Zeit",
+    "newestFirst": "Neuestes zuerst",
+    "oldestFirst": "Älteste zuerst",
+    "sortByVotingPower": "Nach Wahlkraft sortieren",
+    "votingPower": "Wahlkraft",
+    "highestPower": "Stärkste Kraft",
+    "lowestPower": "Geringste Kraft"
+  },
+  "download": {
+    "downloadRationales": "Rationale herunterladen",
+    "json": "JSON",
+    "markdown": "Markdown",
+    "csv": "CSV"
+  },
+  "rationaleFilter": {
+    "allRecords": "Alle Aufzeichnungen",
+    "withRationale": "Mit Begründung"
+  },
+  "errors": {
+    "failedToLoadData": "Daten konnten nicht geladen werden",
+    "loadingGovernanceData": "Laden von Governance-Daten..."
+  },
+  "accessibility": {
+    "website": "Website",
+    "github": "GitHub",
+    "twitter": "X (Twitter)",
+    "switchToCompactView": "Zur Kompaktansicht wechseln",
+    "switchToDefaultView": "Zur Standardansicht wechseln",
+    "copyTransactionHash": "Transaktionshash kopieren"
+  },
+  "footer": {
+    "builtBy": "Gebaut von Nomos | Mesh & SIDAN Lab."
+  },
+  "language": {
+    "en": "Englisch",
+    "de": "Deutsch",
+    "fr": "Französisch",
+    "es": "Español",
+    "pt": "Portugiesisch",
+    "ja": "日本語",
+    "zh": "中文",
+    "selectLanguage": "Sprache auswählen"
+  },
+  "translation": {
+    "translate": "Übersetzen Sie",
+    "translating": "Übersetzen...",
+    "showOriginal": "Original anzeigen",
+    "translationFailed": "Übersetzung fehlgeschlagen",
+    "autoTranslated": "Automatisch aus dem Englischen übersetzt"
+  },
+  "expiry": {
+    "timeUntilExpiry": "Zeit bis zum Ablauf",
+    "day": "Tag",
+    "days": "Tage",
+    "expired": "Abgelaufen",
+    "subject": "Betreff",
+    "submissionDate": "Einreichungsdatum",
+    "epochBoundary": "Epochengrenze",
+    "submissionEpoch": "Einreichungs-Epoch",
+    "validUntilEpoch": "Gültig bis Epoch"
+  },
+  "tabs": {
+    "liveVoting": "Live-Abstimmung",
+    "thresholds": "Schwellenwerte",
+    "bubbleMap": "Bubble Map",
+    "curves": "Kurven",
+    "details": "Details"
+  }
+}

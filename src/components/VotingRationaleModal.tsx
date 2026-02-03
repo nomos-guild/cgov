@@ -8,6 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ExternalLink } from "lucide-react";
 import type { VoteRecord } from "@/types/governance";
 import { useTheme } from "@/lib/theme";
+import { useContentTranslation } from "@/hooks/useContentTranslation";
 import { cn } from "@/lib/utils";
 
 interface VotingRationaleModalProps {
@@ -82,15 +83,20 @@ export function VotingRationaleModal({
 }: VotingRationaleModalProps) {
   const { activeTheme } = useTheme();
   const isGame = activeTheme.id === "game";
-  if (!vote) return null;
-  const isNoVote = vote.vote === "No";
 
   // Prefer rationale text returned directly from the backend/database.
   // This may contain either plain text or a CIP-100-style JSON structure.
-  const rationaleText =
-    vote.rationale && vote.rationale.trim().length > 0
-      ? extractRationaleText(vote.rationale).trim()
-      : "";
+  const rationaleText = vote?.rationale && vote.rationale.trim().length > 0
+    ? extractRationaleText(vote.rationale).trim()
+    : "";
+
+  // Auto-translate rationale when locale is not English
+  const rationaleTranslation = useContentTranslation({
+    originalText: rationaleText,
+  });
+
+  if (!vote) return null;
+  const isNoVote = vote.vote === "No";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -144,10 +150,22 @@ export function VotingRationaleModal({
                 </div>
                 <ScrollArea className="h-[45vh] sm:h-[400px] w-full overflow-hidden">
                   <div className="text-sm whitespace-pre-wrap leading-relaxed text-white game-proposal-content mr-3 [overflow-wrap:anywhere]">
-                    {rationaleText.length > 0
-                      ? rationaleText
-                      : "No rationale data provided."}
+                    {rationaleText.length > 0 ? (
+                      rationaleTranslation.isTranslating ? (
+                        <span className="opacity-50">{rationaleText}</span>
+                      ) : (
+                        rationaleTranslation.displayText
+                      )
+                    ) : (
+                      "No rationale data provided."
+                    )}
                   </div>
+                  {rationaleTranslation.isTranslating && (
+                    <div className="flex items-center gap-2 mt-2 text-xs text-white/50">
+                      <div className="h-3 w-3 animate-spin rounded-full border-2 border-white/50 border-t-transparent" />
+                      Translating...
+                    </div>
+                  )}
                 </ScrollArea>
               </div>
             </>
@@ -185,10 +203,22 @@ export function VotingRationaleModal({
                 </div>
                 <ScrollArea className="h-[45vh] sm:h-[400px] w-full overflow-hidden">
                   <div className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed dark:text-[#0bd1a2] mr-3 [overflow-wrap:anywhere]">
-                    {rationaleText.length > 0
-                      ? rationaleText
-                      : "No rationale data provided."}
+                    {rationaleText.length > 0 ? (
+                      rationaleTranslation.isTranslating ? (
+                        <span className="opacity-50">{rationaleText}</span>
+                      ) : (
+                        rationaleTranslation.displayText
+                      )
+                    ) : (
+                      "No rationale data provided."
+                    )}
                   </div>
+                  {rationaleTranslation.isTranslating && (
+                    <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                      <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                      Translating...
+                    </div>
+                  )}
                 </ScrollArea>
               </div>
             </>

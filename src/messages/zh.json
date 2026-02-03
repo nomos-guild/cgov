@@ -1,0 +1,197 @@
+{
+  "common": {
+    "loading": "正在加载...",
+    "error": "错误",
+    "retry": "重试",
+    "search": "搜索...",
+    "all": "全部",
+    "reset": "重置",
+    "view": "查看",
+    "showMore": "显示更多{count}项",
+    "showMoreProposals": "显示更多{count}个提案",
+    "showMoreVotes": "显示更多{count}个投票",
+    "selected": "已选择{count}项"
+  },
+  "meta": {
+    "homeTitle": "CGOV - 卡达诺治理平台",
+    "homeDescription": "集成卡达诺链上平台",
+    "dashboardTitle": "仪表板 - CGOV",
+    "dashboardDescription": "CGOV 控制面板 - 管理概览",
+    "notFoundTitle": "404 - 找不到页面",
+    "notFoundDescription": "您要查找的页面不存在"
+  },
+  "landing": {
+    "title": "卡达诺治理",
+    "subtitle": "跟踪和监测链上治理行动"
+  },
+  "dashboard": {
+    "title": "仪表板",
+    "subtitle": "可定制的管理概览",
+    "loadingData": "加载仪表板数据..."
+  },
+  "notFound": {
+    "title": "404",
+    "description": "您要查找的治理操作或页面不存在。",
+    "returnHome": "返回仪表板"
+  },
+  "stats": {
+    "total": "总计",
+    "active": "活跃",
+    "ratified": "批准",
+    "expired": "已过期",
+    "ncl": "{年份｝NCL"
+  },
+  "status": {
+    "Active": "活跃",
+    "Ratified": "批准",
+    "Enacted": "已颁布",
+    "Expired": "已过期",
+    "Closed": "关闭"
+  },
+  "actionTypes": {
+    "NoConfidence": "不信任动议",
+    "UpdateCommittee": "更新委员会/条款",
+    "NewConstitution": "章程更新",
+    "HardForkInitiation": "硬分叉启动",
+    "ParameterChange": "协议参数更改",
+    "Treasury": "国库提款",
+    "InfoAction": "信息行动"
+  },
+  "filters": {
+    "filterActionTypes": "过滤操作类型",
+    "filterByStatus": "按状态筛选",
+    "filterByVote": "按投票筛选",
+    "filterByRole": "按角色筛选",
+    "filterByRationale": "按理由筛选",
+    "actionTypes": "行动类型",
+    "types": "类型",
+    "status": "现状"
+  },
+  "table": {
+    "proposalTitle": "提案标题",
+    "actionType": "行动类型",
+    "type": "类型",
+    "noActionsFound": "未发现治理行动",
+    "voter": "选民",
+    "transaction": "交易",
+    "vote": "投票",
+    "votingPower": "投票权",
+    "votedAt": "投票数",
+    "rationale": "理由"
+  },
+  "voting": {
+    "drep": "DRep",
+    "drepFull": "委派代表",
+    "dreps": "DReps",
+    "spo": "SPO",
+    "spoFull": "桩池经营者",
+    "spos": "SPOs",
+    "cc": "CC",
+    "ccFull": "制宪委员会",
+    "yes": "是",
+    "no": "没有",
+    "abstain": "弃权",
+    "notVoted": "未投票",
+    "notEligible": "不符合条件",
+    "threshold": "阈值",
+    "votingPower": "投票权",
+    "oneMemberOneVote": "一个成员一票",
+    "noRationale": "没有理由",
+    "noVotingRecordsFound": "未找到投票记录"
+  },
+  "charts": {
+    "proposalStatus": {
+      "title": "提案状态",
+      "description": "正在执行、已批准、已颁布和已失效的提案概览"
+    },
+    "proposalType": {
+      "title": "提案类型",
+      "description": "按治理行动类型分列的提案分布情况"
+    },
+    "nclProgress": {
+      "title": "NCL 进展",
+      "description": "资金提取净变动限额跟踪"
+    },
+    "votingPower": {
+      "title": "投票权",
+      "description": "DRep 和 SPO 的投票权分配"
+    },
+    "participation": {
+      "title": "参与",
+      "description": "各提案的 DRep 参与率"
+    },
+    "proposalSubmission": {
+      "title": "提交建议",
+      "description": "每月提交的提案数量"
+    }
+  },
+  "sort": {
+    "sortByTime": "按时间排序",
+    "newestFirst": "最新最先",
+    "oldestFirst": "年龄最大者优先",
+    "sortByVotingPower": "按投票权排序",
+    "votingPower": "投票权",
+    "highestPower": "最高功率",
+    "lowestPower": "最低功率"
+  },
+  "download": {
+    "downloadRationales": "下载理由",
+    "json": "JSON",
+    "markdown": "Markdown",
+    "csv": "CSV"
+  },
+  "rationaleFilter": {
+    "allRecords": "所有记录",
+    "withRationale": "附理由"
+  },
+  "errors": {
+    "failedToLoadData": "加载数据失败",
+    "loadingGovernanceData": "加载治理数据..."
+  },
+  "accessibility": {
+    "website": "网站",
+    "github": "GitHub",
+    "twitter": "X (Twitter)",
+    "switchToCompactView": "切换到紧凑型视图",
+    "switchToDefaultView": "切换到默认视图",
+    "copyTransactionHash": "复制交易哈希值"
+  },
+  "footer": {
+    "builtBy": "由 Nomos | Mesh 和 SIDAN Lab 打造。"
+  },
+  "language": {
+    "en": "英语",
+    "de": "德语",
+    "fr": "法语",
+    "es": "西班牙语",
+    "pt": "葡萄牙语",
+    "ja": "日本語",
+    "zh": "中文",
+    "selectLanguage": "选择语言"
+  },
+  "translation": {
+    "translate": "翻译",
+    "translating": "翻译...",
+    "showOriginal": "显示原文",
+    "translationFailed": "翻译失败",
+    "autoTranslated": "自动翻译自英文"
+  },
+  "expiry": {
+    "timeUntilExpiry": "到期时间",
+    "day": "天",
+    "days": "天",
+    "expired": "已过期",
+    "subject": "主题",
+    "submissionDate": "提交日期",
+    "epochBoundary": "纪元边界",
+    "submissionEpoch": "提交纪元",
+    "validUntilEpoch": "有效期至纪元"
+  },
+  "tabs": {
+    "liveVoting": "实时投票",
+    "thresholds": "阈值",
+    "bubbleMap": "气泡图",
+    "curves": "曲线",
+    "details": "详情"
+  }
+}

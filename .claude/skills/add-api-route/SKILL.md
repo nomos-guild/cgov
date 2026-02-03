@@ -1,11 +1,11 @@
 ---
 name: add-api-route
-version: 1.0.0
+version: 1.1.0
 created: 2026-02-02
-last-evolved: null
-evolution-count: 0
+last-evolved: 2026-02-03
+evolution-count: 1
 feedback-count: 0
-description: Create a new Next.js API route with authentication, error handling, and caching. Use when adding backend proxy endpoints.
+description: Create Next.js API routes for backend proxies or third-party API integrations with caching and error handling.
 argument-hint: [routePath] [backendEndpoint]
 allowed-tools: Read, Edit, Write, Glob
 ---
@@ -122,3 +122,130 @@ Adjust `s-maxage` based on data freshness needs:
 1. Test the endpoint with `curl http://localhost:3000/api/${$0}`
 2. Check backend connectivity
 3. Verify caching headers in browser DevTools
+
+---
+
+## Third-Party API Integration (Alternative Pattern)
+
+For routes that call external APIs (not the backend), use this pattern with server-side caching:
+
+### Step 1: Create Route with In-Memory Cache
+
+```typescript
+import type { NextApiRequest, NextApiResponse } from "next";
+
+const EXTERNAL_API_URL = "https://api.example.com/v1/endpoint";
+
+// Server-side cache (shared across all users on same instance)
+const serverCache = new Map<string, string>();
+
+// Track in-flight requests to prevent duplicate API calls
+const inFlightRequests = new Map<string, Promise<string>>();
+
+// Simple hash for cache keys
+function hashKey(input: string): string {
+  let hash = 0;
+  for (let i = 0; i < input.length; i++) {
+    hash = ((hash << 5) - hash) + input.charCodeAt(i);
+    hash = hash & hash;
+  }
+  return String(Math.abs(hash));
+}
+
+// Limit cache size to prevent memory issues
+function pruneCache() {
+  if (serverCache.size > 1000) {
+    const keysToDelete = Array.from(serverCache.keys()).slice(0, 200);
+    keysToDelete.forEach(key => serverCache.delete(key));
+  }
+}
+
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  const apiKey = process.env.EXTERNAL_API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ error: "Service not configured" });
+  }
+
+  const { input } = req.body;
+  const cacheKey = hashKey(input);
+
+  // Check server cache first
+  const cached = serverCache.get(cacheKey);
+  if (cached) {
+    return res.status(200).json({ result: cached, cached: true });
+  }
+
+  // Check if there's already an in-flight request for this input
+  const inFlight = inFlightRequests.get(cacheKey);
+  if (inFlight) {
+    try {
+      const result = await inFlight;
+      return res.status(200).json({ result, cached: true });
+    } catch {
+      return res.status(500).json({ error: "Request failed" });
+    }
+  }
+
+  // Create API call promise and track it
+  const apiPromise = callExternalAPI(input, apiKey);
+  inFlightRequests.set(cacheKey, apiPromise);
+
+  try {
+    const result = await apiPromise;
+
+    // Cache the result
+    serverCache.set(cacheKey, result);
+    pruneCache();
+
+    // Clean up in-flight tracker
+    inFlightRequests.delete(cacheKey);
+
+    return res.status(200).json({ result });
+  } catch (error) {
+    inFlightRequests.delete(cacheKey);
+    console.error("External API error:", error);
+    return res.status(500).json({ error: "Service error" });
+  }
+}
+
+async function callExternalAPI(input: string, apiKey: string): Promise<string> {
+  const response = await fetch(EXTERNAL_API_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ input }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.result;
+}
+```
+
+### Key Benefits of This Pattern
+
+| Feature | Benefit |
+|---------|---------|
+| Server-side cache | All users share same cache (1 API call per unique input) |
+| In-flight deduplication | Parallel requests for same input share one API call |
+| Cache pruning | Prevents memory issues on long-running servers |
+| Env var for API key | Keeps secrets server-side |
+
+### When to Use This Pattern
+
+- External translation APIs (DeepL, Google Translate)
+- AI/ML inference APIs
+- Rate-limited third-party services
+- Any API where multiple users might request the same data

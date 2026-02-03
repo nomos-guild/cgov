@@ -6,7 +6,9 @@ import {
   useMemo,
   useCallback,
 } from "react";
+import type { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
+import { useTranslations } from "next-intl";
 import Head from "next/head";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
@@ -57,6 +59,7 @@ import {
   type VoteSegment,
 } from "@/lib/voteBreakdownCalculator";
 import { ProposalContent } from "@/components/ProposalContent";
+import { useContentTranslation } from "@/hooks/useContentTranslation";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/lib/theme";
 import { GameLoader } from "@/components/ui/game-loader";
@@ -260,6 +263,8 @@ export default function GovernanceDetail() {
   const { hash } = router.query;
   const dispatch = useAppDispatch();
   const { theme, activeTheme } = useTheme();
+  const tExpiry = useTranslations("expiry");
+  const tTabs = useTranslations("tabs");
   const isDark = theme === "dark";
   const isGame = activeTheme.id === "game";
   const voteColors = useMemo(
@@ -386,6 +391,15 @@ export default function GovernanceDetail() {
       references: allReferences, // Combined: API references + URLs from content
     };
   }, [selectedAction]);
+
+  // Translation hooks for title and content
+  const titleTranslation = useContentTranslation({
+    originalText: selectedAction?.title || "",
+  });
+
+  const contentTranslation = useContentTranslation({
+    originalText: contentPreview?.full || "",
+  });
 
   const eligibleRoles = useMemo<VoterType[]>(() => {
     if (!selectedAction) return [];
@@ -850,8 +864,15 @@ export default function GovernanceDetail() {
           )}>
             <div className="mb-2 sm:mb-3 flex items-center gap-2 sm:gap-3">
               <h1 className="proposal-detail-title text-xl font-bold sm:text-2xl md:text-3xl lg:text-4xl">
-                {selectedAction.title}
+                {titleTranslation.isTranslating ? (
+                  <span className="opacity-50">{selectedAction.title}</span>
+                ) : (
+                  titleTranslation.displayText
+                )}
               </h1>
+              {titleTranslation.isTranslating && (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent shrink-0" />
+              )}
             </div>
             {contentPreview && (
               <div className="border-t border-border/50 pt-4">
@@ -866,7 +887,7 @@ export default function GovernanceDetail() {
                   <div className="pr-2">
                     <div className="overflow-x-auto">
                       <ProposalContent
-                        content={contentPreview.full}
+                        content={contentTranslation.displayText}
                         className="proposal-detail-content text-sm sm:text-base px-1 pr-4"
                         headingLevels={[1, 2, 3, 4]}
                       />
@@ -954,7 +975,7 @@ export default function GovernanceDetail() {
                               : "rounded-md border border-white/8 bg-white text-black px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold uppercase tracking-wide transform-gpu transition-transform transition-shadow duration-450 ease-in-out shadow-[0_12px_30px_rgba(15,23,42,0.25)] data-[state=active]:bg-black data-[state=active]:text-white hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon"
                           }
                         >
-                          Live Voting
+                          {tTabs("liveVoting")}
                         </TabsTrigger>
                         <TabsTrigger
                           value="thresholds"
@@ -964,7 +985,7 @@ export default function GovernanceDetail() {
                               : "rounded-md border border-white/8 bg-white text-black px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold uppercase tracking-wide transform-gpu transition-transform transition-shadow duration-450 ease-in-out shadow-[0_12px_30px_rgba(15,23,42,0.25)] data-[state=active]:bg-black data-[state=active]:text-white hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon"
                           }
                         >
-                          Thresholds
+                          {tTabs("thresholds")}
                         </TabsTrigger>
                         <TabsTrigger
                           value="bubble-map"
@@ -974,7 +995,7 @@ export default function GovernanceDetail() {
                               : "rounded-md border border-white/8 bg-white text-black px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold uppercase tracking-wide transform-gpu transition-transform transition-shadow duration-450 ease-in-out shadow-[0_12px_30px_rgba(15,23,42,0.25)] data-[state=active]:bg-black data-[state=active]:text-white hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon"
                           }
                         >
-                          Bubble Map
+                          {tTabs("bubbleMap")}
                         </TabsTrigger>
                         <TabsTrigger
                           value="curves"
@@ -984,7 +1005,7 @@ export default function GovernanceDetail() {
                               : "rounded-md border border-white/8 bg-white text-black px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold uppercase tracking-wide transform-gpu transition-transform transition-shadow duration-450 ease-in-out shadow-[0_12px_30px_rgba(15,23,42,0.25)] data-[state=active]:bg-black data-[state=active]:text-white hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon"
                           }
                         >
-                          Curves
+                          {tTabs("curves")}
                         </TabsTrigger>
                         <TabsTrigger
                           value="details"
@@ -994,7 +1015,7 @@ export default function GovernanceDetail() {
                               : "rounded-md border border-white/8 bg-white text-black px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold uppercase tracking-wide transform-gpu transition-transform transition-shadow duration-450 ease-in-out shadow-[0_12px_30px_rgba(15,23,42,0.25)] data-[state=active]:bg-black data-[state=active]:text-white hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon"
                           }
                         >
-                          Details
+                          {tTabs("details")}
                         </TabsTrigger>
                       </TabsList>
                     </div>
@@ -1873,7 +1894,7 @@ export default function GovernanceDetail() {
                         "text-sm font-semibold",
                         isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
                       )}>
-                        Time Until Expiry
+                        {tExpiry("timeUntilExpiry")}
                       </label>
                       <div className={cn(
                         "text-base font-semibold",
@@ -1882,11 +1903,11 @@ export default function GovernanceDetail() {
                         {daysRemaining > 0 ? (
                           <>
                             {daysRemaining}{" "}
-                            {daysRemaining === 1 ? "day" : "days"}
+                            {daysRemaining === 1 ? tExpiry("day") : tExpiry("days")}
                           </>
                         ) : (
                           <span className={isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"}>
-                            Expired
+                            {tExpiry("expired")}
                           </span>
                         )}
                       </div>
@@ -1918,7 +1939,7 @@ export default function GovernanceDetail() {
                                 "text-left py-2 font-medium",
                                 isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
                               )}>
-                                Subject
+                                {tExpiry("subject")}
                               </th>
                               <th></th>
                             </tr>
@@ -1932,7 +1953,7 @@ export default function GovernanceDetail() {
                                 "py-2 pr-4",
                                 isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
                               )}>
-                                Submission Date
+                                {tExpiry("submissionDate")}
                               </td>
                               <td className={cn(
                                 "py-2 font-semibold whitespace-nowrap",
@@ -1953,7 +1974,7 @@ export default function GovernanceDetail() {
                                 "py-2 pr-4",
                                 isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
                               )}>
-                                Epoch Boundary
+                                {tExpiry("epochBoundary")}
                               </td>
                               <td className={cn(
                                 "py-2 font-semibold whitespace-nowrap",
@@ -1974,7 +1995,7 @@ export default function GovernanceDetail() {
                                 "py-2 pr-4",
                                 isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
                               )}>
-                                Submission Epoch
+                                {tExpiry("submissionEpoch")}
                               </td>
                               <td className={cn(
                                 "py-2 font-semibold whitespace-nowrap",
@@ -1988,7 +2009,7 @@ export default function GovernanceDetail() {
                                 "py-2 pr-4",
                                 isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
                               )}>
-                                Valid Until Epoch
+                                {tExpiry("validUntilEpoch")}
                               </td>
                               <td className={cn(
                                 "py-2 font-semibold whitespace-nowrap",
@@ -2651,3 +2672,13 @@ function RolePlaceholder({ role, message }: { role: string; message: string }) {
     </div>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async ({ locale }) => {
+  const messages = (await import(`@/messages/${locale ?? "en"}.json`)).default;
+
+  return {
+    props: {
+      messages,
+    },
+  };
+};

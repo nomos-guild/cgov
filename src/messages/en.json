@@ -1,0 +1,197 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "retry": "Retry",
+    "search": "Search...",
+    "all": "All",
+    "reset": "Reset",
+    "view": "View",
+    "showMore": "Show {count} more",
+    "showMoreProposals": "Show {count} more proposals",
+    "showMoreVotes": "Show {count} more votes",
+    "selected": "{count} selected"
+  },
+  "meta": {
+    "homeTitle": "CGOV - Cardano Governance Platform",
+    "homeDescription": "Integrated Cardano on-chain platform",
+    "dashboardTitle": "Dashboard - CGOV",
+    "dashboardDescription": "CGOV Dashboard - Governance Overview",
+    "notFoundTitle": "404 - Page Not Found",
+    "notFoundDescription": "The page you're looking for doesn't exist"
+  },
+  "landing": {
+    "title": "Cardano Governance",
+    "subtitle": "Track and monitor on-chain governance actions"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Your customizable governance overview",
+    "loadingData": "Loading dashboard data..."
+  },
+  "notFound": {
+    "title": "404",
+    "description": "The governance action or page you're looking for doesn't exist.",
+    "returnHome": "Return to Dashboard"
+  },
+  "stats": {
+    "total": "Total",
+    "active": "Active",
+    "ratified": "Ratified",
+    "expired": "Expired",
+    "ncl": "{year} NCL"
+  },
+  "status": {
+    "Active": "Active",
+    "Ratified": "Ratified",
+    "Enacted": "Enacted",
+    "Expired": "Expired",
+    "Closed": "Closed"
+  },
+  "actionTypes": {
+    "NoConfidence": "Motion of No-Confidence",
+    "UpdateCommittee": "Update Committee / Terms",
+    "NewConstitution": "Constitution Update",
+    "HardForkInitiation": "Hard Fork Initiation",
+    "ParameterChange": "Protocol Parameter Change",
+    "Treasury": "Treasury Withdrawal",
+    "InfoAction": "Info Action"
+  },
+  "filters": {
+    "filterActionTypes": "Filter action types",
+    "filterByStatus": "Filter by status",
+    "filterByVote": "Filter by vote",
+    "filterByRole": "Filter by role",
+    "filterByRationale": "Filter by rationale",
+    "actionTypes": "Action Types",
+    "types": "Types",
+    "status": "Status"
+  },
+  "table": {
+    "proposalTitle": "Proposal Title",
+    "actionType": "Action Type",
+    "type": "Type",
+    "noActionsFound": "No governance actions found",
+    "voter": "Voter",
+    "transaction": "Transaction",
+    "vote": "Vote",
+    "votingPower": "Voting Power",
+    "votedAt": "Voted At",
+    "rationale": "Rationale"
+  },
+  "voting": {
+    "drep": "DRep",
+    "drepFull": "Delegated Representatives",
+    "dreps": "DReps",
+    "spo": "SPO",
+    "spoFull": "Stake Pool Operators",
+    "spos": "SPOs",
+    "cc": "CC",
+    "ccFull": "Constitutional Committee",
+    "yes": "Yes",
+    "no": "No",
+    "abstain": "Abstain",
+    "notVoted": "Not Voted",
+    "notEligible": "Not Eligible",
+    "threshold": "Threshold",
+    "votingPower": "Voting Power",
+    "oneMemberOneVote": "One member, one vote",
+    "noRationale": "No rationale",
+    "noVotingRecordsFound": "No voting records found"
+  },
+  "charts": {
+    "proposalStatus": {
+      "title": "Proposal Status",
+      "description": "Overview of active, ratified, enacted, and expired proposals"
+    },
+    "proposalType": {
+      "title": "Proposal Types",
+      "description": "Distribution of proposals by governance action type"
+    },
+    "nclProgress": {
+      "title": "NCL Progress",
+      "description": "Net Change Limit tracking for treasury withdrawals"
+    },
+    "votingPower": {
+      "title": "Voting Power",
+      "description": "DRep and SPO voting power distribution"
+    },
+    "participation": {
+      "title": "Participation",
+      "description": "DRep participation rates across proposals"
+    },
+    "proposalSubmission": {
+      "title": "Proposal Submission",
+      "description": "Number of proposals submitted per month over time"
+    }
+  },
+  "sort": {
+    "sortByTime": "Sort by time",
+    "newestFirst": "Newest First",
+    "oldestFirst": "Oldest First",
+    "sortByVotingPower": "Sort by voting power",
+    "votingPower": "Voting Power",
+    "highestPower": "Highest Power",
+    "lowestPower": "Lowest Power"
+  },
+  "download": {
+    "downloadRationales": "Download rationales",
+    "json": "JSON",
+    "markdown": "Markdown",
+    "csv": "CSV"
+  },
+  "rationaleFilter": {
+    "allRecords": "All records",
+    "withRationale": "With rationale"
+  },
+  "errors": {
+    "failedToLoadData": "Failed to load data",
+    "loadingGovernanceData": "Loading governance data..."
+  },
+  "accessibility": {
+    "website": "Website",
+    "github": "GitHub",
+    "twitter": "X (Twitter)",
+    "switchToCompactView": "Switch to compact view",
+    "switchToDefaultView": "Switch to default view",
+    "copyTransactionHash": "Copy transaction hash"
+  },
+  "footer": {
+    "builtBy": "Built by Nomos | Mesh & SIDAN Lab."
+  },
+  "language": {
+    "en": "English",
+    "de": "Deutsch",
+    "fr": "Français",
+    "es": "Español",
+    "pt": "Português",
+    "ja": "日本語",
+    "zh": "中文",
+    "selectLanguage": "Select language"
+  },
+  "translation": {
+    "translate": "Translate",
+    "translating": "Translating...",
+    "showOriginal": "Show Original",
+    "translationFailed": "Translation failed",
+    "autoTranslated": "Auto-translated from English"
+  },
+  "expiry": {
+    "timeUntilExpiry": "Time Until Expiry",
+    "day": "day",
+    "days": "days",
+    "expired": "Expired",
+    "subject": "Subject",
+    "submissionDate": "Submission Date",
+    "epochBoundary": "Epoch Boundary",
+    "submissionEpoch": "Submission Epoch",
+    "validUntilEpoch": "Valid Until Epoch"
+  },
+  "tabs": {
+    "liveVoting": "Live Voting",
+    "thresholds": "Thresholds",
+    "bubbleMap": "Bubble Map",
+    "curves": "Curves",
+    "details": "Details"
+  }
+}
