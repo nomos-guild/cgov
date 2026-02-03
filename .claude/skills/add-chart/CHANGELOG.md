@@ -2,6 +2,22 @@
 
 All notable changes to this skill will be documented in this file.
 
+## [1.6.0] - 2026-02-03
+
+### Added
+- **Light Theme Donut Chart Pattern** - New section documenting white/grey graduated colors for light theme
+- SVG feDropShadow filter pattern for applying shadows to white chart slices
+- Color pattern reference: positive (#ffffff), neutral (#e2e8f0), negative (#94a3b8)
+- **Custom Legend with Square Indicators** - Pattern for pure square legend items with borders for white colors
+
+### Journey-driven
+Based on drep-profile-charts journey. Key patterns:
+- White primary slices with graduated greys for negative metrics
+- SVG filter approach for shadows (more reliable than CSS on SVG)
+- Legend squares instead of circles for cleaner aesthetic
+
+---
+
 ## [1.5.0] - 2026-02-02
 
 ### Added
