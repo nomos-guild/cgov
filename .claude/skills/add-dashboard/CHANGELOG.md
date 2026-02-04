@@ -2,6 +2,25 @@
 
 All notable changes to this skill will be documented in this file.
 
+## [2.1.0] - 2026-02-04
+
+### Graceful Degradation for Error States
+
+Journey-driven: locale-persistence-and-drep-resilience
+
+#### Changed
+- Page template error handling: replaced full-page blocking error card with inline warning
+- Dashboard grid now renders even when some data endpoints fail (`(hasData || (!isLoading && error))`)
+
+#### Added
+- **Gotchas: Graceful Degradation** section with anti-patterns and correct patterns
+- Verification checklist item: "Page degrades gracefully when backend endpoints fail"
+
+#### Why
+- DRep Dashboard was completely broken when the backend stats endpoint failed, even though the DRep list (separate endpoint) still worked
+- Full-page error cards should only be used when NO content can be shown
+- Individual sections should handle their own errors independently
+
 ## [2.0.0] - 2026-02-02
 
 ### Major Update - Full Feature Parity with Governance Dashboard

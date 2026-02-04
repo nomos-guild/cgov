@@ -268,7 +268,7 @@ function transformDRepDetail(data: DRepDetailApiResponse): DRepDetail {
     voteBreakdown: data.voteBreakdown,
     rationalesProvided: data.rationalesProvided,
     proposalParticipationPercent: data.proposalParticipationPercent,
-    delegatorCount: data.delegatorCount,
+    delegatorCount: data.delegatorCount ?? null,
   };
 }
 

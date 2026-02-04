@@ -724,7 +724,6 @@ export default function DRepProfile() {
   const { votes: allVotes, isLoading: isLoadingAllVotes } = useAllDRepVotes(drepIdStr);
 
   const isLoading = isLoadingDrep && !drep;
-  const error = drepError;
 
   // Card styling
   const cardClass = cn(
@@ -757,24 +756,6 @@ export default function DRepProfile() {
             Back to DRep Dashboard
           </Link>
 
-          {/* Error state */}
-          {error && (
-            <Card className="p-4 sm:p-6 mb-4 sm:mb-6 border-destructive bg-destructive/10">
-              <div className="text-center">
-                <p className="text-destructive font-medium mb-2 text-sm sm:text-base">
-                  Failed to load DRep data
-                </p>
-                <p className="text-xs sm:text-sm text-muted-foreground">{error}</p>
-                <button
-                  onClick={refresh}
-                  className="mt-3 sm:mt-4 px-3 sm:px-4 py-1.5 sm:py-2 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-                >
-                  Retry
-                </button>
-              </div>
-            </Card>
-          )}
-
           {/* Loading state */}
           {isLoading && (
             isGame ? (
@@ -793,10 +774,28 @@ export default function DRepProfile() {
             )
           )}
 
-          {/* Content */}
-          {drep && !isLoading && (
+          {/* Content - show available data even if some endpoints fail */}
+          {!isLoading && (
             <>
-              {/* Top Row - Profile Card + Vote Breakdown */}
+              {/* Profile error - inline warning when detail fails */}
+              {drepError && !drep && (
+                <Card className="p-3 sm:p-4 mb-4 sm:mb-6 border-destructive/50 bg-destructive/5">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-destructive text-sm">
+                      DRep profile details are temporarily unavailable.
+                    </p>
+                    <button
+                      onClick={refresh}
+                      className="shrink-0 px-3 py-1.5 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                </Card>
+              )}
+
+              {/* Top Row - Profile Card + Vote Breakdown (only when detail loaded) */}
+              {drep && (
               <div className="flex flex-col md:flex-row gap-6 mb-6">
                 {/* Main Profile Card - Portrait orientation */}
                 <div className={cn(cardClass, "w-full md:w-[360px] md:flex-shrink-0")}>
@@ -1026,8 +1025,9 @@ export default function DRepProfile() {
                   </div>
                 </div>
               </div>
+              )}
 
-              {/* Voting History */}
+              {/* Voting History - always shown, uses separate endpoint */}
               <div className={cardClass}>
                 <h2 className={cn(
                   "text-lg font-semibold mb-4",
@@ -1039,7 +1039,7 @@ export default function DRepProfile() {
                   <VotingHistoryTable
                     votes={allVotes}
                     drepId={drepIdStr || ""}
-                    drepName={drep.name || "Anonymous DRep"}
+                    drepName={drep?.name || "Anonymous DRep"}
                     isGame={isGame}
                     isLoading={isLoadingAllVotes}
                   />
