@@ -38,7 +38,6 @@ import {
 import { canRoleVoteOnAction, getVoteDataPresence } from "@/lib/governanceVotingEligibility";
 // import { VoteButtons } from "@/components/governance/VoteButtons";
 
-// Fallback labels (used when translations not available)
 const TYPE_LABELS: Record<ProposalType, string> = {
   NoConfidence: "Motion of No-Confidence",
   UpdateCommittee: "Update Committee / Terms",
@@ -47,6 +46,14 @@ const TYPE_LABELS: Record<ProposalType, string> = {
   ParameterChange: "Protocol Parameter Change",
   Treasury: "Treasury Withdrawal",
   InfoAction: "Info Action",
+};
+
+const STATUS_LABELS: Record<ProposalStatus, string> = {
+  Active: "Active",
+  Ratified: "Ratified",
+  Enacted: "Enacted",
+  Expired: "Expired",
+  Closed: "Closed",
 };
 
 const SHOWCASE_ORDER: ProposalType[] = [
@@ -87,13 +94,6 @@ function mapTypeLabelToProposalType(typeLabel: string): ProposalType | null {
   }
 }
 
-const STATUS_LABELS: Record<ProposalStatus, string> = {
-  Active: "Active",
-  Ratified: "Ratified",
-  Enacted: "Enacted",
-  Expired: "Expired",
-  Closed: "Closed",
-};
 
 function getStatusColor(status: GovernanceAction["status"]): string {
   return status === "Active" ? "text-foreground" : "text-foreground/60";
@@ -124,18 +124,9 @@ function getStatusIndicatorColor(
 }
 
 function getTypeLabel(type: GovernanceAction["type"]): string {
-  // Prefer mapping from API label → internal key → display label
   const mapped = mapTypeLabelToProposalType(type as string);
-  if (mapped && mapped in TYPE_LABELS) {
-    return TYPE_LABELS[mapped];
-  }
-
-  // Fallback: if we already have an internal key, use that
-  if (type in TYPE_LABELS) {
-    return TYPE_LABELS[type as ProposalType];
-  }
-
-  // Last resort: show whatever the backend sent
+  if (mapped && mapped in TYPE_LABELS) return TYPE_LABELS[mapped];
+  if (type in TYPE_LABELS) return TYPE_LABELS[type as ProposalType];
   return type;
 }
 
@@ -516,7 +507,7 @@ export function GovernanceTable() {
                   ? "game-nav-btn h-9 sm:h-10 px-2.5 sm:px-3"
                   : "h-8 sm:h-9 min-h-0 px-2.5 sm:px-3 py-2 btn-neon rounded-2xl hover:bg-black hover:text-white transition-none dark:hover:bg-[#0bd1a2] dark:hover:text-black dark:rounded-none"
               }
-              aria-label={viewMode === "default" ? "Switch to compact view" : "Switch to default view"}
+              aria-label={viewMode === "default" ? t("accessibility.switchToCompactView") : t("accessibility.switchToDefaultView")}
               onClick={() => setViewMode(viewMode === "default" ? "compact" : "default")}
             >
               {viewMode === "default" ? (
@@ -667,7 +658,7 @@ export function GovernanceTable() {
                   : "w-full bg-white text-black hover:bg-black hover:text-white transition-colors shadow-[0_8px_16px_rgba(15,23,42,0.2)] btn-neon"
               }
             >
-              Show {remainingProposals} more proposals
+              {t("common.showMoreProposals", { count: remainingProposals })}
             </Button>
           )}
         </div>
@@ -681,9 +672,9 @@ export function GovernanceTable() {
                 <TableHead className="hidden md:table-cell w-[30px] px-0 text-center h-8 sm:h-10 py-1 sm:py-2 text-xs sm:text-sm">DRep</TableHead>
                 <TableHead className="hidden md:table-cell w-[30px] px-0 text-center h-8 sm:h-10 py-1 sm:py-2 text-xs sm:text-sm">SPO</TableHead>
                 <TableHead className="hidden md:table-cell w-[30px] px-0 text-center h-8 sm:h-10 py-1 sm:py-2 text-xs sm:text-sm">CC</TableHead>
-                <TableHead className="md:border-l md:border-border/50 pl-2 sm:pl-4 h-8 sm:h-10 py-1 sm:py-2 text-xs sm:text-sm">Proposal Title</TableHead>
-                <TableHead className="hidden sm:table-cell w-[140px] md:w-[180px] h-8 sm:h-10 py-1 sm:py-2 text-xs sm:text-sm">Action Type</TableHead>
-                <TableHead className="w-[80px] sm:w-[120px] h-8 sm:h-10 py-1 sm:py-2 text-xs sm:text-sm">Status</TableHead>
+                <TableHead className="md:border-l md:border-border/50 pl-2 sm:pl-4 h-8 sm:h-10 py-1 sm:py-2 text-xs sm:text-sm">{t("table.proposalTitle")}</TableHead>
+                <TableHead className="hidden sm:table-cell w-[140px] md:w-[180px] h-8 sm:h-10 py-1 sm:py-2 text-xs sm:text-sm">{t("table.actionType")}</TableHead>
+                <TableHead className="w-[80px] sm:w-[120px] h-8 sm:h-10 py-1 sm:py-2 text-xs sm:text-sm">{t("filters.status")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -763,7 +754,7 @@ export function GovernanceTable() {
                           <VoteProgress
                             title="DRep"
                             titlePosition="center"
-                            centerText="Not Eligible"
+                            centerText={t("voting.notEligible")}
                             yesPercent={0}
                             noPercent={0}
                             abstainPercent={0}
@@ -808,7 +799,7 @@ export function GovernanceTable() {
                           <VoteProgress
                             title="SPO"
                             titlePosition="center"
-                            centerText="Not Eligible"
+                            centerText={t("voting.notEligible")}
                             yesPercent={0}
                             noPercent={0}
                             abstainPercent={0}
@@ -851,7 +842,7 @@ export function GovernanceTable() {
                           <VoteProgress
                             title="CC"
                             titlePosition="center"
-                            centerText="Not Eligible"
+                            centerText={t("voting.notEligible")}
                             yesPercent={0}
                             noPercent={0}
                             abstainPercent={0}
@@ -985,7 +976,7 @@ export function GovernanceTable() {
                     : "w-full bg-white text-black hover:bg-black hover:text-white transition-colors shadow-[0_8px_16px_rgba(15,23,42,0.2)] btn-neon"
                 }
               >
-                Show {remainingProposals} more proposals
+                {t("common.showMoreProposals", { count: remainingProposals })}
               </Button>
             </div>
           )}
@@ -998,12 +989,12 @@ export function GovernanceTable() {
           <Table>
             <TableHeader>
               <TableRow className="proposal-header-row hover:bg-transparent">
-                <TableHead className="pl-3 sm:pl-4 h-8 sm:h-10 py-1 sm:py-2 text-xs sm:text-sm">Proposal Title</TableHead>
-                <TableHead className="w-[140px] h-8 sm:h-10 py-1 sm:py-2 text-xs sm:text-sm">Type</TableHead>
+                <TableHead className="pl-3 sm:pl-4 h-8 sm:h-10 py-1 sm:py-2 text-xs sm:text-sm">{t("table.proposalTitle")}</TableHead>
+                <TableHead className="w-[140px] h-8 sm:h-10 py-1 sm:py-2 text-xs sm:text-sm">{t("table.type")}</TableHead>
                 <TableHead className="w-[100px] h-8 sm:h-10 py-1 sm:py-2 text-xs sm:text-sm text-center">DRep</TableHead>
                 <TableHead className="w-[100px] h-8 sm:h-10 py-1 sm:py-2 text-xs sm:text-sm text-center">SPO</TableHead>
                 <TableHead className="w-[100px] h-8 sm:h-10 py-1 sm:py-2 text-xs sm:text-sm text-center">CC</TableHead>
-                <TableHead className="w-[80px] h-8 sm:h-10 py-1 sm:py-2 text-xs sm:text-sm">Status</TableHead>
+                <TableHead className="w-[80px] h-8 sm:h-10 py-1 sm:py-2 text-xs sm:text-sm">{t("filters.status")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -1131,7 +1122,7 @@ export function GovernanceTable() {
                     : "w-full bg-white text-black hover:bg-black hover:text-white transition-colors shadow-[0_8px_16px_rgba(15,23,42,0.2)] btn-neon"
                 }
               >
-                Show {remainingProposals} more proposals
+                {t("common.showMoreProposals", { count: remainingProposals })}
               </Button>
             </div>
           )}

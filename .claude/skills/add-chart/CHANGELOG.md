@@ -2,6 +2,19 @@
 
 All notable changes to this skill will be documented in this file.
 
+## [1.8.0] - 2026-02-04
+
+### Added
+- **i18n: Translating Chart Text** - New section on using `useTranslations` for chart titles, adding locale keys for chart registry entries, and using `ExportLabels` pattern for export utilities
+
+### Journey-driven
+Based on localized-export-files journey. Key patterns:
+- Chart titles and descriptions should use translation keys from `next-intl`
+- Pure utility functions that can't use React hooks need a typed labels interface
+- All 7 locale files must be updated when adding translatable text
+
+---
+
 ## [1.7.0] - 2026-02-04
 
 ### Added

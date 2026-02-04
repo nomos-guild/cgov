@@ -17,6 +17,7 @@ interface VotingRecordsProps {
   proposalId?: string;
   showDownload?: boolean;
   downloadFormat?: string;
+  isExporting?: boolean;
   onDownloadFormatChange?: (format: "json" | "markdown" | "csv") => void;
 }
 
@@ -224,6 +225,7 @@ export function VotingRecords({
   votes,
   showDownload,
   downloadFormat,
+  isExporting,
   onDownloadFormatChange,
 }: VotingRecordsProps) {
   const { activeTheme } = useTheme();
@@ -234,7 +236,12 @@ export function VotingRecords({
   const tVoting = useTranslations("voting");
   const tSort = useTranslations("sort");
   const tDownload = useTranslations("download");
+  const tTranslation = useTranslations("translation");
   const tRationale = useTranslations("rationaleFilter");
+  const translateVote = (vote: string) => {
+    const map: Record<string, string> = { Yes: tVoting("yes"), No: tVoting("no"), Abstain: tVoting("abstain") };
+    return map[vote] ?? vote;
+  };
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedVotes, setSelectedVotes] = useState<string[]>([...VOTE_OPTIONS]);
   const [selectedRoles, setSelectedRoles] = useState<string[]>([...ROLE_OPTIONS]);
@@ -370,7 +377,7 @@ export function VotingRecords({
               <GameDropdown
                 value={downloadFormat || ""}
                 onValueChange={(value) => onDownloadFormatChange?.(value as "json" | "markdown" | "csv")}
-                placeholder={tDownload("downloadRationales")}
+                placeholder={isExporting ? tTranslation("translating") : tDownload("downloadRationales")}
                 onOpenChange={(open) => handleDropdownOpenChange("download", open)}
                 options={[
                   { value: "json", label: tDownload("json") },
@@ -381,12 +388,13 @@ export function VotingRecords({
             ) : (
               <Select
                 value={downloadFormat || ""}
+                disabled={isExporting}
                 onValueChange={(value: string) =>
                   onDownloadFormatChange?.(value as "json" | "markdown" | "csv")
                 }
                 onOpenChange={(open) => handleDropdownOpenChange("download", open)}>
                 <SelectTrigger className="btn-neon ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:ring-offset-0 focus:border-black data-[state=open]:ring-0 data-[state=open]:ring-transparent data-[state=open]:ring-offset-0 data-[state=open]:border-black dark:focus:border-[#0bd1a2] dark:data-[state=open]:border-[#0bd1a2] [&>span]:truncate">
-                  <SelectValue placeholder={tDownload("downloadRationales")} />
+                  <SelectValue placeholder={isExporting ? tTranslation("translating") : tDownload("downloadRationales")} />
                 </SelectTrigger>
                 <SelectContent className="rounded-none dark:border dark:border-[#0bd1a2] dark:bg-black dark:text-[#0bd1a2] dark:rounded-none">
                   <SelectItem className={selectItemClass} value="json">{tDownload("json")}</SelectItem>
@@ -561,7 +569,7 @@ export function VotingRecords({
                         {vote.voterType}
                       </Badge>
                       <Badge variant="outline" className={cn("text-[10px] px-1.5 shrink-0", isGame ? getGameVoteBadgeClasses(vote.vote) : getVoteBadgeClasses(vote.vote))}>
-                        {vote.vote}
+                        {translateVote(vote.vote)}
                       </Badge>
                       {vote.voterType !== "CC" && (
                         <span className={cn("text-[10px] font-medium shrink-0", isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]")}>
@@ -705,7 +713,7 @@ export function VotingRecords({
                         )}
                         <TableCell className="py-2 sm:py-3">
                           <Badge variant="outline" className={cn("text-[10px] sm:text-xs px-1.5 sm:px-2", isGame ? getGameVoteBadgeClasses(vote.vote) : getVoteBadgeClasses(vote.vote))}>
-                            {vote.vote}
+                            {translateVote(vote.vote)}
                           </Badge>
                         </TableCell>
                         <TableCell className="py-2 sm:py-3">
