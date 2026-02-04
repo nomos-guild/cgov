@@ -1,5 +1,6 @@
 import "@/styles/globals.css";
 import "@meshsdk/react/styles.css";
+import { useEffect } from "react";
 import type { AppProps } from "next/app";
 import { useRouter } from "next/router";
 import { Provider } from "react-redux";
@@ -10,6 +11,7 @@ import { Header } from "@/components/layout";
 import { Footer } from "@/components/Footer";
 import { ThemeProvider } from "@/lib/theme";
 import { MeshProviderWrapper } from "@/components/providers/MeshProviderWrapper";
+import { isValidLocale } from "@/lib/i18n";
 
 // Import all language files (pre-translated, no API calls needed)
 import enMessages from "@/messages/en.json";
@@ -33,6 +35,17 @@ const allMessages: Record<string, typeof enMessages> = {
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
   const locale = router.locale ?? "en";
+
+  // Restore saved language preference from localStorage on first load
+  useEffect(() => {
+    const savedLocale = localStorage.getItem("preferred-locale");
+    if (savedLocale && isValidLocale(savedLocale) && savedLocale !== router.locale) {
+      router.replace({ pathname: router.pathname, query: router.query }, undefined, {
+        locale: savedLocale,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Load pre-translated messages for the current locale
   const messages = allMessages[locale] || enMessages;

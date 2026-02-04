@@ -1,7 +1,6 @@
 import { useState } from "react";
 import type { GetStaticProps } from "next";
 import Head from "next/head";
-import { useTranslations } from "next-intl";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { GameLoader } from "@/components/ui/game-loader";
@@ -40,15 +39,13 @@ function formatNumber(value: number): string {
 }
 
 export default function DRepDashboard() {
-  const t = useTranslations();
   const { activeTheme } = useTheme();
   const isGame = activeTheme.id === "game";
   const [selectedTab, setSelectedTab] = useState("drep-list");
 
-  const { stats, isLoading, error, refresh } = useDRepStats();
+  const { stats, isLoading } = useDRepStats();
 
-  const hasData = stats !== null;
-  const showLoadingSpinner = isLoading && !hasData && !error;
+  const showLoadingSpinner = isLoading && !stats;
 
   // Tab button styling
   const tabButtonClass = isGame
@@ -73,24 +70,6 @@ export default function DRepDashboard() {
             </p>
           </div>
 
-          {/* Error state */}
-          {error && (
-            <Card className="p-4 sm:p-6 mb-4 sm:mb-6 border-destructive bg-destructive/10">
-              <div className="text-center">
-                <p className="text-destructive font-medium mb-2 text-sm sm:text-base">
-                  {t("errors.failedToLoadData")}
-                </p>
-                <p className="text-xs sm:text-sm text-muted-foreground">{error}</p>
-                <button
-                  onClick={refresh}
-                  className="mt-3 sm:mt-4 px-3 sm:px-4 py-1.5 sm:py-2 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-                >
-                  {t("common.retry")}
-                </button>
-              </div>
-            </Card>
-          )}
-
           {/* Loading state */}
           {showLoadingSpinner && (
             isGame ? (
@@ -109,8 +88,8 @@ export default function DRepDashboard() {
             )
           )}
 
-          {/* Content */}
-          {(hasData || (!isLoading && !error)) && !showLoadingSpinner && (
+          {/* Content - show even if stats fail, DRep list uses a separate endpoint */}
+          {!showLoadingSpinner && (
             <>
               {/* Stats Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 game-drep-stats">

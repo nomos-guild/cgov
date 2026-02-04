@@ -1,9 +1,9 @@
 ---
 name: add-dashboard
-version: 2.0.0
+version: 2.1.0
 created: 2026-02-02
-last-evolved: 2026-02-02
-evolution-count: 1
+last-evolved: 2026-02-04
+evolution-count: 2
 feedback-count: 0
 description: Create a new customizable dashboard with its own chart registry, provider, and page. Use when adding dashboards like DRep or SPO dashboard.
 argument-hint: [DashboardName]
@@ -360,13 +360,6 @@ function ${$0}DashboardContent() {
             <${$0}DashboardSidePanel />
           </div>
 
-          {/* Error state */}
-          {error && (
-            <Card className="p-4 sm:p-6 mb-4 sm:mb-6 border-destructive bg-destructive/10">
-              <p className="text-destructive font-medium text-center">{error}</p>
-            </Card>
-          )}
-
           {/* Loading state */}
           {isLoading && !hasData && (
             isGame ? (
@@ -383,8 +376,17 @@ function ${$0}DashboardContent() {
             )
           )}
 
-          {/* Dashboard Grid */}
-          {hasData && (
+          {/* Error state - inline warning, doesn't block content */}
+          {error && (
+            <Card className="p-3 sm:p-4 mb-4 sm:mb-6 border-destructive/50 bg-destructive/5">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-destructive text-sm">{error}</p>
+              </div>
+            </Card>
+          )}
+
+          {/* Dashboard Grid - show even if some data fails */}
+          {(hasData || (!isLoading && error)) && (
             <div ref={gridAreaRef}>
               <${$0}DashboardGrid isLoading={isLoading} />
             </div>
@@ -462,6 +464,34 @@ When dragging starts on elements with these attributes, the selection box won't 
 
 ---
 
+## Gotchas: Graceful Degradation
+
+**Never gate all page content behind a single data endpoint's success.** When a page uses multiple independent API endpoints, each section should handle errors independently:
+
+- Stats/summary cards: Show "--" when their endpoint fails
+- Lists/tables from separate endpoints: Render even if stats fail
+- Charts: Show empty state, not a full-page error
+- Use inline warnings instead of full-page blocking error cards
+
+**Anti-pattern:**
+```tsx
+{error && <FullPageError />}
+{data && !error && <AllContent />}
+```
+
+**Correct pattern:**
+```tsx
+{!isLoading && (
+  <>
+    {error && <InlineWarning />}
+    {data && <DataDependentSection />}
+    <IndependentSection /> {/* always renders */}
+  </>
+)}
+```
+
+---
+
 ## Verification Checklist
 
 1. [ ] Dashboard page renders at `/${lowercase}-dashboard`
@@ -473,4 +503,5 @@ When dragging starts on elements with these attributes, the selection box won't 
 7. [ ] Page margins can be adjusted via handles and sliders
 8. [ ] Box selection works for multi-select
 9. [ ] Export/import config works
-10. [ ] Run `npm run build` - no TypeScript errors
+10. [ ] Page degrades gracefully when backend endpoints fail (no full-page errors)
+11. [ ] Run `npm run build` - no TypeScript errors
