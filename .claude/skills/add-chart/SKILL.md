@@ -1,10 +1,6 @@
 ---
 name: add-chart
-version: 1.8.0
-created: 2026-02-02
-last-evolved: 2026-02-04
-evolution-count: 8
-feedback-count: 2
+updated: 2026-02-04
 description: Scaffold a new dashboard chart component with registry, types, and proper theme integration. Use when adding charts to the governance dashboard.
 argument-hint: [ChartName] [chartType]
 allowed-tools: Read, Edit, Write, Glob, Grep

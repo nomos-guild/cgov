@@ -1,10 +1,6 @@
 ---
 name: add-dashboard
-version: 2.1.0
-created: 2026-02-02
-last-evolved: 2026-02-04
-evolution-count: 2
-feedback-count: 0
+updated: 2026-02-04
 description: Create a new customizable dashboard with its own chart registry, provider, and page. Use when adding dashboards like DRep or SPO dashboard.
 argument-hint: [DashboardName]
 allowed-tools: Read, Edit, Write, Glob, Grep, Bash

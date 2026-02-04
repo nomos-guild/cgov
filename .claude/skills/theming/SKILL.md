@@ -1,9 +1,7 @@
 ---
-version: 1.1.0
-created: 2026-02-02
-last-evolved: 2026-02-02
-evolution-count: 1
-feedback-count: 0
+name: theming
+updated: 2026-02-02
+description: Guidelines for implementing consistent theming across the three visual themes (light, dark, game).
 ---
 
 # Theming & Styling Skill
