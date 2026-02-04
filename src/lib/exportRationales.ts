@@ -7,7 +7,7 @@ import type { Vote } from "@/types/governance";
  * - CIP-136 JSON ({ body: { rationaleStatement, conclusion } })
  * - Legacy { comment }
  */
-function getRationale(raw: string | undefined): string {
+export function getRationale(raw: string | undefined | null): string {
   if (!raw || raw.trim().length === 0) return "No rationale data provided.";
 
   try {

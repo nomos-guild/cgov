@@ -2,7 +2,7 @@ import { useMemo, useState, useCallback, useRef, useEffect } from "react";
 import Link from "next/link";
 import { RadialBarChart, RadialBar, ResponsiveContainer, Tooltip, Cell } from "recharts";
 import { useTheme } from "@/lib/theme";
-import { useDRepList, useDRepStats } from "@/hooks/useDRepData";
+import { useAllDReps, useDRepStats } from "@/hooks/useDRepData";
 import { getChartColors } from "@/components/dashboards/shared/chartTheme";
 
 interface RadialDataItem {
@@ -99,9 +99,8 @@ export function DRepSunburstChart({ className }: DRepSunburstChartProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const rowsContainerRef = useRef<HTMLDivElement>(null);
 
-  // Load all DReps
-  const { dreps, isLoading, error } = useDRepList({
-    pageSize: 1000, // Load all DReps
+  // Load all DReps (auto-paginates if backend caps pageSize)
+  const { dreps, isLoading, error } = useAllDReps({
     sortBy: "votingPower",
     sortOrder: "desc",
   });

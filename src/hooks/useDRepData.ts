@@ -2,6 +2,7 @@
  * SWR-based data fetching hooks for DRep data
  */
 
+import { useState, useEffect, useCallback, useRef } from "react";
 import useSWR from "swr";
 import { API_ENDPOINTS } from "@/config/api";
 import type {
@@ -149,6 +150,94 @@ export function useDRepList(options: UseDRepListOptions = {}) {
   };
 }
 
+/**
+ * Hook to fetch ALL DReps across all pages.
+ * Handles backends that cap pageSize by auto-paginating.
+ */
+export function useAllDReps(options: Omit<UseDRepListOptions, "page"> = {}) {
+  const { pageSize = 100, sortBy = "votingPower", sortOrder = "desc", search } = options;
+
+  const [allDreps, setAllDreps] = useState<DRepSummary[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const abortRef = useRef<AbortController | null>(null);
+
+  const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
+
+  useEffect(() => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    async function fetchAllPages() {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        // Fetch page 1 to learn totalPages
+        const firstParams = new URLSearchParams();
+        firstParams.set("page", "1");
+        firstParams.set("pageSize", String(pageSize));
+        firstParams.set("sortBy", sortBy);
+        firstParams.set("sortOrder", sortOrder);
+        if (search) firstParams.set("search", search);
+
+        const firstRes = await fetch(
+          `${API_ENDPOINTS.dreps}?${firstParams.toString()}`,
+          { signal: controller.signal }
+        );
+        if (!firstRes.ok) throw new Error(await firstRes.text() || firstRes.statusText);
+
+        const firstData: DRepListApiResponse = await firstRes.json();
+        const accumulated = firstData.dreps.map(transformDRepSummary);
+        const { totalPages } = firstData.pagination;
+
+        // Fetch remaining pages in parallel
+        if (totalPages > 1) {
+          const remaining = Array.from({ length: totalPages - 1 }, (_, i) => i + 2);
+          const results = await Promise.all(
+            remaining.map(async (pg) => {
+              const p = new URLSearchParams();
+              p.set("page", String(pg));
+              p.set("pageSize", String(pageSize));
+              p.set("sortBy", sortBy);
+              p.set("sortOrder", sortOrder);
+              if (search) p.set("search", search);
+
+              const res = await fetch(
+                `${API_ENDPOINTS.dreps}?${p.toString()}`,
+                { signal: controller.signal }
+              );
+              if (!res.ok) throw new Error(await res.text() || res.statusText);
+              const data: DRepListApiResponse = await res.json();
+              return data.dreps.map(transformDRepSummary);
+            })
+          );
+          for (const page of results) {
+            accumulated.push(...page);
+          }
+        }
+
+        if (!controller.signal.aborted) {
+          setAllDreps(accumulated);
+          setIsLoading(false);
+        }
+      } catch (err) {
+        if (!controller.signal.aborted) {
+          setError(err instanceof Error ? err.message : "Failed to fetch DReps");
+          setIsLoading(false);
+        }
+      }
+    }
+
+    fetchAllPages();
+    return () => controller.abort();
+  }, [pageSize, sortBy, sortOrder, search, refreshKey]);
+
+  return { dreps: allDreps, isLoading, error, refresh };
+}
+
 /** Raw API response for DRep detail */
 interface DRepDetailApiResponse {
   drepId: string;
@@ -280,4 +369,86 @@ export function useDRepVotes(drepId: string | null, options: UseDRepVotesOptions
     error: error?.message || null,
     refresh: () => mutate(),
   };
+}
+
+/**
+ * Hook to fetch ALL votes for a DRep across all pages.
+ * Useful for building aggregate charts (e.g. monthly activity).
+ */
+export function useAllDRepVotes(drepId: string | null) {
+  const [allVotes, setAllVotes] = useState<DRepVoteRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    if (!drepId) {
+      setAllVotes([]);
+      setIsLoading(false);
+      return;
+    }
+
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    async function fetchAllPages() {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const pageSize = 100;
+        const firstParams = new URLSearchParams();
+        firstParams.set("page", "1");
+        firstParams.set("pageSize", String(pageSize));
+
+        const firstRes = await fetch(
+          `${API_ENDPOINTS.drepVotes(drepId!)}?${firstParams.toString()}`,
+          { signal: controller.signal }
+        );
+        if (!firstRes.ok) throw new Error(await firstRes.text() || firstRes.statusText);
+
+        const firstData: DRepVotesApiResponse = await firstRes.json();
+        const accumulated = firstData.votes.map(transformVoteRecord);
+        const { totalPages } = firstData.pagination;
+
+        if (totalPages > 1) {
+          const remaining = Array.from({ length: totalPages - 1 }, (_, i) => i + 2);
+          const results = await Promise.all(
+            remaining.map(async (pg) => {
+              const p = new URLSearchParams();
+              p.set("page", String(pg));
+              p.set("pageSize", String(pageSize));
+
+              const res = await fetch(
+                `${API_ENDPOINTS.drepVotes(drepId!)}?${p.toString()}`,
+                { signal: controller.signal }
+              );
+              if (!res.ok) throw new Error(await res.text() || res.statusText);
+              const data: DRepVotesApiResponse = await res.json();
+              return data.votes.map(transformVoteRecord);
+            })
+          );
+          for (const page of results) {
+            accumulated.push(...page);
+          }
+        }
+
+        if (!controller.signal.aborted) {
+          setAllVotes(accumulated);
+          setIsLoading(false);
+        }
+      } catch (err) {
+        if (!controller.signal.aborted) {
+          setError(err instanceof Error ? err.message : "Failed to fetch votes");
+          setIsLoading(false);
+        }
+      }
+    }
+
+    fetchAllPages();
+    return () => controller.abort();
+  }, [drepId]);
+
+  return { votes: allVotes, isLoading, error };
 }

@@ -2,6 +2,21 @@
 
 All notable changes to this skill will be documented in this file.
 
+## [1.7.0] - 2026-02-04
+
+### Added
+- **CRITICAL: Recharts Pie Chart Overflow Clipping** - New section documenting the 3-layer overflow fix required for pie/donut charts with drop shadows
+- Explains why `recharts-wrapper` has inline `overflow: hidden` and how Tailwind arbitrary variant `[&_.recharts-wrapper]:!overflow-visible` overrides it
+- Verification checklist item for pie/donut overflow fix
+
+### Journey-driven
+Based on drep-profile-polish journey. Key discovery:
+- Recharts creates an internal wrapper div with inline `overflow: hidden` that clips pie chart shadows
+- Three layers of overflow-visible needed: outer div, recharts-wrapper override, SVG style
+- Tailwind arbitrary variant with `!important` is the clean, scoped fix
+
+---
+
 ## [1.6.0] - 2026-02-03
 
 ### Added
