@@ -1,14 +1,19 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/router";
 import type { GetServerSideProps } from "next";
 import Head from "next/head";
 import Link from "next/link";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import {
+  PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
+  LineChart, Line, XAxis, YAxis, CartesianGrid,
+} from "recharts";
 import { Card } from "@/components/ui/card";
 import { GameLoader } from "@/components/ui/game-loader";
 import { useTheme } from "@/lib/theme";
-import { useDRepDetail, useDRepVotes } from "@/hooks/useDRepData";
+import { useDRepDetail, useAllDRepVotes } from "@/hooks/useDRepData";
 import { cn } from "@/lib/utils";
+import { VotingRationaleModal } from "@/components/VotingRationaleModal";
+import type { VoteRecord } from "@/types/governance";
 import type { DRepVoteRecord } from "@/types/drep";
 
 type IntlMessages = typeof import("@/messages/en.json");
@@ -129,9 +134,9 @@ function VoteBreakdownChart({ yes, no, abstain, isGame, isLight }: VoteBreakdown
   ].filter((d) => d.value > 0);
 
   return (
-    <div className="h-[200px]">
+    <div className="h-[200px] overflow-visible [&_.recharts-wrapper]:!overflow-visible">
       <ResponsiveContainer width="100%" height="100%">
-        <PieChart>
+        <PieChart style={{ overflow: "visible" }}>
           <defs>
             {/* Shadow filter for light theme - dark shadow on borders */}
             {isLight && (
@@ -248,9 +253,9 @@ function EngagementChart({ totalVotesCast, participationPercent, isGame, isLight
   ].filter((d) => d.value > 0);
 
   return (
-    <div className="h-[200px]">
+    <div className="h-[200px] overflow-visible [&_.recharts-wrapper]:!overflow-visible">
       <ResponsiveContainer width="100%" height="100%">
-        <PieChart>
+        <PieChart style={{ overflow: "visible" }}>
           <defs>
             {isLight && (
               <filter id="engagementShadow" x="-50%" y="-50%" width="200%" height="200%">
@@ -362,9 +367,9 @@ function RationaleChart({ rationalesProvided, totalVotesCast, isGame, isLight }:
   ].filter((d) => d.value > 0);
 
   return (
-    <div className="h-[200px]">
+    <div className="h-[200px] overflow-visible [&_.recharts-wrapper]:!overflow-visible">
       <ResponsiveContainer width="100%" height="100%">
-        <PieChart>
+        <PieChart style={{ overflow: "visible" }}>
           <defs>
             {isLight && (
               <filter id="rationaleShadow" x="-50%" y="-50%" width="200%" height="200%">
@@ -436,13 +441,160 @@ function RationaleChart({ rationalesProvided, totalVotesCast, isGame, isLight }:
   );
 }
 
+// Monthly voting activity line chart
+const ACTIVITY_COLORS = {
+  game: { line: "#ffffff", grid: "rgba(255,255,255,0.08)", shadow: "rgba(255,255,255,0.3)" },
+  dark: { line: "#ffffff", grid: "rgba(255,255,255,0.08)", shadow: "rgba(255,255,255,0.3)" },
+  light: { line: "#ffffff", grid: "rgba(0,0,0,0.08)", shadow: "rgba(15,23,42,0.25)" },
+};
+
+interface MonthlyDataPoint {
+  month: string;
+  votes: number;
+  yes: number;
+  no: number;
+  abstain: number;
+}
+
+interface VotingActivityChartProps {
+  votes: DRepVoteRecord[];
+  isLoading: boolean;
+  isGame: boolean;
+  isLight: boolean;
+}
+
+function VotingActivityChart({ votes, isLoading, isGame, isLight }: VotingActivityChartProps) {
+  const colors = isGame ? ACTIVITY_COLORS.game : isLight ? ACTIVITY_COLORS.light : ACTIVITY_COLORS.dark;
+
+  const monthlyData = useMemo(() => {
+    if (!votes.length) return [];
+
+    // Group votes by month
+    const byMonth = new Map<string, { votes: number; yes: number; no: number; abstain: number }>();
+
+    for (const vote of votes) {
+      if (!vote.votedAt) continue;
+      const date = new Date(vote.votedAt);
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+
+      const entry = byMonth.get(key) || { votes: 0, yes: 0, no: 0, abstain: 0 };
+      entry.votes++;
+      if (vote.vote === "Yes") entry.yes++;
+      else if (vote.vote === "No") entry.no++;
+      else if (vote.vote === "Abstain") entry.abstain++;
+      byMonth.set(key, entry);
+    }
+
+    // Sort chronologically and format month labels
+    return Array.from(byMonth.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, data]): MonthlyDataPoint => {
+        const [year, month] = key.split("-");
+        const date = new Date(Number(year), Number(month) - 1);
+        const label = date.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+        return { month: label, ...data };
+      });
+  }, [votes]);
+
+  if (isLoading) {
+    return (
+      <div className="h-[220px] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary" />
+      </div>
+    );
+  }
+
+  if (!monthlyData.length) {
+    return (
+      <div className="h-[220px] flex items-center justify-center text-muted-foreground text-sm">
+        No voting activity data
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-[220px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={monthlyData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+          <defs>
+            <filter id="lineShadow" x="-50%" y="-50%" width="200%" height="200%">
+              <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor={colors.shadow} floodOpacity="1" />
+            </filter>
+          </defs>
+          <CartesianGrid stroke="none" />
+          <XAxis
+            dataKey="month"
+            tick={{ fontSize: 10, fill: isGame ? "rgba(255,255,255,0.5)" : isLight ? "rgba(0,0,0,0.5)" : "rgba(255,255,255,0.5)" }}
+            tickLine={false}
+            axisLine={false}
+          />
+          <YAxis
+            allowDecimals={false}
+            tick={{ fontSize: 10, fill: isGame ? "rgba(255,255,255,0.5)" : isLight ? "rgba(0,0,0,0.5)" : "rgba(255,255,255,0.5)" }}
+            tickLine={false}
+            axisLine={false}
+          />
+          <Tooltip
+            content={({ active, payload, label }) => {
+              if (!active || !payload?.[0]) return null;
+              const data = payload[0].payload as MonthlyDataPoint;
+              return (
+                <div className={cn(
+                  "rounded-lg p-2 text-sm",
+                  isGame
+                    ? "bg-[#1a1a2e] text-white border border-white/10"
+                    : "bg-white text-gray-900 border border-gray-200 shadow-[0_4px_12px_rgba(15,23,42,0.15)]"
+                )}>
+                  <p className="font-medium">{label}</p>
+                  <p>{data.votes} vote{data.votes !== 1 ? "s" : ""}</p>
+                </div>
+              );
+            }}
+          />
+          <Line
+            type="monotone"
+            dataKey="votes"
+            stroke={colors.line}
+            strokeWidth={2.5}
+            dot={false}
+            activeDot={false}
+            style={{ filter: "url(#lineShadow)" }}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+/** Convert a DRepVoteRecord to the VoteRecord shape the rationale modal expects */
+function toVoteRecord(vote: DRepVoteRecord, drepId: string, drepName: string): VoteRecord {
+  return {
+    voterType: "DRep",
+    voterId: drepId,
+    voterName: drepName,
+    drepId,
+    drepName,
+    vote: vote.vote,
+    votingPower: vote.votingPower ?? "0",
+    votingPowerAda: vote.votingPowerAda,
+    anchorUrl: vote.anchorUrl ?? undefined,
+    rationale: vote.rationale ?? undefined,
+    votedAt: vote.votedAt ?? "",
+    txHash: vote.txHash,
+  };
+}
+
 interface VotingHistoryTableProps {
   votes: DRepVoteRecord[];
+  drepId: string;
+  drepName: string;
   isGame: boolean;
   isLoading: boolean;
 }
 
-function VotingHistoryTable({ votes, isGame, isLoading }: VotingHistoryTableProps) {
+function VotingHistoryTable({ votes, drepId, drepName, isGame, isLoading }: VotingHistoryTableProps) {
+  const [selectedVote, setSelectedVote] = useState<VoteRecord | null>(null);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
@@ -460,75 +612,103 @@ function VotingHistoryTable({ votes, isGame, isLoading }: VotingHistoryTableProp
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className={cn(
-            "border-b text-left",
-            isGame ? "border-white/10 text-white/60" : "border-gray-200 dark:border-gray-700 text-muted-foreground"
-          )}>
-            <th className="py-3 px-2 font-medium">Proposal</th>
-            <th className="py-3 px-2 font-medium">Type</th>
-            <th className="py-3 px-2 font-medium">Vote</th>
-            <th className="py-3 px-2 font-medium text-right">Voting Power</th>
-            <th className="py-3 px-2 font-medium">Date</th>
-          </tr>
-        </thead>
-        <tbody>
-          {votes.map((vote) => (
-            <tr
-              key={`${vote.proposalId}-${vote.txHash}`}
-              className={cn(
-                "border-b transition-colors",
-                isGame
-                  ? "border-white/5 hover:bg-white/5"
-                  : "border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50"
-              )}
-            >
-              <td className="py-3 px-2">
-                <Link
-                  href={`/governance/${encodeURIComponent(vote.proposalId)}`}
+    <>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className={cn(
+              "border-b text-left",
+              isGame ? "border-white/10 text-white/60" : "border-gray-200 dark:border-gray-700 text-muted-foreground"
+            )}>
+              <th className="py-3 px-2 font-medium">Proposal</th>
+              <th className="py-3 px-2 font-medium">Type</th>
+              <th className="py-3 px-2 font-medium">Vote</th>
+              <th className="py-3 px-2 font-medium text-right">Voting Power</th>
+              <th className="py-3 px-2 font-medium">Date</th>
+              <th className="py-3 px-2 font-medium">Rationale</th>
+            </tr>
+          </thead>
+          <tbody>
+            {votes.map((vote) => {
+              const hasRationale = vote.rationale != null && vote.rationale.trim().length > 0;
+              return (
+                <tr
+                  key={`${vote.proposalId}-${vote.txHash}`}
                   className={cn(
-                    "hover:underline font-medium",
-                    isGame ? "text-[#0bd1a2]" : "text-primary"
+                    "border-b transition-colors",
+                    isGame
+                      ? "border-white/5 hover:bg-white/5"
+                      : "border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50"
                   )}
                 >
-                  {vote.proposalTitle || truncateId(vote.proposalId)}
-                </Link>
-              </td>
-              <td className="py-3 px-2">
-                <span className={cn(
-                  "text-xs px-2 py-0.5 rounded",
-                  isGame ? "bg-white/10 text-white/70" : "bg-gray-100 dark:bg-gray-800 text-muted-foreground"
-                )}>
-                  {vote.proposalType || "Unknown"}
-                </span>
-              </td>
-              <td className="py-3 px-2">
-                <span className={cn(
-                  "text-xs px-2 py-1 rounded-full font-medium",
-                  getVoteBadgeClass(vote.vote, isGame)
-                )}>
-                  {vote.vote}
-                </span>
-              </td>
-              <td className={cn(
-                "py-3 px-2 text-right tabular-nums",
-                isGame ? "text-white/70" : "text-muted-foreground"
-              )}>
-                {formatCompactNumber(vote.votingPowerAda)} ADA
-              </td>
-              <td className={cn(
-                "py-3 px-2",
-                isGame ? "text-white/60" : "text-muted-foreground"
-              )}>
-                {formatDate(vote.votedAt)}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+                  <td className="py-3 px-2">
+                    <Link
+                      href={`/governance/${encodeURIComponent(vote.proposalId)}`}
+                      className={cn(
+                        "hover:underline font-medium",
+                        isGame ? "text-[#0bd1a2]" : "text-primary"
+                      )}
+                    >
+                      {vote.proposalTitle || truncateId(vote.proposalId)}
+                    </Link>
+                  </td>
+                  <td className="py-3 px-2">
+                    <span className={cn(
+                      "text-xs px-2 py-0.5 rounded",
+                      isGame ? "bg-white/10 text-white/70" : "bg-gray-100 dark:bg-gray-800 text-muted-foreground"
+                    )}>
+                      {vote.proposalType || "Unknown"}
+                    </span>
+                  </td>
+                  <td className="py-3 px-2">
+                    <span className={cn(
+                      "text-xs px-2 py-1 rounded-full font-medium",
+                      getVoteBadgeClass(vote.vote, isGame)
+                    )}>
+                      {vote.vote}
+                    </span>
+                  </td>
+                  <td className={cn(
+                    "py-3 px-2 text-right tabular-nums",
+                    isGame ? "text-white/70" : "text-muted-foreground"
+                  )}>
+                    {formatCompactNumber(vote.votingPowerAda)} ADA
+                  </td>
+                  <td className={cn(
+                    "py-3 px-2",
+                    isGame ? "text-white/60" : "text-muted-foreground"
+                  )}>
+                    {formatDate(vote.votedAt)}
+                  </td>
+                  <td className="py-3 px-2">
+                    {hasRationale ? (
+                      <button
+                        onClick={() => setSelectedVote(toVoteRecord(vote, drepId, drepName))}
+                        className={cn(
+                          "text-xs font-medium px-2.5 py-1 rounded-md transition-colors",
+                          isGame
+                            ? "bg-[#0bd1a2]/15 text-[#0bd1a2] hover:bg-[#0bd1a2]/25"
+                            : "bg-primary/10 text-primary hover:bg-primary/20"
+                        )}
+                      >
+                        View
+                      </button>
+                    ) : (
+                      <span className={isGame ? "text-white/30" : "text-muted-foreground/50"}>--</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <VotingRationaleModal
+        vote={selectedVote}
+        open={selectedVote !== null}
+        onOpenChange={(open) => { if (!open) setSelectedVote(null); }}
+      />
+    </>
   );
 }
 
@@ -538,15 +718,10 @@ export default function DRepProfile() {
   const { activeTheme } = useTheme();
   const isGame = activeTheme.id === "game";
   const isLight = activeTheme.id === "light";
-  const [votesPage, setVotesPage] = useState(1);
-
   const drepIdStr = typeof drepId === "string" ? drepId : null;
 
   const { drep, isLoading: isLoadingDrep, error: drepError, refresh } = useDRepDetail(drepIdStr);
-  const { votes, pagination: votesPagination, isLoading: isLoadingVotes } = useDRepVotes(drepIdStr, {
-    page: votesPage,
-    pageSize: 10,
-  });
+  const { votes: allVotes, isLoading: isLoadingAllVotes } = useAllDRepVotes(drepIdStr);
 
   const isLoading = isLoadingDrep && !drep;
   const error = drepError;
@@ -785,31 +960,15 @@ export default function DRepProfile() {
                         </span>
                       </div>
                     </div>
-                    {drep.paymentAddr && (
-                      <div className="mt-3 pt-3 border-t border-black/5 dark:border-white/10">
-                        <span className={cn(
-                          "block text-xs mb-1",
-                          isGame ? "text-white/60" : "text-muted-foreground"
-                        )}>
-                          Payment Address
-                        </span>
-                        <span className={cn(
-                          "text-xs font-mono break-all",
-                          isGame ? "text-white/50" : "text-muted-foreground/70"
-                        )}>
-                          {drep.paymentAddr}
-                        </span>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
 
                 {/* Charts Card - 3 donut charts side by side */}
-                <div className={cn(cardClass, "flex-1")}>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className={cn(cardClass, "flex-1 flex flex-col overflow-visible")}>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 overflow-visible">
                     {/* Engagement Chart */}
-                    <div className="flex flex-col items-center justify-center">
+                    <div className="flex flex-col items-center justify-center overflow-visible">
                       <h3 className={cn(
                         "text-sm font-medium mb-2 text-center",
                         isGame ? "text-white/70" : "text-muted-foreground"
@@ -824,7 +983,7 @@ export default function DRepProfile() {
                       />
                     </div>
                     {/* Vote Breakdown Chart */}
-                    <div className="flex flex-col items-center justify-center">
+                    <div className="flex flex-col items-center justify-center overflow-visible">
                       <h3 className={cn(
                         "text-sm font-medium mb-2 text-center",
                         isGame ? "text-white/70" : "text-muted-foreground"
@@ -840,7 +999,7 @@ export default function DRepProfile() {
                       />
                     </div>
                     {/* Rationale Chart */}
-                    <div className="flex flex-col items-center justify-center">
+                    <div className="flex flex-col items-center justify-center overflow-visible">
                       <h3 className={cn(
                         "text-sm font-medium mb-2 text-center",
                         isGame ? "text-white/70" : "text-muted-foreground"
@@ -855,6 +1014,16 @@ export default function DRepProfile() {
                       />
                     </div>
                   </div>
+
+                  {/* Voting Activity Line Chart */}
+                  <div className="mt-auto pt-14 border-t border-black/5 dark:border-white/10">
+                    <VotingActivityChart
+                      votes={allVotes}
+                      isLoading={isLoadingAllVotes}
+                      isGame={isGame}
+                      isLight={isLight}
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -866,46 +1035,15 @@ export default function DRepProfile() {
                 )}>
                   Voting History
                 </h2>
-                <VotingHistoryTable
-                  votes={votes}
-                  isGame={isGame}
-                  isLoading={isLoadingVotes}
-                />
-                {/* Pagination */}
-                {votesPagination && votesPagination.totalPages > 1 && (
-                  <div className="flex justify-center items-center gap-2 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                    <button
-                      onClick={() => setVotesPage((p) => Math.max(1, p - 1))}
-                      disabled={votesPage === 1}
-                      className={cn(
-                        "px-3 py-1.5 text-sm rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
-                        isGame
-                          ? "bg-white/10 text-white hover:bg-white/20"
-                          : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                      )}
-                    >
-                      Previous
-                    </button>
-                    <span className={cn(
-                      "text-sm",
-                      isGame ? "text-white/70" : "text-muted-foreground"
-                    )}>
-                      Page {votesPage} of {votesPagination.totalPages}
-                    </span>
-                    <button
-                      onClick={() => setVotesPage((p) => Math.min(votesPagination.totalPages, p + 1))}
-                      disabled={votesPage === votesPagination.totalPages}
-                      className={cn(
-                        "px-3 py-1.5 text-sm rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
-                        isGame
-                          ? "bg-white/10 text-white hover:bg-white/20"
-                          : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                      )}
-                    >
-                      Next
-                    </button>
-                  </div>
-                )}
+                <div className="max-h-[500px] overflow-y-auto">
+                  <VotingHistoryTable
+                    votes={allVotes}
+                    drepId={drepIdStr || ""}
+                    drepName={drep.name || "Anonymous DRep"}
+                    isGame={isGame}
+                    isLoading={isLoadingAllVotes}
+                  />
+                </div>
               </div>
             </>
           )}
