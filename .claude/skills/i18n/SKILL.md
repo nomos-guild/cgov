@@ -1,10 +1,6 @@
 ---
 name: i18n
-version: 1.0.0
-created: 2026-02-04
-last-evolved: null
-evolution-count: 0
-feedback-count: 0
+updated: 2026-02-04
 description: Add or update translations across all 7 locale files and wire them into React components or pure utility functions. Use when localizing new features, adding translation keys, or fixing hardcoded English strings.
 argument-hint: [scope description]
 allowed-tools: Read, Edit, Write, Glob, Grep

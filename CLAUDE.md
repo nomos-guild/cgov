@@ -149,46 +149,51 @@ Reusable task templates for common operations:
 - `add-api-route` - Add a new API endpoint
 - `add-thunk` - Add a Redux async thunk
 - `cgov-build` - Build and validate the project
-- `skill-feedback` - Collect feedback after using a skill
-- `evolve-skill` - Evolve skills based on feedback
+- `theming` - Theme styling guidelines for light/dark/game
+- `i18n` - Add translations across all 7 locale files
+- `journey` - Create session learning logs
+- `wrap-up` - End-of-session learning consolidation
+- `reflect` - Deep reflection on the skill system itself (periodic meta-improvement)
 
-### Skill Evolution System
+### Skill Learning System
 
-Skills can evolve and improve through feedback. This mimics how humans learn through practice.
+Skills improve through a natural learning loop — no formal ceremonies, just work and consolidation.
 
-**Workflow:**
+**How it works:**
 ```
-Use skill → /skill-feedback {skill} → Feedback accumulates → /evolve-skill {skill} → Skill improves
+Work (use skill) → Notice & annotate inline → /wrap-up consolidates → Skills improve
 ```
+
+**During work:** If a skill's instructions are wrong or incomplete, leave an inline learning note:
+```markdown
+### Some Section
+Existing instruction text...
+
+<!-- LEARNING 2026-02-04: Discovered that X needs Y because Z -->
+```
+
+**At session end:** `/wrap-up {title}` does all consolidation:
+1. Creates a journey documenting what was done and learned
+2. Processes learning notes — integrates them into skill text, removes raw notes
+3. Evolves skills based on journey learnings
+4. Cross-pollinates shared patterns to `_patterns.md`
+5. Prunes stale content
+
+**Shared Patterns:** `.claude/skills/_patterns.md` holds cross-cutting knowledge (theming rules, Recharts gotchas, i18n conventions, etc.) that applies across all skills.
 
 **Skill Structure:**
 ```
 .claude/skills/{skill-name}/
 ├── SKILL.md           # Current skill definition
-├── CHANGELOG.md       # Evolution history
-└── .versions/         # Previous versions for rollback
-    ├── 1.0.0.md
-    └── 1.1.0.md
+└── .versions/         # Previous versions (human reference)
 ```
 
 **Skill Metadata** (in SKILL.md frontmatter):
 ```yaml
-version: 1.0.0
-created: 2026-02-02
-last-evolved: null
-evolution-count: 0
-feedback-count: 0
+name: add-chart
+updated: 2026-02-04
+description: "..."
 ```
-
-**Commands:**
-- `/skill-feedback {skill}` - Record feedback after using a skill
-- `/evolve-skill {skill}` - Analyze feedback and propose improvements
-- `/evolve-skill --all` - Show evolution status for all skills
-- `/evolve-skill rollback {skill}` - Revert to previous version
-- `/evolve-skill versions {skill}` - List available versions
-
-**Feedback Storage:**
-Feedback files are stored in `.claude/skills/.feedback/{skill-name}/` as YAML files and tracked in git for team sharing.
 
 ### Journeys (`.claude/journeys/`)
 

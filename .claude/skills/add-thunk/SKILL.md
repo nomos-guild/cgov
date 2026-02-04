@@ -1,10 +1,6 @@
 ---
 name: add-thunk
-version: 1.0.0
-created: 2026-02-02
-last-evolved: null
-evolution-count: 0
-feedback-count: 0
+updated: 2026-02-02
 description: Add a Redux async thunk with loading/error states to governanceSlice. Use when adding new async data fetching.
 argument-hint: [thunkName] [serviceFunction]
 allowed-tools: Read, Edit, Grep

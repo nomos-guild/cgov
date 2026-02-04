@@ -1,10 +1,6 @@
 ---
 name: add-api-route
-version: 1.1.0
-created: 2026-02-02
-last-evolved: 2026-02-03
-evolution-count: 1
-feedback-count: 0
+updated: 2026-02-03
 description: Create Next.js API routes for backend proxies or third-party API integrations with caching and error handling.
 argument-hint: [routePath] [backendEndpoint]
 allowed-tools: Read, Edit, Write, Glob

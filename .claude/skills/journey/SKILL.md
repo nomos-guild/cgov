@@ -1,9 +1,7 @@
 ---
-version: 1.0.0
-created: 2026-02-02
-last-evolved: null
-evolution-count: 0
-feedback-count: 0
+name: journey
+updated: 2026-02-02
+description: Create session learning logs that persist institutional memory across Claude Code sessions.
 ---
 
 # Journey Skill

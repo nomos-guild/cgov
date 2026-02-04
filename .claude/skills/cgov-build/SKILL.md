@@ -1,10 +1,6 @@
 ---
 name: cgov-build
-version: 1.0.0
-created: 2026-02-02
-last-evolved: null
-evolution-count: 0
-feedback-count: 0
+updated: 2026-02-02
 description: Run the build and iteratively fix TypeScript errors. Use when you need to verify the build passes or fix compilation errors.
 disable-model-invocation: true
 allowed-tools: Bash, Read, Edit, Grep, Glob, TodoWrite

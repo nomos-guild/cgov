@@ -1,11 +1,7 @@
 ---
 name: wrap-up
-version: 1.1.0
-created: 2026-02-02
-last-evolved: 2026-02-03
-evolution-count: 1
-feedback-count: 0
-description: End-of-session automation that creates a journey, evolves skills based on learnings, and updates the journey with evolutions.
+updated: 2026-02-04
+description: End-of-session automation. Creates a journey, consolidates learning notes, evolves skills, cross-pollinates shared patterns.
 argument-hint: [title]
 user-invocable: true
 allowed-tools: Read, Edit, Write, Glob, Grep, Bash
@@ -13,12 +9,11 @@ allowed-tools: Read, Edit, Write, Glob, Grep, Bash
 
 # Session Wrap-Up
 
-Automated end-of-session workflow that:
-1. **Gathers all file changes** from git to ensure nothing is missed
-2. Creates a journey documenting what was done and learned
-3. Analyzes skills to identify evolution opportunities
-4. Evolves skills based on journey learnings
-5. Updates the journey to include skill evolutions
+The single learning engine for the skill system. Mirrors how learning works in nature:
+
+```
+Experience (work) → Awareness (learning notes) → Consolidation (wrap-up)
+```
 
 ## Usage
 
@@ -28,156 +23,162 @@ Automated end-of-session workflow that:
 
 ## Arguments
 
-- `$0` - Session title describing the main work done (e.g., "Page Margins Feature")
+- `$0` - Session title describing the main work done (e.g., "DRep Dashboard Charts")
 
 ---
 
-## Workflow Steps
+## Step 1: Gather All File Changes
 
-### Step 1: Gather All File Changes (CRITICAL)
-
-**IMPORTANT**: Before creating the journey, ALWAYS run these git commands to capture ALL changes from the session. In long sessions, relying on memory alone will miss changes.
-
-Run these commands:
+**CRITICAL**: Before anything else, run git commands to capture ALL changes. In long sessions, memory alone will miss things.
 
 ```bash
-# Show all changed files (staged and unstaged)
 git status
-
-# Show detailed diff of all changes (staged and unstaged)
 git diff HEAD
-
-# If there are new untracked files, list them
 git ls-files --others --exclude-standard
 ```
 
-From this output, create a comprehensive list of:
-- All modified files and what changed in each
-- All new files that were created
+From the output, build a comprehensive list of:
+- All modified files and what changed
+- All new files created
 - All deleted files
-- The nature of changes (bug fix, feature, refactor, etc.)
+- Nature of changes (bug fix, feature, refactor, etc.)
 
-**DO NOT proceed to Step 2 until you have reviewed the git output.** This ensures the journey captures everything, not just what's fresh in conversation context.
+**DO NOT proceed to Step 2 until git output is reviewed.**
 
 ---
 
-### Step 2: Create Journey
+## Step 2: Create Journey
 
-Using the file changes from Step 1 AND the conversation context, create a journey file at `.claude/journeys/{date}-{slug}.md`.
+Using file changes from Step 1 AND conversation context, create a journey at `.claude/journeys/{date}-{slug}.md`.
 
 Include:
 - **Summary**: What was accomplished and why it matters
 - **What Was Done**: Numbered list of major items
-- **Key Learnings**: Insights that prevent future mistakes, patterns discovered
-- **Files Changed**: Table of files and their changes
+- **Key Learnings**: Insights that prevent future mistakes
+- **Files Changed**: Table of files and changes
 - **Patterns Discovered**: Code examples of reusable patterns
 - **Decisions Made**: Table of decisions and rationale
 
-Use today's date: `YYYY-MM-DD`
-Slug: lowercase, hyphenated version of title
+---
+
+## Step 3: Process Learning Notes
+
+Search ALL skill files for inline learning notes left during the session:
+
+```bash
+# Find all learning notes across skills
+grep -r "<!-- LEARNING" .claude/skills/
+```
+
+For each learning note found:
+1. **Read the note** and its surrounding context in the SKILL.md
+2. **Integrate** the learning into the skill's proper text — rewrite the relevant section to include the new knowledge naturally
+3. **Remove the raw note** — the `<!-- LEARNING ... -->` comment gets replaced by the integrated content
+4. **Update the `updated` date** in the skill's frontmatter
+
+### Learning Note Format (for reference)
+
+During work, learning notes are left inline:
+```markdown
+### Some Section
+Existing instruction text...
+
+<!-- LEARNING 2026-02-04: Discovered that X actually needs Y because Z -->
+```
+
+After consolidation, the section reads naturally with the learning absorbed:
+```markdown
+### Some Section
+Existing instruction text. Note: X needs Y because Z.
+```
 
 ---
 
-### Step 3: Analyze Skills for Evolution
+## Step 4: Evolve Skills from Journey
 
-Read all skills from `.claude/skills/*/SKILL.md` and compare against the journey learnings.
+Read all skills from `.claude/skills/*/SKILL.md` and compare against journey learnings.
 
 For each skill, check:
-- Does the journey contain patterns/learnings the skill should document?
-- Are there new features/components the skill should reference?
-- Did we discover edge cases or gotchas the skill should warn about?
+- Does the journey contain patterns the skill should document?
+- Were there edge cases or gotchas the skill should warn about?
 - Are there new verification checklist items?
+- Did we discover something that contradicts current skill instructions?
 
-Create a list of skills that need updates with specific changes.
-
----
-
-### Step 4: Evolve Skills
-
-For each skill identified in Step 3:
-
-1. **Read current skill** from `SKILL.md`
-2. **Increment version** (patch for docs, minor for features, major for breaking)
-3. **Apply changes** based on journey learnings
-4. **Update CHANGELOG.md** with:
-   - Version number and date
-   - What was added/changed/fixed
-   - "Journey-driven" note referencing the journey
-5. **Save version backup** to `.versions/{version}.md`
+For each skill that needs updates:
+1. Read current SKILL.md
+2. Apply changes based on learnings
+3. Update the `updated` date in frontmatter
 
 ---
 
-### Step 5: Update Journey
+## Step 5: Cross-Pollinate Shared Patterns
 
-Add a new section to the journey documenting the skill evolutions:
+Check if any learnings from the session apply across multiple skills.
+
+1. Read `.claude/skills/_patterns.md`
+2. If a learning is cross-cutting (theming, i18n, Recharts, data conventions), add it to `_patterns.md`
+3. If a pattern in `_patterns.md` is outdated based on session work, update it
+
+**Examples of cross-cutting learnings:**
+- A new theme rule discovered while building a chart → add to Theming section
+- A Recharts gotcha found during dashboard work → add to Recharts section
+- An i18n pattern discovered in export code → add to i18n section
+
+---
+
+## Step 6: Prune Stale Content
+
+Review skills touched during the session. Look for:
+- Sections documenting patterns for deprecated/removed features
+- Duplicate content that now lives in `_patterns.md`
+- Instructions that conflict with current codebase reality
+
+If something looks stale, remove it. Keep skills lean — context window space is valuable.
+
+---
+
+## Step 7: Update Journey with Evolutions
+
+Add a section to the journey documenting skill changes:
 
 ```markdown
 ## Skills Evolved
 
-Based on learnings from this session, the following skills were updated:
-
-| Skill | Version | Changes |
-|-------|---------|---------|
-| add-chart | 1.2.0 → 1.3.0 | Added data attributes documentation |
-| theming | 1.0.0 → 1.1.0 | Added handle styling patterns |
-```
-
----
-
-## Example Output
-
-After running `/wrap-up Page Margins Feature`:
-
-```
-✓ Gathered file changes from git:
-  - 12 files modified
-  - 3 files created
-  - 1 file deleted
-✓ Created journey: .claude/journeys/2026-02-02-page-margins-feature.md
-✓ Analyzed 9 skills for evolution opportunities
-✓ Evolved 3 skills:
-  - add-dashboard: 1.0.0 → 2.0.0 (major - full feature parity)
-  - add-chart: 1.2.0 → 1.3.0 (minor - data attributes)
-  - theming: 1.0.0 → 1.1.0 (minor - handle styling)
-✓ Updated journey with skill evolutions
+| Skill | Changes |
+|-------|---------|
+| add-chart | Added overflow clipping pattern |
+| _patterns | Updated theming rules |
 ```
 
 ---
 
 ## Skill Evolution Guidelines
 
-### When to evolve a skill:
-
-| Journey Content | Skill Action |
-|-----------------|--------------|
-| New component pattern | Add to architecture/patterns section |
-| Bug fix with root cause | Add to gotchas/checklist |
-| New feature implemented | Update feature documentation |
-| Theme styling learned | Update theming patterns |
-| New data attribute | Document in relevant skills |
-
-### Version increments:
-
-- **Patch** (1.0.0 → 1.0.1): Typo fixes, clarifications
-- **Minor** (1.0.0 → 1.1.0): New patterns, features, checklist items
-- **Major** (1.0.0 → 2.0.0): Significant restructuring, new sections
+| Session Content | Action |
+|-----------------|--------|
+| New component pattern | Add to relevant skill's patterns section |
+| Bug fix with root cause | Add to gotchas/checklist in relevant skill |
+| Theme styling learned | Update `_patterns.md` Theming section |
+| New data convention | Update `_patterns.md` Data Conventions section |
+| Recharts gotcha | Update `_patterns.md` Recharts section |
+| i18n pattern | Update `_patterns.md` i18n section |
 
 ---
 
-## Files Created/Modified
+## Example Output
 
-| File | Action |
-|------|--------|
-| `.claude/journeys/{date}-{slug}.md` | Created |
-| `.claude/skills/*/SKILL.md` | Modified (evolved skills) |
-| `.claude/skills/*/CHANGELOG.md` | Modified |
-| `.claude/skills/*/.versions/{version}.md` | Created |
+```
+Session: DRep Dashboard Charts
 
----
-
-## Notes
-
-- If no skills need evolution, still create the journey
-- Always create version backups before modifying skills
-- Reference the journey in changelog entries
-- Keep journey and skill updates consistent
+1. Gathered file changes (8 modified, 2 created)
+2. Created journey: .claude/journeys/2026-02-04-drep-dashboard-charts.md
+3. Processed 2 learning notes:
+   - add-chart: integrated pie overflow fix
+   - theming: integrated card border rule
+4. Evolved 2 skills from journey learnings:
+   - add-chart: added donut chart pattern
+   - add-dashboard: added graceful degradation
+5. Cross-pollinated: added Recharts overflow fix to _patterns.md
+6. Pruned: removed outdated tooltip contentStyle example from add-chart
+7. Updated journey with evolution summary
+```
