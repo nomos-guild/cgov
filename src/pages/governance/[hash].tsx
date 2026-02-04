@@ -42,6 +42,8 @@ import {
   exportToMarkdown,
   exportToCSV,
   downloadFile,
+  translateVotesForExport,
+  type ExportLabels,
 } from "@/lib/exportRationales";
 import {
   canRoleVoteOnAction,
@@ -49,6 +51,8 @@ import {
   getVoteDataPresence,
 } from "@/lib/governanceVotingEligibility";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { GameDropdown } from "@/components/ui/game-dropdown";
 import {
   buildDonutSegments,
   buildLegendSegments,
@@ -265,6 +269,9 @@ export default function GovernanceDetail() {
   const { theme, activeTheme } = useTheme();
   const tExpiry = useTranslations("expiry");
   const tTabs = useTranslations("tabs");
+  const tVoting = useTranslations("voting");
+  const tProposal = useTranslations("proposal");
+  const tExport = useTranslations("export");
   const isDark = theme === "dark";
   const isGame = activeTheme.id === "game";
   const voteColors = useMemo(
@@ -276,6 +283,7 @@ export default function GovernanceDetail() {
   );
 
   const [downloadFormat, setDownloadFormat] = useState<string>("");
+  const [isExporting, setIsExporting] = useState(false);
   const [contentVisible, setContentVisible] = useState(false);
   const [isContentExpanded, setIsContentExpanded] = useState<boolean>(false);
   const [isTimeExpanded, setIsTimeExpanded] = useState<boolean>(false);
@@ -312,6 +320,33 @@ export default function GovernanceDetail() {
       ...(selectedAction.ccVotes || []),
     ];
   }, [selectedAction]);
+
+  const exportLabels: ExportLabels = useMemo(
+    () => ({
+      noRationale: tExport("noRationale"),
+      voteYes: tExport("voteYes"),
+      voteNo: tExport("voteNo"),
+      voteAbstain: tExport("voteAbstain"),
+      headingVotingRationales: tExport("headingVotingRationales"),
+      labelExported: tExport("labelExported"),
+      labelTotalVotes: tExport("labelTotalVotes"),
+      labelVote: tExport("labelVote"),
+      labelVotingPower: tExport("labelVotingPower"),
+      labelVotedAt: tExport("labelVotedAt"),
+      labelRationaleLink: tExport("labelRationaleLink"),
+      headingRationale: tExport("headingRationale"),
+      csvProposal: tExport("csvProposal"),
+      csvVoterType: tExport("csvVoterType"),
+      csvVoterId: tExport("csvVoterId"),
+      csvVoterName: tExport("csvVoterName"),
+      csvVote: tExport("csvVote"),
+      csvVotingPower: tExport("csvVotingPower"),
+      csvVotedAt: tExport("csvVotedAt"),
+      csvRationale: tExport("csvRationale"),
+      csvAnchorUrl: tExport("csvAnchorUrl"),
+    }),
+    [tExport],
+  );
 
   const contentPreview = useMemo(() => {
     if (!selectedAction) return null;
@@ -692,13 +727,13 @@ export default function GovernanceDetail() {
           <Link href="/">
             <Button variant="default" className="mb-6 bg-white text-black hover:bg-black hover:text-white shadow-[0_12px_30px_rgba(15,23,42,0.25)]">
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Dashboard
+              {tProposal("backToDashboard")}
             </Button>
           </Link>
           <Card className="p-12">
             <div className="text-center">
               <p className="text-muted-foreground">
-                Governance action not found
+                {tProposal("govActionNotFound")}
               </p>
             </div>
           </Card>
@@ -771,36 +806,46 @@ export default function GovernanceDetail() {
     window.open(twitterUrl, "_blank", "noopener,noreferrer");
   };
 
-  const handleExport = (format: "json" | "markdown" | "csv") => {
+  const handleExport = async (format: "json" | "markdown" | "csv") => {
     const sanitizedTitle = selectedAction.title
       .replace(/[^a-z0-9]/gi, "_")
       .toLowerCase();
     const timestamp = new Date().toISOString().split("T")[0];
+    const locale = router.locale ?? "en";
 
-    let content: string;
-    let filename: string;
-    let mimeType: string;
+    setIsExporting(true);
 
-    switch (format) {
-      case "json":
-        content = exportToJSON(allVotes, selectedAction.title);
-        filename = `voting-rationales-${sanitizedTitle}-${timestamp}.json`;
-        mimeType = "application/json";
-        break;
-      case "markdown":
-        content = exportToMarkdown(allVotes, selectedAction.title);
-        filename = `voting-rationales-${sanitizedTitle}-${timestamp}.md`;
-        mimeType = "text/markdown";
-        break;
-      case "csv":
-        content = exportToCSV(allVotes, selectedAction.title);
-        filename = `voting-rationales-${sanitizedTitle}-${timestamp}.csv`;
-        mimeType = "text/csv";
-        break;
+    try {
+      // Translate rationale content for non-English locales
+      const translatedVotes = await translateVotesForExport(allVotes, locale);
+
+      let content: string;
+      let filename: string;
+      let mimeType: string;
+
+      switch (format) {
+        case "json":
+          content = exportToJSON(translatedVotes, selectedAction.title, exportLabels);
+          filename = `voting-rationales-${sanitizedTitle}-${timestamp}.json`;
+          mimeType = "application/json";
+          break;
+        case "markdown":
+          content = exportToMarkdown(translatedVotes, selectedAction.title, exportLabels, locale);
+          filename = `voting-rationales-${sanitizedTitle}-${timestamp}.md`;
+          mimeType = "text/markdown";
+          break;
+        case "csv":
+          content = exportToCSV(translatedVotes, selectedAction.title, exportLabels);
+          filename = `voting-rationales-${sanitizedTitle}-${timestamp}.csv`;
+          mimeType = "text/csv";
+          break;
+      }
+
+      downloadFile(content, filename, mimeType);
+    } finally {
+      setIsExporting(false);
+      setTimeout(() => setDownloadFormat(""), 100);
     }
-
-    downloadFile(content, filename, mimeType);
-    setTimeout(() => setDownloadFormat(""), 100);
   };
 
   const handleCopy = async (text: string, id: string) => {
@@ -852,7 +897,7 @@ export default function GovernanceDetail() {
                 }
                 onClick={handleTwitterShare}
               >
-                Share on X
+                {tProposal("shareOnX")}
               </Button>
             )}
           </div>
@@ -1036,7 +1081,7 @@ export default function GovernanceDetail() {
                                     drepInfo ? (
                                       <>
                                         <VoteProgress
-                                          title="DRep Votes"
+                                          title={tProposal("drepVotes")}
                                           segments={drepDonutSegments ?? undefined}
                                           valueUnit="ada"
                                           className="origin-left scale-[0.5] -mr-24 sm:mr-0 sm:origin-center sm:scale-90 md:scale-100 shrink-0"
@@ -1062,13 +1107,14 @@ export default function GovernanceDetail() {
                                     ) : (
                                       <RolePlaceholder
                                         role="DRep"
-                                        message="No on-chain data yet"
+                                        message={tProposal("noOnChainData")}
                                       />
                                     )
                                   ) : (
                                     <RolePlaceholder
                                       role="DRep"
-                                      message="Not eligible for this action"
+                                      message={tProposal("notEligibleForAction")}
+                                      notEligible
                                     />
                                   )}
                                 </div>
@@ -1079,7 +1125,7 @@ export default function GovernanceDetail() {
                                   {allowCC ? (
                                     <>
                                       <VoteProgress
-                                        title="CC Votes"
+                                        title={tProposal("ccVotes")}
                                         yesPercent={ccYesPercent}
                                         noPercent={ccNoPercent}
                                         pendingPercent={ccPendingPercentRecalc}
@@ -1114,7 +1160,8 @@ export default function GovernanceDetail() {
                                   ) : (
                                     <RolePlaceholder
                                       role="CC"
-                                      message="Not eligible for this action"
+                                      message={tProposal("notEligibleForAction")}
+                                      notEligible
                                     />
                                   )}
                                 </div>
@@ -1126,7 +1173,7 @@ export default function GovernanceDetail() {
                                     spoInfo ? (
                                       <>
                                         <VoteProgress
-                                          title="SPO Votes"
+                                          title={tProposal("spoVotes")}
                                           segments={spoDonutSegments ?? undefined}
                                           valueUnit="ada"
                                           className="origin-left scale-[0.5] -mr-24 sm:mr-0 sm:origin-center sm:scale-90 md:scale-100 shrink-0"
@@ -1152,13 +1199,14 @@ export default function GovernanceDetail() {
                                     ) : (
                                       <RolePlaceholder
                                         role="SPO"
-                                        message="No on-chain data yet"
+                                        message={tProposal("noOnChainData")}
                                       />
                                     )
                                   ) : (
                                     <RolePlaceholder
                                       role="SPO"
-                                      message="Not eligible for this action"
+                                      message={tProposal("notEligibleForAction")}
+                                      notEligible
                                     />
                                   )}
                                 </div>
@@ -1166,7 +1214,7 @@ export default function GovernanceDetail() {
                             </div>
                           ) : (
                             <div className="flex items-center justify-center py-6 text-sm text-muted-foreground">
-                              No voting activity yet.
+                              {tProposal("noVotingActivity")}
                             </div>
                           )}
                         </TabsContent>
@@ -1177,7 +1225,7 @@ export default function GovernanceDetail() {
                             <BubbleMap votes={allVotes} />
                           ) : (
                             <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground">
-                              No voting activity yet.
+                              {tProposal("noVotingActivity")}
                             </div>
                           )}
                         </TabsContent>
@@ -1190,15 +1238,15 @@ export default function GovernanceDetail() {
                           )}>
                             <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                               <div className="space-y-1">
-                                <h3 className={cn("text-lg font-semibold", isGame && "text-white")}>Voting trend</h3>
+                                <h3 className={cn("text-lg font-semibold", isGame && "text-white")}>{tProposal("votingTrend")}</h3>
                                 <p className={cn("text-sm", isGame ? "text-white/70" : "text-muted-foreground")}>
                                   {shouldShowPower
-                                    ? "Cumulative voting power (ADA)"
-                                    : "Cumulative yes / no / abstain votes"}{" "}
+                                    ? tProposal("cumulativePower")
+                                    : tProposal("cumulativeVotes")}{" "}
                                   · {" "}
                                   {curveRoleFilter === "All"
-                                    ? "All roles"
-                                    : `${curveRoleFilter} only`}
+                                    ? tVoting("allRoles")
+                                    : tProposal("roleOnly", { role: curveRoleFilter })}
                                 </p>
                                 <div className="flex flex-wrap gap-2 pt-1">
                                   {curveRoleOptions.map((role) => {
@@ -1220,7 +1268,7 @@ export default function GovernanceDetail() {
                                               }`
                                         )}
                                       >
-                                        {role === "All" ? "All Roles" : role}
+                                        {role === "All" ? tVoting("allRoles") : role}
                                       </button>
                                     );
                                   })}
@@ -1289,7 +1337,7 @@ export default function GovernanceDetail() {
                                             useDashedPowerLines ? "5 4" : undefined
                                           }
                                           dot={false}
-                                          name="Yes Power"
+                                          name={tProposal("yesPower")}
                                           yAxisId="primary"
                                         />
                                         <Line
@@ -1301,7 +1349,7 @@ export default function GovernanceDetail() {
                                             useDashedPowerLines ? "5 4" : undefined
                                           }
                                           dot={false}
-                                          name="No Power"
+                                          name={tProposal("noPower")}
                                           yAxisId="primary"
                                         />
                                         <Line
@@ -1314,7 +1362,7 @@ export default function GovernanceDetail() {
                                             useDashedPowerLines ? "5 4" : undefined
                                           }
                                           dot={false}
-                                          name="Abstain Power"
+                                          name={tProposal("abstainPower")}
                                           yAxisId="primary"
                                         />
                                       </>
@@ -1326,7 +1374,7 @@ export default function GovernanceDetail() {
                                           stroke={voteColors.yes}
                                           strokeWidth={2}
                                           dot={false}
-                                          name="Yes Votes"
+                                          name={tProposal("yesVotes")}
                                           yAxisId="primary"
                                         />
                                         <Line
@@ -1335,7 +1383,7 @@ export default function GovernanceDetail() {
                                           stroke={voteColors.no}
                                           strokeWidth={2}
                                           dot={false}
-                                          name="No Votes"
+                                          name={tProposal("noVotes")}
                                           yAxisId="primary"
                                         />
                                         <Line
@@ -1345,7 +1393,7 @@ export default function GovernanceDetail() {
                                           strokeOpacity={0.9}
                                           strokeWidth={2}
                                           dot={false}
-                                          name="Abstain Votes"
+                                          name={tProposal("abstainVotes")}
                                           yAxisId="primary"
                                         />
                                       </>
@@ -1355,7 +1403,7 @@ export default function GovernanceDetail() {
                               </div>
                             ) : (
                               <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground">
-                                Not enough voting data yet.
+                                {tProposal("notEnoughData")}
                               </div>
                             )}
                           </Card>
@@ -1375,7 +1423,7 @@ export default function GovernanceDetail() {
                                 "mb-3 block text-sm font-semibold sm:text-base",
                                 isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
                               )}>
-                                Voting Participation
+                                {tProposal("votingParticipation")}
                               </label>
                               <div className={cn(
                                 "overflow-hidden",
@@ -1407,13 +1455,13 @@ export default function GovernanceDetail() {
                                                 "px-3 py-2.5 text-sm",
                                                 isGame ? "text-white/80" : "text-muted-foreground dark:text-[#0bd1a2]/80"
                                               )}>
-                                                DReps
+                                                {tVoting("dreps")}
                                               </td>
                                               <td className={cn(
                                                 "px-3 py-2.5 text-sm font-semibold text-right",
                                                 isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
                                               )}>
-                                                {drepVotes.length.toLocaleString()} voted
+                                                {drepVotes.length.toLocaleString()} {tProposal("voted")}
                                               </td>
                                             </tr>
                                           )}
@@ -1428,13 +1476,13 @@ export default function GovernanceDetail() {
                                                 "px-3 py-2.5 text-sm",
                                                 isGame ? "text-white/80" : "text-muted-foreground dark:text-[#0bd1a2]/80"
                                               )}>
-                                                SPOs
+                                                {tVoting("spos")}
                                               </td>
                                               <td className={cn(
                                                 "px-3 py-2.5 text-sm font-semibold text-right",
                                                 isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
                                               )}>
-                                                {spoVotes.length.toLocaleString()} voted
+                                                {spoVotes.length.toLocaleString()} {tProposal("voted")}
                                               </td>
                                             </tr>
                                           )}
@@ -1444,13 +1492,13 @@ export default function GovernanceDetail() {
                                                 "px-3 py-2.5 text-sm",
                                                 isGame ? "text-white/80" : "text-muted-foreground dark:text-[#0bd1a2]/80"
                                               )}>
-                                                CC Members
+                                                {tProposal("ccMembers")}
                                               </td>
                                               <td className={cn(
                                                 "px-3 py-2.5 text-sm font-semibold text-right",
                                                 isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
                                               )}>
-                                                {ccVotes.length.toLocaleString()} voted
+                                                {ccVotes.length.toLocaleString()} {tProposal("voted")}
                                               </td>
                                             </tr>
                                           )}
@@ -1472,7 +1520,7 @@ export default function GovernanceDetail() {
                                 "mb-3 block text-sm font-semibold sm:text-base",
                                 isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
                               )}>
-                                Governance Action ID
+                                {tProposal("governanceActionId")}
                               </label>
                               <div className="flex items-start gap-2">
                                 <code className={cn(
@@ -1516,7 +1564,7 @@ export default function GovernanceDetail() {
                                 "mb-3 block text-sm font-semibold sm:text-base",
                                 isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
                               )}>
-                                Legacy Governance Action ID (CIP-105)
+                                {tProposal("legacyGovActionId")}
                               </label>
                               <div className="flex items-start gap-2">
                                 <code className={cn(
@@ -1560,7 +1608,7 @@ export default function GovernanceDetail() {
                                 "mb-3 block text-sm font-semibold sm:text-base",
                                 isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
                               )}>
-                                Transaction Hash
+                                {tProposal("transactionHash")}
                               </label>
                               <div className="flex items-start gap-2">
                                 <code className={cn(
@@ -1611,7 +1659,7 @@ export default function GovernanceDetail() {
                                 "text-sm font-semibold",
                                 isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
                               )}>
-                                Total Voting Power
+                                {tProposal("totalVotingPower")}
                               </h4>
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                 {/* DRep Total */}
@@ -1624,7 +1672,7 @@ export default function GovernanceDetail() {
                                       "text-xs",
                                       isGame ? "text-white/60" : "text-muted-foreground"
                                     )}>
-                                      DReps
+                                      {tVoting("dreps")}
                                     </div>
                                     <div className={cn(
                                       "text-lg font-semibold",
@@ -1646,7 +1694,7 @@ export default function GovernanceDetail() {
                                       "text-xs",
                                       isGame ? "text-white/60" : "text-muted-foreground"
                                     )}>
-                                      SPOs
+                                      {tVoting("spos")}
                                     </div>
                                     <div className={cn(
                                       "text-lg font-semibold",
@@ -1671,13 +1719,13 @@ export default function GovernanceDetail() {
                                         "text-xs",
                                         isGame ? "text-white/60" : "text-muted-foreground"
                                       )}>
-                                        CC Members
+                                        {tProposal("ccMembers")}
                                       </div>
                                       <div className={cn(
                                         "text-lg font-semibold",
                                         isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
                                       )}>
-                                        {ccTotalMembers} members
+                                        {tProposal("members", { count: ccTotalMembers })}
                                       </div>
                                     </div>
                                   );
@@ -1691,7 +1739,7 @@ export default function GovernanceDetail() {
                                 "text-sm font-semibold",
                                 isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
                               )}>
-                                Approval Progress
+                                {tProposal("approvalProgress")}
                               </h4>
 
                               {/* DRep Threshold */}
@@ -1707,7 +1755,7 @@ export default function GovernanceDetail() {
                                         "text-sm font-medium",
                                         isGame ? "text-white" : "text-foreground"
                                       )}>
-                                        DReps
+                                        {tVoting("dreps")}
                                       </span>
                                       <span className={cn(
                                         "text-sm",
@@ -1755,7 +1803,7 @@ export default function GovernanceDetail() {
                                         "text-sm font-medium",
                                         isGame ? "text-white" : "text-foreground"
                                       )}>
-                                        SPOs
+                                        {tVoting("spos")}
                                       </span>
                                       <span className={cn(
                                         "text-sm",
@@ -1801,7 +1849,7 @@ export default function GovernanceDetail() {
                                         "text-sm font-medium",
                                         isGame ? "text-white" : "text-foreground"
                                       )}>
-                                        Constitutional Committee
+                                        {tVoting("ccFull")}
                                       </span>
                                       <span className={cn(
                                         "text-sm",
@@ -1842,7 +1890,7 @@ export default function GovernanceDetail() {
                                 "text-sm",
                                 isGame ? "text-white/70" : "text-muted-foreground"
                               )}>
-                                No threshold data available for this proposal.
+                                {tProposal("noThresholdData")}
                               </p>
                             )}
                           </div>
@@ -2055,7 +2103,42 @@ export default function GovernanceDetail() {
               {/* Voting Trend Chart */}
               {voteTimelineData.length > 0 && (
                 <Card className={cn("p-6", isGame && "game-detail-card")}>
-                  <h3 className={cn("text-sm font-semibold mb-4", isGame && "text-white")}>Voting Trend</h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className={cn("text-sm font-semibold", isGame && "text-white")}>{tProposal("votingTrend")}</h3>
+                    {curveRoleOptions.length > 1 && (
+                      isGame ? (
+                        <GameDropdown
+                          value={curveRoleFilter}
+                          onValueChange={(value) => setCurveRoleFilter(value as RoleFilter)}
+                          options={curveRoleOptions.map((role) => ({
+                            value: role,
+                            label: role === "All" ? "All Roles" : role,
+                          }))}
+                          className="w-[120px]"
+                        />
+                      ) : (
+                        <Select
+                          value={curveRoleFilter}
+                          onValueChange={(value: string) => setCurveRoleFilter(value as RoleFilter)}
+                        >
+                          <SelectTrigger className="w-[120px] h-8 text-xs btn-neon ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:ring-offset-0 focus:border-black data-[state=open]:ring-0 data-[state=open]:ring-transparent data-[state=open]:ring-offset-0 data-[state=open]:border-black dark:focus:border-[#0bd1a2] dark:data-[state=open]:border-[#0bd1a2]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-none dark:border dark:border-[#0bd1a2] dark:bg-black dark:text-[#0bd1a2] dark:rounded-none">
+                            {curveRoleOptions.map((role) => (
+                              <SelectItem
+                                key={role}
+                                value={role}
+                                className="text-xs cursor-pointer dark:focus:bg-[#0bd1a2]/20 dark:focus:text-[#0bd1a2]"
+                              >
+                                {role === "All" ? tVoting("allRoles") : role}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )
+                    )}
+                  </div>
                   <div className="h-[200px] w-full min-w-0">
                     <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                       <LineChart
@@ -2151,7 +2234,7 @@ export default function GovernanceDetail() {
               <Card className={cn("p-6", isGame && "game-detail-card")}>
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center justify-between">
-                    <span className={isGame ? "text-white/70" : "text-muted-foreground"}>Gov action type</span>
+                    <span className={isGame ? "text-white/70" : "text-muted-foreground"}>{tProposal("govActionType")}</span>
                     <Badge
                       variant="outline"
                       className={cn(
@@ -2165,7 +2248,7 @@ export default function GovernanceDetail() {
                     </Badge>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className={isGame ? "text-white/70" : "text-muted-foreground"}>Status</span>
+                    <span className={isGame ? "text-white/70" : "text-muted-foreground"}>{tProposal("status")}</span>
                     <Badge
                       variant="outline"
                       className={cn(
@@ -2179,7 +2262,7 @@ export default function GovernanceDetail() {
                     </Badge>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className={isGame ? "text-white/70" : "text-muted-foreground"}>Constitutionality</span>
+                    <span className={isGame ? "text-white/70" : "text-muted-foreground"}>{tProposal("constitutionality")}</span>
                     {isInfoAction ? (
                       <div className="flex items-center gap-1.5">
                         <Badge
@@ -2191,7 +2274,7 @@ export default function GovernanceDetail() {
                               : "border-foreground/10 text-muted-foreground dark:rounded-none dark:border-[#0bd1a2]/50 dark:text-[#0bd1a2]/60"
                           )}
                         >
-                          Not Applicable
+                          {tProposal("notApplicable")}
                         </Badge>
                         <div className="group relative">
                           <Info
@@ -2201,7 +2284,7 @@ export default function GovernanceDetail() {
                             )}
                           />
                           <div className="pointer-events-none absolute right-0 top-full z-50 mt-1 hidden w-48 rounded-md border bg-popover p-2 text-xs text-popover-foreground shadow-md group-hover:block">
-                            Info Actions are informational only and do not require constitutional review as they don&apos;t change the protocol.
+                            {tProposal("infoActionTooltip")}
                           </div>
                         </div>
                       </div>
@@ -2217,7 +2300,7 @@ export default function GovernanceDetail() {
                       >
                         {/* Show "Pending" for active proposals where CC votes are still being cast */}
                         {selectedAction.status === "Active" && selectedAction.constitutionality.toLowerCase() !== "constitutional"
-                          ? "Pending"
+                          ? tProposal("pending")
                           : selectedAction.constitutionality}
                       </Badge>
                     ) : null}
@@ -2235,6 +2318,7 @@ export default function GovernanceDetail() {
                 proposalId={selectedAction.proposalId || selectedAction.hash}
                 showDownload={allVotes.length > 0}
                 downloadFormat={downloadFormat}
+                isExporting={isExporting}
                 onDownloadFormatChange={(value) => handleExport(value)}
               />
             </div>
@@ -2261,6 +2345,9 @@ function VoteTrendTooltip({
   colors: VoteColorSet;
   isGame: boolean;
 }) {
+  const tVoting = useTranslations("voting");
+  const tProposal = useTranslations("proposal");
+
   if (!active || !payload?.length) {
     return null;
   }
@@ -2272,26 +2359,26 @@ function VoteTrendTooltip({
 
   const rows = [
     {
-      label: "Yes",
+      label: tVoting("yes"),
       value: showPower
         ? formatAdaValue(point.yesPower)
-        : `${point.yesCount.toLocaleString()} votes`,
+        : `${point.yesCount.toLocaleString()} ${tProposal("votes")}`,
         color: colors.yes,
       border: "transparent",
     },
     {
-      label: "No",
+      label: tVoting("no"),
       value: showPower
         ? formatAdaValue(point.noPower)
-        : `${point.noCount.toLocaleString()} votes`,
+        : `${point.noCount.toLocaleString()} ${tProposal("votes")}`,
         color: colors.no,
       border: "transparent",
     },
     {
-      label: "Abstain",
+      label: tVoting("abstain"),
       value: showPower
         ? formatAdaValue(point.abstainPower)
-        : `${point.abstainCount.toLocaleString()} votes`,
+        : `${point.abstainCount.toLocaleString()} ${tProposal("votes")}`,
         color: colors.abstain,
       border: "rgba(148, 163, 184, 0.85)",
     },
@@ -2350,11 +2437,25 @@ function RoleLegend({
 }) {
   const { activeTheme } = useTheme();
   const isGame = activeTheme.id === "game";
+  const tVoting = useTranslations("voting");
+  const tProposal = useTranslations("proposal");
+
+  // Translate segment type to localized label
+  const segmentLabel = (type: string, fallback: string) => {
+    const map: Record<string, string> = {
+      yes: tVoting("yes"),
+      no: tVoting("no"),
+      abstain: tVoting("abstain"),
+      notVoted: tVoting("notVoted"),
+      alwaysNoConfidence: "ANC",
+    };
+    return map[type] ?? fallback;
+  };
 
   // Use segments when provided (DRep/SPO), otherwise use legacy props (CC)
   const items = segments && segments.length > 0
     ? segments.map((seg) => ({
-        label: seg.label,
+        label: segmentLabel(seg.type, seg.label),
         type: seg.type,
         value: formatAdaValue(seg.value),
         // For ANC with black color, don't apply opacity to keep it black
@@ -2368,23 +2469,23 @@ function RoleLegend({
     : [
         // CC legacy fallback - uses SEGMENT_COLORS with 45% opacity
         {
-          label: "Yes",
+          label: tVoting("yes"),
           type: "yes",
           value: yesLabel ?? "0",
           color: `${SEGMENT_COLORS.yes}73`,
           border: "transparent",
         },
         {
-          label: "No",
+          label: tVoting("no"),
           type: "no",
           value: noLabel ?? "0",
           color: `${SEGMENT_COLORS.no}73`,
           border: "transparent",
         },
         {
-          label: "Not Voted",
+          label: tVoting("notVoted"),
           type: "notVoted",
-          value: pendingLabel ?? (unit === "ADA" ? "0 ₳" : "0 votes"),
+          value: pendingLabel ?? (unit === "ADA" ? "0 ₳" : `0 ${tProposal("votes")}`),
           color: `${SEGMENT_COLORS.notVoted}73`,
           border: "rgba(148, 163, 184, 0.85)",
         },
@@ -2443,7 +2544,7 @@ function RoleLegend({
                         ? "bg-black/90 text-white border border-white/20"
                         : "bg-popover text-popover-foreground border border-border"
                     )}>
-                      Always No Confidence
+                      {tProposal("alwaysNoConfidence")}
                     </div>
                   </div>
                 )}
@@ -2477,6 +2578,8 @@ function ExcludedBreakdownDisplay({
 }) {
   const { activeTheme } = useTheme();
   const isGame = activeTheme.id === "game";
+  const tVoting = useTranslations("voting");
+  const tProposal = useTranslations("proposal");
 
   if (!breakdown) return null;
 
@@ -2490,12 +2593,12 @@ function ExcludedBreakdownDisplay({
   if (!isCC && (!fullBreakdown || fullBreakdown.total === 0)) return null;
 
   const items = isCC
-    ? [{ label: "Abstain", value: ccAbstain }]
+    ? [{ label: tVoting("abstain"), value: ccAbstain }]
     : [
-        { label: "Active Abstain", value: fullBreakdown!.activeAbstain },
-        { label: "Always Abstain", value: fullBreakdown!.alwaysAbstain },
+        { label: tProposal("activeAbstain"), value: fullBreakdown!.activeAbstain },
+        { label: tProposal("alwaysAbstain"), value: fullBreakdown!.alwaysAbstain },
         ...(fullBreakdown!.inactive !== undefined && role === "DRep"
-          ? [{ label: "Inactive", value: fullBreakdown!.inactive }]
+          ? [{ label: tProposal("inactive"), value: fullBreakdown!.inactive }]
           : []),
       ];
 
@@ -2517,7 +2620,7 @@ function ExcludedBreakdownDisplay({
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="text-[10px] uppercase tracking-wide">
-          {isInfoAction ? "Excluded" : "Excluded from ratification"}
+          {isInfoAction ? tProposal("excluded") : tProposal("excludedFromRatification")}
         </div>
         <div className="flex items-center gap-2">
           <span className={cn(
@@ -2581,20 +2684,19 @@ function ExcludedBreakdownDisplay({
   );
 }
 
-function RolePlaceholder({ role, message }: { role: string; message: string }) {
+function RolePlaceholder({ role, message, notEligible }: { role: string; message: string; notEligible?: boolean }) {
   const { activeTheme } = useTheme();
   const isGame = activeTheme.id === "game";
+  const tVoting = useTranslations("voting");
 
-  const isNotEligible = message === "Not eligible for this action";
-
-  if (isNotEligible) {
+  if (notEligible) {
     // Show empty donut with single gray slice and legend showing "Not eligible"
     return (
       <>
         <VoteProgress
-          title={`${role} Votes`}
+          title={`${role} ${tVoting("notEligible")}`}
           titlePosition="top"
-          centerText="Not Eligible"
+          centerText={tVoting("notEligible")}
           yesPercent={0}
           noPercent={0}
           abstainPercent={0}
@@ -2619,37 +2721,39 @@ function RolePlaceholder({ role, message }: { role: string; message: string }) {
             <span className={cn("font-semibold", isGame ? "text-white" : "dark:text-[#0bd1a2]")}>{role}</span>
           </div>
           <div className="space-y-1.5">
-            {["Yes", "No", "Abstain", "Not Voted"].map((label) => {
-              const colorKey = label.toLowerCase().replace(" ", "") === "notvoted" ? "notVoted" : label.toLowerCase() as keyof typeof SEGMENT_COLORS;
-              return (
-                <div
-                  key={label}
-                  className="flex items-start justify-between gap-2"
-                >
-                  <div className="flex items-start gap-2 min-w-0 flex-1">
-                    <span
-                      className="h-2.5 w-2.5 border shrink-0 mt-0.5"
-                      style={{
-                        backgroundColor: `${SEGMENT_COLORS[colorKey] || SEGMENT_COLORS.excluded}73`,
-                        borderColor: label === "Abstain" || label === "Not Voted" ? "rgba(148, 163, 184, 0.85)" : "transparent",
-                      }}
-                    />
-                    <span className={cn(
-                      "font-semibold leading-tight",
-                      isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
-                    )}>
-                      {label}
-                    </span>
-                  </div>
+            {([
+              { label: tVoting("yes"), colorKey: "yes" as keyof typeof SEGMENT_COLORS, hasBorder: false },
+              { label: tVoting("no"), colorKey: "no" as keyof typeof SEGMENT_COLORS, hasBorder: false },
+              { label: tVoting("abstain"), colorKey: "abstain" as keyof typeof SEGMENT_COLORS, hasBorder: true },
+              { label: tVoting("notVoted"), colorKey: "notVoted" as keyof typeof SEGMENT_COLORS, hasBorder: true },
+            ]).map((item) => (
+              <div
+                key={item.colorKey}
+                className="flex items-start justify-between gap-2"
+              >
+                <div className="flex items-start gap-2 min-w-0 flex-1">
+                  <span
+                    className="h-2.5 w-2.5 border shrink-0 mt-0.5"
+                    style={{
+                      backgroundColor: `${SEGMENT_COLORS[item.colorKey] || SEGMENT_COLORS.excluded}73`,
+                      borderColor: item.hasBorder ? "rgba(148, 163, 184, 0.85)" : "transparent",
+                    }}
+                  />
                   <span className={cn(
-                    "font-mono text-[11px] shrink-0 text-right italic",
-                    isGame ? "text-white/60" : "text-muted-foreground/60 dark:text-[#0bd1a2]/60"
+                    "font-semibold leading-tight",
+                    isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
                   )}>
-                    Not eligible
+                    {item.label}
                   </span>
                 </div>
-              );
-            })}
+                <span className={cn(
+                  "font-mono text-[11px] shrink-0 text-right italic",
+                  isGame ? "text-white/60" : "text-muted-foreground/60 dark:text-[#0bd1a2]/60"
+                )}>
+                  {tVoting("notEligible")}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
       </>
