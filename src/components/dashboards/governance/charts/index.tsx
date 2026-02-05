@@ -1,5 +1,5 @@
 import dynamic from "next/dynamic";
-import { BarChart3, PieChart, Gauge, Users, Vote, TrendingUp } from "lucide-react";
+import { BarChart3, PieChart, Gauge, TrendingUp, Users, FileText, Activity } from "lucide-react";
 import { ChartSkeleton } from "./ChartSkeleton";
 import type { ChartDefinition } from "@/types/dashboard";
 import { DEFAULT_CHART_LAYOUTS } from "@/types/dashboard";
@@ -21,18 +21,23 @@ const NCLProgressChart = dynamic(
   { loading: () => <ChartSkeleton />, ssr: false }
 );
 
-const VotingPowerChart = dynamic(
-  () => import("./VotingPowerChart").then((mod) => mod.VotingPowerChart),
-  { loading: () => <ChartSkeleton />, ssr: false }
-);
-
-const ParticipationChart = dynamic(
-  () => import("./ParticipationChart").then((mod) => mod.ParticipationChart),
-  { loading: () => <ChartSkeleton />, ssr: false }
-);
-
 const ProposalSubmissionChart = dynamic(
   () => import("./ProposalSubmissionChart").then((mod) => mod.ProposalSubmissionChart),
+  { loading: () => <ChartSkeleton />, ssr: false }
+);
+
+const DRepVotingPowerChart = dynamic(
+  () => import("./DRepVotingPowerChart").then((mod) => mod.DRepVotingPowerChart),
+  { loading: () => <ChartSkeleton />, ssr: false }
+);
+
+const DRepRationaleChart = dynamic(
+  () => import("./DRepRationaleChart").then((mod) => mod.DRepRationaleChart),
+  { loading: () => <ChartSkeleton />, ssr: false }
+);
+
+const DRepMetricsCard = dynamic(
+  () => import("./DRepMetricsCard").then((mod) => mod.DRepMetricsCard),
   { loading: () => <ChartSkeleton />, ssr: false }
 );
 
@@ -65,24 +70,6 @@ export const CHART_REGISTRY: ChartDefinition[] = [
     icon: Gauge,
   },
   {
-    id: "voting-power",
-    title: "Voting Power",
-    description: "DRep and SPO voting power distribution",
-    component: VotingPowerChart,
-    defaultVisible: true,
-    defaultLayout: DEFAULT_CHART_LAYOUTS["voting-power"],
-    icon: Users,
-  },
-  {
-    id: "participation",
-    title: "Participation",
-    description: "DRep participation rates across proposals",
-    component: ParticipationChart,
-    defaultVisible: true,
-    defaultLayout: DEFAULT_CHART_LAYOUTS["participation"],
-    icon: Vote,
-  },
-  {
     id: "proposal-submission",
     title: "Proposal Submission",
     description: "Number of proposals submitted per month over time",
@@ -90,6 +77,33 @@ export const CHART_REGISTRY: ChartDefinition[] = [
     defaultVisible: true,
     defaultLayout: DEFAULT_CHART_LAYOUTS["proposal-submission"],
     icon: TrendingUp,
+  },
+  {
+    id: "drep-voting-power",
+    title: "DRep Voting Power",
+    description: "Voting power distribution among top DReps",
+    component: DRepVotingPowerChart,
+    defaultVisible: false,
+    defaultLayout: DEFAULT_CHART_LAYOUTS["drep-voting-power"],
+    icon: Users,
+  },
+  {
+    id: "drep-rationale",
+    title: "DRep Rationales",
+    description: "DRep votes with vs without rationale provided",
+    component: DRepRationaleChart,
+    defaultVisible: false,
+    defaultLayout: DEFAULT_CHART_LAYOUTS["drep-rationale"],
+    icon: FileText,
+  },
+  {
+    id: "drep-metrics",
+    title: "DRep Metrics",
+    description: "Key DRep statistics: total DReps and votes cast",
+    component: DRepMetricsCard,
+    defaultVisible: false,
+    defaultLayout: DEFAULT_CHART_LAYOUTS["drep-metrics"],
+    icon: Activity,
   },
 ];
 
@@ -103,7 +117,8 @@ export {
   ProposalStatusChart,
   ProposalTypeChart,
   NCLProgressChart,
-  VotingPowerChart,
-  ParticipationChart,
   ProposalSubmissionChart,
+  DRepVotingPowerChart,
+  DRepRationaleChart,
+  DRepMetricsCard,
 };

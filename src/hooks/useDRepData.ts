@@ -452,3 +452,36 @@ export function useAllDRepVotes(drepId: string | null) {
 
   return { votes: allVotes, isLoading, error };
 }
+
+/** Response from /api/dreps/rationale-stats */
+interface DRepRationaleStatsResponse {
+  dreps: Array<{
+    drepId: string;
+    totalVotesCast: number;
+    rationalesProvided: number;
+  }>;
+}
+
+/**
+ * Hook to fetch aggregated rationale stats for ALL DReps.
+ * Single API call — the server does the heavy lifting.
+ * Results are sorted by voting power (desc) to match the DRep list.
+ */
+export function useDRepRationaleStats() {
+  const { data, error, isLoading, mutate } = useSWR<DRepRationaleStatsResponse>(
+    API_ENDPOINTS.drepRationaleStats,
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      dedupingInterval: 300000, // 5 minutes (server caches for 5 min too)
+    }
+  );
+
+  return {
+    dreps: data?.dreps || [],
+    isLoading,
+    error: error?.message || null,
+    refresh: () => mutate(),
+  };
+}

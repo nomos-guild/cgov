@@ -25,4 +25,5 @@ export const API_ENDPOINTS = {
   dreps: "/api/dreps",
   drepDetail: (drepId: string) => `/api/dreps/${encodeURIComponent(drepId)}`,
   drepVotes: (drepId: string) => `/api/dreps/${encodeURIComponent(drepId)}/votes`,
+  drepRationaleStats: "/api/dreps/rationale-stats",
 } as const;
