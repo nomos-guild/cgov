@@ -1,7 +1,7 @@
 ---
 name: add-api-route
-updated: 2026-02-03
-description: Create Next.js API routes for backend proxies or third-party API integrations with caching and error handling.
+updated: 2026-02-05
+description: Create Next.js API routes for backend proxies, server-side aggregation, or third-party API integrations with caching and error handling.
 argument-hint: [routePath] [backendEndpoint]
 allowed-tools: Read, Edit, Write, Glob
 ---
@@ -118,6 +118,91 @@ Adjust `s-maxage` based on data freshness needs:
 1. Test the endpoint with `curl http://localhost:3000/api/${$0}`
 2. Check backend connectivity
 3. Verify caching headers in browser DevTools
+
+---
+
+## Server-Side Aggregation Pattern
+
+When a frontend chart needs data from N+1 API calls (list all items, then fetch detail for each), move the aggregation server-side. This prevents hundreds of client-side calls and lets you cache the result for all users.
+
+**When to use:** Any chart that would otherwise make O(N) detail fetches from the browser.
+
+### Create Aggregation Endpoint
+
+```typescript
+import type { NextApiRequest, NextApiResponse } from "next";
+import { callApi } from "@/utils/apiHelper";
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });
+
+  try {
+    // 1. Fetch all list pages
+    const pageSize = 100;
+    const firstRes = await callApi({ endpoint: `/items?page=1&pageSize=${pageSize}`, method: "GET" });
+    const firstData = await firstRes.json();
+    const allItems = [...firstData.items];
+
+    if (firstData.pagination.totalPages > 1) {
+      const remaining = Array.from({ length: firstData.pagination.totalPages - 1 }, (_, i) => i + 2);
+      const pages = await Promise.all(
+        remaining.map(async (pg) => {
+          const r = await callApi({ endpoint: `/items?page=${pg}&pageSize=${pageSize}`, method: "GET" });
+          return (await r.json()).items;
+        })
+      );
+      for (const page of pages) allItems.push(...page);
+    }
+
+    // 2. Fetch details in parallel batches (prevent overwhelming backend)
+    const batchSize = 20;
+    const results = [];
+    for (let i = 0; i < allItems.length; i += batchSize) {
+      const batch = allItems.slice(i, i + batchSize);
+      const details = await Promise.all(
+        batch.map(async (item) => {
+          try {
+            const r = await callApi({ endpoint: `/items/${item.id}`, method: "GET" });
+            const d = await r.json();
+            return { id: item.id, /* extract needed fields */ };
+          } catch {
+            return { id: item.id, /* fallback values */ };
+          }
+        })
+      );
+      results.push(...details);
+    }
+
+    // 3. Cache aggressively — this is an expensive endpoint
+    res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
+    return res.status(200).json({ items: results });
+  } catch (error) {
+    console.error("Aggregation API error:", error);
+    return res.status(500).json({ error: "Failed to aggregate data" });
+  }
+}
+```
+
+### Pair with SWR Hook
+
+```typescript
+// In hooks file
+export function useAggregatedData() {
+  const { data, error, isLoading, mutate } = useSWR(
+    "/api/items/aggregated", fetcher,
+    { revalidateOnFocus: false, dedupingInterval: 300000 } // match server cache
+  );
+  return { items: data?.items || [], isLoading, error: error?.message || null, refresh: () => mutate() };
+}
+```
+
+### Cache Duration Guidelines for Aggregation
+
+| Data Type | s-maxage | stale-while-revalidate |
+|-----------|----------|------------------------|
+| Expensive aggregation (100+ backend calls) | 300s | 600s |
+| Moderate aggregation (10-50 calls) | 120s | 300s |
+| Simple proxy | 60s | 300s |
 
 ---
 

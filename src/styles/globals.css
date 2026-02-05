@@ -162,6 +162,28 @@
   }
 }
 
+/* Scrollbar hidden until hover */
+@layer utilities {
+  .scrollbar-on-hover {
+    overflow-y: auto;
+    scrollbar-color: transparent transparent;
+  }
+  .scrollbar-on-hover:hover {
+    scrollbar-color: hsl(var(--muted-foreground)) transparent;
+  }
+  .scrollbar-on-hover::-webkit-scrollbar-thumb {
+    background-color: transparent;
+  }
+  .scrollbar-on-hover:hover::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--muted-foreground));
+  }
+  .scrollbar-on-hover::-webkit-scrollbar-track {
+    background: transparent;
+    box-shadow: none;
+    border: none;
+  }
+}
+
 /* Simple modern glass effect */
 @layer utilities {
   .glass {

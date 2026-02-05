@@ -19,7 +19,7 @@ import { Progress } from "@/components/ui/progress";
 import { VotingRecords } from "@/components/VotingRecords";
 import { BubbleMap } from "@/components/BubbleMap";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { loadGovernanceActionDetail } from "@/store/governanceSlice";
+import { loadGovernanceActionDetail, setSelectedAction } from "@/store/governanceSlice";
 import { ArrowLeft, Copy, Check, Info } from "lucide-react";
 import type {
   GovernanceActionDetail,
@@ -262,7 +262,11 @@ type TimelinePoint = {
 
 type RoleFilter = "All" | VoterType;
 
-export default function GovernanceDetail() {
+interface GovernanceDetailProps {
+  initialDetail?: GovernanceActionDetail | null;
+}
+
+export default function GovernanceDetail({ initialDetail }: GovernanceDetailProps) {
   const router = useRouter();
   const { hash } = router.query;
   const dispatch = useAppDispatch();
@@ -298,13 +302,26 @@ export default function GovernanceDetail() {
   // Track the hash we're currently showing to detect route changes
   const [displayedHash, setDisplayedHash] = useState<string | null>(null);
 
+  // Hydrate Redux with server-prefetched data on mount
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    if (initialDetail && !hydrated) {
+      dispatch(setSelectedAction(initialDetail));
+      setDisplayedHash(typeof hash === "string" ? hash : null);
+      setHydrated(true);
+    }
+  }, [initialDetail, hydrated, dispatch, hash]);
+
   useEffect(() => {
     if (typeof hash === "string" && hash !== displayedHash) {
       setContentVisible(false);
-      dispatch(loadGovernanceActionDetail(hash));
+      // Skip client-side fetch if we already have server-prefetched data for this hash
+      if (!(initialDetail && !hydrated)) {
+        dispatch(loadGovernanceActionDetail(hash));
+      }
       setDisplayedHash(hash);
     }
-  }, [hash, dispatch, displayedHash]);
+  }, [hash, dispatch, displayedHash, initialDetail, hydrated]);
 
   useEffect(() => {
     if (selectedAction && !contentVisible && displayedHash === hash) {
@@ -2777,12 +2794,20 @@ function RolePlaceholder({ role, message, notEligible }: { role: string; message
   );
 }
 
-export const getServerSideProps: GetServerSideProps = async ({ locale }) => {
+export const getServerSideProps: GetServerSideProps = async ({ params, locale }) => {
   const messages = (await import(`@/messages/${locale ?? "en"}.json`)).default;
+  const hash = typeof params?.hash === "string" ? params.hash : null;
+
+  let initialDetail: GovernanceActionDetail | null = null;
+  if (hash) {
+    const { fetchGovernanceActionDetailServer } = await import("@/lib/serverFetch");
+    initialDetail = await fetchGovernanceActionDetailServer(hash);
+  }
 
   return {
     props: {
       messages,
+      initialDetail,
     },
   };
 };
