@@ -6,19 +6,23 @@
  */
 
 import useSWR from "swr";
-import { useEffect } from "react";
+import { useEffect, useRef, useMemo } from "react";
 import { API_ENDPOINTS } from "@/config/api";
 import type {
   GovernanceAction,
+  GovernanceActionDetail,
   OverviewSummary,
   NCLDisplayData,
   NCLYearData,
+  VoteRecord,
+  ProposalReferenceObject,
 } from "@/types/governance";
 import { useAppDispatch } from "@/store/hooks";
 import {
   setActions,
   setOverview,
   setNCLDataList,
+  setSelectedAction,
 } from "@/store/governanceSlice";
 
 /**
@@ -269,5 +273,156 @@ export function useGovernanceDataLoader(initialData?: InitialGovernanceData) {
       overview.refresh();
       ncl.refresh();
     },
+  };
+}
+
+// =============================================================================
+// Proposal Detail Hook
+// =============================================================================
+
+/**
+ * Transform a vote record's lovelace values to ADA
+ */
+function transformVoteRecord(vote: VoteRecord): VoteRecord {
+  const votingPowerAda =
+    vote.votingPowerAda !== undefined
+      ? vote.votingPowerAda
+      : lovelaceToAdaNumber(vote.votingPower);
+
+  return {
+    voterType: vote.voterType,
+    voterId: vote.voterId,
+    voterName: vote.voterName,
+    drepId: vote.voterId || vote.drepId,
+    drepName: vote.voterName || vote.voterId || vote.drepName,
+    vote: vote.vote,
+    votingPower: vote.votingPower ?? "0",
+    votingPowerAda,
+    anchorUrl: vote.anchorUrl,
+    anchorHash: vote.anchorHash,
+    rationale: vote.rationale,
+    votedAt: vote.votedAt,
+    txHash: vote.txHash,
+  };
+}
+
+/**
+ * Normalise references from the upstream API to a consistent shape.
+ * Mirrors the logic in services/api.ts transformGovernanceActionDetail.
+ */
+function normaliseReferences(
+  refs: unknown[] | undefined
+): ProposalReferenceObject[] | undefined {
+  if (!Array.isArray(refs)) return undefined;
+
+  return (refs as Array<string | ProposalReferenceObject>)
+    .map((ref) => {
+      if (!ref) return null;
+      if (typeof ref === "string") {
+        const value = ref.trim();
+        if (!value) return null;
+        return { uri: value, label: value } as ProposalReferenceObject;
+      }
+      if (typeof ref === "object") {
+        const raw = ref as ProposalReferenceObject;
+        const uri =
+          raw.uri ||
+          (raw as Record<string, unknown>).url?.toString?.() ||
+          (raw as Record<string, unknown>).href?.toString?.();
+        const label =
+          raw.label && typeof raw.label === "string"
+            ? raw.label
+            : typeof uri === "string"
+              ? uri
+              : undefined;
+        const upstreamType = (raw as Record<string, unknown>)["@type"];
+        const type =
+          typeof raw.type === "string"
+            ? raw.type
+            : typeof upstreamType === "string"
+              ? upstreamType
+              : undefined;
+        if (!uri && !label) return null;
+        const normalised: ProposalReferenceObject = {
+          ...raw,
+          uri: typeof uri === "string" ? uri : undefined,
+          label,
+        };
+        if (type) normalised.type = type;
+        return normalised;
+      }
+      return null;
+    })
+    .filter((v): v is ProposalReferenceObject => v !== null);
+}
+
+/**
+ * Transform a full governance action detail (base fields + votes)
+ */
+function transformGovernanceActionDetail(
+  detail: GovernanceActionDetail
+): GovernanceActionDetail {
+  const base = transformGovernanceAction(detail);
+  return {
+    ...base,
+    description: detail.description,
+    rationale: detail.rationale,
+    references: normaliseReferences(detail.references as unknown[]),
+    votes: detail.votes?.map(transformVoteRecord) ?? [],
+    ccVotes: detail.ccVotes?.map(transformVoteRecord) ?? [],
+  };
+}
+
+/**
+ * Hook for fetching governance action detail with SWR caching.
+ * Supports ISR fallback data for instant hydration and client-side navigation.
+ *
+ * @param proposalId - The proposal hash/ID to fetch, or null to disable fetching
+ * @param fallbackData - Pre-fetched data from getStaticProps for instant hydration
+ */
+export function useGovernanceActionDetail(
+  proposalId: string | null | undefined,
+  fallbackData?: GovernanceActionDetail | null
+) {
+  const dispatch = useAppDispatch();
+  const swrKey = proposalId ? API_ENDPOINTS.proposalDetail(proposalId) : null;
+
+  const { data, error, isLoading, mutate } = useSWR<GovernanceActionDetail>(
+    swrKey,
+    fetcher,
+    {
+      ...swrConfig,
+      fallbackData: fallbackData ?? undefined,
+      revalidateOnMount: !fallbackData,
+    }
+  );
+
+  // When fallbackData changes (client-side navigation delivers new ISR data),
+  // seed the SWR cache so the UI updates instantly without waiting for a fetch.
+  const prevFallbackRef = useRef(fallbackData);
+  useEffect(() => {
+    if (fallbackData && fallbackData !== prevFallbackRef.current) {
+      mutate(fallbackData, false);
+      prevFallbackRef.current = fallbackData;
+    }
+  }, [fallbackData, mutate]);
+
+  const transformed = useMemo(
+    () => (data ? transformGovernanceActionDetail(data) : null),
+    [data]
+  );
+
+  // Sync to Redux for backward compatibility with components reading selectedAction
+  useEffect(() => {
+    if (transformed) {
+      dispatch(setSelectedAction(transformed));
+    }
+  }, [transformed, dispatch]);
+
+  return {
+    detail: transformed,
+    isLoading: !fallbackData && isLoading,
+    error: error?.message ?? null,
+    refresh: mutate,
   };
 }

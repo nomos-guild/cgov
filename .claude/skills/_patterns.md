@@ -75,6 +75,19 @@ import { cn } from "@/lib/utils";
 - **Self-canceling useEffect**: Never set state that's in the dependency array inside the effect — it re-triggers cleanup, aborting async work. Use `useRef` for in-progress guards instead of `useState`.
 - **Unstable array references**: `data?.items.map(fn) || []` creates a new array every render. Derive a stable key with `useMemo(() => items.map(i => i.id).join(","), [items])` when used as a dependency.
 - **SWR for chart data**: DRep/non-Redux data uses SWR hooks in `src/hooks/useDRepData.ts`. Match `dedupingInterval` to server cache duration.
+- **SWR fallbackData on key change**: `fallbackData` only seeds data for the initial SWR key. When the key changes (e.g., navigating between proposals), use `useRef` + `mutate(newFallback, false)` to seed the cache for the new key.
+
+---
+
+## ISR + SWR Page Pattern
+
+Both the landing page (`/`) and proposal detail page (`/governance/[hash]`) use this pattern for fast page loads:
+
+1. **ISR** (`getStaticProps` + `revalidate: 60`) pre-renders pages server-side and caches them
+2. **SWR hook** receives ISR data as `fallbackData` for instant hydration, skips initial fetch
+3. **Redux sync** in the SWR hook's `useEffect` keeps backward compat with components reading from Redux
+4. For dynamic routes with many possible values, use `getStaticPaths` with `paths: []` and `fallback: 'blocking'`
+5. Use `revalidate: 10` on error for faster retry, `60` on success
 
 ---
 
