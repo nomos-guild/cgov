@@ -27,9 +27,9 @@ export interface ProposalTurnout {
   governanceActionType: string | null;
   submissionEpoch: number | null;
   status: string;
-  /** DRep turnout percentage (0-100) */
+  /** DRep turnout percentage (0-100) - active votes only */
   drepTurnoutPct: number | null;
-  /** SPO turnout percentage (0-100) */
+  /** SPO turnout percentage (0-100) - active votes only */
   spoTurnoutPct: number | null;
   /** DRep active yes vote power (lovelace as string) */
   drepActiveYesVotePower: string | null;
@@ -47,6 +47,28 @@ export interface ProposalTurnout {
   spoActiveAbstainVotePower: string | null;
   /** SPO total vote power (lovelace as string) */
   spoTotalVotePower: string | null;
+
+  // --- NEW: DRep breakdown fields ---
+  /** DRep always abstain vote power (lovelace as string) */
+  drepAlwaysAbstainVotePower: string | null;
+  /** DRep always no confidence vote power (lovelace as string) */
+  drepAlwaysNoConfidencePower: string | null;
+  /** DRep inactive vote power (lovelace as string) */
+  drepInactiveVotePower: string | null;
+  /** DRep not voted power (lovelace as string) - stake that didn't participate */
+  drepNotVotedPower: string | null;
+  /** DRep participating percentage (0-100) - includes active + default stance */
+  drepParticipatingPct: number | null;
+
+  // --- NEW: SPO breakdown fields ---
+  /** SPO always abstain vote power (lovelace as string) */
+  spoAlwaysAbstainVotePower: string | null;
+  /** SPO always no confidence vote power (lovelace as string) */
+  spoAlwaysNoConfidencePower: string | null;
+  /** SPO not voted power (lovelace as string) - pure non-voters */
+  spoNotVotedPower: string | null;
+  /** SPO participating percentage (0-100) - includes active + default stance */
+  spoParticipatingPct: number | null;
 }
 
 export interface GetVotingTurnoutResponse {
@@ -315,12 +337,30 @@ export interface GetSpoVotingTurnoutResponse {
 export interface ProposalSilentStake {
   proposalId: string;
   title: string;
-  /** SPO no vote power (stake that did not vote) - lovelace as string */
+  /** Governance action type - needed for epoch formula */
+  governanceActionType: string | null;
+  /** Submission epoch - needed for epoch formula */
+  submissionEpoch: number | null;
+  /** SPO no vote power (total silent stake) - lovelace as string (backward compat) */
   spoNoVotePower: string | null;
   /** SPO total vote power - lovelace as string */
   spoTotalVotePower: string | null;
-  /** Silent stake percentage (0-100) */
+  /** Total silent stake percentage (0-100) - backward compat */
   silentPct: number | null;
+
+  // --- NEW: Split breakdown ---
+  /** Pure not voted power (true non-voters) - lovelace as string */
+  pureNotVotedPower: string | null;
+  /** Default stance power (alwaysAbstain + alwaysNoConfidence) - lovelace as string */
+  defaultStancePower: string | null;
+  /** Always abstain power - lovelace as string */
+  alwaysAbstainPower: string | null;
+  /** Always no confidence power - lovelace as string */
+  alwaysNoConfidencePower: string | null;
+  /** Pure not voted percentage (0-100) */
+  pureNotVotedPct: number | null;
+  /** Default stance percentage (0-100) */
+  defaultStancePct: number | null;
 }
 
 export interface GetSpoSilentStakeResponse {
@@ -434,18 +474,40 @@ export interface ProposalContention {
   proposalId: string;
   title: string;
   governanceActionType: string | null;
-  /** DRep yes percentage */
+  /** Submission epoch - needed for epoch formula */
+  submissionEpoch: number | null;
+  /** DRep yes percentage (simple: activeYes / total) - backward compat */
   drepYesPct: number | null;
-  /** DRep no percentage */
+  /** DRep no percentage (simple: activeNo / total) - backward compat */
   drepNoPct: number | null;
-  /** SPO yes percentage */
+  /** SPO yes percentage (simple: activeYes / total) - backward compat */
   spoYesPct: number | null;
-  /** SPO no percentage */
+  /** SPO no percentage (simple: activeNo / total) - backward compat */
   spoNoPct: number | null;
   /** Is this proposal contentious (close vote)? */
   isContentious: boolean;
   /** Contention score (0-100, higher = more contentious) */
   contentionScore: number | null;
+
+  // --- NEW: Ratification formula results ---
+  /** DRep yes percentage using ratification formula */
+  drepRatificationYesPct: number | null;
+  /** DRep no percentage using ratification formula */
+  drepRatificationNoPct: number | null;
+  /** SPO yes percentage using ratification formula (epoch-aware) */
+  spoRatificationYesPct: number | null;
+  /** SPO no percentage using ratification formula (epoch-aware) */
+  spoRatificationNoPct: number | null;
+
+  // --- NEW: Threshold info ---
+  /** DRep threshold for this governance action type (0-1) */
+  drepThreshold: number | null;
+  /** SPO threshold for this governance action type (0-1, null if SPO doesn't vote) */
+  spoThreshold: number | null;
+  /** DRep distance from threshold (positive = passing, negative = failing) */
+  drepDistanceFromThreshold: number | null;
+  /** SPO distance from threshold (positive = passing, negative = failing) */
+  spoDistanceFromThreshold: number | null;
 }
 
 export interface GetContentionRateResponse {
@@ -661,10 +723,236 @@ export interface AnalyticsQueryParams {
   pageSize?: number;
   epochStart?: number;
   epochEnd?: number;
-  statuses?: string[];
+  /** Filter by proposal status (comma-separated in backend); we send as array and serialize to comma-separated. */
+  status?: string[];
+  /** Filter by governance action type (comma-separated in backend); we send as array and serialize to comma-separated. */
+  governanceActionType?: string[];
   proposalId?: string;
   drepId?: string;
   drepId1?: string;
   drepId2?: string;
-  groupBy?: "proposal" | "epoch";
+
+  /** Generic limit/max items parameter used by several endpoints */
+  limit?: number;
+
+  /** Delegation distribution snapshot epoch */
+  epoch?: number;
+
+  /** Inactive ADA view selector */
+  view?: "proposals" | "epochs" | "both";
+
+  /** Gini endpoint filter */
+  activeOnly?: boolean;
+
+  /** Sorting (used by some DRep endpoints) */
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+
+  /** Correlation endpoint options */
+  topN?: number;
+  minSharedProposals?: number;
+
+  /** Contention / enactment flags */
+  contentiousOnly?: boolean;
+  enactedOnly?: boolean;
+}
+
+// ============================================
+// Endpoint-Specific Query Parameter Types
+// ============================================
+
+export interface AnalyticsPaginationParams {
+  page?: number;
+  pageSize?: number;
+}
+
+export interface AnalyticsEpochRangeParams {
+  epochStart?: number;
+  epochEnd?: number;
+}
+
+export interface AnalyticsStatusParams {
+  status?: string[];
+}
+
+export interface AnalyticsGovernanceActionTypeParams {
+  governanceActionType?: string[];
+}
+
+export interface AnalyticsProposalIdParam {
+  proposalId?: string;
+}
+
+export interface AnalyticsDRepIdParam {
+  drepId?: string;
+}
+
+export interface AnalyticsDRepPairParams {
+  drepId1?: string;
+  drepId2?: string;
+}
+
+export interface AnalyticsLimitParam {
+  limit?: number;
+}
+
+export interface AnalyticsEpochParam {
+  epoch?: number;
+}
+
+export interface AnalyticsViewParam {
+  view?: "proposals" | "epochs" | "both";
+}
+
+export interface AnalyticsActiveOnlyParam {
+  activeOnly?: boolean;
+}
+
+export interface AnalyticsSortParams {
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+}
+
+export type DRepActivityRateSortBy = "activityRate" | "proposalsVoted" | "name";
+export type DRepRationaleRateSortBy = "rationaleRate" | "totalVotes" | "name";
+
+export interface AnalyticsTopNParam {
+  topN?: number;
+}
+
+export interface AnalyticsMinSharedProposalsParam {
+  minSharedProposals?: number;
+}
+
+export interface AnalyticsContentiousOnlyParam {
+  contentiousOnly?: boolean;
+}
+
+export interface AnalyticsEnactedOnlyParam {
+  enactedOnly?: boolean;
+}
+
+export type VotingTurnoutQueryParams = AnalyticsPaginationParams &
+  AnalyticsEpochRangeParams &
+  AnalyticsStatusParams &
+  AnalyticsGovernanceActionTypeParams;
+
+export type StakeParticipationQueryParams = AnalyticsPaginationParams &
+  AnalyticsEpochRangeParams &
+  AnalyticsProposalIdParam;
+
+export type DelegationRateQueryParams = AnalyticsEpochRangeParams & AnalyticsLimitParam;
+
+export type DelegationDistributionQueryParams = AnalyticsDRepIdParam & AnalyticsEpochParam;
+
+export type NewDelegationRateQueryParams = AnalyticsEpochRangeParams & AnalyticsLimitParam;
+
+export type InactiveAdaQueryParams = AnalyticsViewParam &
+  AnalyticsProposalIdParam &
+  AnalyticsEpochRangeParams &
+  AnalyticsLimitParam;
+
+export type GiniCoefficientQueryParams = AnalyticsActiveOnlyParam;
+
+export type DRepActivityRateQueryParams = AnalyticsPaginationParams &
+  AnalyticsEpochRangeParams &
+  AnalyticsStatusParams &
+  Omit<AnalyticsSortParams, "sortBy"> & { sortBy?: DRepActivityRateSortBy };
+
+export type DRepRationaleRateQueryParams = AnalyticsPaginationParams &
+  AnalyticsEpochRangeParams &
+  AnalyticsProposalIdParam &
+  Omit<AnalyticsSortParams, "sortBy"> & { sortBy?: DRepRationaleRateSortBy };
+
+export type DRepCorrelationQueryParams = AnalyticsDRepPairParams &
+  AnalyticsTopNParam &
+  AnalyticsMinSharedProposalsParam;
+
+export type DRepLifecycleRateQueryParams = AnalyticsEpochRangeParams & AnalyticsLimitParam;
+
+export type SpoSilentStakeQueryParams = AnalyticsPaginationParams &
+  AnalyticsEpochRangeParams &
+  AnalyticsStatusParams;
+
+export type SpoDefaultStanceQueryParams = AnalyticsPaginationParams &
+  AnalyticsEpochRangeParams &
+  AnalyticsStatusParams;
+
+export type EntityConcentrationQueryParams = AnalyticsLimitParam & AnalyticsTopNParam;
+
+export type VoteDivergenceQueryParams = AnalyticsPaginationParams &
+  AnalyticsEpochRangeParams &
+  AnalyticsStatusParams;
+
+export type ActionVolumeQueryParams = AnalyticsEpochRangeParams &
+  AnalyticsStatusParams &
+  AnalyticsGovernanceActionTypeParams &
+  AnalyticsLimitParam;
+
+export type ContentionRateQueryParams = AnalyticsPaginationParams &
+  AnalyticsEpochRangeParams &
+  AnalyticsStatusParams &
+  AnalyticsGovernanceActionTypeParams &
+  AnalyticsContentiousOnlyParam;
+
+export type TreasuryRateQueryParams = AnalyticsEpochRangeParams & AnalyticsLimitParam;
+
+export type TimeToEnactmentQueryParams = AnalyticsPaginationParams &
+  AnalyticsStatusParams &
+  AnalyticsGovernanceActionTypeParams &
+  AnalyticsEnactedOnlyParam;
+
+export type ComplianceStatusQueryParams = AnalyticsPaginationParams & AnalyticsStatusParams;
+
+export type CCTimeToDecisionQueryParams = AnalyticsPaginationParams & AnalyticsStatusParams;
+
+export type CCParticipationQueryParams = AnalyticsPaginationParams &
+  AnalyticsEpochRangeParams &
+  AnalyticsStatusParams;
+
+export type CCAbstainRateQueryParams = AnalyticsPaginationParams &
+  AnalyticsEpochRangeParams &
+  AnalyticsStatusParams;
+
+export type CCAgreementRateQueryParams = AnalyticsPaginationParams &
+  AnalyticsEpochRangeParams &
+  AnalyticsStatusParams;
+
+export type InfoAvailabilityQueryParams = AnalyticsPaginationParams & AnalyticsStatusParams;
+
+/**
+ * Maps each analytics endpoint key to the query params it supports.
+ * This is used by both the API client (typed fetch functions) and the test panel UI.
+ */
+export interface AnalyticsEndpointParamsMap {
+  votingTurnout: VotingTurnoutQueryParams;
+  stakeParticipation: StakeParticipationQueryParams;
+  delegationRate: DelegationRateQueryParams;
+  delegationDistribution: DelegationDistributionQueryParams;
+  newDelegationRate: NewDelegationRateQueryParams;
+  inactiveAda: InactiveAdaQueryParams;
+
+  giniCoefficient: GiniCoefficientQueryParams;
+  drepActivityRate: DRepActivityRateQueryParams;
+  drepRationaleRate: DRepRationaleRateQueryParams;
+  drepCorrelation: DRepCorrelationQueryParams;
+  drepLifecycleRate: DRepLifecycleRateQueryParams;
+
+  spoSilentStake: SpoSilentStakeQueryParams;
+  spoDefaultStance: SpoDefaultStanceQueryParams;
+  entityConcentration: EntityConcentrationQueryParams;
+  voteDivergence: VoteDivergenceQueryParams;
+
+  actionVolume: ActionVolumeQueryParams;
+  contentionRate: ContentionRateQueryParams;
+  treasuryRate: TreasuryRateQueryParams;
+  timeToEnactment: TimeToEnactmentQueryParams;
+  complianceStatus: ComplianceStatusQueryParams;
+
+  ccTimeToDecision: CCTimeToDecisionQueryParams;
+  ccParticipation: CCParticipationQueryParams;
+  ccAbstainRate: CCAbstainRateQueryParams;
+  ccAgreementRate: CCAgreementRateQueryParams;
+
+  infoAvailability: InfoAvailabilityQueryParams;
 }

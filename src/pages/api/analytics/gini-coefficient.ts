@@ -13,7 +13,7 @@ export default async function handler(
     const queryString = new URLSearchParams(
       req.query as Record<string, string>
     ).toString();
-    const endpoint = `/analytics/gini-coefficient${queryString ? `?${queryString}` : ""}`;
+    const endpoint = `/analytics/gini${queryString ? `?${queryString}` : ""}`;
 
     const response = await callApi({
       endpoint,
@@ -28,6 +28,8 @@ export default async function handler(
     return res.status(response.status).json(data);
   } catch (error) {
     console.error("Gini coefficient API error:", error);
-    return res.status(500).json({ error: "Failed to fetch gini coefficient data" });
+    return res
+      .status(500)
+      .json({ error: "Failed to fetch gini coefficient data" });
   }
 }

@@ -5,7 +5,7 @@
 
 import { API_ENDPOINTS } from "@/config/api";
 import type {
-  AnalyticsQueryParams,
+  AnalyticsEndpointParamsMap,
   GetVotingTurnoutResponse,
   GetStakeParticipationResponse,
   GetDelegationRateResponse,
@@ -33,18 +33,24 @@ import type {
   GetInfoAvailabilityResponse,
 } from "@/types/analytics";
 
+type EndpointParams<K extends keyof AnalyticsEndpointParamsMap> =
+  AnalyticsEndpointParamsMap[K];
+
+type QueryPrimitive = string | number | boolean;
+type QueryValue = QueryPrimitive | QueryPrimitive[] | undefined | null;
+
 /**
  * Generic fetch wrapper for analytics API
  */
-async function fetchAnalyticsApi<T>(
-  url: string,
-  params?: AnalyticsQueryParams
-): Promise<T> {
+async function fetchAnalyticsApi<T>(url: string, params?: object): Promise<T> {
   const queryString = params
     ? new URLSearchParams(
-        Object.entries(params)
+        Object.entries(params as Record<string, unknown>)
           .filter(([, v]) => v !== undefined && v !== null)
-          .map(([k, v]) => [k, Array.isArray(v) ? v.join(",") : String(v)])
+          .map(([k, v]) => {
+            const value = v as QueryValue;
+            return [k, Array.isArray(value) ? value.map(String).join(",") : String(value)];
+          })
       ).toString()
     : "";
 
@@ -76,7 +82,7 @@ async function fetchAnalyticsApi<T>(
  * 1.1 Voting Turnout per proposal
  */
 export async function fetchVotingTurnout(
-  params?: AnalyticsQueryParams
+  params?: EndpointParams<"votingTurnout">
 ): Promise<GetVotingTurnoutResponse> {
   return fetchAnalyticsApi<GetVotingTurnoutResponse>(
     API_ENDPOINTS.analyticsVotingTurnout,
@@ -88,7 +94,7 @@ export async function fetchVotingTurnout(
  * 1.2 Active Stake Address Participation
  */
 export async function fetchStakeParticipation(
-  params?: AnalyticsQueryParams
+  params?: EndpointParams<"stakeParticipation">
 ): Promise<GetStakeParticipationResponse> {
   return fetchAnalyticsApi<GetStakeParticipationResponse>(
     API_ENDPOINTS.analyticsStakeParticipation,
@@ -100,7 +106,7 @@ export async function fetchStakeParticipation(
  * 1.3 Delegation Rate
  */
 export async function fetchDelegationRate(
-  params?: AnalyticsQueryParams
+  params?: EndpointParams<"delegationRate">
 ): Promise<GetDelegationRateResponse> {
   return fetchAnalyticsApi<GetDelegationRateResponse>(
     API_ENDPOINTS.analyticsDelegationRate,
@@ -112,7 +118,7 @@ export async function fetchDelegationRate(
  * 1.4 Delegation Distribution by Wallet Size
  */
 export async function fetchDelegationDistribution(
-  params?: AnalyticsQueryParams
+  params?: EndpointParams<"delegationDistribution">
 ): Promise<GetDelegationDistributionResponse> {
   return fetchAnalyticsApi<GetDelegationDistributionResponse>(
     API_ENDPOINTS.analyticsDelegationDistribution,
@@ -124,7 +130,7 @@ export async function fetchDelegationDistribution(
  * 1.5 New Wallet Delegation Rate
  */
 export async function fetchNewDelegationRate(
-  params?: AnalyticsQueryParams
+  params?: EndpointParams<"newDelegationRate">
 ): Promise<GetNewDelegationRateResponse> {
   return fetchAnalyticsApi<GetNewDelegationRateResponse>(
     API_ENDPOINTS.analyticsNewDelegationRate,
@@ -136,7 +142,7 @@ export async function fetchNewDelegationRate(
  * 1.6 Inactive Delegated Ada
  */
 export async function fetchInactiveAda(
-  params?: AnalyticsQueryParams
+  params?: EndpointParams<"inactiveAda">
 ): Promise<GetInactiveAdaResponse> {
   return fetchAnalyticsApi<GetInactiveAdaResponse>(
     API_ENDPOINTS.analyticsInactiveAda,
@@ -152,7 +158,7 @@ export async function fetchInactiveAda(
  * 2.1 Delegation Decentralization (Gini)
  */
 export async function fetchGiniCoefficient(
-  params?: AnalyticsQueryParams
+  params?: EndpointParams<"giniCoefficient">
 ): Promise<GetGiniCoefficientResponse> {
   return fetchAnalyticsApi<GetGiniCoefficientResponse>(
     API_ENDPOINTS.analyticsGiniCoefficient,
@@ -164,7 +170,7 @@ export async function fetchGiniCoefficient(
  * 2.2 DRep Activity Rate
  */
 export async function fetchDRepActivityRate(
-  params?: AnalyticsQueryParams
+  params?: EndpointParams<"drepActivityRate">
 ): Promise<GetDRepActivityRateResponse> {
   return fetchAnalyticsApi<GetDRepActivityRateResponse>(
     API_ENDPOINTS.analyticsDRepActivityRate,
@@ -176,7 +182,7 @@ export async function fetchDRepActivityRate(
  * 2.3 DRep Rationale Rate
  */
 export async function fetchDRepRationaleRate(
-  params?: AnalyticsQueryParams
+  params?: EndpointParams<"drepRationaleRate">
 ): Promise<GetDRepRationaleRateResponse> {
   return fetchAnalyticsApi<GetDRepRationaleRateResponse>(
     API_ENDPOINTS.analyticsDRepRationaleRate,
@@ -188,7 +194,7 @@ export async function fetchDRepRationaleRate(
  * 2.4 DRep Voting Correlation
  */
 export async function fetchDRepCorrelation(
-  params?: AnalyticsQueryParams
+  params?: EndpointParams<"drepCorrelation">
 ): Promise<GetDRepCorrelationResponse> {
   return fetchAnalyticsApi<GetDRepCorrelationResponse>(
     API_ENDPOINTS.analyticsDRepCorrelation,
@@ -200,7 +206,7 @@ export async function fetchDRepCorrelation(
  * 2.5 DRep Lifecycle Rate
  */
 export async function fetchDRepLifecycleRate(
-  params?: AnalyticsQueryParams
+  params?: EndpointParams<"drepLifecycleRate">
 ): Promise<GetDRepLifecycleRateResponse> {
   return fetchAnalyticsApi<GetDRepLifecycleRateResponse>(
     API_ENDPOINTS.analyticsDRepLifecycleRate,
@@ -216,7 +222,7 @@ export async function fetchDRepLifecycleRate(
  * 3.2 SPO Silent Stake Rate
  */
 export async function fetchSpoSilentStake(
-  params?: AnalyticsQueryParams
+  params?: EndpointParams<"spoSilentStake">
 ): Promise<GetSpoSilentStakeResponse> {
   return fetchAnalyticsApi<GetSpoSilentStakeResponse>(
     API_ENDPOINTS.analyticsSpoSilentStake,
@@ -228,7 +234,7 @@ export async function fetchSpoSilentStake(
  * 3.3 Default Stance Adoption
  */
 export async function fetchSpoDefaultStance(
-  params?: AnalyticsQueryParams
+  params?: EndpointParams<"spoDefaultStance">
 ): Promise<GetSpoDefaultStanceResponse> {
   return fetchAnalyticsApi<GetSpoDefaultStanceResponse>(
     API_ENDPOINTS.analyticsSpoDefaultStance,
@@ -240,7 +246,7 @@ export async function fetchSpoDefaultStance(
  * 3.4 Entity Voting Power Concentration
  */
 export async function fetchEntityConcentration(
-  params?: AnalyticsQueryParams
+  params?: EndpointParams<"entityConcentration">
 ): Promise<GetEntityConcentrationResponse> {
   return fetchAnalyticsApi<GetEntityConcentrationResponse>(
     API_ENDPOINTS.analyticsEntityConcentration,
@@ -252,7 +258,7 @@ export async function fetchEntityConcentration(
  * 3.5 SPO-DRep Vote Divergence
  */
 export async function fetchVoteDivergence(
-  params?: AnalyticsQueryParams
+  params?: EndpointParams<"voteDivergence">
 ): Promise<GetVoteDivergenceResponse> {
   return fetchAnalyticsApi<GetVoteDivergenceResponse>(
     API_ENDPOINTS.analyticsVoteDivergence,
@@ -268,7 +274,7 @@ export async function fetchVoteDivergence(
  * 4.1 Governance Action Volume & Source
  */
 export async function fetchActionVolume(
-  params?: AnalyticsQueryParams
+  params?: EndpointParams<"actionVolume">
 ): Promise<GetActionVolumeResponse> {
   return fetchAnalyticsApi<GetActionVolumeResponse>(
     API_ENDPOINTS.analyticsActionVolume,
@@ -280,7 +286,7 @@ export async function fetchActionVolume(
  * 4.2 Governance Action Contention Rate
  */
 export async function fetchContentionRate(
-  params?: AnalyticsQueryParams
+  params?: EndpointParams<"contentionRate">
 ): Promise<GetContentionRateResponse> {
   return fetchAnalyticsApi<GetContentionRateResponse>(
     API_ENDPOINTS.analyticsContentionRate,
@@ -292,7 +298,7 @@ export async function fetchContentionRate(
  * 4.3 Treasury Balance Rate
  */
 export async function fetchTreasuryRate(
-  params?: AnalyticsQueryParams
+  params?: EndpointParams<"treasuryRate">
 ): Promise<GetTreasuryRateResponse> {
   return fetchAnalyticsApi<GetTreasuryRateResponse>(
     API_ENDPOINTS.analyticsTreasuryRate,
@@ -304,7 +310,7 @@ export async function fetchTreasuryRate(
  * 4.4 Time-to-Enactment
  */
 export async function fetchTimeToEnactment(
-  params?: AnalyticsQueryParams
+  params?: EndpointParams<"timeToEnactment">
 ): Promise<GetTimeToEnactmentResponse> {
   return fetchAnalyticsApi<GetTimeToEnactmentResponse>(
     API_ENDPOINTS.analyticsTimeToEnactment,
@@ -316,7 +322,7 @@ export async function fetchTimeToEnactment(
  * 4.5 Constitutional Compliance Clarity
  */
 export async function fetchComplianceStatus(
-  params?: AnalyticsQueryParams
+  params?: EndpointParams<"complianceStatus">
 ): Promise<GetComplianceStatusResponse> {
   return fetchAnalyticsApi<GetComplianceStatusResponse>(
     API_ENDPOINTS.analyticsComplianceStatus,
@@ -332,7 +338,7 @@ export async function fetchComplianceStatus(
  * 5.1 Time-to-Decision
  */
 export async function fetchCCTimeToDecision(
-  params?: AnalyticsQueryParams
+  params?: EndpointParams<"ccTimeToDecision">
 ): Promise<GetCCTimeToDecisionResponse> {
   return fetchAnalyticsApi<GetCCTimeToDecisionResponse>(
     API_ENDPOINTS.analyticsCCTimeToDecision,
@@ -344,7 +350,7 @@ export async function fetchCCTimeToDecision(
  * 5.2 CC Member Participation Rate
  */
 export async function fetchCCParticipation(
-  params?: AnalyticsQueryParams
+  params?: EndpointParams<"ccParticipation">
 ): Promise<GetCCParticipationResponse> {
   return fetchAnalyticsApi<GetCCParticipationResponse>(
     API_ENDPOINTS.analyticsCCParticipation,
@@ -356,7 +362,7 @@ export async function fetchCCParticipation(
  * 5.3 CC Abstain Rate
  */
 export async function fetchCCAbstainRate(
-  params?: AnalyticsQueryParams
+  params?: EndpointParams<"ccAbstainRate">
 ): Promise<GetCCAbstainRateResponse> {
   return fetchAnalyticsApi<GetCCAbstainRateResponse>(
     API_ENDPOINTS.analyticsCCAbstainRate,
@@ -368,7 +374,7 @@ export async function fetchCCAbstainRate(
  * 5.4 CC Vote Agreement Rate
  */
 export async function fetchCCAgreementRate(
-  params?: AnalyticsQueryParams
+  params?: EndpointParams<"ccAgreementRate">
 ): Promise<GetCCAgreementRateResponse> {
   return fetchAnalyticsApi<GetCCAgreementRateResponse>(
     API_ENDPOINTS.analyticsCCAgreementRate,
@@ -384,7 +390,7 @@ export async function fetchCCAgreementRate(
  * 6.3 Gov Info Availability
  */
 export async function fetchInfoAvailability(
-  params?: AnalyticsQueryParams
+  params?: EndpointParams<"infoAvailability">
 ): Promise<GetInfoAvailabilityResponse> {
   return fetchAnalyticsApi<GetInfoAvailabilityResponse>(
     API_ENDPOINTS.analyticsInfoAvailability,
@@ -402,36 +408,49 @@ export const ANALYTICS_ENDPOINTS = {
     name: "Voting Turnout",
     description: "Voting turnout per proposal (DRep and SPO)",
     category: "Ada Holder Participation",
+    supportedParams: [
+      "page",
+      "pageSize",
+      "epochStart",
+      "epochEnd",
+      "status",
+      "governanceActionType",
+    ],
     fetch: fetchVotingTurnout,
   },
   stakeParticipation: {
     name: "Stake Participation",
     description: "Active stake address participation",
     category: "Ada Holder Participation",
+    supportedParams: ["proposalId", "epochStart", "epochEnd", "page", "pageSize"],
     fetch: fetchStakeParticipation,
   },
   delegationRate: {
     name: "Delegation Rate",
     description: "Delegation rate over time",
     category: "Ada Holder Participation",
+    supportedParams: ["epochStart", "epochEnd", "limit"],
     fetch: fetchDelegationRate,
   },
   delegationDistribution: {
     name: "Delegation Distribution",
     description: "Delegation distribution by wallet size",
     category: "Ada Holder Participation",
+    supportedParams: ["drepId", "epoch"],
     fetch: fetchDelegationDistribution,
   },
   newDelegationRate: {
     name: "New Delegation Rate",
     description: "New wallet delegation rate",
     category: "Ada Holder Participation",
+    supportedParams: ["epochStart", "epochEnd", "limit"],
     fetch: fetchNewDelegationRate,
   },
   inactiveAda: {
     name: "Inactive ADA",
     description: "Inactive delegated ADA",
     category: "Ada Holder Participation",
+    supportedParams: ["view", "proposalId", "epochStart", "epochEnd", "limit"],
     fetch: fetchInactiveAda,
   },
 
@@ -440,30 +459,51 @@ export const ANALYTICS_ENDPOINTS = {
     name: "Gini Coefficient",
     description: "Delegation decentralization (Gini coefficient)",
     category: "DRep Insights & Activity",
+    supportedParams: ["activeOnly"],
     fetch: fetchGiniCoefficient,
   },
   drepActivityRate: {
     name: "DRep Activity Rate",
     description: "DRep voting activity rate",
     category: "DRep Insights & Activity",
+    supportedParams: [
+      "page",
+      "pageSize",
+      "epochStart",
+      "epochEnd",
+      "status",
+      "sortBy",
+      "sortOrder",
+    ],
     fetch: fetchDRepActivityRate,
   },
   drepRationaleRate: {
     name: "DRep Rationale Rate",
     description: "DRep rationale submission rate",
     category: "DRep Insights & Activity",
+    supportedParams: [
+      "page",
+      "pageSize",
+      "epochStart",
+      "epochEnd",
+      "proposalId",
+      "sortBy",
+      "sortOrder",
+    ],
     fetch: fetchDRepRationaleRate,
   },
   drepCorrelation: {
     name: "DRep Correlation",
     description: "DRep voting correlation",
     category: "DRep Insights & Activity",
+    supportedParams: ["drepId1", "drepId2", "topN", "minSharedProposals"],
     fetch: fetchDRepCorrelation,
   },
   drepLifecycleRate: {
     name: "DRep Lifecycle Rate",
     description: "DRep registration/deregistration rate",
     category: "DRep Insights & Activity",
+    supportedParams: ["epochStart", "epochEnd", "limit"],
     fetch: fetchDRepLifecycleRate,
   },
 
@@ -472,24 +512,28 @@ export const ANALYTICS_ENDPOINTS = {
     name: "SPO Silent Stake",
     description: "SPO silent stake rate",
     category: "SPO Governance Participation",
+    supportedParams: ["page", "pageSize", "epochStart", "epochEnd", "status"],
     fetch: fetchSpoSilentStake,
   },
   spoDefaultStance: {
     name: "SPO Default Stance",
     description: "SPO default stance adoption",
     category: "SPO Governance Participation",
+    supportedParams: ["page", "pageSize", "epochStart", "epochEnd", "status"],
     fetch: fetchSpoDefaultStance,
   },
   entityConcentration: {
     name: "Entity Concentration",
     description: "Entity voting power concentration",
     category: "SPO Governance Participation",
+    supportedParams: ["limit", "topN"],
     fetch: fetchEntityConcentration,
   },
   voteDivergence: {
     name: "Vote Divergence",
     description: "SPO-DRep vote divergence",
     category: "SPO Governance Participation",
+    supportedParams: ["page", "pageSize", "epochStart", "epochEnd", "status"],
     fetch: fetchVoteDivergence,
   },
 
@@ -498,30 +542,55 @@ export const ANALYTICS_ENDPOINTS = {
     name: "Action Volume",
     description: "Governance action volume & source",
     category: "Governance Action & Treasury Health",
+    supportedParams: [
+      "epochStart",
+      "epochEnd",
+      "governanceActionType",
+      "status",
+      "limit",
+    ],
     fetch: fetchActionVolume,
   },
   contentionRate: {
     name: "Contention Rate",
     description: "Governance action contention rate",
     category: "Governance Action & Treasury Health",
+    supportedParams: [
+      "page",
+      "pageSize",
+      "epochStart",
+      "epochEnd",
+      "status",
+      "governanceActionType",
+      "contentiousOnly",
+    ],
     fetch: fetchContentionRate,
   },
   treasuryRate: {
     name: "Treasury Rate",
     description: "Treasury balance rate",
     category: "Governance Action & Treasury Health",
+    supportedParams: ["epochStart", "epochEnd", "limit"],
     fetch: fetchTreasuryRate,
   },
   timeToEnactment: {
     name: "Time to Enactment",
     description: "Time-to-enactment statistics",
     category: "Governance Action & Treasury Health",
+    supportedParams: [
+      "page",
+      "pageSize",
+      "status",
+      "governanceActionType",
+      "enactedOnly",
+    ],
     fetch: fetchTimeToEnactment,
   },
   complianceStatus: {
     name: "Compliance Status",
     description: "Constitutional compliance clarity",
     category: "Governance Action & Treasury Health",
+    supportedParams: ["page", "pageSize", "status"],
     fetch: fetchComplianceStatus,
   },
 
@@ -530,24 +599,28 @@ export const ANALYTICS_ENDPOINTS = {
     name: "CC Time to Decision",
     description: "CC time-to-decision statistics",
     category: "Constitutional Committee Activity",
+    supportedParams: ["page", "pageSize", "status"],
     fetch: fetchCCTimeToDecision,
   },
   ccParticipation: {
     name: "CC Participation",
     description: "CC member participation rate",
     category: "Constitutional Committee Activity",
+    supportedParams: ["page", "pageSize", "status", "epochStart", "epochEnd"],
     fetch: fetchCCParticipation,
   },
   ccAbstainRate: {
     name: "CC Abstain Rate",
     description: "CC abstain rate",
     category: "Constitutional Committee Activity",
+    supportedParams: ["page", "pageSize", "status", "epochStart", "epochEnd"],
     fetch: fetchCCAbstainRate,
   },
   ccAgreementRate: {
     name: "CC Agreement Rate",
     description: "CC vote agreement rate",
     category: "Constitutional Committee Activity",
+    supportedParams: ["page", "pageSize", "status", "epochStart", "epochEnd"],
     fetch: fetchCCAgreementRate,
   },
 
@@ -556,6 +629,7 @@ export const ANALYTICS_ENDPOINTS = {
     name: "Info Availability",
     description: "Gov info availability",
     category: "Tooling & UX",
+    supportedParams: ["page", "pageSize", "status"],
     fetch: fetchInfoAvailability,
   },
 } as const;
