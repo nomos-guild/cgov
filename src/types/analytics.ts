@@ -75,8 +75,12 @@ export interface GetVotingTurnoutResponse {
   proposals: ProposalTurnout[];
   /** Aggregate DRep turnout across all proposals (weighted average) */
   aggregateDrepTurnoutPct: number | null;
+  /** Aggregate DRep participating across all proposals (weighted average; active + default stance) */
+  aggregateDrepParticipatingPct: number | null;
   /** Aggregate SPO turnout across all proposals (weighted average) */
   aggregateSpoTurnoutPct: number | null;
+  /** Aggregate SPO participating across all proposals (weighted average; active + default stance) */
+  aggregateSpoParticipatingPct: number | null;
   pagination: PaginationInfo;
 }
 
@@ -94,6 +98,28 @@ export interface StakeParticipationStats {
   participatingAmount: string;
   /** Total delegated amount (lovelace as string) */
   totalAmount: string;
+
+  /**
+   * Breakdown between “actual” stake addresses (from StakeDelegationState)
+   * and “default” delegations (drep_always_abstain / drep_always_no_confidence, sourced from EpochTotals).
+   */
+  breakdown: {
+    actual: StakeParticipationBucket;
+    alwaysAbstain: StakeParticipationBucket;
+    alwaysNoConfidence: StakeParticipationBucket;
+  };
+}
+
+export interface StakeParticipationBucket {
+  participatingDelegators: number;
+  totalDelegators: number;
+  participationRatePct: number | null;
+  participatingAmount: string;
+  totalAmount: string;
+  /** Percentage of all delegators in this bucket (0-100) */
+  delegatorSharePct: number | null;
+  /** Percentage of total delegated amount in this bucket (0-100) */
+  amountSharePct: number | null;
 }
 
 export interface GetStakeParticipationResponse {
@@ -109,10 +135,14 @@ export interface EpochDelegationRate {
   epoch: number;
   /** Delegated DRep power (lovelace as string) */
   delegatedDrepPower: string | null;
+  /** Total pool vote power (lovelace as string) */
+  totalPoolVotePower: string | null;
   /** Circulation (lovelace as string) */
   circulation: string | null;
-  /** Delegation rate percentage (0-100) */
+  /** DRep delegation rate percentage (0-100) */
   delegationRatePct: number | null;
+  /** SPO delegation rate percentage (0-100) */
+  spoDelegationRatePct: number | null;
   startTime: string | null;
   endTime: string | null;
 }
@@ -173,6 +203,7 @@ export interface GetNewDelegationRateResponse {
 export interface ProposalInactiveAda {
   proposalId: string;
   title: string;
+  submissionEpoch: number | null;
   /** Inactive DRep vote power (lovelace as string) */
   drepInactiveVotePower: string | null;
   /** Total DRep vote power (lovelace as string) */
@@ -185,23 +216,9 @@ export interface ProposalInactiveAda {
   drepAlwaysNoConfidencePower: string | null;
 }
 
-export interface EpochInactiveAda {
-  epoch: number;
-  /** Always abstain voting power (lovelace as string) */
-  drepAlwaysAbstainVotingPower: string | null;
-  /** Always no confidence voting power (lovelace as string) */
-  drepAlwaysNoConfidenceVotingPower: string | null;
-  /** Always abstain delegator count */
-  drepAlwaysAbstainDelegatorCount: number | null;
-  /** Always no confidence delegator count */
-  drepAlwaysNoConfidenceDelegatorCount: number | null;
-}
-
 export interface GetInactiveAdaResponse {
   /** Per-proposal inactive data (if requested) */
   proposals?: ProposalInactiveAda[];
-  /** Per-epoch inactive data (special DReps) */
-  epochs?: EpochInactiveAda[];
 }
 
 // ============================================
@@ -232,23 +249,34 @@ export interface GetGiniCoefficientResponse {
 export interface DRepActivitySummary {
   drepId: string;
   name: string | null;
-  /** Number of proposals voted on */
+  /** Earliest registration epoch for this DRep (from DrepLifecycleEvent); null if unknown */
+  registrationEpoch: number | null;
+  /** Number of UNIQUE proposals voted on */
   proposalsVoted: number;
-  /** Total proposals in scope */
+  /** Total number of onchain vote rows (includes re-votes) */
+  totalVotesCast: number;
+  /** Total proposals in scope (regardless of registration epoch) */
   totalProposals: number;
+  /** Total proposals in scope submitted at/after this DRep's registration epoch (null epoch proposals excluded) */
+  totalProposalsSinceRegistration: number;
   /** Activity rate percentage (0-100) */
   activityRatePct: number;
+  /** Activity rate percentage vs all in-scope proposals (0-100) */
+  activityRateAllTimePct: number;
 }
 
 export interface GetDRepActivityRateResponse {
   dreps: DRepActivitySummary[];
   /** Aggregate activity rate across all DReps */
   aggregateActivityRatePct: number;
+  /** Aggregate activity rate across all DReps vs all in-scope proposals */
+  aggregateActivityRateAllTimePct: number;
   /** Filter criteria used */
   filter: {
     epochStart: number | null;
     epochEnd: number | null;
     statuses: string[];
+    activeOnly: boolean;
   };
   pagination: PaginationInfo;
 }
@@ -290,7 +318,38 @@ export interface DRepPairCorrelation {
   correlation: number | null;
 }
 
+export interface DRepCorrelationOverview {
+  /** Whether the response is for a specific pair or computed across all DReps */
+  mode: "pair" | "all";
+  /** Value used to truncate the top lists (clamped in controller) */
+  topN: number;
+  /** Minimum shared proposals required for inclusion (clamped in controller) */
+  minSharedProposals: number;
+  /** Number of DReps in scope for the computation */
+  drepCount: number;
+  /** Total onchain vote rows considered (vote != null) */
+  totalVoteRows: number;
+  /** Total DRep pairs evaluated (n * (n - 1) / 2) */
+  totalPairsEvaluated: number;
+  /** Pairs that met minSharedProposals (i.e., made it into the correlation set) */
+  pairsMeetingMinSharedProposals: number;
+  /** Pairs with a non-null correlation coefficient */
+  pairsWithCorrelation: number;
+  /** Pairs with negative correlation (divergent voting patterns) */
+  pairsWithDivergence: number;
+  /** Number of items returned in topCorrelated */
+  returnedTopCorrelated: number;
+  /** Number of items returned in topDivergent */
+  returnedTopDivergent: number;
+
+  /** Most correlated pair (highest correlation) among returned results, if any */
+  mostCorrelated: DRepPairCorrelation | null;
+  /** Most divergent pair (lowest correlation) among returned results, if any */
+  mostDivergent: DRepPairCorrelation | null;
+}
+
 export interface GetDRepCorrelationResponse {
+  overview: DRepCorrelationOverview;
   /** Top correlated pairs (most similar) */
   topCorrelated: DRepPairCorrelation[];
   /** Top divergent pairs (most different) */
@@ -379,12 +438,16 @@ export interface ProposalDefaultStance {
   spoAlwaysAbstainVotePower: string | null;
   /** Always no confidence vote power - lovelace as string */
   spoAlwaysNoConfidencePower: string | null;
+  /** Combined default stance power (always abstain + always no confidence) - lovelace as string */
+  combinedDefaultStancePower: string | null;
   /** SPO total vote power - lovelace as string */
   spoTotalVotePower: string | null;
   /** Always abstain percentage (0-100) */
   alwaysAbstainPct: number | null;
   /** Always no confidence percentage (0-100) */
   alwaysNoConfidencePct: number | null;
+  /** Combined default stance percentage (0-100) */
+  combinedDefaultStancePct: number | null;
 }
 
 export interface GetSpoDefaultStanceResponse {
@@ -401,6 +464,8 @@ export interface PoolGroupConcentration {
   totalVotingPower: string;
   /** Voting power in ADA */
   totalVotingPowerAda: string;
+  /** Total number of onchain votes cast by pools in this entity */
+  totalVotesCast: number;
   /** Number of pools in this group */
   poolCount: number;
   /** Share of total voting power (0-100) */
@@ -465,6 +530,8 @@ export interface GetActionVolumeResponse {
   totalProposals: number;
   byType: Record<string, number>;
   byStatus: Record<string, number>;
+  /** Total proposal counts keyed by metadata.authors[].name */
+  byAuthor: Record<string, number>;
 }
 
 /**
@@ -593,7 +660,26 @@ export interface ProposalComplianceStatus {
   eligibleMembers: number;
 }
 
+export interface ComplianceStatusOverview {
+  /** Eligible CC members used for all calculations */
+  eligibleMembers: number;
+  /** Total proposals in the current result set */
+  totalProposals: number;
+  ccApprovedCounts: {
+    approved: number;
+    rejected: number;
+    pending: number;
+  };
+  constitutionalStatusCounts: {
+    constitutional: number;
+    unconstitutional: number;
+    pending: number;
+    committeeTooSmall: number;
+  };
+}
+
 export interface GetComplianceStatusResponse {
+  overview: ComplianceStatusOverview;
   proposals: ProposalComplianceStatus[];
   pagination: PaginationInfo;
 }
@@ -611,10 +697,16 @@ export interface ProposalCCTimeToDecision {
   submissionEpoch: number | null;
   /** First CC vote timestamp */
   firstCcVoteAt: string | null;
+  /** Last CC vote timestamp */
+  lastCcVoteAt: string | null;
   /** Time from submission to first CC vote (hours) */
   hoursToFirstVote: number | null;
   /** Time from submission to first CC vote (days) */
   daysToFirstVote: number | null;
+  /** Time from submission to last CC vote (hours) */
+  hoursToLastVote: number | null;
+  /** Time from submission to last CC vote (days) */
+  daysToLastVote: number | null;
 }
 
 export interface GetCCTimeToDecisionResponse {
@@ -624,6 +716,11 @@ export interface GetCCTimeToDecisionResponse {
     medianDaysToVote: number | null;
     p90HoursToVote: number | null;
     p90DaysToVote: number | null;
+
+    medianHoursToLastVote: number | null;
+    medianDaysToLastVote: number | null;
+    p90HoursToLastVote: number | null;
+    p90DaysToLastVote: number | null;
   };
   pagination: PaginationInfo;
 }
@@ -634,15 +731,42 @@ export interface GetCCTimeToDecisionResponse {
 export interface CCMemberParticipation {
   ccId: string;
   memberName: string | null;
+  /** Whether this CC member is currently eligible (from committee_info when available) */
+  isEligible: boolean | null;
+  /** Raw DB status field for this CC member (may be stale) */
+  dbStatus: string | null;
   proposalsVoted: number;
   totalProposals: number;
+  /** Votes/denominator based on the member's active window */
+  activeWindowProposalsVoted: number;
+  /** Proposals the member could plausibly vote on during their active window */
+  activeWindowTotalProposals: number;
+  /** Participation rate within active window (0-100) */
   participationRatePct: number;
+  /** Legacy participation rate against totalProposals (0-100) */
+  participationRatePctGlobal: number;
+
+  /** Earliest vote timestamp within the current proposal filter scope */
+  firstVoteAt: string | null;
+  firstVoteProposalId: string | null;
+  firstVoteProposalTitle: string | null;
+  firstVoteProposalSubmissionEpoch: number | null;
+  firstVoteProposalStatus: string | null;
+
+  /** Latest vote timestamp within the current proposal filter scope */
+  lastVoteAt: string | null;
+  lastVoteProposalId: string | null;
+  lastVoteProposalTitle: string | null;
+  lastVoteProposalSubmissionEpoch: number | null;
+  lastVoteProposalStatus: string | null;
 }
 
 export interface GetCCParticipationResponse {
   members: CCMemberParticipation[];
   aggregateParticipationPct: number;
   eligibleMembers: number;
+  /** Eligible CC member IDs (cc_hot_id) from Koios when available; null if unavailable */
+  eligibleCcIds: string[] | null;
   totalProposals: number;
 }
 
