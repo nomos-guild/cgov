@@ -332,6 +332,18 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
     ];
   }, [selectedAction]);
 
+  // Aggregate voting data (breakdowns, CC counts) may be available even when
+  // individual vote records haven't been indexed yet. The Live Voting donuts
+  // use aggregate data, so gate them on this rather than allVotes.length.
+  const hasAggregateVotingData = useMemo(() => {
+    if (!selectedAction) return false;
+    return !!(
+      selectedAction.drepBreakdown ||
+      selectedAction.spoBreakdown ||
+      selectedAction.cc
+    );
+  }, [selectedAction]);
+
   const exportLabels: ExportLabels = useMemo(
     () => ({
       noRationale: tExport("noRationale"),
@@ -770,10 +782,10 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
   // to drive placeholder messaging.
   const drepInfo = selectedAction.drep;
   const spoThreshold = selectedAction.threshold?.spoThreshold;
-  // Show SPO info if threshold exists OR if there are SPO votes (security-critical parameter changes)
+  // Show SPO info if threshold exists, SPO breakdown data is available, or if there are SPO votes
   const hasSpoVotes = selectedAction.votes?.some((v) => v.voterType === "SPO") ?? false;
   const spoInfo =
-    (spoThreshold !== null && spoThreshold !== undefined) || hasSpoVotes
+    (spoThreshold !== null && spoThreshold !== undefined) || hasSpoVotes || selectedAction.spoBreakdown
       ? selectedAction.spo
       : undefined;
   const ccThreshold = selectedAction.threshold?.ccThreshold;
@@ -1075,7 +1087,7 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
                     <>
                         {/* Live voting donuts */}
                         <TabsContent value="live-voting" className="mt-0">
-                          {allVotes.length > 0 ? (
+                          {(allVotes.length > 0 || hasAggregateVotingData) ? (
                             <div className="space-y-0 sm:space-y-4">
                               {/* Mobile: horizontal donut + legend. Desktop: horizontal row with vertical stacks */}
                               <div className={cn(
