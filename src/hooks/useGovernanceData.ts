@@ -393,7 +393,7 @@ export function useGovernanceActionDetail(
     {
       ...swrConfig,
       fallbackData: fallbackData ?? undefined,
-      revalidateOnMount: !fallbackData,
+      revalidateOnMount: true, // Always fetch fresh data — detail pages show live voting
     }
   );
 
