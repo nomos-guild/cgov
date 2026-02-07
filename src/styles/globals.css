@@ -1,6 +1,7 @@
 @import "../themes/light/tokens.css";
 @import "../themes/dark/tokens.css";
 @import "../themes/game/tokens.css";
+@import "../themes/neural/tokens.css";
 
 @tailwind base;
 @tailwind components;
@@ -255,6 +256,14 @@
   .recharts-surface,
   .recharts-surface > svg {
     overflow: visible !important;
+  }
+
+  [data-chart-card],
+  [data-chart-card]:focus,
+  [data-chart-card]:focus-visible,
+  [data-chart-card] *:focus,
+  [data-chart-card] *:focus-visible {
+    outline: none !important;
   }
 
   .animate-fade-in {

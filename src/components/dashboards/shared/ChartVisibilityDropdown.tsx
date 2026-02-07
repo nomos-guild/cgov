@@ -2,7 +2,6 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { Settings, Check, RotateCcw, GripVertical, Plus, Type, Share2, Download, Copy, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDashboard } from "./DashboardProvider";
-import { getChartById } from "@/components/dashboards/governance/charts";
 import { useTheme } from "@/lib/theme";
 
 type TabId = "charts" | "elements" | "share";
@@ -17,7 +16,7 @@ export function ChartVisibilityDropdown() {
   const [copied, setCopied] = useState(false);
   const [importSuccess, setImportSuccess] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const { config, toggleChartVisibility, reorderCharts, resetToDefaults, addTextElement, exportConfig, importConfig, mounted } = useDashboard();
+  const { config, getChartById, toggleChartVisibility, reorderCharts, resetToDefaults, addTextElement, exportConfig, importConfig, mounted } = useDashboard();
   const { activeTheme } = useTheme();
   const isDark = activeTheme.isDark;
 
@@ -26,7 +25,7 @@ export function ChartVisibilityDropdown() {
     return config.chartOrder
       .map((id) => getChartById(id))
       .filter((chart) => chart !== undefined);
-  }, [config.chartOrder]);
+  }, [config.chartOrder, getChartById]);
 
   // Drag and drop handlers
   const handleDragStart = (index: number) => (e: React.DragEvent) => {

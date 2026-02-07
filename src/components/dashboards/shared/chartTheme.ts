@@ -124,6 +124,49 @@ export const darkChartColors: ChartThemeColors = {
   primaryMuted: "rgba(11, 209, 162, 0.5)",
 };
 
+export const neuralChartColors: ChartThemeColors = {
+  // Status - subtly saturated, architectural ink tones
+  active: "#2a3f4a", // deep steel blue
+  ratified: "#4a6b5a", // muted sage
+  enacted: "#7a8b8f", // cool slate
+  expired: "#b5a89a", // warm taupe
+  closed: "#c8c2bc", // light warm grey
+
+  // Votes - barely tinted for clarity
+  yes: "#2a5a4a", // dark teal
+  no: "#8a4a52", // muted rose
+  abstain: "#b0a89e", // warm grey
+
+  // Participation levels - cool-to-warm gradient
+  participationLow: "#c8c0b8",
+  participationMedLow: "#8a8e92",
+  participationMedHigh: "#4a6068",
+  participationHigh: "#1e3a42",
+
+  // Palette - low-saturation ink tones, each distinguishable
+  palette: [
+    "#2a3f4a", // steel blue
+    "#6b5a50", // umber
+    "#4a6b5a", // sage
+    "#5a4a62", // dusty violet
+    "#8a7a6a", // khaki
+    "#3a5a6a", // slate teal
+    "#7a6a5a", // sandstone
+  ],
+
+  // Chart chrome - precise, architectural
+  axisLine: "#1a1a1a",
+  axisText: "#4a4a4a",
+  gridLine: "#e0dcd8",
+  tooltipBg: "#faf8f6",
+  tooltipBorder: "#2a3f4a",
+  tooltipText: "#1a1a1a",
+
+  // Primary
+  primary: "#2a3f4a",
+  primaryMuted: "#b8c4ca",
+};
+
 export const gameChartColors: ChartThemeColors = {
   // Status - high contrast grayscale with green accent
   active: "#00ff66", // neon green for active
@@ -176,6 +219,8 @@ export function getChartColors(themeId: string): ChartThemeColors {
       return darkChartColors;
     case "game":
       return gameChartColors;
+    case "neural":
+      return neuralChartColors;
     default:
       return lightChartColors;
   }
@@ -189,6 +234,9 @@ export const chartCardClassName =
   "rounded-xl border-none bg-white p-4 shadow-[0_8px_24px_rgba(45,41,38,0.12)] " +
   "dark:rounded-none dark:border dark:border-[rgba(11,209,162,0.4)] dark:bg-[rgba(19,19,32,0.6)] dark:shadow-[0_4px_20px_rgba(11,209,162,0.1)] " +
   "h-full flex flex-col";
+
+export const chartCardNeuralClassName =
+  "!rounded-none !border !border-[#c8c8c8] !bg-white !shadow-none !p-4";
 
 /**
  * Game theme class name for dashboard chart cards

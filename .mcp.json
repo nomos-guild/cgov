@@ -7,6 +7,18 @@
     "cgov-project": {
       "command": "node",
       "args": [".claude/mcp/cgov-project/dist/index.js"]
+    },
+    "cgov-mcp": {
+      "command": "node",
+      "args": ["../cgov-mcp/dist/index.js"],
+      "env": {
+        "TRANSPORT_MODE": "stdio",
+        "DB_HOST": "localhost",
+        "DB_PORT": "5432",
+        "DB_NAME": "cgov",
+        "DB_USER": "postgres",
+        "DB_PASSWORD": ""
+      }
     }
   }
 }

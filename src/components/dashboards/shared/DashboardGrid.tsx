@@ -2,7 +2,6 @@ import { useMemo, useCallback, useRef, useState, useEffect } from "react";
 import { useDashboard } from "./DashboardProvider";
 import { DashboardChartCard } from "./DashboardChartCard";
 import { DashboardTextElement } from "./DashboardTextElement";
-import { CHART_REGISTRY, getChartById } from "@/components/dashboards/governance/charts";
 import type { ChartId } from "@/types/dashboard";
 import { LAYOUT_CONSTRAINTS, TEXT_ELEMENT_CONSTRAINTS, GRID_CONFIG, snapToGrid } from "@/types/dashboard";
 import { useTheme } from "@/lib/theme";
@@ -20,7 +19,7 @@ interface SelectionBox {
 
 export function DashboardGrid({ isLoading }: DashboardGridProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const { config, mounted, getLayout, updateLayout, updateTextElement, removeTextElement } = useDashboard();
+  const { config, mounted, chartRegistry, getChartById, getLayout, updateLayout, updateTextElement, removeTextElement } = useDashboard();
   const [containerHeight, setContainerHeight] = useState(800);
   const [containerWidth, setContainerWidth] = useState(1200);
   const [activeElementId, setActiveElementId] = useState<string | null>(null);
@@ -52,7 +51,7 @@ export function DashboardGrid({ isLoading }: DashboardGridProps) {
     return config.visibleCharts
       .map((id) => ({ id, chart: getChartById(id) }))
       .filter((item) => item.chart);
-  }, [config.visibleCharts]);
+  }, [config.visibleCharts, getChartById]);
 
   // Calculate container height based on card and text element positions
   useEffect(() => {
@@ -402,7 +401,7 @@ export function DashboardGrid({ isLoading }: DashboardGridProps) {
   if (!mounted) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {CHART_REGISTRY.filter((c) => c.defaultVisible).map((chart) => {
+        {chartRegistry.filter((c) => c.defaultVisible).map((chart) => {
           const ChartComponent = chart.component;
           return (
             <div key={chart.id} className="min-h-[280px]">

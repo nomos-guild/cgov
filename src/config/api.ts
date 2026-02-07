@@ -19,4 +19,15 @@ export const API_ENDPOINTS = {
   // Proposal detail endpoint (requires proposal_id parameter)
   proposalDetail: (proposalId: string) =>
     `/api/proposal/${encodeURIComponent(proposalId)}`,
+
+  // Development Activity endpoints
+  devOverview: (range: string) => `/api/development/overview?range=${range}&compare=previous`,
+  devActivity: (range: string) => `/api/development/activity?range=${range}&compare=previous`,
+  devRepos: (range: string, sort: string = "commits") => `/api/development/repos?sort=${sort}&range=${range}&limit=50`,
+  devContributors: (range: string) => `/api/development/contributors?range=${range}`,
+  devHealth: (range: string) => `/api/development/health?range=${range}&compare=previous`,
+  devStars: (range: string) => `/api/development/stars?range=${range}`,
+  devLanguages: "/api/development/languages?compare=previous",
+  devNetwork: "/api/development/network",
+  devRecent: "/api/development/recent?limit=50",
 } as const;

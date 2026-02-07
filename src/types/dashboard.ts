@@ -1,15 +1,35 @@
 import type { ComponentType } from "react";
 
 /**
- * Unique identifier for each dashboard chart
+ * Governance dashboard chart IDs
  */
-export type ChartId =
+export type GovernanceChartId =
   | "proposal-status"
   | "proposal-type"
   | "ncl-progress"
   | "voting-power"
   | "participation"
   | "proposal-submission";
+
+/**
+ * Development activity dashboard chart IDs
+ */
+export type DevActivityChartId =
+  | "ecosystem-kpis"
+  | "ecosystem-activity"
+  | "top-repos"
+  | "pr-status"
+  | "health-rates"
+  | "star-fork-trends"
+  | "language-trends"
+  | "org-contributions"
+  | "ecosystem-network"
+  | "recent-activity";
+
+/**
+ * Union of all dashboard chart IDs
+ */
+export type ChartId = GovernanceChartId | DevActivityChartId;
 
 /**
  * Pixel-based layout for a chart (fully free-form)
@@ -28,7 +48,7 @@ export interface ChartLayout {
 /**
  * Layout configuration for all charts
  */
-export type ChartLayoutMap = Record<ChartId, ChartLayout>;
+export type ChartLayoutMap = Partial<Record<ChartId, ChartLayout>>;
 
 /**
  * Text element for custom titles/labels on the dashboard
@@ -98,6 +118,8 @@ export interface ChartDefinition {
 export interface DashboardContextValue {
   config: DashboardConfig;
   mounted: boolean;
+  chartRegistry: ChartDefinition[];
+  getChartById: (id: string) => ChartDefinition | undefined;
   isChartVisible: (chartId: ChartId) => boolean;
   toggleChartVisibility: (chartId: ChartId) => void;
   setVisibleCharts: (chartIds: ChartId[]) => void;
@@ -113,15 +135,28 @@ export interface DashboardContextValue {
 }
 
 /**
- * All available chart IDs for iteration
+ * Governance chart IDs for iteration (used as default in governance dashboard)
  */
-export const ALL_CHART_IDS: ChartId[] = [
+export const GOVERNANCE_CHART_IDS: GovernanceChartId[] = [
   "proposal-status",
   "proposal-type",
   "ncl-progress",
   "voting-power",
   "participation",
   "proposal-submission",
+];
+
+export const DEV_ACTIVITY_CHART_IDS: DevActivityChartId[] = [
+  "ecosystem-kpis",
+  "ecosystem-activity",
+  "health-rates",
+  "ecosystem-network",
+  "org-contributions",
+  "top-repos",
+  "pr-status",
+  "language-trends",
+  "star-fork-trends",
+  "recent-activity",
 ];
 
 /**
@@ -197,21 +232,33 @@ export function cellsToPixels(cells: number): number {
  * All values are multiples of GRID_CONFIG.cellSize (20px)
  */
 export const DEFAULT_CHART_LAYOUTS: ChartLayoutMap = {
+  // Governance
   "proposal-status": { x: 0, y: 0, width: 380, height: 320 },
   "proposal-type": { x: 400, y: 0, width: 380, height: 320 },
   "ncl-progress": { x: 800, y: 0, width: 380, height: 320 },
   "voting-power": { x: 0, y: 340, width: 580, height: 320 },
   "participation": { x: 600, y: 340, width: 580, height: 320 },
   "proposal-submission": { x: 0, y: 680, width: 780, height: 320 },
+  // Development Activity (v14: screenshot-matched order, consistent 20px gaps)
+  "ecosystem-kpis": { x: 0, y: 0, width: 1180, height: 200 },
+  "ecosystem-activity": { x: 0, y: 220, width: 1180, height: 360 },
+  "health-rates": { x: 0, y: 600, width: 640, height: 300 },
+  "ecosystem-network": { x: 660, y: 600, width: 520, height: 300 },
+  "org-contributions": { x: 0, y: 920, width: 580, height: 375 },
+  "top-repos": { x: 600, y: 920, width: 580, height: 375 },
+  "language-trends": { x: 0, y: 1315, width: 580, height: 340 },
+  "pr-status": { x: 600, y: 1315, width: 580, height: 340 },
+  "recent-activity": { x: 0, y: 1675, width: 580, height: 400 },
+  "star-fork-trends": { x: 600, y: 1675, width: 580, height: 400 },
 };
 
 /**
  * Default dashboard configuration for new users
  */
 export const DEFAULT_DASHBOARD_CONFIG: DashboardConfig = {
-  visibleCharts: ALL_CHART_IDS,
-  chartOrder: ALL_CHART_IDS,
+  visibleCharts: GOVERNANCE_CHART_IDS,
+  chartOrder: GOVERNANCE_CHART_IDS,
   layouts: DEFAULT_CHART_LAYOUTS,
   textElements: [],
-  version: 10, // Bumped for text elements feature
+  version: 15, // Removed contributors widget, compacted layout
 };

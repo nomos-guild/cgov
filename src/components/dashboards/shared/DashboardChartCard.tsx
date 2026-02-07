@@ -100,14 +100,14 @@ export function DashboardChartCard({
   return (
     <div
       ref={cardRef}
-      className="absolute group rounded-lg"
+      className="absolute group rounded-lg outline-none focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0"
       style={{
-        left: `${layout.x}px`,
-        top: `${layout.y}px`,
         width: `${layout.width}px`,
         height: `${layout.height}px`,
+        transform: `translate(${layout.x}px, ${layout.y}px)`,
+        willChange: isDragging || isResizing ? "transform" : "auto",
         zIndex: isActive ? 50 : isSelected ? 10 : 1,
-        transition: isDragging || isResizing ? "none" : "box-shadow 0.2s",
+        transition: isDragging || isResizing ? "none" : "width 0.4s ease, height 0.4s ease, transform 0.4s ease, box-shadow 0.2s",
         ...(isSelected && {
           animation: "selection-glow 1.5s ease-in-out infinite",
           boxShadow: isDark

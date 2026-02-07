@@ -8,22 +8,25 @@ import { Header } from "@/components/layout";
 import { Footer } from "@/components/Footer";
 import { ThemeProvider } from "@/lib/theme";
 import { MeshProviderWrapper } from "@/components/providers/MeshProviderWrapper";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 export default function App({ Component, pageProps }: AppProps) {
   return (
     <MeshProviderWrapper>
       <ThemeProvider>
         <Provider store={store}>
-          <Head>
-            <link rel="icon" href="/favicon.ico?v=2" />
-          </Head>
-          <div id="app-brightness-wrapper" className="min-h-screen flex flex-col">
-            <Header />
-            <main className="main-content">
-              <Component {...pageProps} />
-            </main>
-            <Footer />
-          </div>
+          <TooltipProvider delayDuration={300}>
+            <Head>
+              <link rel="icon" href="/favicon.ico?v=2" />
+            </Head>
+            <div id="app-brightness-wrapper" className="min-h-screen flex flex-col">
+              <Header />
+              <main className="main-content">
+                <Component {...pageProps} />
+              </main>
+              <Footer />
+            </div>
+          </TooltipProvider>
         </Provider>
       </ThemeProvider>
     </MeshProviderWrapper>
