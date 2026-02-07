@@ -38,6 +38,12 @@ export default function AnalyticsTestPage() {
 export const getStaticProps: GetStaticProps<AnalyticsTestPageProps> = async ({
   locale,
 }) => {
+  if (process.env.NODE_ENV !== "development") {
+    return {
+      notFound: true,
+    };
+  }
+
   const messages = (await import(`@/messages/${locale ?? "en"}.json`)).default;
 
   return {
