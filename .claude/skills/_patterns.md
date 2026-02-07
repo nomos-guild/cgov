@@ -36,6 +36,8 @@ isGame ? "game-classes" : isDark ? "dark-classes" : "light-classes"
   3. PieChart SVG: `style={{ overflow: "visible" }}`
 - **Tick lines**: Always `tickLine={false}` for cleaner look
 - **Responsive sizing**: Chart container needs `flex-1 min-h-0`, then `<ResponsiveContainer width="100%" height="100%">`
+- **Pie exit animation**: Recharts instantly removes slices from DOM. For smooth removal, use the two-phase pattern: keep removed slices at `value: 0` during animation, clean up after `setTimeout(ANIM_MS + 50)`. See `add-chart` skill for full pattern.
+- **Table legends**: Use `table-fixed` with `<colgroup>` for stable column widths when data changes
 
 ---
 
@@ -68,11 +70,33 @@ import { cn } from "@/lib/utils";
 
 ---
 
+## React Hooks Gotchas
+
+- **Self-canceling useEffect**: Never set state that's in the dependency array inside the effect — it re-triggers cleanup, aborting async work. Use `useRef` for in-progress guards instead of `useState`.
+- **Unstable array references**: `data?.items.map(fn) || []` creates a new array every render. Derive a stable key with `useMemo(() => items.map(i => i.id).join(","), [items])` when used as a dependency.
+- **SWR for chart data**: DRep/non-Redux data uses SWR hooks in `src/hooks/useDRepData.ts`. Match `dedupingInterval` to server cache duration.
+- **SWR fallbackData on key change**: `fallbackData` only seeds data for the initial SWR key. When the key changes (e.g., navigating between proposals), use `useRef` + `mutate(newFallback, false)` to seed the cache for the new key.
+
+---
+
+## ISR + SWR Page Pattern
+
+Both the landing page (`/`) and proposal detail page (`/governance/[hash]`) use this pattern for fast page loads:
+
+1. **ISR** (`getStaticProps` + `revalidate: 60`) pre-renders pages server-side and caches them
+2. **SWR hook** receives ISR data as `fallbackData` for instant hydration, skips initial fetch
+3. **Redux sync** in the SWR hook's `useEffect` keeps backward compat with components reading from Redux
+4. For dynamic routes with many possible values, use `getStaticPaths` with `paths: []` and `fallback: 'blocking'`
+5. Use `revalidate: 10` on error for faster retry, `60` on success
+
+---
+
 ## Data Conventions
 
 - **Lovelace to ADA**: Transform in `services/api.ts`, never in components (1 ADA = 1,000,000 lovelace)
 - **Proposal IDs**: Full = `{txHash}#{index}`, Display = first 8 + last 4 chars
 - **Chart colors**: Always use `getChartColors(activeTheme.id)` from `shared/chartTheme`, never hardcode colors
+- **Server-side aggregation**: When charts need N+1 API calls, create a server-side endpoint (see `add-api-route` skill). Cache aggressively (5 min for expensive endpoints).
 
 ---
 

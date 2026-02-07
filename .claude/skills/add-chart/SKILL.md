@@ -1,6 +1,6 @@
 ---
 name: add-chart
-updated: 2026-02-04
+updated: 2026-02-05
 description: Scaffold a new dashboard chart component with registry, types, and proper theme integration. Use when adding charts to the governance dashboard.
 argument-hint: [ChartName] [chartType]
 allowed-tools: Read, Edit, Write, Glob, Grep
@@ -762,6 +762,83 @@ Add the entry to **all 7 locale files** (en, de, fr, es, pt, ja, zh).
 ### Exporting chart data
 
 If the chart has an export/download feature, use the `ExportLabels` typed interface pattern from `lib/exportRationales.ts` to pass translated strings to pure utility functions that can't access React hooks.
+
+---
+
+## SWR Hooks for Non-Redux Data
+
+For charts that fetch their own data (e.g., DRep charts), use SWR hooks from `src/hooks/useDRepData.ts` instead of Redux. This is the correct pattern when data is self-contained and doesn't need global state coordination.
+
+```typescript
+import { useDRepList, useDRepStats } from "@/hooks/useDRepData";
+
+export function MyChart({ isLoading, className }: ChartProps) {
+  const { dreps, isLoading: drepsLoading } = useDRepList({ pageSize: 50, sortBy: "votingPower" });
+  const { stats, isLoading: statsLoading } = useDRepStats();
+  const loading = isLoading || drepsLoading || statsLoading;
+  // ...
+}
+```
+
+**When data requires expensive aggregation** (N+1 calls — list + detail for each), create a server-side API route instead. See the `add-api-route` skill's "Server-Side Aggregation" section. Example: `/api/dreps/rationale-stats` aggregates all DRep details in one cached call.
+
+---
+
+## Two-Phase Exit Animation for Pie/Donut Charts
+
+Recharts instantly removes slices from DOM when they leave the data array. To animate removals smoothly:
+
+1. Track previous keys with `useRef<Set<string>>`
+2. Detect removed keys and keep them as ghost slices with `value: 0`
+3. Clean up ghost slices after animation completes
+
+```typescript
+const ANIM_MS = 500;
+const prevKeysRef = useRef<Set<string>>(new Set());
+const cleanupTimer = useRef<ReturnType<typeof setTimeout>>();
+const [exitingKeys, setExitingKeys] = useState<Set<string>>(new Set());
+
+useEffect(() => {
+  const targetKeys = new Set(data.map((d) => d.key));
+  const removed = new Set<string>();
+  for (const key of prevKeysRef.current) {
+    if (!targetKeys.has(key)) removed.add(key);
+  }
+  prevKeysRef.current = targetKeys;
+  if (removed.size === 0) return;
+  setExitingKeys(removed);
+  clearTimeout(cleanupTimer.current);
+  cleanupTimer.current = setTimeout(() => setExitingKeys(new Set()), ANIM_MS + 50);
+  return () => clearTimeout(cleanupTimer.current);
+}, [data]);
+
+// displayData includes ghost slices for animation; use data for tables
+const displayData = useMemo(() => {
+  if (exitingKeys.size === 0) return data;
+  const targetKeys = new Set(data.map((d) => d.key));
+  const extras = [...exitingKeys].filter(k => !targetKeys.has(k)).map(k => ({ ...ghostSlice, key: k, value: 0 }));
+  return [...data, ...extras];
+}, [data, exitingKeys]);
+```
+
+Use `displayData` for the `<Pie data={...}>` and `data` for the table legend.
+
+---
+
+## Table Legend with Stable Columns
+
+For table legends below donut charts, use `table-fixed` layout with `<colgroup>` to prevent column width shifts when data changes:
+
+```tsx
+<table className="w-full text-xs table-fixed" style={{ color: chartColors.axisText }}>
+  <colgroup>
+    <col />              {/* Name column: flexible */}
+    <col className="w-16" />  {/* Value column: fixed */}
+    <col className="w-12" />  {/* Percent column: fixed */}
+  </colgroup>
+  {/* ... thead + tbody */}
+</table>
+```
 
 ---
 

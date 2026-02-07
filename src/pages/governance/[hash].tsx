@@ -5,8 +5,9 @@ import {
   useState,
   useMemo,
   useCallback,
+  useRef,
 } from "react";
-import type { GetServerSideProps } from "next";
+import type { GetStaticProps, GetStaticPaths } from "next";
 import { useRouter } from "next/router";
 import { useTranslations } from "next-intl";
 import Head from "next/head";
@@ -18,8 +19,8 @@ import { VoteProgress } from "@/components/ui/vote-progress";
 import { Progress } from "@/components/ui/progress";
 import { VotingRecords } from "@/components/VotingRecords";
 import { BubbleMap } from "@/components/BubbleMap";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { loadGovernanceActionDetail } from "@/store/governanceSlice";
+import { useAppSelector } from "@/store/hooks";
+import { useGovernanceActionDetail } from "@/hooks/useGovernanceData";
 import { ArrowLeft, Copy, Check, Info } from "lucide-react";
 import type {
   GovernanceActionDetail,
@@ -262,10 +263,13 @@ type TimelinePoint = {
 
 type RoleFilter = "All" | VoterType;
 
-export default function GovernanceDetail() {
+interface GovernanceDetailProps {
+  initialDetail?: GovernanceActionDetail | null;
+}
+
+export default function GovernanceDetail({ initialDetail }: GovernanceDetailProps) {
   const router = useRouter();
   const { hash } = router.query;
-  const dispatch = useAppDispatch();
   const { theme, activeTheme } = useTheme();
   const tExpiry = useTranslations("expiry");
   const tTabs = useTranslations("tabs");
@@ -278,13 +282,22 @@ export default function GovernanceDetail() {
     () => (isDark || isGame ? VOTE_COLORS_DARK : VOTE_COLORS_LIGHT),
     [isDark, isGame]
   );
-  const { selectedAction, isLoadingDetail, detailError } = useAppSelector(
-    (state) => state.governance
-  );
+  const proposalId = typeof hash === "string" ? hash : null;
+
+  // SWR-based data loading with ISR fallback for instant hydration
+  const { isLoading: swrLoading, error: swrError, refresh } =
+    useGovernanceActionDetail(proposalId, initialDetail);
+
+  // Redux still has the data (synced by the hook) for components that read from it
+  const { selectedAction } = useAppSelector((state) => state.governance);
+
+  // Alias for backward compatibility with the rest of the JSX
+  const isLoadingDetail = swrLoading;
+  const detailError = swrError;
 
   const [downloadFormat, setDownloadFormat] = useState<string>("");
   const [isExporting, setIsExporting] = useState(false);
-  const [contentVisible, setContentVisible] = useState(false);
+  const [contentVisible, setContentVisible] = useState(!!initialDetail);
   const [isContentExpanded, setIsContentExpanded] = useState<boolean>(false);
   const [isTimeExpanded, setIsTimeExpanded] = useState<boolean>(false);
   const [isDrepExcludedExpanded, setIsDrepExcludedExpanded] = useState<boolean>(false);
@@ -295,23 +308,21 @@ export default function GovernanceDetail() {
   const [selectedTab, setSelectedTab] = useState<string>("live-voting");
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // Track the hash we're currently showing to detect route changes
-  const [displayedHash, setDisplayedHash] = useState<string | null>(null);
-
+  // Reset visibility on proposal change, fade in when data arrives
+  const prevProposalId = useRef(proposalId);
   useEffect(() => {
-    if (typeof hash === "string" && hash !== displayedHash) {
+    if (proposalId !== prevProposalId.current) {
       setContentVisible(false);
-      dispatch(loadGovernanceActionDetail(hash));
-      setDisplayedHash(hash);
+      prevProposalId.current = proposalId;
     }
-  }, [hash, dispatch, displayedHash]);
+  }, [proposalId]);
 
   useEffect(() => {
-    if (selectedAction && !contentVisible && displayedHash === hash) {
+    if (selectedAction && !contentVisible) {
       const timeout = setTimeout(() => setContentVisible(true), 150);
       return () => clearTimeout(timeout);
     }
-  }, [selectedAction, contentVisible, displayedHash, hash]);
+  }, [selectedAction, contentVisible]);
 
   const allVotes = useMemo(() => {
     if (!selectedAction) return [];
@@ -319,6 +330,18 @@ export default function GovernanceDetail() {
       ...(selectedAction.votes || []),
       ...(selectedAction.ccVotes || []),
     ];
+  }, [selectedAction]);
+
+  // Aggregate voting data (breakdowns, CC counts) may be available even when
+  // individual vote records haven't been indexed yet. The Live Voting donuts
+  // use aggregate data, so gate them on this rather than allVotes.length.
+  const hasAggregateVotingData = useMemo(() => {
+    if (!selectedAction) return false;
+    return !!(
+      selectedAction.drepBreakdown ||
+      selectedAction.spoBreakdown ||
+      selectedAction.cc
+    );
   }, [selectedAction]);
 
   const exportLabels: ExportLabels = useMemo(
@@ -703,11 +726,7 @@ export default function GovernanceDetail() {
               </p>
               <p className="text-sm text-muted-foreground">{detailError}</p>
               <button
-                onClick={() => {
-                  if (typeof hash === "string") {
-                    dispatch(loadGovernanceActionDetail(hash));
-                  }
-                }}
+                onClick={() => refresh()}
                 className="mt-4 rounded-md bg-primary px-4 py-2 text-primary-foreground transition-colors hover:bg-primary/90"
               >
                 Retry
@@ -763,10 +782,10 @@ export default function GovernanceDetail() {
   // to drive placeholder messaging.
   const drepInfo = selectedAction.drep;
   const spoThreshold = selectedAction.threshold?.spoThreshold;
-  // Show SPO info if threshold exists OR if there are SPO votes (security-critical parameter changes)
+  // Show SPO info if threshold exists, SPO breakdown data is available, or if there are SPO votes
   const hasSpoVotes = selectedAction.votes?.some((v) => v.voterType === "SPO") ?? false;
   const spoInfo =
-    (spoThreshold !== null && spoThreshold !== undefined) || hasSpoVotes
+    (spoThreshold !== null && spoThreshold !== undefined) || hasSpoVotes || selectedAction.spoBreakdown
       ? selectedAction.spo
       : undefined;
   const ccThreshold = selectedAction.threshold?.ccThreshold;
@@ -1068,7 +1087,7 @@ export default function GovernanceDetail() {
                     <>
                         {/* Live voting donuts */}
                         <TabsContent value="live-voting" className="mt-0">
-                          {allVotes.length > 0 ? (
+                          {(allVotes.length > 0 || hasAggregateVotingData) ? (
                             <div className="space-y-0 sm:space-y-4">
                               {/* Mobile: horizontal donut + legend. Desktop: horizontal row with vertical stacks */}
                               <div className={cn(
@@ -2777,12 +2796,28 @@ function RolePlaceholder({ role, message, notEligible }: { role: string; message
   );
 }
 
-export const getServerSideProps: GetServerSideProps = async ({ locale }) => {
+export const getStaticPaths: GetStaticPaths = async () => {
+  return {
+    paths: [],
+    fallback: "blocking",
+  };
+};
+
+export const getStaticProps: GetStaticProps = async ({ params, locale }) => {
   const messages = (await import(`@/messages/${locale ?? "en"}.json`)).default;
+  const hash = typeof params?.hash === "string" ? params.hash : null;
+
+  let initialDetail: GovernanceActionDetail | null = null;
+  if (hash) {
+    const { fetchGovernanceActionDetailServer } = await import("@/lib/serverFetch");
+    initialDetail = await fetchGovernanceActionDetailServer(hash);
+  }
 
   return {
     props: {
       messages,
+      initialDetail,
     },
+    revalidate: hash && !initialDetail ? 10 : 60,
   };
 };

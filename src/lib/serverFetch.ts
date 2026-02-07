@@ -5,6 +5,9 @@
 
 import type {
   GovernanceAction,
+  GovernanceActionDetail,
+  VoteRecord,
+  ProposalReferenceObject,
   OverviewSummary,
   NCLYearData,
   NCLDisplayData,
@@ -120,6 +123,104 @@ function transformGovernanceAction(action: GovernanceAction): GovernanceAction {
 }
 
 /**
+ * Transform a vote record (lovelace → ADA for votingPower)
+ */
+function transformVoteRecord(vote: VoteRecord): VoteRecord {
+  const votingPowerAda =
+    vote.votingPowerAda !== undefined
+      ? vote.votingPowerAda
+      : lovelaceToAdaNumber(vote.votingPower);
+
+  return {
+    voterType: vote.voterType,
+    voterId: vote.voterId,
+    voterName: vote.voterName,
+    drepId: vote.voterId || vote.drepId,
+    drepName: vote.voterName || vote.voterId || vote.drepName,
+    vote: vote.vote,
+    votingPower: vote.votingPower ?? "0",
+    votingPowerAda,
+    anchorUrl: vote.anchorUrl,
+    anchorHash: vote.anchorHash,
+    rationale: vote.rationale,
+    votedAt: vote.votedAt,
+    txHash: vote.txHash,
+  };
+}
+
+/**
+ * Normalise references from the upstream API to a consistent shape
+ */
+function normaliseReferences(
+  references: unknown[] | undefined
+): ProposalReferenceObject[] | undefined {
+  if (!Array.isArray(references)) return undefined;
+
+  return (references as Array<string | ProposalReferenceObject>)
+    .map((ref) => {
+      if (!ref) return null;
+
+      if (typeof ref === "string") {
+        const value = ref.trim();
+        if (!value) return null;
+        return { uri: value, label: value } as ProposalReferenceObject;
+      }
+
+      if (typeof ref === "object") {
+        const raw = ref as ProposalReferenceObject;
+        const uri =
+          raw.uri ||
+          (raw as Record<string, unknown>).url?.toString?.() ||
+          (raw as Record<string, unknown>).href?.toString?.();
+        const label =
+          raw.label && typeof raw.label === "string"
+            ? raw.label
+            : typeof uri === "string"
+            ? uri
+            : undefined;
+        const upstreamType = (raw as Record<string, unknown>)["@type"];
+        const type =
+          typeof raw.type === "string"
+            ? raw.type
+            : typeof upstreamType === "string"
+            ? upstreamType
+            : undefined;
+
+        if (!uri && !label) return null;
+
+        const normalised: ProposalReferenceObject = {
+          ...raw,
+          uri: typeof uri === "string" ? uri : undefined,
+          label,
+        };
+        if (type) normalised.type = type;
+        return normalised;
+      }
+
+      return null;
+    })
+    .filter((v): v is ProposalReferenceObject => v !== null);
+}
+
+/**
+ * Transform governance action detail for frontend
+ */
+function transformGovernanceActionDetail(
+  detail: GovernanceActionDetail
+): GovernanceActionDetail {
+  const base = transformGovernanceAction(detail);
+
+  return {
+    ...base,
+    description: detail.description,
+    rationale: detail.rationale,
+    references: normaliseReferences(detail.references as unknown[]),
+    votes: detail.votes?.map(transformVoteRecord) ?? [],
+    ccVotes: detail.ccVotes?.map(transformVoteRecord) ?? [],
+  };
+}
+
+/**
  * Remove undefined values from object (JSON serialization requirement)
  */
 function sanitizeForJson<T>(obj: T): T {
@@ -163,6 +264,24 @@ export async function fetchNCLDataServer(): Promise<NCLDisplayData[]> {
   } catch (error) {
     console.error("Failed to fetch NCL data server-side:", error);
     return [];
+  }
+}
+
+/**
+ * Server-side fetch for governance action detail
+ */
+export async function fetchGovernanceActionDetailServer(
+  proposalId: string
+): Promise<GovernanceActionDetail | null> {
+  try {
+    const data = await fetchBackend<GovernanceActionDetail>(
+      `/proposal/${encodeURIComponent(proposalId)}`
+    );
+    const transformed = transformGovernanceActionDetail(data);
+    return sanitizeForJson(transformed);
+  } catch (error) {
+    console.error("Failed to fetch proposal detail server-side:", error);
+    return null;
   }
 }
 

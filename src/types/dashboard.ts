@@ -7,9 +7,10 @@ export type ChartId =
   | "proposal-status"
   | "proposal-type"
   | "ncl-progress"
-  | "voting-power"
-  | "participation"
-  | "proposal-submission";
+  | "proposal-submission"
+  | "drep-voting-power"
+  | "drep-rationale"
+  | "drep-metrics";
 
 /**
  * Pixel-based layout for a chart (fully free-form)
@@ -158,9 +159,10 @@ export const ALL_CHART_IDS: ChartId[] = [
   "proposal-status",
   "proposal-type",
   "ncl-progress",
-  "voting-power",
-  "participation",
   "proposal-submission",
+  "drep-voting-power",
+  "drep-rationale",
+  "drep-metrics",
 ];
 
 /**
@@ -257,9 +259,10 @@ export const DEFAULT_CHART_LAYOUTS: ChartLayoutMap = {
   "proposal-status": { x: 0, y: 0, width: 380, height: 320 },
   "proposal-type": { x: 400, y: 0, width: 380, height: 320 },
   "ncl-progress": { x: 800, y: 0, width: 380, height: 320 },
-  "voting-power": { x: 0, y: 340, width: 580, height: 320 },
-  "participation": { x: 600, y: 340, width: 580, height: 320 },
-  "proposal-submission": { x: 0, y: 680, width: 780, height: 320 },
+  "proposal-submission": { x: 0, y: 340, width: 780, height: 320 },
+  "drep-voting-power": { x: 800, y: 340, width: 380, height: 320 },
+  "drep-rationale": { x: 0, y: 680, width: 380, height: 320 },
+  "drep-metrics": { x: 400, y: 680, width: 380, height: 200 },
 };
 
 /**
@@ -271,5 +274,5 @@ export const DEFAULT_DASHBOARD_CONFIG: DashboardConfig = {
   layouts: DEFAULT_CHART_LAYOUTS,
   textElements: [],
   pageMargins: DEFAULT_PAGE_MARGINS,
-  version: 12, // Bumped for centered default margins
+  version: 17, // Bumped: added drep-metrics card
 };
