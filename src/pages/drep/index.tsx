@@ -114,39 +114,42 @@ export default function DRepDashboard() {
               </div>
 
               {/* Tabbed Content Section */}
-              <div className={cn(
-                "rounded-2xl border border-white/8 bg-[#faf9f6] p-4 sm:p-6 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none",
-                isGame && "game-drep-content"
-              )}>
-                <Tabs
-                  value={selectedTab}
-                  onValueChange={setSelectedTab}
-                  className="w-full"
-                >
-                  <div className="flex flex-col gap-3 sm:gap-4">
-                    <TabsList className="flex-1 flex-wrap justify-start gap-1.5 sm:gap-2 bg-transparent p-0 py-2 overflow-x-auto overflow-visible">
-                      <TabsTrigger value="drep-list" className={tabButtonClass}>
-                        DRep List
-                      </TabsTrigger>
-                      <TabsTrigger value="analytics" className={tabButtonClass}>
-                        Analytics
-                      </TabsTrigger>
-                    </TabsList>
+              <Tabs
+                value={selectedTab}
+                onValueChange={setSelectedTab}
+                className="w-full"
+              >
+                <div className={cn(
+                  "rounded-2xl border border-white/8 bg-[#faf9f6] px-4 sm:px-6 pt-2 pb-1 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none mb-4",
+                  isGame && "game-drep-content"
+                )}>
+                  <TabsList className="flex-1 flex-wrap justify-start gap-1.5 sm:gap-2 bg-transparent p-0 py-2 overflow-x-auto overflow-visible">
+                    <TabsTrigger value="drep-list" className={tabButtonClass}>
+                      DRep List
+                    </TabsTrigger>
+                    <TabsTrigger value="analytics" className={tabButtonClass}>
+                      Analytics
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
 
-                    {/* DRep List Tab */}
-                    <TabsContent value="drep-list" className="mt-0">
-                      <DRepSunburstChart />
-                    </TabsContent>
+                {/* DRep List Tab */}
+                <TabsContent value="drep-list" className="mt-0">
+                  <DRepSunburstChart />
+                </TabsContent>
 
-                    {/* Analytics Tab */}
-                    <TabsContent value="analytics" className="mt-0">
-                      <div className="text-center py-12 text-muted-foreground">
-                        Analytics coming soon...
-                      </div>
-                    </TabsContent>
+                {/* Analytics Tab */}
+                <TabsContent value="analytics" className="mt-0">
+                  <div className={cn(
+                    "rounded-2xl border border-white/8 bg-[#faf9f6] p-4 sm:p-6 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none",
+                    isGame && "game-drep-content"
+                  )}>
+                    <div className="text-center py-12 text-muted-foreground">
+                      Analytics coming soon...
+                    </div>
                   </div>
-                </Tabs>
-              </div>
+                </TabsContent>
+              </Tabs>
             </>
           )}
         </div>
