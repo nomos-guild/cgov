@@ -1,26 +1,11 @@
-import { useMemo, useState, useCallback, useRef, useEffect } from "react";
+import { useMemo, useState, useRef, useCallback, useEffect } from "react";
 import Link from "next/link";
-import { RadialBarChart, RadialBar, ResponsiveContainer, Tooltip, Cell } from "recharts";
 import { useTheme } from "@/lib/theme";
-import { useAllDReps, useDRepStats } from "@/hooks/useDRepData";
-import { getChartColors } from "@/components/dashboards/shared/chartTheme";
-
-interface RadialDataItem {
-  name: string;
-  value: number;
-  drepId: string;
-  votingPowerAda: number;
-  totalVotesCast: number;
-  fill: string;
-  originalIndex: number; // Index in the full dreps array
-}
-
-// Number of DReps to show in the chart at once (matches roughly what fits in viewport)
-const CHART_WINDOW_SIZE = 12;
+import { useAllDReps, useDRepStats, useDRepRationaleStats } from "@/hooks/useDRepData";
+import { DRepBubbleMap } from "@/components/dreps/DRepBubbleMap";
 
 // Color palette for DReps - generates distinct colors based on global index
 function generateColor(index: number, total: number): string {
-  // Use HSL for better distribution of colors
   const hue = (index / Math.max(total, 1)) * 360;
   const saturation = 65 + (index % 3) * 10;
   const lightness = 45 + (index % 2) * 10;
@@ -41,50 +26,6 @@ function formatVotingPower(value: number, decimals: number = 1): string {
   return value.toLocaleString();
 }
 
-// Custom tooltip
-interface TooltipPayload {
-  payload: RadialDataItem;
-}
-
-interface CustomTooltipProps {
-  active?: boolean;
-  payload?: TooltipPayload[];
-  themeId: string;
-}
-
-function CustomTooltip({ active, payload, themeId }: CustomTooltipProps) {
-  if (!active || !payload?.[0]) return null;
-
-  const data = payload[0].payload;
-  const chartColors = getChartColors(themeId);
-
-  return (
-    <div
-      className="rounded-lg shadow-lg p-3 text-sm max-w-xs"
-      style={{
-        backgroundColor: chartColors.tooltipBg,
-        color: chartColors.tooltipText,
-        border: `1px solid ${chartColors.tooltipBorder}`,
-      }}
-    >
-      <p className="font-semibold mb-1 truncate">#{data.originalIndex + 1} {data.name}</p>
-      <p className="text-xs opacity-80 mb-2 truncate font-mono">
-        {data.drepId.slice(0, 20)}...
-      </p>
-      <div className="space-y-1">
-        <p>
-          <span className="opacity-70">Voting Power:</span>{" "}
-          <span className="font-medium">{formatVotingPower(data.votingPowerAda, 2)} ADA</span>
-        </p>
-        <p>
-          <span className="opacity-70">Votes Cast:</span>{" "}
-          <span className="font-medium">{data.totalVotesCast}</span>
-        </p>
-      </div>
-    </div>
-  );
-}
-
 interface DRepSunburstChartProps {
   className?: string;
 }
@@ -93,11 +34,26 @@ export function DRepSunburstChart({ className }: DRepSunburstChartProps) {
   const { activeTheme } = useTheme();
   const isGame = activeTheme.id === "game";
   const isLight = activeTheme.id === "light";
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const [visibleStartIndex, setVisibleStartIndex] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
+  const [chartMetric, setChartMetric] = useState<"votingPower" | "delegators" | "votesCast">("votingPower");
+  const [chartVisible, setChartVisible] = useState(true);
+  const [zoomEnabled, setZoomEnabled] = useState(false);
+  const [bubbleSearch, setBubbleSearch] = useState("");
+  const [focusDRepId, setFocusDRepId] = useState<string | null>(null);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const rowsContainerRef = useRef<HTMLDivElement>(null);
+  const bubbleSearchRef = useRef<HTMLDivElement>(null);
+
+  // Fade out, switch metric, fade back in
+  const switchMetric = useCallback((metric: typeof chartMetric) => {
+    if (metric === chartMetric) return;
+    setChartVisible(false);
+    setTimeout(() => {
+      setChartMetric(metric);
+      setChartVisible(true);
+    }, 350);
+  }, [chartMetric]);
 
   // Load all DReps (auto-paginates if backend caps pageSize)
   const { dreps, isLoading, error } = useAllDReps({
@@ -108,11 +64,22 @@ export function DRepSunburstChart({ className }: DRepSunburstChartProps) {
   const { stats } = useDRepStats();
   const totalVotingPower = stats?.totalDelegatedAda || 0;
 
-  // Filter dreps based on search term
+  // Rationale stats (keyed by drepId for fast lookup)
+  const { dreps: rationaleStats } = useDRepRationaleStats();
+  const rationaleMap = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const d of rationaleStats) {
+      map.set(d.drepId, d.rationalesProvided);
+    }
+    return map;
+  }, [rationaleStats]);
+
+  // Filter dreps: exclude 0 voting power, then apply search term
   const filteredDreps = useMemo(() => {
-    if (!searchTerm.trim()) return dreps;
+    const nonZero = dreps.filter((drep) => drep.votingPowerAda > 0);
+    if (!searchTerm.trim()) return nonZero;
     const term = searchTerm.toLowerCase();
-    return dreps.filter(
+    return nonZero.filter(
       (drep) =>
         (drep.name?.toLowerCase().includes(term)) ||
         drep.drepId.toLowerCase().includes(term)
@@ -121,110 +88,35 @@ export function DRepSunburstChart({ className }: DRepSunburstChartProps) {
 
   const totalDReps = filteredDreps.length;
 
-  // Handle scroll to update visible window based on actual visible rows
-  const handleScroll = useCallback(() => {
-    if (!scrollContainerRef.current || !rowsContainerRef.current) return;
+  // Bubble search suggestions (top 6 matches)
+  const bubbleSuggestions = useMemo(() => {
+    if (!bubbleSearch.trim()) return [];
+    const term = bubbleSearch.toLowerCase();
+    return filteredDreps
+      .filter((d) => (d.name?.toLowerCase().includes(term)) || d.drepId.toLowerCase().includes(term))
+      .slice(0, 6);
+  }, [bubbleSearch, filteredDreps]);
 
-    const container = scrollContainerRef.current;
-    const rowsContainer = rowsContainerRef.current;
-    const rows = rowsContainer.children;
-
-    if (rows.length === 0) return;
-
-    // Get the scroll container's visible area
-    const containerRect = container.getBoundingClientRect();
-    const containerTop = containerRect.top;
-
-    // Find first visible row
-    let firstVisibleIndex = 0;
-    for (let i = 0; i < rows.length; i++) {
-      const rowRect = rows[i].getBoundingClientRect();
-      // Row is visible if its bottom is below container top
-      if (rowRect.bottom > containerTop + 50) { // +50 for header
-        firstVisibleIndex = i;
-        break;
+  // Close suggestions on click outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (bubbleSearchRef.current && !bubbleSearchRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
       }
     }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
-    // Clamp to valid range
-    const maxStartIndex = Math.max(0, totalDReps - CHART_WINDOW_SIZE);
-    setVisibleStartIndex(Math.min(firstVisibleIndex, maxStartIndex));
-  }, [totalDReps]);
+  // Stable scroll handler (no-op now, kept for list ref)
+  const handleScroll = useCallback(() => {}, []);
 
-  // Attach scroll listener
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
-
     container.addEventListener("scroll", handleScroll, { passive: true });
     return () => container.removeEventListener("scroll", handleScroll);
   }, [handleScroll]);
-
-  // Hover handlers - now track global index
-  const handleLegendMouseEnter = useCallback((globalIndex: number) => {
-    setHoveredIndex(globalIndex);
-  }, []);
-
-  const handleLegendMouseLeave = useCallback(() => {
-    setHoveredIndex(null);
-  }, []);
-
-  const handleChartMouseEnter = useCallback((data: RadialDataItem) => {
-    setHoveredIndex(data.originalIndex);
-  }, []);
-
-  const handleChartMouseLeave = useCallback(() => {
-    setHoveredIndex(null);
-  }, []);
-
-  // Get the visible window of DReps for the chart
-  const visibleDReps = useMemo(() => {
-    const endIndex = Math.min(visibleStartIndex + CHART_WINDOW_SIZE, totalDReps);
-    return filteredDreps.slice(visibleStartIndex, endIndex);
-  }, [filteredDreps, visibleStartIndex, totalDReps]);
-
-  // Transform visible DReps into radial bar data
-  const chartData = useMemo(() => {
-    if (!visibleDReps.length) return [];
-
-    // Find max and min voting power in visible window for normalization
-    const votingPowers = visibleDReps.map(d => d.votingPowerAda);
-    const maxVotingPower = Math.max(...votingPowers);
-    const minVotingPower = Math.min(...votingPowers);
-    const range = maxVotingPower - minVotingPower;
-
-    // Reverse order so largest are on the outside (rendered last = outermost)
-    return [...visibleDReps].reverse().map((drep, index): RadialDataItem => {
-      const globalIndex = visibleStartIndex + (visibleDReps.length - 1 - index);
-
-      // Normalize to 20-100% range so all bars are visible
-      // 20% minimum ensures even smallest DReps have visible bars
-      let normalizedValue: number;
-      if (range === 0 || maxVotingPower === 0) {
-        // All DReps have same voting power, give them all full bars
-        normalizedValue = 100;
-      } else {
-        // Scale from 20% to 100% based on relative position in range
-        const relativePosition = (drep.votingPowerAda - minVotingPower) / range;
-        normalizedValue = 20 + (relativePosition * 80);
-      }
-
-      return {
-        name: drep.name || "Anonymous DRep",
-        value: normalizedValue,
-        drepId: drep.drepId,
-        votingPowerAda: drep.votingPowerAda,
-        totalVotesCast: drep.totalVotesCast,
-        // Light theme: pure white, others: colorful based on global index
-        fill: isLight ? "#ffffff" : generateColor(globalIndex, totalDReps),
-        // Store global index for hover sync
-        originalIndex: globalIndex,
-      };
-    });
-  }, [visibleDReps, visibleStartIndex, totalDReps, isLight]);
-
-  // Calculate visible range for display
-  const visibleEndIndex = Math.min(visibleStartIndex + CHART_WINDOW_SIZE, totalDReps);
 
   if (isLoading) {
     return (
@@ -256,95 +148,149 @@ export function DRepSunburstChart({ className }: DRepSunburstChartProps) {
     );
   }
 
+  const cardClass = "rounded-2xl border border-white/8 bg-[#faf9f6] p-4 sm:p-6 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none";
+
+  const tabBtnClass = isGame
+    ? "game-tab-btn data-[state=active]:game-tab-btn-active text-[10px] sm:text-xs"
+    : "rounded-md border border-white/8 bg-white text-black px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold uppercase tracking-wide transform-gpu transition-transform transition-shadow duration-450 ease-in-out shadow-[0_12px_30px_rgba(15,23,42,0.25)] data-[state=active]:bg-black data-[state=active]:text-white hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon";
+
   return (
     <div className={className}>
-      <div className="mb-4">
-        <h3 className={`text-lg font-semibold ${isGame ? "text-white" : ""}`}>
-          DReps by Voting Power
-        </h3>
-        <p className={`text-sm ${isGame ? "text-white/70" : "text-muted-foreground"}`}>
-          {searchTerm ? (
-            <>Showing #{visibleStartIndex + 1} - #{visibleEndIndex} of {totalDReps} matching DReps</>
-          ) : (
-            <>Showing #{visibleStartIndex + 1} - #{visibleEndIndex} of {totalDReps} DReps
-            <span className="opacity-60 ml-2">• Scroll or search to explore</span></>
-          )}
-        </p>
-      </div>
-
+      {/* Chart section */}
       <div className="flex flex-col sm:flex-row gap-4">
-        {/* Chart - shows visible window */}
-        <div className="h-[450px] sm:h-[520px] w-full sm:w-[520px] flex-shrink-0 relative">
-          {/* SVG filter definition for light theme shadows */}
-          {isLight && (
-            <svg width="0" height="0" className="absolute">
-              <defs>
-                <filter id="drep-bar-shadow" x="-50%" y="-50%" width="200%" height="200%">
-                  <feDropShadow dx="0" dy="1" stdDeviation="2" floodColor="#000" floodOpacity="0.15" />
-                </filter>
-              </defs>
-            </svg>
-          )}
-          <ResponsiveContainer width="100%" height="100%">
-            <RadialBarChart
-              cx="50%"
-              cy="50%"
-              innerRadius="8%"
-              outerRadius="98%"
-              barSize={28}
-              data={chartData}
-              startAngle={90}
-              endAngle={-270}
-              style={isLight ? { filter: "url(#drep-bar-shadow)" } : undefined}
-            >
-              <RadialBar
-                dataKey="value"
-                cornerRadius={4}
-                background={{ fill: isLight ? "rgba(0,0,0,0.06)" : isGame ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)" }}
-                stroke={isLight ? "rgba(0,0,0,0.08)" : undefined}
-                strokeWidth={isLight ? 1 : 0}
-                onMouseEnter={(_, i) => {
-                  const item = chartData[i];
-                  if (item) handleChartMouseEnter(item);
-                }}
-                onMouseLeave={handleChartMouseLeave}
+        {/* Side panel card */}
+        <div className={`${cardClass} flex flex-col gap-3 sm:w-[180px] sm:flex-shrink-0`}>
+          <div>
+            <h3 className={`text-lg font-semibold ${isGame ? "text-white" : ""}`}>
+              DReps by {chartMetric === "votingPower" ? "Voting Power" : chartMetric === "delegators" ? "Delegators" : "Votes Cast"}
+            </h3>
+            <p className={`text-sm ${isGame ? "text-white/70" : "text-muted-foreground"}`}>
+              {totalDReps} DReps
+              {searchTerm && <span> matching &ldquo;{searchTerm}&rdquo;</span>}
+            </p>
+          </div>
+          {/* Metric tabs */}
+          <div>
+            <p className={`text-[10px] font-semibold uppercase tracking-wide mb-1.5 ${isGame ? "text-white/50" : "text-muted-foreground"}`}>
+              Metric
+            </p>
+            <div className="flex sm:flex-col flex-wrap gap-1.5">
+              {([
+                { key: "votingPower", label: "Voting Power" },
+                { key: "delegators", label: "Delegators" },
+                { key: "votesCast", label: "Votes Cast" },
+              ] as const).map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => switchMetric(key)}
+                  data-state={chartMetric === key ? "active" : "inactive"}
+                  className={tabBtnClass}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          {/* Tools */}
+          <div>
+            <p className={`text-[10px] font-semibold uppercase tracking-wide mb-1.5 ${isGame ? "text-white/50" : "text-muted-foreground"}`}>
+              Tools
+            </p>
+            <div className="flex sm:flex-col flex-wrap gap-1.5 items-start">
+              <button
+                onClick={() => setZoomEnabled((v) => !v)}
+                data-state={zoomEnabled ? "active" : "inactive"}
+                className={`${tabBtnClass} !px-0 w-8 h-8 !rounded-full flex items-center justify-center`}
+                title={zoomEnabled ? "Disable zoom" : "Enable zoom"}
               >
-                {chartData.map((entry) => {
-                  const isHovered = hoveredIndex === entry.originalIndex;
-                  return (
-                    <Cell
-                      key={entry.drepId}
-                      fill={entry.fill}
-                      style={{
-                        filter: isHovered ? "brightness(1.2) drop-shadow(0 0 8px rgba(0,0,0,0.3))" : undefined,
-                        transform: isHovered ? "scale(1.02)" : undefined,
-                        transformOrigin: "center",
-                        transition: "filter 0.2s, transform 0.2s",
-                      }}
-                    />
-                  );
-                })}
-              </RadialBar>
-              <Tooltip
-                content={<CustomTooltip themeId={activeTheme.id} />}
-                isAnimationActive={false}
+                <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                  <path d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z" />
+                  <path d="M9 5.75a.75.75 0 0 1 .75.75v1.75h1.75a.75.75 0 0 1 0 1.5h-1.75v1.75a.75.75 0 0 1-1.5 0v-1.75H6.5a.75.75 0 0 1 0-1.5h1.75V6.5A.75.75 0 0 1 9 5.75Z" />
+                </svg>
+              </button>
+            </div>
+            {/* Bubble search */}
+            <div ref={bubbleSearchRef} className="relative w-full mt-1">
+              <input
+                type="text"
+                placeholder="Find DRep..."
+                value={bubbleSearch}
+                onChange={(e) => {
+                  setBubbleSearch(e.target.value);
+                  setShowSuggestions(true);
+                  if (!e.target.value.trim()) setFocusDRepId(null);
+                }}
+                onFocus={() => { if (bubbleSearch.trim()) setShowSuggestions(true); }}
+                className={`w-full px-2 py-1.5 text-[11px] rounded-lg border transition-colors ${
+                  isLight
+                    ? "bg-white border-black/10 text-black placeholder:text-black/40 focus:border-black/30 focus:ring-1 focus:ring-black/10"
+                    : isGame
+                    ? "bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-[#0bd1a2] focus:ring-1 focus:ring-[#0bd1a2]/30"
+                    : "bg-white/5 border-white/10 text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary/30"
+                }`}
               />
-            </RadialBarChart>
-          </ResponsiveContainer>
+              {showSuggestions && bubbleSuggestions.length > 0 && (
+                <div className={`absolute left-0 right-0 top-full mt-1 z-30 rounded-lg border overflow-hidden shadow-lg max-h-[200px] overflow-y-auto ${
+                  isLight
+                    ? "bg-white border-black/10"
+                    : isGame
+                    ? "bg-[#1a1a2e] border-[#0bd1a2]/40"
+                    : "bg-background border-white/10"
+                }`}>
+                  {bubbleSuggestions.map((drep) => (
+                    <button
+                      key={drep.drepId}
+                      className={`w-full text-left px-2 py-1.5 text-[11px] truncate transition-colors ${
+                        isLight
+                          ? "hover:bg-black/5 text-black"
+                          : isGame
+                          ? "hover:bg-[#0bd1a2]/20 text-white"
+                          : "hover:bg-white/10 text-foreground"
+                      }`}
+                      onClick={() => {
+                        setZoomEnabled(true);
+                        setFocusDRepId(drep.drepId);
+                        setBubbleSearch(drep.name || drep.drepId.slice(0, 12));
+                        setShowSuggestions(false);
+                      }}
+                    >
+                      {drep.name || `${drep.drepId.slice(0, 8)}...${drep.drepId.slice(-4)}`}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* DRep Table - scrollable, shows all DReps */}
-        <div className="flex-1 flex flex-col sm:h-[520px]">
-          {/* Search Input - fixed above scroll area */}
-          <div className="px-[20px] pt-[12px] pb-2">
+        {/* Chart area card */}
+        <div className={`${cardClass} flex-1 min-w-0 relative`}>
+          <div
+            className="transition-opacity duration-300 ease-in-out"
+            style={{ opacity: chartVisible ? 1 : 0 }}
+          >
+            <DRepBubbleMap
+              key={chartMetric}
+              dreps={filteredDreps}
+              metric={chartMetric}
+              rationaleMap={rationaleMap}
+              zoomEnabled={zoomEnabled}
+              focusDRepId={focusDRepId}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* DRep List Card */}
+      <div className={`${cardClass} mt-4`}>
+        <div className="flex flex-col h-[520px]">
+          {/* Search Input */}
+          <div className="pb-3">
             <input
               type="text"
               placeholder="Search by name or DRep ID..."
               value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setVisibleStartIndex(0); // Reset scroll position on search
-              }}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className={`w-full px-3 py-2 text-sm rounded-lg border transition-colors ${
                 isLight
                   ? "bg-white border-black/10 text-black placeholder:text-black/40 focus:border-black/30 focus:ring-1 focus:ring-black/10"
@@ -362,9 +308,9 @@ export function DRepSunburstChart({ className }: DRepSunburstChartProps) {
           {/* Scrollable table area */}
           <div
             ref={scrollContainerRef}
-            className="flex-1 overflow-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-black/20"
+            className="flex-1 overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-black/20"
           >
-            <div className="px-[20px] pb-[12px]">
+            <div className="px-3">
               {/* Table Header */}
               <div className={`flex items-center gap-3 py-2 px-2 text-[10px] font-semibold uppercase tracking-wide border-b sticky top-0 z-20 ${
                 isLight
@@ -383,31 +329,19 @@ export function DRepSunburstChart({ className }: DRepSunburstChartProps) {
               {/* Table Rows */}
               <div ref={rowsContainerRef} className="flex flex-col gap-1.5 mt-2">
                 {filteredDreps.map((drep, index) => {
-                  const isHovered = hoveredIndex === index;
-                  const isInVisibleWindow = index >= visibleStartIndex && index < visibleEndIndex;
                   const percentOfTotal = totalVotingPower > 0
                     ? ((drep.votingPowerAda / totalVotingPower) * 100).toFixed(2)
                     : "0.00";
                   return (
                     <div
                       key={drep.drepId}
-                      className={`flex items-center gap-3 py-1.5 px-2 rounded-lg text-[11px] cursor-pointer transition-all ${
+                      className={`flex items-center gap-3 py-1.5 px-2 rounded-lg text-[11px] ${
                         isLight
                           ? "bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)]"
                           : isGame
                           ? "bg-white/5"
                           : "bg-white/5"
-                      } ${isHovered
-                        ? isLight
-                          ? "shadow-[0_4px_12px_rgba(0,0,0,0.25)] scale-[1.01] ring-2 ring-black/20 z-10"
-                          : "bg-white/20 scale-[1.01] shadow-[0_4px_12px_rgba(255,255,255,0.1)] z-10"
-                        : ""
-                      } ${!isInVisibleWindow && !isHovered
-                        ? "opacity-50"
-                        : ""
                       }`}
-                      onMouseEnter={() => handleLegendMouseEnter(index)}
-                      onMouseLeave={handleLegendMouseLeave}
                     >
                       {/* Rank with color indicator */}
                       <span
@@ -439,8 +373,8 @@ export function DRepSunburstChart({ className }: DRepSunburstChartProps) {
                         {percentOfTotal}%
                       </span>
                       {/* Delegators */}
-                      <span className={`w-[70px] text-right tabular-nums flex-shrink-0 ${isGame ? "text-white/50" : "text-muted-foreground/70"}`}>
-                        --
+                      <span className={`w-[70px] text-right tabular-nums flex-shrink-0 ${isGame ? "text-white/70" : "text-muted-foreground"}`}>
+                        {drep.delegatorCount != null ? drep.delegatorCount.toLocaleString() : "--"}
                       </span>
                       {/* Votes Cast */}
                       <span className={`w-[50px] text-right tabular-nums flex-shrink-0 ${isGame ? "text-white/70" : "text-muted-foreground"}`}>
@@ -453,10 +387,6 @@ export function DRepSunburstChart({ className }: DRepSunburstChartProps) {
             </div>
           </div>
         </div>
-      </div>
-
-      <div className={`mt-3 text-xs ${isGame ? "text-white/60" : "text-muted-foreground"}`}>
-        Search or scroll the table to explore all DReps • Chart shows current view
       </div>
     </div>
   );

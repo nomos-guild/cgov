@@ -26,6 +26,8 @@ export interface DRepSummary {
   votingPowerAda: number;
   /** Total number of votes cast by this DRep */
   totalVotesCast: number;
+  /** Number of wallets delegated to this DRep */
+  delegatorCount: number | null;
 }
 
 /**

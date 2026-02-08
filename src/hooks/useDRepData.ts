@@ -89,6 +89,7 @@ interface DRepListApiResponse {
     votingPower: string;
     votingPowerAda: string;
     totalVotesCast: number;
+    delegatorCount?: number | null;
   }>;
   pagination: DRepPagination;
 }
@@ -104,6 +105,7 @@ function transformDRepSummary(drep: DRepListApiResponse["dreps"][0]): DRepSummar
     votingPower: drep.votingPower,
     votingPowerAda: parseFloat(drep.votingPowerAda) || 0,
     totalVotesCast: drep.totalVotesCast,
+    delegatorCount: drep.delegatorCount ?? null,
   };
 }
 
@@ -151,21 +153,43 @@ export function useDRepList(options: UseDRepListOptions = {}) {
 }
 
 /**
+ * Module-level cache for useAllDReps to avoid re-fetching on remount.
+ */
+const allDrepsCache = new Map<string, { data: DRepSummary[]; timestamp: number }>();
+const ALL_DREPS_CACHE_TTL = 60000; // 1 minute
+
+/**
  * Hook to fetch ALL DReps across all pages.
  * Handles backends that cap pageSize by auto-paginating.
+ * Results are cached in memory so remounting doesn't trigger new API calls.
  */
 export function useAllDReps(options: Omit<UseDRepListOptions, "page"> = {}) {
   const { pageSize = 100, sortBy = "votingPower", sortOrder = "desc", search } = options;
 
-  const [allDreps, setAllDreps] = useState<DRepSummary[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const cacheKey = `${pageSize}:${sortBy}:${sortOrder}:${search ?? ""}`;
+  const cached = allDrepsCache.get(cacheKey);
+  const isCacheValid = cached && Date.now() - cached.timestamp < ALL_DREPS_CACHE_TTL;
+
+  const [allDreps, setAllDreps] = useState<DRepSummary[]>(() => isCacheValid ? cached.data : []);
+  const [isLoading, setIsLoading] = useState(() => !isCacheValid);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
 
-  const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
+  const refresh = useCallback(() => {
+    allDrepsCache.delete(cacheKey);
+    setRefreshKey((k) => k + 1);
+  }, [cacheKey]);
 
   useEffect(() => {
+    // Serve from cache if still valid
+    const entry = allDrepsCache.get(cacheKey);
+    if (entry && Date.now() - entry.timestamp < ALL_DREPS_CACHE_TTL && refreshKey === 0) {
+      setAllDreps(entry.data);
+      setIsLoading(false);
+      return;
+    }
+
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -220,6 +244,7 @@ export function useAllDReps(options: Omit<UseDRepListOptions, "page"> = {}) {
         }
 
         if (!controller.signal.aborted) {
+          allDrepsCache.set(cacheKey, { data: accumulated, timestamp: Date.now() });
           setAllDreps(accumulated);
           setIsLoading(false);
         }
@@ -233,7 +258,7 @@ export function useAllDReps(options: Omit<UseDRepListOptions, "page"> = {}) {
 
     fetchAllPages();
     return () => controller.abort();
-  }, [pageSize, sortBy, sortOrder, search, refreshKey]);
+  }, [pageSize, sortBy, sortOrder, search, cacheKey, refreshKey]);
 
   return { dreps: allDreps, isLoading, error, refresh };
 }
