@@ -25,7 +25,7 @@ export default function AnalyticsTestPage() {
             <p className="text-muted-foreground">
               Use this panel to test the new analytics endpoints. Select an
               endpoint from the dropdown and click &quot;Fetch Data&quot; to see
-              the response.
+              the response. You can test parameters as well
             </p>
           </div>
           <AnalyticsTestPanel />
