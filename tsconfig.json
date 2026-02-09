@@ -20,5 +20,5 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "**/*.d.ts"],
-  "exclude": ["node_modules", "mcp-governance", "mcp-cgov"]
+  "exclude": ["node_modules", "mcp-governance", "mcp-cgov", "scripts"]
 }
