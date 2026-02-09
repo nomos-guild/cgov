@@ -24,6 +24,44 @@ export const API_ENDPOINTS = {
   drepStats: "/api/dreps/stats",
   dreps: "/api/dreps",
   drepDetail: (drepId: string) => `/api/dreps/${encodeURIComponent(drepId)}`,
-  drepVotes: (drepId: string) => `/api/dreps/${encodeURIComponent(drepId)}/votes`,
+  drepVotes: (drepId: string) =>
+    `/api/dreps/${encodeURIComponent(drepId)}/votes`,
   drepRationaleStats: "/api/dreps/rationale-stats",
+
+  // Analytics endpoints - Category 1: Ada Holder Participation
+  analyticsVotingTurnout: "/api/analytics/voting-turnout",
+  analyticsStakeParticipation: "/api/analytics/stake-participation",
+  analyticsDelegationRate: "/api/analytics/delegation-rate",
+  analyticsDelegationDistribution: "/api/analytics/delegation-distribution",
+  analyticsNewDelegationRate: "/api/analytics/new-delegation-rate",
+  analyticsInactiveAda: "/api/analytics/inactive-ada",
+
+  // Analytics endpoints - Category 2: DRep Insights & Activity
+  analyticsGiniCoefficient: "/api/analytics/gini-coefficient",
+  analyticsDRepActivityRate: "/api/analytics/drep-activity-rate",
+  analyticsDRepRationaleRate: "/api/analytics/drep-rationale-rate",
+  analyticsDRepCorrelation: "/api/analytics/drep-correlation",
+  analyticsDRepLifecycleRate: "/api/analytics/drep-lifecycle-rate",
+
+  // Analytics endpoints - Category 3: SPO Governance Participation
+  analyticsSpoSilentStake: "/api/analytics/spo-silent-stake",
+  analyticsSpoDefaultStance: "/api/analytics/spo-default-stance",
+  analyticsEntityConcentration: "/api/analytics/entity-concentration",
+  analyticsVoteDivergence: "/api/analytics/vote-divergence",
+
+  // Analytics endpoints - Category 4: Governance Action & Treasury Health
+  analyticsActionVolume: "/api/analytics/action-volume",
+  analyticsContentionRate: "/api/analytics/contention-rate",
+  analyticsTreasuryRate: "/api/analytics/treasury-rate",
+  analyticsTimeToEnactment: "/api/analytics/time-to-enactment",
+  analyticsComplianceStatus: "/api/analytics/compliance-status",
+
+  // Analytics endpoints - Category 5: Constitutional Committee Activity
+  analyticsCCTimeToDecision: "/api/analytics/cc-time-to-decision",
+  analyticsCCParticipation: "/api/analytics/cc-participation",
+  analyticsCCAbstainRate: "/api/analytics/cc-abstain-rate",
+  analyticsCCAgreementRate: "/api/analytics/cc-agreement-rate",
+
+  // Analytics endpoints - Category 6: Tooling & UX
+  analyticsInfoAvailability: "/api/analytics/info-availability",
 } as const;

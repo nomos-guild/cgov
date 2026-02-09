@@ -6,6 +6,7 @@ import {
   useMemo,
   useCallback,
   useRef,
+  type ComponentType,
 } from "react";
 import type { GetStaticProps, GetStaticPaths } from "next";
 import { useRouter } from "next/router";
@@ -13,7 +14,6 @@ import { useTranslations } from "next-intl";
 import Head from "next/head";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { VoteProgress } from "@/components/ui/vote-progress";
 import { Progress } from "@/components/ui/progress";
@@ -263,6 +263,29 @@ type TimelinePoint = {
 
 type RoleFilter = "All" | VoterType;
 
+interface VoteOnProposalProps {
+  txHash: string;
+  certIndex: number;
+  proposalTitle: string;
+  status: string;
+  proposalId: string;
+}
+
+function LazyVoteOnProposal(props: VoteOnProposalProps) {
+  const [Comp, setComp] = useState<ComponentType<VoteOnProposalProps> | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!(window.crypto && window.crypto.subtle)) return;
+    import("@/components/governance/VoteOnProposal")
+      .then((mod) => setComp(() => mod.VoteOnProposal))
+      .catch(() => {});
+  }, []);
+
+  if (!Comp) return null;
+  return <Comp {...props} />;
+}
+
 interface GovernanceDetailProps {
   initialDetail?: GovernanceActionDetail | null;
 }
@@ -291,6 +314,10 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
   // Redux still has the data (synced by the hook) for components that read from it
   const { selectedAction } = useAppSelector((state) => state.governance);
 
+  // Derive vote transaction props from selectedAction hash ("txHash:certIndex" format)
+  const [voteTxHash, voteCertIndexStr] = (selectedAction?.hash || "").split(/[:#]/);
+  const voteCertIndex = parseInt(voteCertIndexStr, 10) || 0;
+
   // Alias for backward compatibility with the rest of the JSX
   const isLoadingDetail = swrLoading;
   const detailError = swrError;
@@ -299,7 +326,6 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
   const [isExporting, setIsExporting] = useState(false);
   const [contentVisible, setContentVisible] = useState(!!initialDetail);
   const [isContentExpanded, setIsContentExpanded] = useState<boolean>(false);
-  const [isTimeExpanded, setIsTimeExpanded] = useState<boolean>(false);
   const [isDrepExcludedExpanded, setIsDrepExcludedExpanded] = useState<boolean>(false);
   const [isSpoExcludedExpanded, setIsSpoExcludedExpanded] = useState<boolean>(false);
   const [isCcExcludedExpanded, setIsCcExcludedExpanded] = useState<boolean>(false);
@@ -921,9 +947,11 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
             )}
           </div>
 
-          {/* Header Section */}
+          {/* Proposal Detail + Expiry Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6 mb-4 sm:mb-6 md:mb-8">
+            {/* Proposal Detail */}
           <Card className={cn(
-            "mb-4 sm:mb-6 md:mb-8 p-3 sm:p-4 md:p-6",
+            "lg:col-span-2 p-3 sm:p-4 md:p-6 flex flex-col",
             isGame && "game-proposal-header-card"
           )}>
             <div className="mb-2 sm:mb-3 flex items-center gap-2 sm:gap-3">
@@ -939,13 +967,13 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
               )}
             </div>
             {contentPreview && (
-              <div className="border-t border-border/50 pt-4">
+              <div className="border-t border-border/50 pt-4 flex-1 flex flex-col">
                 <div
                   className={cn(
-                    "transition-all duration-500 ease-in-out [scrollbar-gutter:stable]",
+                    "transition-all duration-500 ease-in-out [scrollbar-gutter:stable] flex-1",
                     isContentExpanded
                       ? "max-h-[60vh] overflow-y-auto"
-                      : "max-h-[3rem] overflow-hidden"
+                      : "max-h-[14rem] overflow-hidden relative"
                   )}
                 >
                   <div className="pr-2">
@@ -983,10 +1011,14 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
                         </div>
                       )}
                   </div>
+                  {/* Fade overlay when collapsed */}
+                  {!isContentExpanded && contentPreview.shouldTruncate && (
+                    <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-card to-transparent pointer-events-none" />
+                  )}
                 </div>
-                {/* Expand/Collapse Arrow */}
+                {/* Expand/Collapse Button at bottom */}
                 {contentPreview.shouldTruncate && (
-                  <div className="flex justify-center items-center pt-6">
+                  <div className="flex justify-center items-center pt-3 mt-auto">
                     <div
                       className={cn(
                         "flex w-full items-center justify-center px-3 py-1.5 cursor-pointer transition-all duration-300",
@@ -1014,6 +1046,231 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
               </div>
             )}
           </Card>
+
+          {/* Time Until Expiry Card */}
+          {selectedAction && (() => {
+            // Calculate expiry based on epoch, not days
+            // Governance actions expire at the END of the expiryEpoch
+            const now = Date.now();
+            const currentEpoch = getCurrentEpoch();
+            const submissionEpoch = selectedAction.submissionEpoch > 0
+              ? selectedAction.submissionEpoch
+              : currentEpoch;
+
+            // Get expiry epoch (default to submission + 6 epochs if not set)
+            // The "Valid Until Epoch" is expiryEpoch - 1, meaning voting ends at the end of that epoch
+            const expiryEpoch = selectedAction.expiryEpoch > 0
+              ? selectedAction.expiryEpoch
+              : submissionEpoch + 6;
+
+            // Calculate timestamps for the start and end of the voting period
+            const submissionTimestamp = epochToTimestamp(submissionEpoch);
+            // Voting ends at the END of (expiryEpoch - 1), which is the START of expiryEpoch
+            const expiryTimestamp = epochToTimestamp(expiryEpoch);
+
+            // Calculate time remaining until end of voting period
+            const timeRemaining = Math.max(0, expiryTimestamp - now);
+            const daysRemaining = Math.floor(timeRemaining / (24 * 60 * 60 * 1000));
+
+            // Calculate progress based on epochs
+            const totalEpochs = expiryEpoch - submissionEpoch;
+            const epochsElapsed = currentEpoch - submissionEpoch;
+            const progressPercent = totalEpochs > 0
+              ? Math.min(100, Math.max(0, (epochsElapsed / totalEpochs) * 100))
+              : 0;
+
+            return (
+              <Card className={cn("p-6", isGame && "game-detail-card")}>
+                <div className="flex items-center justify-between mb-4">
+                  <label className={cn(
+                    "text-sm font-semibold",
+                    isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
+                  )}>
+                    {tExpiry("timeUntilExpiry")}
+                  </label>
+                  <div className={cn(
+                    "text-base font-semibold",
+                    isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
+                  )}>
+                    {daysRemaining > 0 ? (
+                      <>
+                        {daysRemaining}{" "}
+                        {daysRemaining === 1 ? tExpiry("day") : tExpiry("days")}
+                      </>
+                    ) : (
+                      <span className={isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"}>
+                        {tExpiry("expired")}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <Progress
+                  value={progressPercent}
+                  className={cn(
+                    "h-3",
+                    isGame
+                      ? "rounded-full bg-white/20"
+                      : "rounded-full bg-secondary dark:bg-transparent dark:border dark:border-[#0bd1a2] dark:rounded-none"
+                  )}
+                  indicatorClassName={isGame ? "bg-white/50" : "bg-black dark:bg-[#0bd1a2]"}
+                />
+
+                {/* Proposal Info + Epoch Details */}
+                <div className="mt-4 pt-3 border-t border-border/50">
+                    <table className="text-xs w-full">
+                      <tbody>
+                        <tr className={cn(
+                          "border-b",
+                          isGame ? "border-white/10" : "border-border/30"
+                        )}>
+                          <td className={cn(
+                            "py-2 pr-4",
+                            isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
+                          )}>
+                            {tProposal("govActionType")}
+                          </td>
+                          <td className={cn(
+                            "py-2 font-semibold whitespace-nowrap",
+                            isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
+                          )}>
+                            {selectedAction.type}
+                          </td>
+                        </tr>
+                        <tr className={cn(
+                          "border-b",
+                          isGame ? "border-white/10" : "border-border/30"
+                        )}>
+                          <td className={cn(
+                            "py-2 pr-4",
+                            isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
+                          )}>
+                            {tProposal("status")}
+                          </td>
+                          <td className={cn(
+                            "py-2 font-semibold whitespace-nowrap",
+                            isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
+                          )}>
+                            {selectedAction.status}
+                          </td>
+                        </tr>
+                        <tr className={cn(
+                          "border-b",
+                          isGame ? "border-white/10" : "border-border/30"
+                        )}>
+                          <td className={cn(
+                            "py-2 pr-4",
+                            isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
+                          )}>
+                            {tProposal("constitutionality")}
+                          </td>
+                          <td className={cn(
+                            "py-2 font-semibold whitespace-nowrap",
+                            isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
+                          )}>
+                            {isInfoAction ? (
+                              <div className="flex items-center gap-1.5">
+                                <span className={isGame ? "text-white/60" : "text-muted-foreground dark:text-[#0bd1a2]/60"}>
+                                  {tProposal("notApplicable")}
+                                </span>
+                                <div className="group relative">
+                                  <Info
+                                    className={cn(
+                                      "h-3.5 w-3.5 cursor-help",
+                                      isGame ? "text-white/50" : "text-muted-foreground/60 dark:text-[#0bd1a2]/60"
+                                    )}
+                                  />
+                                  <div className="pointer-events-none absolute right-0 top-full z-50 mt-1 hidden w-48 rounded-md border bg-popover p-2 text-xs text-popover-foreground shadow-md group-hover:block">
+                                    {tProposal("infoActionTooltip")}
+                                  </div>
+                                </div>
+                              </div>
+                            ) : selectedAction.constitutionality ? (
+                              selectedAction.status === "Active" && selectedAction.constitutionality.toLowerCase() !== "constitutional"
+                                ? tProposal("pending")
+                                : selectedAction.constitutionality
+                            ) : null}
+                          </td>
+                        </tr>
+                        <tr className={cn(
+                          "border-b",
+                          isGame ? "border-white/10" : "border-border/30"
+                        )}>
+                          <td className={cn(
+                            "py-2 pr-4",
+                            isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
+                          )}>
+                            {tExpiry("submissionDate")}
+                          </td>
+                          <td className={cn(
+                            "py-2 font-semibold whitespace-nowrap",
+                            isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
+                          )}>
+                            {new Date(submissionTimestamp).toLocaleDateString("en-GB", {
+                              day: "2-digit",
+                              month: "2-digit",
+                              year: "numeric"
+                            })}
+                          </td>
+                        </tr>
+                        <tr className={cn(
+                          "border-b",
+                          isGame ? "border-white/10" : "border-border/30"
+                        )}>
+                          <td className={cn(
+                            "py-2 pr-4",
+                            isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
+                          )}>
+                            {tExpiry("epochBoundary")}
+                          </td>
+                          <td className={cn(
+                            "py-2 font-semibold whitespace-nowrap",
+                            isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
+                          )}>
+                            {new Date(expiryTimestamp).toLocaleDateString("en-GB", {
+                              day: "2-digit",
+                              month: "2-digit",
+                              year: "numeric"
+                            })}
+                          </td>
+                        </tr>
+                        <tr className={cn(
+                          "border-b",
+                          isGame ? "border-white/10" : "border-border/30"
+                        )}>
+                          <td className={cn(
+                            "py-2 pr-4",
+                            isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
+                          )}>
+                            {tExpiry("submissionEpoch")}
+                          </td>
+                          <td className={cn(
+                            "py-2 font-semibold whitespace-nowrap",
+                            isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
+                          )}>
+                            {submissionEpoch}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className={cn(
+                            "py-2 pr-4",
+                            isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
+                          )}>
+                            {tExpiry("validUntilEpoch")}
+                          </td>
+                          <td className={cn(
+                            "py-2 font-semibold whitespace-nowrap",
+                            isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
+                          )}>
+                            {(selectedAction.expiryEpoch > 0 ? selectedAction.expiryEpoch : submissionEpoch + 6) - 1}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+              </Card>
+            );
+          })()}
+          </div>
 
           {/* Main Grid: 2/3 Left, 1/3 Right */}
           <div className="grid grid-cols-1 gap-4 sm:gap-5 md:gap-6 lg:grid-cols-3">
@@ -1918,207 +2175,11 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
                   </div>
                 </Tabs>
               </Card>
+
             </div>
 
             {/* Right Column - Sidebar (voting summary) */}
-            <div className="space-y-6">
-              {/* Time Until Expiry Card */}
-              {selectedAction && (() => {
-                // Calculate expiry based on epoch, not days
-                // Governance actions expire at the END of the expiryEpoch
-                const now = Date.now();
-                const currentEpoch = getCurrentEpoch();
-                const submissionEpoch = selectedAction.submissionEpoch > 0
-                  ? selectedAction.submissionEpoch
-                  : currentEpoch;
-
-                // Get expiry epoch (default to submission + 6 epochs if not set)
-                // The "Valid Until Epoch" is expiryEpoch - 1, meaning voting ends at the end of that epoch
-                const expiryEpoch = selectedAction.expiryEpoch > 0
-                  ? selectedAction.expiryEpoch
-                  : submissionEpoch + 6;
-
-                // Calculate timestamps for the start and end of the voting period
-                const submissionTimestamp = epochToTimestamp(submissionEpoch);
-                // Voting ends at the END of (expiryEpoch - 1), which is the START of expiryEpoch
-                const expiryTimestamp = epochToTimestamp(expiryEpoch);
-
-                // Calculate time remaining until end of voting period
-                const timeRemaining = Math.max(0, expiryTimestamp - now);
-                const daysRemaining = Math.floor(timeRemaining / (24 * 60 * 60 * 1000));
-
-                // Calculate progress based on epochs
-                const totalEpochs = expiryEpoch - submissionEpoch;
-                const epochsElapsed = currentEpoch - submissionEpoch;
-                const progressPercent = totalEpochs > 0
-                  ? Math.min(100, Math.max(0, (epochsElapsed / totalEpochs) * 100))
-                  : 0;
-
-                return (
-                  <Card className={cn("p-6", isGame && "game-detail-card")}>
-                    <div className="flex items-center justify-between mb-4">
-                      <label className={cn(
-                        "text-sm font-semibold",
-                        isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
-                      )}>
-                        {tExpiry("timeUntilExpiry")}
-                      </label>
-                      <div className={cn(
-                        "text-base font-semibold",
-                        isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
-                      )}>
-                        {daysRemaining > 0 ? (
-                          <>
-                            {daysRemaining}{" "}
-                            {daysRemaining === 1 ? tExpiry("day") : tExpiry("days")}
-                          </>
-                        ) : (
-                          <span className={isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"}>
-                            {tExpiry("expired")}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <Progress
-                      value={progressPercent}
-                      className={cn(
-                        "h-3",
-                        isGame
-                          ? "rounded-full bg-white/20"
-                          : "rounded-full bg-secondary dark:bg-transparent dark:border dark:border-[#0bd1a2] dark:rounded-none"
-                      )}
-                      indicatorClassName={isGame ? "bg-white/50" : "bg-black dark:bg-[#0bd1a2]"}
-                    />
-
-                    {/* Expandable details section */}
-                    <div className={cn(
-                      "overflow-hidden transition-all duration-300 ease-in-out",
-                      isTimeExpanded ? "max-h-[300px] opacity-100" : "max-h-0 opacity-0"
-                    )}>
-                      <div className="mt-4 pt-3 border-t border-border/50">
-                        <table className="text-xs">
-                          <thead>
-                            <tr className={cn(
-                              "border-b",
-                              isGame ? "border-white/20" : "border-border/50"
-                            )}>
-                              <th className={cn(
-                                "text-left py-2 font-medium",
-                                isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
-                              )}>
-                                {tExpiry("subject")}
-                              </th>
-                              <th></th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            <tr className={cn(
-                              "border-b",
-                              isGame ? "border-white/10" : "border-border/30"
-                            )}>
-                              <td className={cn(
-                                "py-2 pr-4",
-                                isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
-                              )}>
-                                {tExpiry("submissionDate")}
-                              </td>
-                              <td className={cn(
-                                "py-2 font-semibold whitespace-nowrap",
-                                isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
-                              )}>
-                                {new Date(submissionTimestamp).toLocaleDateString("en-GB", {
-                                  day: "2-digit",
-                                  month: "2-digit",
-                                  year: "numeric"
-                                })}
-                              </td>
-                            </tr>
-                            <tr className={cn(
-                              "border-b",
-                              isGame ? "border-white/10" : "border-border/30"
-                            )}>
-                              <td className={cn(
-                                "py-2 pr-4",
-                                isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
-                              )}>
-                                {tExpiry("epochBoundary")}
-                              </td>
-                              <td className={cn(
-                                "py-2 font-semibold whitespace-nowrap",
-                                isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
-                              )}>
-                                {new Date(expiryTimestamp).toLocaleDateString("en-GB", {
-                                  day: "2-digit",
-                                  month: "2-digit",
-                                  year: "numeric"
-                                })}
-                              </td>
-                            </tr>
-                            <tr className={cn(
-                              "border-b",
-                              isGame ? "border-white/10" : "border-border/30"
-                            )}>
-                              <td className={cn(
-                                "py-2 pr-4",
-                                isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
-                              )}>
-                                {tExpiry("submissionEpoch")}
-                              </td>
-                              <td className={cn(
-                                "py-2 font-semibold whitespace-nowrap",
-                                isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
-                              )}>
-                                {submissionEpoch}
-                              </td>
-                            </tr>
-                            <tr>
-                              <td className={cn(
-                                "py-2 pr-4",
-                                isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
-                              )}>
-                                {tExpiry("validUntilEpoch")}
-                              </td>
-                              <td className={cn(
-                                "py-2 font-semibold whitespace-nowrap",
-                                isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
-                              )}>
-                                {(selectedAction.expiryEpoch > 0 ? selectedAction.expiryEpoch : submissionEpoch + 6) - 1}
-                              </td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-
-                    {/* Expand/Collapse Arrow */}
-                    <div className="flex justify-center items-center pt-3">
-                      <div
-                        className={cn(
-                          "flex w-full items-center justify-center px-3 py-1.5 cursor-pointer transition-all duration-300",
-                          isGame
-                            ? "game-expand-btn rounded-lg"
-                            : "rounded-lg border border-border/50 bg-card/50 hover:bg-white hover:shadow-lg hover:scale-[1.02] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:hover:bg-[#0bd1a2]/10 dark:hover:shadow-none"
-                        )}
-                        onClick={() => setIsTimeExpanded((prev) => !prev)}
-                      >
-                        <svg
-                          className={cn(
-                            "h-4 w-4 transition-transform duration-300",
-                            isTimeExpanded ? "rotate-180" : "",
-                            isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
-                          )}
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </div>
-                    </div>
-                  </Card>
-                );
-              })()}
-
+            <div className="space-y-6 lg:sticky lg:top-6 lg:self-start">
               {/* Voting Trend Chart */}
               {voteTimelineData.length > 0 && (
                 <Card className={cn("p-6", isGame && "game-detail-card")}>
@@ -2249,83 +2310,17 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
                 </Card>
               )}
 
-              {/* Vote Summary Card */}
-              <Card className={cn("p-6", isGame && "game-detail-card")}>
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center justify-between">
-                    <span className={isGame ? "text-white/70" : "text-muted-foreground"}>{tProposal("govActionType")}</span>
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "rounded-[6px] bg-transparent px-3 py-1 text-xs font-semibold uppercase tracking-wide leading-none",
-                        isGame
-                          ? "border-white/30 text-white"
-                          : "border-foreground/20 dark:rounded-none dark:border-[#0bd1a2] dark:text-[#0bd1a2]"
-                      )}
-                    >
-                      {selectedAction.type}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className={isGame ? "text-white/70" : "text-muted-foreground"}>{tProposal("status")}</span>
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "rounded-[6px] bg-transparent px-3 py-1 text-xs font-semibold uppercase tracking-wide leading-none",
-                        isGame
-                          ? "border-white/30 text-white"
-                          : "border-foreground/20 dark:rounded-none dark:border-[#0bd1a2] dark:text-[#0bd1a2]"
-                      )}
-                    >
-                      {selectedAction.status}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className={isGame ? "text-white/70" : "text-muted-foreground"}>{tProposal("constitutionality")}</span>
-                    {isInfoAction ? (
-                      <div className="flex items-center gap-1.5">
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            "rounded-[6px] bg-transparent px-3 py-1 text-xs font-semibold uppercase tracking-wide leading-none",
-                            isGame
-                              ? "border-white/30 text-white/60"
-                              : "border-foreground/10 text-muted-foreground dark:rounded-none dark:border-[#0bd1a2]/50 dark:text-[#0bd1a2]/60"
-                          )}
-                        >
-                          {tProposal("notApplicable")}
-                        </Badge>
-                        <div className="group relative">
-                          <Info
-                            className={cn(
-                              "h-3.5 w-3.5 cursor-help",
-                              isGame ? "text-white/50" : "text-muted-foreground/60 dark:text-[#0bd1a2]/60"
-                            )}
-                          />
-                          <div className="pointer-events-none absolute right-0 top-full z-50 mt-1 hidden w-48 rounded-md border bg-popover p-2 text-xs text-popover-foreground shadow-md group-hover:block">
-                            {tProposal("infoActionTooltip")}
-                          </div>
-                        </div>
-                      </div>
-                    ) : selectedAction.constitutionality ? (
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "rounded-[6px] bg-transparent px-3 py-1 text-xs font-semibold uppercase tracking-wide leading-none",
-                          isGame
-                            ? "border-white/30 text-white"
-                            : "border-foreground/20 dark:rounded-none dark:border-[#0bd1a2] dark:text-[#0bd1a2]"
-                        )}
-                      >
-                        {/* Show "Pending" for active proposals where CC votes are still being cast */}
-                        {selectedAction.status === "Active" && selectedAction.constitutionality.toLowerCase() !== "constitutional"
-                          ? tProposal("pending")
-                          : selectedAction.constitutionality}
-                      </Badge>
-                    ) : null}
-                  </div>
-                </div>
-              </Card>
+              {/* Cast Your Vote Card */}
+              {selectedAction && voteTxHash && (
+                <LazyVoteOnProposal
+                  txHash={voteTxHash}
+                  certIndex={voteCertIndex}
+                  proposalTitle={selectedAction.title}
+                  status={selectedAction.status}
+                  proposalId={selectedAction.proposalId || selectedAction.hash}
+                />
+              )}
+
             </div>
           </div>
 

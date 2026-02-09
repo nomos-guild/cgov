@@ -14,17 +14,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { ConnectWalletButton } from "@/components/wallet";
 import {
-  ThumbsUp,
-  ThumbsDown,
-  MinusCircle,
   Loader2,
   CheckCircle,
   AlertCircle,
-  ExternalLink,
   RefreshCw,
 } from "lucide-react";
 import { useTheme } from "@/lib/theme";
@@ -65,6 +61,7 @@ export function VoteOnProposal({
   const { connected, wallet } = useWallet();
   const { activeTheme } = useTheme();
   const isGame = activeTheme.id === "game";
+  const isDark = activeTheme.id === "dark";
   const [selectedVote, setSelectedVote] = useState<VoteChoice | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [anchorUrl, setAnchorUrl] = useState("");
@@ -239,18 +236,14 @@ export function VoteOnProposal({
         verbose: true,
       });
 
-      // Prepare anchor if URL provided
+      // Prepare anchor if URL provided (optional — skip on failure)
       let anchor = undefined;
       if (anchorUrl.trim()) {
         const trimmedUrl = anchorUrl.trim();
-
-        // Fetch the content from the URL and compute Blake2b-256 hash
         try {
           const response = await fetch(trimmedUrl);
           if (!response.ok) {
-            throw new Error(
-              `Failed to fetch anchor content: ${response.status}`
-            );
+            throw new Error(`HTTP ${response.status}`);
           }
           const contentText = await response.text();
           const contentJson = JSON.parse(contentText);
@@ -261,12 +254,7 @@ export function VoteOnProposal({
             anchorDataHash,
           };
         } catch (fetchError) {
-          throw new Error(
-            `Failed to fetch or hash anchor content: ${
-              fetchError instanceof Error ? fetchError.message : "Unknown error"
-            }. ` +
-              `Please ensure the URL is accessible and contains valid JSON.`
-          );
+          console.warn("Anchor fetch failed, proceeding without rationale:", fetchError);
         }
       }
 
@@ -308,11 +296,19 @@ export function VoteOnProposal({
       // Start polling to sync the vote
       startPolling();
     } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to submit vote";
+
+      // If user declined the wallet signing, just close the modal
+      if (message.toLowerCase().includes("user declined") || message.toLowerCase().includes("user rejected")) {
+        closeModal();
+        return;
+      }
+
       console.error("Vote submission error:", err);
       setVoteState({
         isSubmitting: false,
         isSuccess: false,
-        error: err instanceof Error ? err.message : "Failed to submit vote",
+        error: message,
         txHash: null,
       });
     }
@@ -342,22 +338,47 @@ export function VoteOnProposal({
   };
 
   const getVoteButtonClass = (vote: VoteChoice) => {
-    const baseClass = "flex-1 h-16 text-lg font-semibold transition-all";
-    const selectedClass = "ring-2 ring-offset-2 ring-offset-background";
+    const baseClass = "flex-1 h-10 text-sm font-semibold transition-all";
+    const isSelected = selectedVote === vote;
+    const voteTypeClass =
+      vote === "Yes"
+        ? "vote-btn-yes"
+        : vote === "No"
+        ? "vote-btn-no"
+        : "vote-btn-abstain";
 
+    // Game & Dark themes: CSS token overrides handle all visual styling
+    if (isGame || isDark) {
+      return cn(baseClass, voteTypeClass, isSelected && "selected");
+    }
+
+    // Light theme: white card-style buttons with shadow
+    const cardBase = "bg-white border-transparent shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)] hover:bg-gray-50 hover:text-black";
     switch (vote) {
       case "Yes":
-        return selectedVote === vote
-          ? `${baseClass} ${selectedClass} bg-emerald-500 hover:bg-emerald-600 text-white ring-emerald-500`
-          : `${baseClass} bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border-emerald-500/30`;
+        return cn(
+          baseClass,
+          voteTypeClass,
+          isSelected
+            ? "bg-emerald-600 hover:bg-emerald-700 text-white border-transparent shadow-[0_4px_12px_rgba(0,0,0,0.12)]"
+            : `${cardBase} text-black`
+        );
       case "No":
-        return selectedVote === vote
-          ? `${baseClass} ${selectedClass} bg-red-500 hover:bg-red-600 text-white ring-red-500`
-          : `${baseClass} bg-red-500/20 hover:bg-red-500/30 text-red-400 border-red-500/30`;
+        return cn(
+          baseClass,
+          voteTypeClass,
+          isSelected
+            ? "bg-red-600 hover:bg-red-700 text-white border-transparent shadow-[0_4px_12px_rgba(0,0,0,0.12)]"
+            : `${cardBase} text-black`
+        );
       case "Abstain":
-        return selectedVote === vote
-          ? `${baseClass} ${selectedClass} bg-gray-500 hover:bg-gray-600 text-white ring-gray-500`
-          : `${baseClass} bg-gray-500/20 hover:bg-gray-500/30 text-gray-400 border-gray-500/30`;
+        return cn(
+          baseClass,
+          voteTypeClass,
+          isSelected
+            ? "bg-gray-500 hover:bg-gray-600 text-white border-transparent shadow-[0_4px_12px_rgba(0,0,0,0.12)]"
+            : `${cardBase} text-black`
+        );
     }
   };
 
@@ -411,7 +432,6 @@ export function VoteOnProposal({
                 className={getVoteButtonClass("Yes")}
                 onClick={() => handleVoteClick("Yes")}
               >
-                <ThumbsUp className="h-5 w-5 mr-2" />
                 Yes
               </Button>
               <Button
@@ -419,7 +439,6 @@ export function VoteOnProposal({
                 className={getVoteButtonClass("No")}
                 onClick={() => handleVoteClick("No")}
               >
-                <ThumbsDown className="h-5 w-5 mr-2" />
                 No
               </Button>
               <Button
@@ -427,7 +446,6 @@ export function VoteOnProposal({
                 className={getVoteButtonClass("Abstain")}
                 onClick={() => handleVoteClick("Abstain")}
               >
-                <MinusCircle className="h-5 w-5 mr-2" />
                 Abstain
               </Button>
             </div>
@@ -476,17 +494,6 @@ export function VoteOnProposal({
                 <p className="text-sm text-muted-foreground">
                   Your vote has been submitted to the blockchain.
                 </p>
-                {voteState.txHash && (
-                  <a
-                    href={`https://adastat.net/transactions/${voteState.txHash}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary text-sm flex items-center justify-center gap-1 hover:underline"
-                  >
-                    View on AdaStat
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
-                )}
               </div>
 
               {/* Sync Status Indicator */}
@@ -528,32 +535,24 @@ export function VoteOnProposal({
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="bg-secondary/50 p-4 rounded-lg">
-                <p className="text-sm font-medium mb-1">Proposal:</p>
-                <p className="text-sm text-muted-foreground line-clamp-2">
-                  {proposalTitle}
-                </p>
-              </div>
-
-              <div className="flex justify-center">
-                <Badge
-                  variant="outline"
-                  className={
-                    selectedVote === "Yes"
-                      ? "rounded-none bg-transparent text-emerald-400 border-emerald-500/60 text-lg px-6 py-2 dark:border-[#0bd1a2] dark:text-[#0bd1a2]"
-                      : selectedVote === "No"
-                      ? "rounded-none bg-transparent text-red-400 border-red-500/60 text-lg px-6 py-2 dark:border-[#0bd1a2] dark:text-[#0bd1a2]"
-                      : "rounded-none bg-transparent text-gray-400 border-gray-500/60 text-lg px-6 py-2 dark:border-[#0bd1a2] dark:text-[#0bd1a2]"
-                  }
-                >
-                  {selectedVote}
-                </Badge>
-              </div>
+              <table className="w-full text-sm">
+                <tbody>
+                  <tr className="border-b border-border">
+                    <td className="py-2 pr-4 font-medium text-muted-foreground whitespace-nowrap">Proposal</td>
+                    <td className="py-2 line-clamp-2">{proposalTitle}</td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 pr-4 font-medium text-muted-foreground whitespace-nowrap">Vote</td>
+                    <td className="py-2 font-semibold">{selectedVote}</td>
+                  </tr>
+                </tbody>
+              </table>
 
               <div className="space-y-2">
                 <Label htmlFor="anchorUrl">Rationale URL (Optional)</Label>
-                <Input
+                <Textarea
                   id="anchorUrl"
+                  className="min-h-[100px] focus-visible:ring-black/20"
                   placeholder="https://... or ipfs://..."
                   value={anchorUrl}
                   onChange={(e) => setAnchorUrl(e.target.value)}

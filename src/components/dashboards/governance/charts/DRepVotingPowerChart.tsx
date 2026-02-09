@@ -58,7 +58,7 @@ export function DRepVotingPowerChart({ isLoading, className }: ChartProps) {
   const data = useMemo<SliceData[]>(() => {
     if (!dreps.length) return [];
 
-    const topDreps = dreps.slice(0, topN);
+    const topDreps: DRepSummary[] = dreps.slice(0, topN);
     const topTotal = topDreps.reduce((sum, d) => sum + d.votingPowerAda, 0);
     const restAda = Math.max(0, totalDelegatedAda - topTotal);
 

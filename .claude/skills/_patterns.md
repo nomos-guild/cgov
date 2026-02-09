@@ -19,6 +19,7 @@ Three distinct themes — never treat dark and game as the same.
 - Light theme cards: pure white, NO borders, shadow only
 - Game theme cards: NO colored borders, NO colored elements
 - Dark theme: cyan for almost everything
+- **CSS specificity vs Tailwind**: Game theme CSS classes like `game-nav-btn` use `[data-theme="game"]` selectors with higher specificity than Tailwind utilities. You cannot override `height: 40px` from `game-nav-btn` with Tailwind `h-8`. Create a variant class (e.g., `game-nav-btn-sm`) instead.
 
 **3-way theme check (always use this order):**
 ```tsx
@@ -77,6 +78,20 @@ import { cn } from "@/lib/utils";
 - **SWR for chart data**: DRep/non-Redux data uses SWR hooks in `src/hooks/useDRepData.ts`. Match `dedupingInterval` to server cache duration.
 - **SWR fallbackData on key change**: `fallbackData` only seeds data for the initial SWR key. When the key changes (e.g., navigating between proposals), use `useRef` + `mutate(newFallback, false)` to seed the cache for the new key.
 - **Module-level cache for paginated hooks**: `useAllDReps` uses raw `fetch` (not SWR) for multi-page accumulation. Radix TabsContent unmounts children on tab switch, causing remount and re-fetch. Fix: module-level `Map<string, { data, timestamp }>` with TTL, checked in state initializer and effect.
+- **Mesh SDK lazy import**: `@meshsdk/web3-sdk` throws at module evaluation time if Web Crypto API is unavailable (HTTP, not localhost). `next/dynamic` with `ssr: false` only prevents SSR — the chunk still crashes client-side. Use runtime conditional `import()` inside `useEffect` gated by `window.crypto?.subtle`:
+  ```tsx
+  function LazyComponent() {
+    const [Comp, setComp] = useState<ComponentType | null>(null);
+    useEffect(() => {
+      if (!(window.crypto && window.crypto.subtle)) return;
+      import("@/components/wallet/SomeComponent")
+        .then((mod) => setComp(() => mod.SomeComponent))
+        .catch(() => {});
+    }, []);
+    if (!Comp) return null;
+    return <Comp />;
+  }
+  ```
 
 ---
 

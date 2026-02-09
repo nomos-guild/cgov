@@ -132,8 +132,8 @@ export function ConnectWalletModal({
               )}
             </div>
             <Button
-              variant="destructive"
-              className="w-full"
+              variant="outline"
+              className="w-full bg-white border-transparent shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)] hover:bg-gray-50 text-black hover:text-black"
               onClick={handleDisconnect}
             >
               <LogOut className="h-4 w-4 mr-2" />
@@ -182,7 +182,7 @@ export function ConnectWalletModal({
                 {availableWallets.map((detectedWallet) => (
                   <button
                     key={detectedWallet.id}
-                    className="w-full flex items-center gap-3 p-4 rounded-lg border border-border bg-secondary/30 hover:bg-secondary/60 transition-colors disabled:opacity-50"
+                    className="wallet-item w-full flex items-center gap-3 p-4 rounded-lg border border-border bg-secondary/30 hover:bg-secondary/60 transition-colors disabled:opacity-50"
                     onClick={() => handleConnect(detectedWallet.id)}
                     disabled={isLoading}
                   >
