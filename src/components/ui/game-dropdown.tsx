@@ -36,13 +36,13 @@ export function GameDropdown({
     <Popover.Root open={open} onOpenChange={handleOpenChange}>
       <Popover.Trigger asChild>
         <button
-          className={`game-nav-btn flex h-10 w-full items-center justify-between px-3 py-2 text-sm ${className || ""}`}
+          className={`game-nav-btn-sm flex items-center justify-between ${className || ""}`}
           aria-expanded={open}
         >
           <span className={`truncate ${!selectedOption ? "text-white/50" : ""}`}>
             {selectedOption?.label || placeholder}
           </span>
-          <ChevronDown className="h-4 w-4 opacity-50 shrink-0" />
+          <ChevronDown className="h-3 w-3 opacity-50 shrink-0" />
         </button>
       </Popover.Trigger>
       <Popover.Portal>
