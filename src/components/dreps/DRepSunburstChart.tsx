@@ -38,6 +38,7 @@ export function DRepSunburstChart({ className }: DRepSunburstChartProps) {
   const [chartMetric, setChartMetric] = useState<"votingPower" | "delegators" | "votesCast">("votingPower");
   const [chartVisible, setChartVisible] = useState(true);
   const [zoomEnabled, setZoomEnabled] = useState(false);
+  const [topN, setTopN] = useState<number | null>(null); // null = all
   const [bubbleSearch, setBubbleSearch] = useState("");
   const [focusDRepId, setFocusDRepId] = useState<string | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -87,6 +88,12 @@ export function DRepSunburstChart({ className }: DRepSunburstChartProps) {
   }, [dreps, searchTerm]);
 
   const totalDReps = filteredDreps.length;
+
+  // Apply top-N filter for the bubble chart
+  const chartDreps = useMemo(() => {
+    if (topN === null) return filteredDreps;
+    return filteredDreps.slice(0, topN);
+  }, [filteredDreps, topN]);
 
   // Bubble search suggestions (top 6 matches)
   const bubbleSuggestions = useMemo(() => {
@@ -152,14 +159,14 @@ export function DRepSunburstChart({ className }: DRepSunburstChartProps) {
 
   const tabBtnClass = isGame
     ? "game-tab-btn data-[state=active]:game-tab-btn-active text-[10px] sm:text-xs"
-    : "rounded-md border border-white/8 bg-white text-black px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold uppercase tracking-wide transform-gpu transition-transform transition-shadow duration-450 ease-in-out shadow-[0_12px_30px_rgba(15,23,42,0.25)] data-[state=active]:bg-black data-[state=active]:text-white hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon";
+    : "rounded-none border border-white/8 bg-white text-black px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold uppercase tracking-wide transform-gpu transition-transform transition-shadow duration-450 ease-in-out shadow-[0_12px_30px_rgba(15,23,42,0.25)] data-[state=active]:bg-black data-[state=active]:text-white hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon";
 
   return (
     <div className={className}>
       {/* Chart section */}
       <div className="flex flex-col sm:flex-row gap-4">
         {/* Side panel card */}
-        <div className={`${cardClass} flex flex-col gap-3 sm:w-[180px] sm:flex-shrink-0`}>
+        <div className={`${cardClass} flex flex-col gap-3 sm:w-[230px] sm:flex-shrink-0`}>
           <div>
             <h3 className={`text-lg font-semibold ${isGame ? "text-white" : ""}`}>
               DReps by {chartMetric === "votingPower" ? "Voting Power" : chartMetric === "delegators" ? "Delegators" : "Votes Cast"}
@@ -191,6 +198,29 @@ export function DRepSunburstChart({ className }: DRepSunburstChartProps) {
               ))}
             </div>
           </div>
+          {/* Top N filter */}
+          <div>
+            <p className={`text-[10px] font-semibold uppercase tracking-wide mb-1.5 ${isGame ? "text-white/50" : "text-muted-foreground"}`}>
+              Show
+            </p>
+            <div className="flex sm:flex-col flex-wrap gap-1.5">
+              {([
+                { value: 10, label: "Top 10" },
+                { value: 20, label: "Top 20" },
+                { value: 50, label: "Top 50" },
+                { value: null, label: "All" },
+              ] as const).map(({ value, label }) => (
+                <button
+                  key={label}
+                  onClick={() => setTopN(value)}
+                  data-state={topN === value ? "active" : "inactive"}
+                  className={tabBtnClass}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
           {/* Tools */}
           <div>
             <p className={`text-[10px] font-semibold uppercase tracking-wide mb-1.5 ${isGame ? "text-white/50" : "text-muted-foreground"}`}>
@@ -200,7 +230,7 @@ export function DRepSunburstChart({ className }: DRepSunburstChartProps) {
               <button
                 onClick={() => setZoomEnabled((v) => !v)}
                 data-state={zoomEnabled ? "active" : "inactive"}
-                className={`${tabBtnClass} !px-0 w-8 h-8 !rounded-full flex items-center justify-center`}
+                className={`${tabBtnClass} !px-0 w-8 h-8 !rounded-none flex items-center justify-center`}
                 title={zoomEnabled ? "Disable zoom" : "Enable zoom"}
               >
                 <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
@@ -270,8 +300,8 @@ export function DRepSunburstChart({ className }: DRepSunburstChartProps) {
             style={{ opacity: chartVisible ? 1 : 0 }}
           >
             <DRepBubbleMap
-              key={chartMetric}
-              dreps={filteredDreps}
+              key={`${chartMetric}-${topN}`}
+              dreps={chartDreps}
               metric={chartMetric}
               rationaleMap={rationaleMap}
               zoomEnabled={zoomEnabled}
