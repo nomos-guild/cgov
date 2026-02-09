@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import type { ChangeEvent, MouseEvent } from "react";
 import { useWallet } from "@meshsdk/react";
 import { MeshTxBuilder, hashDrepAnchor } from "@meshsdk/core";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -48,6 +49,8 @@ export function VoteButtons({
   compact = false,
 }: VoteButtonsProps) {
   const { connected, wallet } = useWallet();
+  const t = useTranslations("voteAction");
+  const tv = useTranslations("voting");
   const [selectedVote, setSelectedVote] = useState<VoteChoice | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [anchorUrl, setAnchorUrl] = useState("");
@@ -92,9 +95,7 @@ export function VoteButtons({
       const dRep = await wallet.getDRep();
 
       if (!dRep || !dRep.dRepIDCip105) {
-        throw new Error(
-          "Could not get DRep ID. Please ensure your wallet is registered as a DRep."
-        );
+        throw new Error(t("drepIdError"));
       }
 
       const drepId = dRep.dRepIDCip105;
@@ -174,7 +175,7 @@ export function VoteButtons({
       setVoteState({
         isSubmitting: false,
         isSuccess: false,
-        error: err instanceof Error ? err.message : "Failed to submit vote",
+        error: err instanceof Error ? err.message : t("failedToSubmitVote"),
         txHash: null,
       });
     }
@@ -204,6 +205,14 @@ export function VoteButtons({
       return null;
     }
 
+    const translateVote = (vote: VoteChoice) => {
+      switch (vote) {
+        case "Yes": return tv("yes");
+        case "No": return tv("no");
+        case "Abstain": return tv("abstain");
+      }
+    };
+
     return (
       <>
         <div
@@ -217,7 +226,7 @@ export function VoteButtons({
             onClick={(e: MouseEvent) => handleVoteClick("Yes", e)}
           >
             <ThumbsUp className="h-4 w-4 mr-1" />
-            Yes
+            {tv("yes")}
           </Button>
           <Button
             size="sm"
@@ -226,7 +235,7 @@ export function VoteButtons({
             onClick={(e: MouseEvent) => handleVoteClick("No", e)}
           >
             <ThumbsDown className="h-4 w-4 mr-1" />
-            No
+            {tv("no")}
           </Button>
           <Button
             size="sm"
@@ -235,7 +244,7 @@ export function VoteButtons({
             onClick={(e: MouseEvent) => handleVoteClick("Abstain", e)}
           >
             <MinusCircle className="h-4 w-4 mr-1" />
-            Abstain
+            {tv("abstain")}
           </Button>
         </div>
 
@@ -246,10 +255,12 @@ export function VoteButtons({
             onClick={(e: MouseEvent) => e.stopPropagation()}
           >
             <DialogHeader>
-              <DialogTitle>Confirm Your Vote</DialogTitle>
+              <DialogTitle>{t("confirmYourVote")}</DialogTitle>
               <DialogDescription>
-                You are about to vote <strong>{selectedVote}</strong> on this
-                governance action.
+                {t.rich("aboutToVote", {
+                  vote: selectedVote ? translateVote(selectedVote) : "",
+                  bold: (chunks) => <strong>{chunks}</strong>,
+                })}
               </DialogDescription>
             </DialogHeader>
 
@@ -260,10 +271,10 @@ export function VoteButtons({
                 </div>
                 <div className="text-center space-y-2">
                   <p className="font-semibold text-success">
-                    Vote Submitted Successfully!
+                    {t("voteSubmittedSuccess")}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    Your vote has been submitted to the blockchain.
+                    {t("voteSubmittedToBlockchain")}
                   </p>
                   {voteState.txHash && (
                     <a
@@ -272,19 +283,19 @@ export function VoteButtons({
                       rel="noopener noreferrer"
                       className="text-primary text-sm flex items-center justify-center gap-1 hover:underline"
                     >
-                      View on AdaStat
+                      {t("viewOnAdaStat")}
                       <ExternalLink className="h-3 w-3" />
                     </a>
                   )}
                 </div>
                 <Button className="w-full" onClick={closeModal}>
-                  Close
+                  {t("close")}
                 </Button>
               </div>
             ) : (
               <div className="space-y-4">
                 <div className="bg-secondary/50 p-4 rounded-lg">
-                  <p className="text-sm font-medium mb-1">Proposal:</p>
+                  <p className="text-sm font-medium mb-1">{t("proposal")}:</p>
                   <p className="text-sm text-muted-foreground line-clamp-2">
                     {proposalTitle}
                   </p>
@@ -300,15 +311,15 @@ export function VoteButtons({
                         : "bg-gray-500/20 text-gray-400 border-gray-500/30 text-lg px-6 py-2"
                     }
                   >
-                    {selectedVote}
+                    {selectedVote ? translateVote(selectedVote) : ""}
                   </Badge>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="anchorUrl">Rationale URL (Optional)</Label>
+                  <Label htmlFor="anchorUrl">{t("rationaleUrlOptional")}</Label>
                   <Input
                     id="anchorUrl"
-                    placeholder="https://... or ipfs://..."
+                    placeholder={t("rationaleUrlPlaceholder")}
                     value={anchorUrl}
                     onChange={(e: ChangeEvent<HTMLInputElement>) =>
                       setAnchorUrl(e.target.value)
@@ -316,8 +327,7 @@ export function VoteButtons({
                     disabled={voteState.isSubmitting}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Provide a URL to your voting rationale (e.g., IPFS link to a
-                    JSON document).
+                    {t("rationaleUrlHelp")}
                   </p>
                 </div>
 
@@ -335,7 +345,7 @@ export function VoteButtons({
                     onClick={closeModal}
                     disabled={voteState.isSubmitting}
                   >
-                    Cancel
+                    {t("cancel")}
                   </Button>
                   <Button
                     className="flex-1"
@@ -345,17 +355,16 @@ export function VoteButtons({
                     {voteState.isSubmitting ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Submitting...
+                        {t("submitting")}
                       </>
                     ) : (
-                      "Confirm Vote"
+                      t("confirmVote")
                     )}
                   </Button>
                 </div>
 
                 <p className="text-xs text-muted-foreground text-center">
-                  This will create an on-chain transaction. You will be asked to
-                  sign with your wallet.
+                  {t("onChainTransactionNote")}
                 </p>
               </div>
             )}

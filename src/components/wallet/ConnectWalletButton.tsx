@@ -1,4 +1,5 @@
 import { useWallet } from "@meshsdk/react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Wallet } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -8,6 +9,7 @@ import { useTheme } from "@/lib/theme";
 
 export function ConnectWalletButton() {
   const { connected, connecting, name, wallet } = useWallet();
+  const t = useTranslations("wallet");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [address, setAddress] = useState<string>("");
   const [walletIcon, setWalletIcon] = useState<string>("");
@@ -121,7 +123,7 @@ export function ConnectWalletButton() {
         {connecting ? (
           <>
             <Wallet className="h-4 w-4" />
-            Connecting...
+            {t("connecting")}
           </>
         ) : connected ? (
           <>
@@ -152,7 +154,7 @@ export function ConnectWalletButton() {
         ) : (
           <>
             <Wallet className="h-4 w-4" />
-            Connect Wallet
+            {t("connectWallet")}
           </>
         )}
       </Button>
