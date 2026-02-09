@@ -2,6 +2,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSelector } from "@/components/LanguageSelector";
+import { ConnectWalletButton } from "@/components/wallet";
 import { Globe, Github } from "lucide-react";
 import { useTheme } from "@/lib/theme";
 
@@ -51,6 +52,7 @@ export function Header() {
               <ThemeToggle />
               <LanguageSelector />
             </div>
+            <ConnectWalletButton />
             <div className="flex items-center gap-1.5 sm:gap-3">
               <a
                 href="https://nomos.cgov.io/"

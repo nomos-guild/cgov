@@ -19,6 +19,7 @@ import { VoteProgress } from "@/components/ui/vote-progress";
 import { Progress } from "@/components/ui/progress";
 import { VotingRecords } from "@/components/VotingRecords";
 import { BubbleMap } from "@/components/BubbleMap";
+import { VoteOnProposal } from "@/components/governance";
 import { useAppSelector } from "@/store/hooks";
 import { useGovernanceActionDetail } from "@/hooks/useGovernanceData";
 import { ArrowLeft, Copy, Check, Info } from "lucide-react";
@@ -290,6 +291,10 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
 
   // Redux still has the data (synced by the hook) for components that read from it
   const { selectedAction } = useAppSelector((state) => state.governance);
+
+  // Derive vote transaction props from selectedAction hash ("txHash:certIndex" format)
+  const [voteTxHash, voteCertIndexStr] = (selectedAction?.hash || "").split(/[:#]/);
+  const voteCertIndex = parseInt(voteCertIndexStr, 10) || 0;
 
   // Alias for backward compatibility with the rest of the JSX
   const isLoadingDetail = swrLoading;
@@ -1918,10 +1923,7 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
                   </div>
                 </Tabs>
               </Card>
-            </div>
 
-            {/* Right Column - Sidebar (voting summary) */}
-            <div className="space-y-6">
               {/* Time Until Expiry Card */}
               {selectedAction && (() => {
                 // Calculate expiry based on epoch, not days
@@ -2118,6 +2120,20 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
                   </Card>
                 );
               })()}
+            </div>
+
+            {/* Right Column - Sidebar (voting summary) */}
+            <div className="space-y-6 lg:sticky lg:top-6 lg:self-start">
+              {/* Cast Your Vote Card */}
+              {selectedAction && voteTxHash && (
+                <VoteOnProposal
+                  txHash={voteTxHash}
+                  certIndex={voteCertIndex}
+                  proposalTitle={selectedAction.title}
+                  status={selectedAction.status}
+                  proposalId={selectedAction.proposalId || selectedAction.hash}
+                />
+              )}
 
               {/* Voting Trend Chart */}
               {voteTimelineData.length > 0 && (
