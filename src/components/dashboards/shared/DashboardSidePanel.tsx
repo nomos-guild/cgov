@@ -2,7 +2,6 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import { Settings, Check, RotateCcw, GripVertical, Plus, Type, Share2, Download, Copy, CheckCircle, X, MoveHorizontal, Palette, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDashboard } from "./DashboardProvider";
-import { getChartById } from "@/components/dashboards/governance/charts";
 import { useTheme } from "@/lib/theme";
 import { PAGE_MARGIN_CONSTRAINTS, ALL_CHART_IDS } from "@/types/dashboard";
 import { SidePanelColorPicker } from "./SidePanelColorPicker";
@@ -19,6 +18,7 @@ export function DashboardSidePanel() {
   const [importSuccess, setImportSuccess] = useState(false);
   const {
     config,
+    getChartById,
     toggleChartVisibility,
     reorderCharts,
     resetToDefaults,
@@ -71,7 +71,7 @@ export function DashboardSidePanel() {
     return config.chartOrder
       .map((id) => getChartById(id))
       .filter((chart) => chart !== undefined);
-  }, [config.chartOrder]);
+  }, [config.chartOrder, getChartById]);
 
   // Drag and drop handlers
   const handleDragStart = (index: number) => (e: React.DragEvent) => {

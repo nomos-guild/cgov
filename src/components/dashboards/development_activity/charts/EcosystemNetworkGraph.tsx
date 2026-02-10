@@ -939,12 +939,20 @@ export function EcosystemNetworkGraph({ isLoading, className }: ChartProps) {
     return renderGraph(svgRef.current, network.nodes, network.edges, width, height, false);
   }, [network, isExpanded, renderGraph]);
 
-  // Expanded render
+  // Expanded render — defer one frame so the container has its final layout dimensions
   useEffect(() => {
     if (!isExpanded) return;
     if (!expandedSvgRef.current || !expandedContainerRef.current || !network?.nodes?.length) return;
-    const rect = expandedContainerRef.current.getBoundingClientRect();
-    return renderGraph(expandedSvgRef.current, network.nodes, network.edges, rect.width, rect.height, true);
+    let graphCleanup: (() => void) | void;
+    const frameId = requestAnimationFrame(() => {
+      if (!expandedSvgRef.current || !expandedContainerRef.current) return;
+      const rect = expandedContainerRef.current.getBoundingClientRect();
+      graphCleanup = renderGraph(expandedSvgRef.current, network.nodes, network.edges, rect.width, rect.height, true);
+    });
+    return () => {
+      cancelAnimationFrame(frameId);
+      if (typeof graphCleanup === "function") graphCleanup();
+    };
   }, [network, isExpanded, renderGraph]);
 
   // Search: highlight matching nodes + zoom to first match
@@ -998,17 +1006,26 @@ export function EcosystemNetworkGraph({ isLoading, className }: ChartProps) {
     });
   }, [filterTypes, isExpanded]);
 
-  // Escape to close
+  // Escape or click-outside to close
   useEffect(() => {
     if (!isExpanded) return;
-    const handler = (e: KeyboardEvent) => {
+    const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         if (selectedNode) setSelectedNode(null);
         else handleCollapse();
       }
     };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
+    const onClick = (e: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        handleCollapse();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onClick);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onClick);
+    };
   }, [isExpanded, selectedNode, handleCollapse]);
 
   if (isLoading && !network?.nodes?.length) return <ChartSkeleton className={className} />;
@@ -1079,43 +1096,28 @@ export function EcosystemNetworkGraph({ isLoading, className }: ChartProps) {
 
           {/* Type filters */}
           <div className="flex items-center gap-1">
-            {(["org", "repo", "developer"] as const).map((t) => (
-              <button
-                key={t}
-                onClick={() => setFilterTypes((p) => ({ ...p, [t]: !p[t] }))}
-                className={cn(
-                  "px-2 py-0.5 rounded text-[10px] font-medium transition-colors",
-                  filterTypes[t]
-                    ? isDark ? "bg-[#0bd1a2]/20 text-[#0bd1a2]" : "bg-gray-200 text-gray-900"
-                    : isDark ? "bg-white/5 text-white/30" : "bg-gray-50 text-gray-400"
-                )}
-              >
-                {t === "developer" ? "Dev" : t.charAt(0).toUpperCase() + t.slice(1)}
-              </button>
-            ))}
+            {(["org", "repo", "developer"] as const).map((t) => {
+              const color = typeColor(t);
+              return (
+                <button
+                  key={t}
+                  onClick={() => setFilterTypes((p) => ({ ...p, [t]: !p[t] }))}
+                  className={cn(
+                    "px-2 py-0.5 rounded text-[10px] font-medium transition-colors flex items-center gap-1.5",
+                    !filterTypes[t] && (isDark ? "opacity-30" : "opacity-40"),
+                  )}
+                  style={{
+                    backgroundColor: filterTypes[t] ? `${color}20` : isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)",
+                    color: filterTypes[t] ? color : undefined,
+                  }}
+                >
+                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
+                  {t === "developer" ? "Dev" : t.charAt(0).toUpperCase() + t.slice(1)}
+                </button>
+              );
+            })}
           </div>
 
-          <div className="flex-1" />
-
-          {/* Legend */}
-          <div className="hidden sm:flex items-center gap-2 text-[10px] text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: typeColor("org") }} /> Org
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: typeColor("repo") }} /> Repo
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: typeColor("developer") }} /> Dev
-            </span>
-          </div>
-
-          <button
-            onClick={handleCollapse}
-            className="p-1 rounded hover:bg-muted dark:hover:bg-white/10 transition-colors"
-          >
-            <Minimize2 className="w-4 h-4 text-muted-foreground" />
-          </button>
         </div>
 
         {/* Graph + info panel */}
@@ -1135,6 +1137,15 @@ export function EcosystemNetworkGraph({ isLoading, className }: ChartProps) {
           )}
         </div>
 
+        <div className="flex justify-end px-3 py-1 flex-shrink-0">
+          <button
+            onClick={handleCollapse}
+            className="p-1 rounded hover:bg-muted dark:hover:bg-white/10 transition-colors"
+          >
+            <Minimize2 className="w-4 h-4 text-muted-foreground" />
+          </button>
+        </div>
+
         {tooltip && createPortal(
           <GraphTooltip node={tooltip.node} x={tooltip.x} y={tooltip.y} isDark={isDark} />,
           document.body
@@ -1146,15 +1157,7 @@ export function EcosystemNetworkGraph({ isLoading, className }: ChartProps) {
   // ─── Compact preview ──────────────────────────────────────────────────────
   return (
     <div ref={wrapperRef} className={cn(chartCardClassName, isGame && chartCardGameClassName, className)}>
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-semibold dark:text-[#0bd1a2]">Ecosystem Network</h3>
-        <button
-          onClick={handleExpand}
-          className="p-1 rounded hover:bg-muted dark:hover:bg-white/10 transition-colors"
-        >
-          <Maximize2 className="w-4 h-4 text-muted-foreground" />
-        </button>
-      </div>
+      <h3 className="text-sm font-semibold dark:text-[#0bd1a2] mb-2">Ecosystem Network</h3>
       <div
         ref={containerRef}
         className="flex-1 min-h-0 cursor-pointer"
@@ -1162,12 +1165,20 @@ export function EcosystemNetworkGraph({ isLoading, className }: ChartProps) {
       >
         <svg ref={svgRef} width="100%" height="100%" />
       </div>
-      <p
-        className="text-xs text-muted-foreground text-center mt-1 cursor-pointer"
-        onClick={handleExpand}
-      >
-        {network?.nodes?.length ?? 0} nodes · Click to expand
-      </p>
+      <div className="flex items-center justify-between mt-1">
+        <p
+          className="text-xs text-muted-foreground cursor-pointer"
+          onClick={handleExpand}
+        >
+          {network?.nodes?.length ?? 0} nodes · Click to expand
+        </p>
+        <button
+          onClick={handleExpand}
+          className="p-1 rounded hover:bg-muted dark:hover:bg-white/10 transition-colors"
+        >
+          <Maximize2 className="w-4 h-4 text-muted-foreground" />
+        </button>
+      </div>
     </div>
   );
 }
