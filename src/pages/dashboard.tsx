@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import type { GetStaticProps } from "next";
 import Head from "next/head";
 import { useTranslations } from "next-intl";
@@ -13,8 +13,6 @@ import {
   DashboardProvider,
   DashboardGrid,
   DashboardSidePanel,
-  DashboardMarginHandles,
-  useDashboard,
 } from "@/components/dashboards/shared";
 import { ChartColorsProvider } from "@/components/dashboards/shared/ChartColorsContext";
 import { CHART_REGISTRY as GOV_REGISTRY } from "@/components/dashboards/governance/charts";
@@ -38,23 +36,11 @@ interface DataLoaderResult {
 function TabDashboardContent({ isLoading, error, hasData, refresh }: DataLoaderResult) {
   const { activeTheme } = useTheme();
   const isGame = activeTheme.id === "game";
-  const { config, mounted } = useDashboard();
-  const gridAreaRef = useRef<HTMLDivElement>(null);
   const showLoadingSpinner = isLoading && !hasData && !error;
-
-  const minPadding = 24;
-  const leftPadding = Math.max(minPadding, config.pageMargins.left);
-  const rightPadding = Math.max(minPadding, config.pageMargins.right);
 
   return (
     <>
-      {mounted && <DashboardMarginHandles containerRef={gridAreaRef} />}
-
-      <div
-        className="transition-[padding] duration-75"
-        style={{ paddingLeft: leftPadding, paddingRight: rightPadding }}
-      >
-        {error && (
+      {error && (
           <Card className="p-4 sm:p-6 mb-4 sm:mb-6 border-destructive bg-destructive/10">
             <div className="text-center">
               <p className="text-destructive font-medium mb-2 text-sm sm:text-base">
@@ -89,11 +75,8 @@ function TabDashboardContent({ isLoading, error, hasData, refresh }: DataLoaderR
         )}
 
         {(hasData || (!isLoading && !error)) && !showLoadingSpinner && (
-          <div ref={gridAreaRef}>
-            <DashboardGrid isLoading={isLoading} />
-          </div>
+          <DashboardGrid isLoading={isLoading} />
         )}
-      </div>
     </>
   );
 }
@@ -150,42 +133,34 @@ function DashboardPage() {
             </div>
           </div>
 
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="relative mb-6 max-w-[1180px]">
-            <TabsList className={tabListClass}>
-              <TabsTrigger value="governance" className={tabTriggerClass}>Governance</TabsTrigger>
-              <TabsTrigger value="development" className={tabTriggerClass}>Development Activity</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="governance" className="mt-4">
-              <DashboardProvider
-                dashboardId="governance"
-                chartRegistry={GOV_REGISTRY}
-                defaultLayouts={DEFAULT_CHART_LAYOUTS}
-              >
-                <ChartColorsProvider>
-                  <div className="flex justify-end mb-4">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="relative mb-6">
+            <DashboardProvider
+              key={activeTab === "governance" ? "governance" : "development_activity"}
+              dashboardId={activeTab === "governance" ? "governance" : "development_activity"}
+              chartRegistry={activeTab === "governance" ? GOV_REGISTRY : DEV_ACTIVITY_REGISTRY}
+              defaultLayouts={DEFAULT_CHART_LAYOUTS}
+            >
+              <ChartColorsProvider>
+                <div className="flex items-center justify-between">
+                  <TabsList className={tabListClass}>
+                    <TabsTrigger value="governance" className={tabTriggerClass}>Governance</TabsTrigger>
+                    <TabsTrigger value="development" className={tabTriggerClass}>Development Activity</TabsTrigger>
+                  </TabsList>
+                  <div className="flex items-center gap-3">
+                    {activeTab === "development" && <DevelopmentRangeSelector />}
                     <DashboardSidePanel />
                   </div>
+                </div>
+
+                <TabsContent value="governance" className="mt-4">
                   <GovernanceTab />
-                </ChartColorsProvider>
-              </DashboardProvider>
-            </TabsContent>
+                </TabsContent>
 
-            <TabsContent value="development" className="mt-4">
-              <DashboardProvider
-                dashboardId="development_activity"
-                chartRegistry={DEV_ACTIVITY_REGISTRY}
-                defaultLayouts={DEFAULT_CHART_LAYOUTS}
-              >
-                <ChartColorsProvider>
-                  <div className="flex justify-end gap-3 mb-4">
-                    <DevelopmentRangeSelector />
-                    <DashboardSidePanel />
-                  </div>
+                <TabsContent value="development" className="mt-4">
                   <DevelopmentActivityTab />
-                </ChartColorsProvider>
-              </DashboardProvider>
-            </TabsContent>
+                </TabsContent>
+              </ChartColorsProvider>
+            </DashboardProvider>
           </Tabs>
         </div>
       </div>
