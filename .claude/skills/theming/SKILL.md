@@ -1,6 +1,6 @@
 ---
 name: theming
-updated: 2026-02-02
+updated: 2026-02-10
 description: Guidelines for implementing consistent theming across the three visual themes (light, dark, game).
 ---
 
@@ -76,6 +76,60 @@ Borders:        border-white/20, border-white/30
 Hover:          hover:bg-white/5, hover:bg-white/10
 Active/Success: bg-[#00ff66], text-[#00ff66]
 ```
+
+## Golden Rule: Match Existing Components
+
+**Before writing any themed styling, search for an existing component that does the same thing.** Don't invent new Tailwind patterns when a CSS class or component already exists.
+
+Steps:
+1. Grep for similar UI elements in the codebase (buttons, cards, tooltips, charts)
+2. Check `src/themes/game/tokens.css` for existing game CSS classes
+3. Reuse the same class or pattern — don't approximate with Tailwind
+
+---
+
+## Game Theme CSS Classes (in `src/themes/game/tokens.css`)
+
+These classes handle all pseudo-elements, hover states, and specificity. **Always prefer these over inline Tailwind for game theme.**
+
+| Element | CSS Class | Size | Use For |
+|---------|-----------|------|---------|
+| **Button (standard)** | `game-nav-btn` | 40px tall, pill | Nav buttons, primary actions |
+| **Button (compact)** | `game-nav-btn-sm` | 28px tall, pill | Table actions, inline buttons, back links |
+| **Tooltip** | `game-tooltip-card` | auto | Chart/hover tooltips |
+| **Tab (active)** | `game-tab-btn-active` | auto | Active tab state |
+| **Tab (inactive)** | `game-tab-btn` | auto | Inactive tab state |
+| **Expand button** | `game-expand-btn` | auto | Expand/collapse toggles |
+| **Filter dropdown** | `game-filter-dropdown` | auto | Dropdown wrapper |
+
+### Game Theme Cards (no CSS class — use Tailwind pattern)
+```tsx
+const cardClass = isGame
+  ? "rounded-[2px] border-none bg-[rgba(12,12,12,0.5)] p-4 sm:p-6 shadow-[0_18px_36px_rgba(0,0,0,0.55),0_6px_18px_rgba(0,0,0,0.4)]"
+  : isLight
+    ? "rounded-2xl border border-white/8 bg-[#faf9f6] p-4 sm:p-6 shadow-[0_12px_30px_rgba(15,23,42,0.25)]"
+    : "rounded-none border border-[#0bd1a2] bg-transparent p-4 sm:p-6 shadow-none";
+```
+
+### Game Theme Donut/Pie Charts
+- **Fill**: Dark near-black fills (`rgba(20,20,20,0.7)`) with slight variation between slices
+- **Strokes**: Subtle white borders (`rgba(255,255,255,0.3-0.5)`), `strokeWidth: 2`
+- **No neon colors** — no `#00ff66` or `#ff3333` on chart slices
+- **Tooltip**: Use `game-tooltip-card` class, disable animation (`isAnimationActive={false}`)
+- **Shadows**: No SVG drop shadow filters in game theme — keep it flat
+- Reference: `DRepDonutChart.tsx` (D3) and `[drepId].tsx` (Recharts)
+
+### Game Theme Line Charts
+- **Line color**: White/grey (`#d0d0d0`), not neon green
+- **Line weight**: Thinner than light/dark (1.5 vs 2.5)
+- **Grid**: `rgba(255,255,255,0.08)`
+
+### Game Theme Vote Badges
+```tsx
+isGame ? "bg-[rgba(20,20,20,0.7)] text-white/70 border border-white/15" : ...
+```
+
+---
 
 ## Common Patterns
 
@@ -284,10 +338,14 @@ const colors = getChartColors(activeTheme.id);
 
 ## Checklist When Styling
 
+- [ ] Did I search for an existing component/class that does the same thing?
+- [ ] Did I check `tokens.css` for a game CSS class before writing Tailwind?
 - [ ] Did I check for `isGame` BEFORE `isDark`?
+- [ ] Game buttons: Using `game-nav-btn` or `game-nav-btn-sm`, not custom Tailwind?
+- [ ] Game tooltips: Using `game-tooltip-card`, not custom bg/border?
+- [ ] Game charts: Dark fills with subtle grey borders, no neon slice colors?
+- [ ] Game cards: Using the established `cardClass` pattern?
 - [ ] Game theme: Using white text, not cyan?
-- [ ] Game theme: Using `#00ff66` for accents, not `#0bd1a2`?
-- [ ] Game theme: Using sharp corners (`rounded-none` or `rounded-sm`)?
-- [ ] Game theme: Using `bg-black` or similar dark background?
+- [ ] Game theme: Using sharp corners (`rounded-none`, `rounded-sm`, `rounded-[2px]`)?
 - [ ] Dark theme: Using cyan (`#0bd1a2`) for text and accents?
 - [ ] Light theme: Using appropriate grays and blacks?

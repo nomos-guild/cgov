@@ -1,9 +1,10 @@
 import { useMemo, useState, useRef } from "react";
 import * as d3 from "d3";
+import { useTranslations } from "next-intl";
 import { useTheme } from "@/lib/theme";
 import type { DRepSummary } from "@/types/drep";
 
-type ChartMetric = "votingPower" | "delegators" | "votesCast";
+type ChartMetric = "votingPower" | "delegators";
 
 interface DRepBubbleMapProps {
   dreps: DRepSummary[];
@@ -50,8 +51,6 @@ function getMetricValue(drep: DRepSummary, metric: ChartMetric): number {
       return Math.max(drep.votingPowerAda, 1);
     case "delegators":
       return Math.max(drep.delegatorCount ?? 0, 1);
-    case "votesCast":
-      return Math.max(drep.totalVotesCast, 1);
   }
 }
 
@@ -59,6 +58,7 @@ const SVG_WIDTH = 800;
 const SVG_HEIGHT = 600;
 
 export function DRepBubbleMap({ dreps, metric, topN, rationaleMap }: DRepBubbleMapProps) {
+  const t = useTranslations("drep");
   const { theme, activeTheme } = useTheme();
   const isDark = theme === "dark";
   const isGame = activeTheme.id === "game";
@@ -218,6 +218,16 @@ export function DRepBubbleMap({ dreps, metric, topN, rationaleMap }: DRepBubbleM
           <filter id="drep-game-text-shadow" x="-50%" y="-50%" width="200%" height="200%">
             <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="rgba(0,0,0,0.8)" floodOpacity="1"/>
           </filter>
+          {/* Game theme hover glow */}
+          <filter id="drep-bubble-game-glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur"/>
+            <feFlood floodColor="rgba(255,255,255,0.18)" result="color"/>
+            <feComposite in="color" in2="blur" operator="in" result="glow"/>
+            <feMerge>
+              <feMergeNode in="glow"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
         </defs>
         <g>
           {/* Render hovered bubble last so it paints on top */}
@@ -238,12 +248,16 @@ export function DRepBubbleMap({ dreps, metric, topN, rationaleMap }: DRepBubbleM
             };
 
             const getFillColor = () => {
-              if (isGame) return color;
+              if (isGame) return "rgba(20, 20, 20, 0.7)";
               if (isDark) return "transparent";
               return "#ffffff";
             };
 
-            const strokeWidth = isGame ? 0 : isDark ? 1.4 : 0;
+            // Game: rank-based stroke variation for visual hierarchy
+            const rankRatio = 1 - (bubble.rank - 1) / Math.max(dreps.length - 1, 1);
+            const gameStrokeW = 0.4 + rankRatio * 0.9;
+            const gameStrokeOpacity = 0.12 + rankRatio * 0.22;
+            const strokeWidth = isGame ? gameStrokeW : isDark ? 1.4 : 0;
             const showLabel = bubble.radius > 12 && isInTopN;
             const fontSize = Math.min(bubble.radius * 0.35, 14);
             const availableWidth = bubble.radius * 1.6;
@@ -262,9 +276,9 @@ export function DRepBubbleMap({ dreps, metric, topN, rationaleMap }: DRepBubbleM
                   cy={bubble.y}
                   r={bubble.radius}
                   fill={getFillColor()}
-                  stroke={color}
+                  stroke={isGame ? `rgba(255,255,255,${gameStrokeOpacity})` : isDark ? "#0bd1a2" : color}
                   strokeWidth={strokeWidth}
-                  filter={getShadowFilter()}
+                  filter={isGame && isHovered ? "url(#drep-bubble-game-glow)" : getShadowFilter()}
                   className="cursor-pointer"
                   onMouseEnter={(e) => {
                     setHoveredId(bubble.drep.drepId);
@@ -278,12 +292,12 @@ export function DRepBubbleMap({ dreps, metric, topN, rationaleMap }: DRepBubbleM
                     y={bubble.y}
                     textAnchor="middle"
                     dominantBaseline="middle"
-                    fill={isGame ? "url(#drep-game-text-gradient)" : isDark ? color : "#0f172a"}
+                    fill={isGame ? "url(#drep-game-text-gradient)" : isDark ? "#0bd1a2" : "#0f172a"}
                     filter={isGame ? "url(#drep-game-text-shadow)" : undefined}
                     className="pointer-events-none font-semibold"
                     fontSize={fontSize}
                   >
-                    {(bubble.drep.name || "Anonymous").slice(0, charSlots)}
+                    {(bubble.drep.name || t("anonymous")).slice(0, charSlots)}
                   </text>
                 )}
               </g>
@@ -305,23 +319,23 @@ export function DRepBubbleMap({ dreps, metric, topN, rationaleMap }: DRepBubbleM
           }}
         >
           <div className={isGame ? "font-semibold text-white" : "font-semibold text-foreground"}>
-            #{hoveredBubble.bubble.rank} {hoveredBubble.bubble.drep.name || "Anonymous"}
+            #{hoveredBubble.bubble.rank} {hoveredBubble.bubble.drep.name || t("anonymous")}
           </div>
           <div className={`mt-1.5 space-y-0.5 ${isGame ? "text-white/70" : "text-muted-foreground"}`}>
             <div>
-              <span className="font-medium">Voting Power:</span>{" "}
+              <span className="font-medium">{t("votingPower")}:</span>{" "}
               {formatCompact(hoveredBubble.bubble.drep.votingPowerAda)} ADA
             </div>
             <div>
-              <span className="font-medium">Delegators:</span>{" "}
+              <span className="font-medium">{t("delegators")}:</span>{" "}
               {hoveredBubble.bubble.drep.delegatorCount != null ? hoveredBubble.bubble.drep.delegatorCount.toLocaleString() : "--"}
             </div>
             <div>
-              <span className="font-medium">Votes Cast:</span>{" "}
+              <span className="font-medium">{t("votesCast")}:</span>{" "}
               {hoveredBubble.bubble.drep.totalVotesCast}
             </div>
             <div>
-              <span className="font-medium">Rationales:</span>{" "}
+              <span className="font-medium">{t("rationales")}:</span>{" "}
               {rationaleMap.get(hoveredBubble.bubble.drep.drepId) ?? "--"}
             </div>
           </div>

@@ -1,6 +1,6 @@
 ---
 name: i18n
-updated: 2026-02-04
+updated: 2026-02-10
 description: Add or update translations across all 7 locale files and wire them into React components or pure utility functions. Use when localizing new features, adding translation keys, or fixing hardcoded English strings.
 argument-hint: [scope description]
 allowed-tools: Read, Edit, Write, Glob, Grep
@@ -76,6 +76,8 @@ grep -n '"[A-Z][a-z]' src/components/TargetComponent.tsx
 | `tabs` | Tab labels | `liveVoting`, `thresholds`, `bubbleMap`, `curves`, `details` |
 | `proposal` | Proposal detail page | `backToDashboard`, `drepVotes`, `shareOnX`, `votingTrend` |
 | `export` | Export file labels | `noRationale`, `voteYes`, `csvProposal`, `csvVote` |
+| `drep` | DRep dashboard | `title`, `subtitle`, `totalDReps`, `votingPower`, `searchPlaceholder` |
+| `drep.profile` | DRep profile page | `backToDashboard`, `votingPower`, `voteBreakdown`, `votingHistory` |
 
 **Rules for namespaces:**
 - Use an existing namespace if the key fits its purpose
@@ -243,14 +245,33 @@ const csv = exportToCSV(votes, exportLabels);
 Pass the locale for date/number formatting:
 
 ```typescript
-import { useRouter } from "next/router";
+import { useLocale } from "next-intl";
 
-const { locale } = useRouter();
+const locale = useLocale();
 
-// In exported files
-new Date(timestamp).toLocaleString(locale);
+// Date formatting
+new Date(timestamp).toLocaleDateString(locale, { year: "numeric", month: "short", day: "numeric" });
 number.toLocaleString(locale);
 ```
+
+### Pattern E: Labels Object for Sub-Components
+
+When a sub-component (not a utility function) needs translated strings but you want to keep it hook-free or pass pre-built labels:
+
+```typescript
+// Parent component builds labels
+const labels = {
+  yes: t("profile.yes"),
+  no: t("profile.no"),
+  abstain: t("profile.abstain"),
+  empty: t("profile.noVotesCastYet"),
+};
+
+// Sub-component receives and uses them
+<VoteBreakdownChart labels={labels} ... />
+```
+
+This is useful for chart sub-components that are defined in the same file but would need their own `useTranslations` call otherwise.
 
 ---
 

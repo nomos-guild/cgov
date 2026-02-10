@@ -1,9 +1,10 @@
 import { useMemo, useState, useRef } from "react";
 import * as d3 from "d3";
+import { useTranslations } from "next-intl";
 import { useTheme } from "@/lib/theme";
 import type { DRepSummary } from "@/types/drep";
 
-type ChartMetric = "votingPower" | "delegators" | "votesCast";
+type ChartMetric = "votingPower" | "delegators";
 
 interface DRepTreeMapProps {
   dreps: DRepSummary[];
@@ -49,8 +50,6 @@ function getMetricValue(drep: DRepSummary, metric: ChartMetric): number {
       return Math.max(drep.votingPowerAda, 1);
     case "delegators":
       return Math.max(drep.delegatorCount ?? 0, 1);
-    case "votesCast":
-      return Math.max(drep.totalVotesCast, 1);
   }
 }
 
@@ -58,6 +57,7 @@ const SVG_WIDTH = 800;
 const SVG_HEIGHT = 600;
 
 export function DRepTreeMap({ dreps, metric, topN, rationaleMap }: DRepTreeMapProps) {
+  const t = useTranslations("drep");
   const { theme, activeTheme } = useTheme();
   const isDark = theme === "dark";
   const isGame = activeTheme.id === "game";
@@ -209,6 +209,16 @@ export function DRepTreeMap({ dreps, metric, topN, rationaleMap }: DRepTreeMapPr
           <filter id="drep-tree-game-text-shadow" x="-50%" y="-50%" width="200%" height="200%">
             <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="rgba(0,0,0,0.8)" floodOpacity="1"/>
           </filter>
+          {/* Game theme hover glow */}
+          <filter id="drep-tree-game-glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/>
+            <feFlood floodColor="rgba(255,255,255,0.15)" result="color"/>
+            <feComposite in="color" in2="blur" operator="in" result="glow"/>
+            <feMerge>
+              <feMergeNode in="glow"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
           {/* Clip paths for text inside tiles */}
           {tiles.map((tile) => (
             <clipPath key={`clip-${tile.drep.drepId}`} id={`clip-${tile.drep.drepId}`}>
@@ -241,12 +251,16 @@ export function DRepTreeMap({ dreps, metric, topN, rationaleMap }: DRepTreeMapPr
             };
 
             const getFillColor = () => {
-              if (isGame) return color;
+              if (isGame) return "rgba(20, 20, 20, 0.7)";
               if (isDark) return "transparent";
               return "#ffffff";
             };
 
-            const strokeWidth = isGame ? 0 : isDark ? 1.2 : 0;
+            // Game: rank-based stroke variation for visual hierarchy
+            const rankRatio = 1 - (tile.rank - 1) / Math.max(dreps.length - 1, 1);
+            const gameStrokeW = 0.4 + rankRatio * 0.8;
+            const gameStrokeOpacity = 0.1 + rankRatio * 0.2;
+            const strokeWidth = isGame ? gameStrokeW : isDark ? 1.2 : 0;
             const showLabel = w > 40 && h > 20 && isInTopN;
             const fontSize = Math.min(h * 0.25, w * 0.08, 14);
 
@@ -259,9 +273,9 @@ export function DRepTreeMap({ dreps, metric, topN, rationaleMap }: DRepTreeMapPr
                   height={h}
                   rx={3}
                   fill={getFillColor()}
-                  stroke={color}
+                  stroke={isGame ? `rgba(255,255,255,${gameStrokeOpacity})` : isDark ? "#0bd1a2" : color}
                   strokeWidth={strokeWidth}
-                  filter={getShadowFilter()}
+                  filter={isGame && isHovered ? "url(#drep-tree-game-glow)" : getShadowFilter()}
                   opacity={isHovered ? 1 : 0.9}
                   className="cursor-pointer transition-opacity duration-150"
                   onMouseEnter={(e) => {
@@ -276,13 +290,13 @@ export function DRepTreeMap({ dreps, metric, topN, rationaleMap }: DRepTreeMapPr
                     y={tile.y0 + h / 2}
                     textAnchor="middle"
                     dominantBaseline="middle"
-                    fill={isGame ? "url(#drep-tree-game-text-gradient)" : isDark ? color : "#0f172a"}
+                    fill={isGame ? "url(#drep-tree-game-text-gradient)" : isDark ? "#0bd1a2" : "#0f172a"}
                     filter={isGame ? "url(#drep-tree-game-text-shadow)" : undefined}
                     className="pointer-events-none font-semibold"
                     fontSize={fontSize}
                     clipPath={`url(#clip-${tile.drep.drepId})`}
                   >
-                    {tile.drep.name || "Anonymous"}
+                    {tile.drep.name || t("anonymous")}
                   </text>
                 )}
               </g>
@@ -304,23 +318,23 @@ export function DRepTreeMap({ dreps, metric, topN, rationaleMap }: DRepTreeMapPr
           }}
         >
           <div className={isGame ? "font-semibold text-white" : "font-semibold text-foreground"}>
-            #{hoveredTile.tile.rank} {hoveredTile.tile.drep.name || "Anonymous"}
+            #{hoveredTile.tile.rank} {hoveredTile.tile.drep.name || t("anonymous")}
           </div>
           <div className={`mt-1.5 space-y-0.5 ${isGame ? "text-white/70" : "text-muted-foreground"}`}>
             <div>
-              <span className="font-medium">Voting Power:</span>{" "}
+              <span className="font-medium">{t("votingPower")}:</span>{" "}
               {formatCompact(hoveredTile.tile.drep.votingPowerAda)} ADA
             </div>
             <div>
-              <span className="font-medium">Delegators:</span>{" "}
+              <span className="font-medium">{t("delegators")}:</span>{" "}
               {hoveredTile.tile.drep.delegatorCount != null ? hoveredTile.tile.drep.delegatorCount.toLocaleString() : "--"}
             </div>
             <div>
-              <span className="font-medium">Votes Cast:</span>{" "}
+              <span className="font-medium">{t("votesCast")}:</span>{" "}
               {hoveredTile.tile.drep.totalVotesCast}
             </div>
             <div>
-              <span className="font-medium">Rationales:</span>{" "}
+              <span className="font-medium">{t("rationales")}:</span>{" "}
               {rationaleMap.get(hoveredTile.tile.drep.drepId) ?? "--"}
             </div>
           </div>

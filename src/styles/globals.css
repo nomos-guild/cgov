@@ -385,6 +385,11 @@
   color: #0bd1a2 !important;
   border-color: #0bd1a2 !important;
 }
+[data-theme="dark"] .btn-neon[data-state="active"] {
+  background-color: #0bd1a2 !important;
+  color: #000 !important;
+  border-color: #0bd1a2 !important;
+}
 
 /* Dark mode search input in filters */
 [data-theme="dark"] .filter-input {

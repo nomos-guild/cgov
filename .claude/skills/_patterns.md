@@ -12,7 +12,7 @@ Three distinct themes — never treat dark and game as the same.
 |-------|-----------|--------|---------|---------|
 | **Light** | `bg-white` / `#faf9f6` | Black | None on cards (shadow only) | Rounded |
 | **Dark** | `#1a1a2e` / `#131320` | Cyan `#0bd1a2` | Cyan borders | Rounded |
-| **Game** | `bg-black` / `#080808` | Neon green `#00ff66` | None on cards | Sharp (`rounded-none`) |
+| **Game** | `bg-black` / `#080808` | Neon green `#00ff66` | None on cards (subtle white borders on charts) | Sharp (`rounded-none` / `rounded-[2px]`) |
 
 **Critical rules:**
 - `isDark` is true for BOTH dark AND game — always check `isGame` first
@@ -98,13 +98,22 @@ import { cn } from "@/lib/utils";
 
 ## ISR + SWR Page Pattern
 
-Both the landing page (`/`) and proposal detail page (`/governance/[hash]`) use this pattern for fast page loads:
+The landing page (`/`), proposal detail (`/governance/[hash]`), and DRep dashboard (`/drep`) all use this pattern for fast page loads:
 
 1. **ISR** (`getStaticProps` + `revalidate: 60`) pre-renders pages server-side and caches them
 2. **SWR hook** receives ISR data as `fallbackData` for instant hydration, skips initial fetch
 3. **Redux sync** in the SWR hook's `useEffect` keeps backward compat with components reading from Redux
 4. For dynamic routes with many possible values, use `getStaticPaths` with `paths: []` and `fallback: 'blocking'`
 5. Use `revalidate: 10` on error for faster retry, `60` on success
+
+**Module-level cache seeding**: When a hook uses its own module-level cache (like `useAllDReps`), ISR data must be seeded into that cache too — SWR `fallbackData` alone won't populate it:
+```tsx
+if (!isCacheValid && initialData?.length && !moduleCache.has(cacheKey)) {
+  moduleCache.set(cacheKey, { data: initialData, timestamp: Date.now() });
+}
+```
+
+**Server-side fetch functions**: Live in `src/lib/serverFetch.ts`. Use `fetchBackend<T>()` for typed API calls with auth headers.
 
 ---
 
@@ -114,6 +123,9 @@ Both the landing page (`/`) and proposal detail page (`/governance/[hash]`) use 
 - **Proposal IDs**: Full = `{txHash}#{index}`, Display = first 8 + last 4 chars
 - **Chart colors**: Always use `getChartColors(activeTheme.id)` from `shared/chartTheme`, never hardcode colors
 - **Server-side aggregation**: When charts need N+1 API calls, create a server-side endpoint (see `add-api-route` skill). Cache aggressively (5 min for expensive endpoints).
+- **Backend vote format**: Votes come as uppercase strings ("YES", "NO", "ABSTAIN"). Normalize at the transform layer (`normalizeVote()` in `useDRepData.ts`), not in components.
+- **Backend proposal types**: Come as SCREAMING_SNAKE_CASE ("TREASURY_WITHDRAWALS"). Use `formatProposalType()` in `useDRepData.ts` for display.
+- **Optional fields**: `votingPowerAda` may be absent on vote records — fall back to `votingPower` (lovelace) / 1_000_000.
 
 ---
 
@@ -195,8 +207,10 @@ function animateIn(slices: Slice[]) {
 ### SVG Shadow Filters (Three-Theme)
 ```tsx
 {isGame ? (
-  <filter id="shadow"><feGaussianBlur in="SourceAlpha" stdDeviation="3" />
-    <feFlood floodColor="#00ff66" floodOpacity="0.4" /><feComposite ... /></filter>
+  // Game: white glow on hover, no persistent shadow
+  <filter id="game-glow"><feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur"/>
+    <feFlood floodColor="rgba(255,255,255,0.18)" result="color"/><feComposite in="color" in2="blur" operator="in" result="glow"/>
+    <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
 ) : isDark ? (
   <filter id="shadow"><feGaussianBlur in="SourceAlpha" stdDeviation="4" />
     <feFlood floodColor="#0bd1a2" floodOpacity="0.3" /><feComposite ... /></filter>
@@ -204,6 +218,7 @@ function animateIn(slices: Slice[]) {
   <filter id="shadow"><feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="#0f172a" floodOpacity="0.25" /></filter>
 )}
 ```
+Game theme hover glow is applied conditionally: `filter={isGame && isHovered ? "url(#game-glow)" : getShadowFilter()}`
 
 ---
 
@@ -234,3 +249,18 @@ Game theme uses CSS class `game-tab-btn` / `game-tab-btn-active` with `[data-sta
 - Card styling: use `chartCardClassName` + `chartCardGameClassName` from `shared/chartTheme`
 - Grid snaps to 20px — all layout values must be multiples of 20
 - `data-chart-card` attribute on wrappers prevents box-selection conflicts
+
+---
+
+## Context Window Conservation
+
+**Critical**: Large files eat context fast when read repeatedly. Follow these rules to stay within limits:
+
+- **Grep first, read second**: Use `Grep` with `-n` to find exact line numbers before reading. Never read 100+ lines to find a 3-line block.
+- **Narrow reads**: Always pass `offset` and `limit` to `Read`. Aim for 10-20 lines around the target, not 100+.
+- **One read per edit**: Read the target area once, make the edit, move on. Don't re-read to verify — trust the tool output.
+- **Use `replace_all`**: When the same pattern repeats across a file (e.g., 3 identical chart configs), use `replace_all: true` on the shared string instead of reading and editing each instance separately.
+- **Grep for context**: If you need to check if something exists or count occurrences, use `Grep` with `count` or `files_with_matches` mode — never read the whole file.
+- **Batch related edits**: If changing colors in 3 const objects, read the range covering all 3 once (not 3 separate reads).
+- **Skip verification reads**: After an edit, don't read the file to confirm — the Edit tool reports success/failure.
+- **Subagents for exploration**: Use `Explore` agent for broad codebase research so findings don't bloat the main context.

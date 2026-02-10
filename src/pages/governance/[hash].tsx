@@ -2194,7 +2194,7 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
             {/* Right Column - Sidebar (voting summary) */}
             <div className="space-y-6 lg:sticky lg:top-6 lg:self-start">
               {/* Voting Trend Chart */}
-              {voteTimelineData.length > 0 && (
+              {allVotes.length > 0 && (
                 <Card className={cn("p-6", isGame && "game-detail-card")}>
                   <div className="flex items-center justify-between mb-4">
                     <h3 className={cn("text-sm font-semibold", isGame && "text-white")}>{tProposal("votingTrend")}</h3>
@@ -2232,6 +2232,7 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
                       )
                     )}
                   </div>
+                  {voteTimelineData.length > 0 ? (
                   <div className="h-[200px] w-full min-w-0">
                     <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                       <LineChart
@@ -2320,6 +2321,11 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
+                  ) : (
+                    <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground">
+                      {tProposal("notEnoughData")}
+                    </div>
+                  )}
                 </Card>
               )}
 
