@@ -666,7 +666,7 @@
 
 [data-theme="game"] .game-tab-btn[data-state="active"] {
   background: transparent;
-  border-color: transparent;
+  border-color: rgba(255, 255, 255, 0.18);
   box-shadow: none;
 }
 

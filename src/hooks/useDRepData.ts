@@ -37,7 +37,7 @@ async function fetcher<T>(url: string): Promise<T> {
 }
 
 /** Raw API response for DRep stats */
-interface DRepStatsApiResponse {
+export interface DRepStatsApiResponse {
   totalDReps: number;
   totalDelegatedLovelace: string;
   totalDelegatedAda: string;
@@ -61,11 +61,12 @@ function transformDRepStats(data: DRepStatsApiResponse): DRepStats {
 /**
  * Hook to fetch DRep statistics
  */
-export function useDRepStats() {
+export function useDRepStats(fallbackData?: DRepStatsApiResponse) {
   const { data, error, isLoading, mutate } = useSWR<DRepStatsApiResponse>(
     API_ENDPOINTS.drepStats,
     fetcher,
     {
+      fallbackData,
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
       dedupingInterval: 60000, // 1 minute
@@ -163,15 +164,22 @@ const ALL_DREPS_CACHE_TTL = 60000; // 1 minute
  * Handles backends that cap pageSize by auto-paginating.
  * Results are cached in memory so remounting doesn't trigger new API calls.
  */
-export function useAllDReps(options: Omit<UseDRepListOptions, "page"> = {}) {
+export function useAllDReps(options: Omit<UseDRepListOptions, "page"> = {}, initialData?: DRepSummary[]) {
   const { pageSize = 100, sortBy = "votingPower", sortOrder = "desc", search } = options;
 
   const cacheKey = `${pageSize}:${sortBy}:${sortOrder}:${search ?? ""}`;
   const cached = allDrepsCache.get(cacheKey);
   const isCacheValid = cached && Date.now() - cached.timestamp < ALL_DREPS_CACHE_TTL;
 
-  const [allDreps, setAllDreps] = useState<DRepSummary[]>(() => isCacheValid ? cached.data : []);
-  const [isLoading, setIsLoading] = useState(() => !isCacheValid);
+  // Seed module cache from ISR data if no cache exists yet
+  if (!isCacheValid && initialData?.length && !allDrepsCache.has(cacheKey)) {
+    allDrepsCache.set(cacheKey, { data: initialData, timestamp: Date.now() });
+  }
+
+  const seeded = !isCacheValid && initialData?.length ? initialData : undefined;
+
+  const [allDreps, setAllDreps] = useState<DRepSummary[]>(() => isCacheValid ? cached.data : seeded ?? []);
+  const [isLoading, setIsLoading] = useState(() => !(isCacheValid || seeded));
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
@@ -328,9 +336,9 @@ interface DRepVotesApiResponse {
     proposalId: string;
     proposalTitle: string;
     proposalType: string | null;
-    vote: "Yes" | "No" | "Abstain";
+    vote: string;
     votingPower: string | null;
-    votingPowerAda: string;
+    votingPowerAda?: string;
     rationale: string | null;
     anchorUrl: string | null;
     votedAt: string | null;
@@ -340,16 +348,46 @@ interface DRepVotesApiResponse {
 }
 
 /**
+ * Normalise vote string from backend (uppercase) to title-case.
+ * Backend returns "YES" / "NO" / "ABSTAIN"; frontend uses "Yes" / "No" / "Abstain".
+ */
+function normalizeVote(raw: string): "Yes" | "No" | "Abstain" {
+  const upper = raw.toUpperCase();
+  if (upper === "YES") return "Yes";
+  if (upper === "NO") return "No";
+  return "Abstain";
+}
+
+/**
+ * Format SCREAMING_SNAKE_CASE proposal type to human-readable label.
+ * e.g. "TREASURY_WITHDRAWALS" → "Treasury Withdrawals"
+ */
+function formatProposalType(raw: string | null): string | null {
+  if (!raw) return null;
+  return raw
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+}
+
+/**
  * Transform API vote record to frontend format
  */
 function transformVoteRecord(vote: DRepVotesApiResponse["votes"][0]): DRepVoteRecord {
+  // Backend may or may not include votingPowerAda; fall back to lovelace conversion
+  const votingPowerAda = vote.votingPowerAda
+    ? parseFloat(vote.votingPowerAda) || 0
+    : vote.votingPower
+      ? Number(vote.votingPower) / 1_000_000
+      : 0;
+
   return {
     proposalId: vote.proposalId,
     proposalTitle: vote.proposalTitle,
-    proposalType: vote.proposalType,
-    vote: vote.vote,
+    proposalType: formatProposalType(vote.proposalType),
+    vote: normalizeVote(vote.vote),
     votingPower: vote.votingPower,
-    votingPowerAda: parseFloat(vote.votingPowerAda) || 0,
+    votingPowerAda,
     rationale: vote.rationale,
     anchorUrl: vote.anchorUrl,
     votedAt: vote.votedAt,

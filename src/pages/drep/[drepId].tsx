@@ -3,11 +3,12 @@ import { useRouter } from "next/router";
 import type { GetServerSideProps } from "next";
 import Head from "next/head";
 import Link from "next/link";
+import { useTranslations, useLocale } from "next-intl";
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
-  LineChart, Line, XAxis, YAxis, CartesianGrid,
 } from "recharts";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { GameLoader } from "@/components/ui/game-loader";
 import { useTheme } from "@/lib/theme";
 import { useDRepDetail, useAllDRepVotes } from "@/hooks/useDRepData";
@@ -55,12 +56,12 @@ function truncateId(id: string, startChars = 12, endChars = 8): string {
 }
 
 /**
- * Format date for display
+ * Format date for display using the active locale
  */
-function formatDate(dateStr: string | null): string {
+function formatDate(dateStr: string | null, locale: string): string {
   if (!dateStr) return "--";
   const date = new Date(dateStr);
-  return date.toLocaleDateString("en-US", {
+  return date.toLocaleDateString(locale, {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -70,40 +71,55 @@ function formatDate(dateStr: string | null): string {
 /**
  * Get vote badge color
  */
-function getVoteBadgeClass(vote: "Yes" | "No" | "Abstain", isGame: boolean): string {
+function getVoteBadgeClass(vote: "Yes" | "No" | "Abstain", isGame: boolean, isLight: boolean): string {
   if (isGame) {
     switch (vote) {
       case "Yes":
-        return "bg-green-500/20 text-green-400 border border-green-500/30";
+        return "bg-[#00ff66]/15 text-[#00ff66] border border-[#00ff66]/25";
       case "No":
-        return "bg-red-500/20 text-red-400 border border-red-500/30";
+        return "bg-[#ff3333]/15 text-[#ff3333] border border-[#ff3333]/25";
       case "Abstain":
-        return "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30";
+        return "bg-white/10 text-white/60 border border-white/15";
+    }
+  }
+  if (!isLight) {
+    switch (vote) {
+      case "Yes":
+        return "bg-[#0bd1a2]/15 text-[#0bd1a2] border border-[#0bd1a2]/25";
+      case "No":
+        return "bg-red-900/30 text-red-400 border border-red-400/25";
+      case "Abstain":
+        return "bg-[#0bd1a2]/5 text-[#0bd1a2]/60 border border-[#0bd1a2]/15";
     }
   }
   switch (vote) {
     case "Yes":
-      return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400";
+      return "bg-green-100 text-green-700";
     case "No":
-      return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400";
+      return "bg-red-100 text-red-700";
     case "Abstain":
-      return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400";
+      return "bg-yellow-100 text-yellow-700";
   }
 }
 
-// Vote breakdown chart colors
+// Vote breakdown chart colors — game theme matches DRep dashboard donut (dark fills, subtle borders)
 const VOTE_COLORS = {
-  // Game/Dark theme - vibrant colors
   game: {
-    yes: "#22c55e",
-    no: "#ef4444",
-    abstain: "#eab308",
+    yes: "rgba(20, 20, 20, 0.7)",
+    no: "rgba(40, 40, 40, 0.7)",
+    abstain: "rgba(55, 55, 55, 0.7)",
   },
   // Light theme - graduated greys
   light: {
     yes: "#ffffff",       // white
     abstain: "#e2e8f0",   // slate-200 (same grey)
     no: "#94a3b8",        // slate-400 (darker grey)
+  },
+  // Nerd/dark theme - teal monochrome
+  dark: {
+    yes: "rgba(11, 209, 162, 0.6)",
+    no: "rgba(11, 209, 162, 0.25)",
+    abstain: "rgba(11, 209, 162, 0.1)",
   },
 };
 
@@ -113,77 +129,86 @@ interface VoteBreakdownChartProps {
   abstain: number;
   isGame: boolean;
   isLight: boolean;
+  labels: { yes: string; no: string; abstain: string; empty: string };
 }
 
-function VoteBreakdownChart({ yes, no, abstain, isGame, isLight }: VoteBreakdownChartProps) {
+function VoteBreakdownChart({ yes, no, abstain, isGame, isLight, labels }: VoteBreakdownChartProps) {
   const total = yes + no + abstain;
-  const colors = isGame ? VOTE_COLORS.game : (isLight ? VOTE_COLORS.light : VOTE_COLORS.game);
+  const colors = isGame ? VOTE_COLORS.game : isLight ? VOTE_COLORS.light : VOTE_COLORS.dark;
 
   if (total === 0) {
     return (
       <div className="h-[200px] flex items-center justify-center text-muted-foreground">
-        No votes cast yet
+        {labels.empty}
       </div>
     );
   }
 
   const data = [
-    { name: "Yes", value: yes, color: colors.yes },
-    { name: "No", value: no, color: colors.no },
-    { name: "Abstain", value: abstain, color: colors.abstain },
+    { name: labels.yes, value: yes, color: colors.yes },
+    { name: labels.no, value: no, color: colors.no },
+    { name: labels.abstain, value: abstain, color: colors.abstain },
   ].filter((d) => d.value > 0);
 
   return (
-    <div className="h-[200px] overflow-visible [&_.recharts-wrapper]:!overflow-visible">
-      <ResponsiveContainer width="100%" height="100%">
-        <PieChart style={{ overflow: "visible" }}>
-          <defs>
-            {/* Shadow filter for light theme - dark shadow on borders */}
+    <div className="overflow-visible [&_.recharts-wrapper]:!overflow-visible">
+      <div className="h-[200px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart style={{ overflow: "visible" }}>
             {isLight && (
-              <filter id="pieShadow" x="-50%" y="-50%" width="200%" height="200%">
-                <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#0f172a" floodOpacity="0.25" />
-              </filter>
+              <defs>
+                <filter id="pieShadow" x="-50%" y="-50%" width="200%" height="200%">
+                  <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#0f172a" floodOpacity="0.25" />
+                </filter>
+              </defs>
             )}
-          </defs>
-          <Pie
-            data={data}
-            cx="50%"
-            cy="50%"
-            innerRadius={50}
-            outerRadius={80}
-            paddingAngle={3}
-            dataKey="value"
-            style={isLight ? { filter: "url(#pieShadow)" } : undefined}
-          >
-            {data.map((entry, index) => (
-              <Cell
-                key={`cell-${index}`}
-                fill={entry.color}
-                stroke={isLight ? "rgba(15, 23, 42, 0.15)" : "none"}
-                strokeWidth={isLight ? 2 : 0}
-              />
-            ))}
-          </Pie>
-          <Tooltip
-            content={({ active, payload }) => {
-              if (!active || !payload?.[0]) return null;
-              const item = payload[0].payload;
-              const percent = ((item.value / total) * 100).toFixed(1);
-              return (
-                <div className={cn(
-                  "rounded-lg p-2 text-sm",
-                  isGame
-                    ? "bg-[#1a1a2e] text-white border border-white/10"
-                    : "bg-white text-gray-900 border border-gray-200 shadow-[0_4px_12px_rgba(15,23,42,0.15)]"
-                )}>
-                  <p className="font-medium">{item.name}: {item.value}</p>
-                  <p className="text-xs opacity-70">{percent}%</p>
-                </div>
-              );
-            }}
-          />
-        </PieChart>
-      </ResponsiveContainer>
+            <Pie
+              data={data}
+              cx="50%"
+              cy="50%"
+              innerRadius={50}
+              outerRadius={80}
+              cornerRadius={isLight ? 0 : 2}
+              paddingAngle={isGame ? 2 : 3}
+              dataKey="value"
+              stroke="none"
+              style={isLight ? { filter: "url(#pieShadow)" } : undefined}
+            >
+              {data.map((entry, index) => (
+                <Cell
+                  key={`cell-${index}`}
+                  fill={entry.color}
+                  fillOpacity={isGame ? 0.85 : 1}
+                  stroke={isLight ? "rgba(15, 23, 42, 0.15)" : isGame ? `rgba(255,255,255,${0.4 + index * 0.08})` : "rgba(11, 209, 162, 0.5)"}
+                  strokeWidth={isLight ? 2 : 2}
+                />
+              ))}
+            </Pie>
+            <Tooltip
+              isAnimationActive={false}
+              animationDuration={0}
+              content={({ active, payload }) => {
+                if (!active || !payload?.[0]) return null;
+                const item = payload[0].payload;
+                const percent = ((item.value / total) * 100).toFixed(1);
+                return (
+                  <div className={cn(
+                    "rounded-lg p-2 text-sm",
+                    isGame
+                      ? "game-tooltip-card rounded-sm px-3 py-2 text-xs"
+                      : isLight
+                      ? "bg-white text-gray-900 border border-gray-200 shadow-[0_4px_12px_rgba(15,23,42,0.15)]"
+                      : "bg-[rgba(8,8,8,0.95)] border border-[#0bd1a2]/30 rounded-sm px-3 py-2 text-xs"
+                  )}>
+                    <p className={cn("font-medium", isGame ? "text-white" : !isLight && "text-[#0bd1a2]")}>{item.name}: {item.value}</p>
+                    <p className={cn("text-xs opacity-70", isGame ? "text-white/70" : !isLight && "text-[#0bd1a2]/70")}>{percent}%</p>
+                  </div>
+                );
+              }}
+            />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
       {/* Legend */}
       <div className="flex justify-center gap-4 mt-2">
         {data.map((item) => {
@@ -191,14 +216,14 @@ function VoteBreakdownChart({ yes, no, abstain, isGame, isLight }: VoteBreakdown
           return (
             <div key={item.name} className="flex items-center gap-1.5 text-xs">
               <div
-                className="w-2.5 h-2.5"
+                className="w-2.5 h-2.5 rounded-sm"
                 style={{
                   backgroundColor: item.color,
-                  border: isWhite ? "1.5px solid rgba(15, 23, 42, 0.3)" : undefined,
+                  border: isWhite ? "1.5px solid rgba(15, 23, 42, 0.3)" : isGame ? "1px solid rgba(255,255,255,0.25)" : !isLight ? "1px solid rgba(11, 209, 162, 0.5)" : undefined,
                   boxShadow: isLight ? "0 1px 3px rgba(15,23,42,0.2)" : undefined,
                 }}
               />
-              <span className={isGame ? "text-white/70" : "text-muted-foreground"}>
+              <span className={isGame ? "text-white/70" : isLight ? "text-muted-foreground" : "text-[#0bd1a2]/70"}>
                 {item.name}: {item.value}
               </span>
             </div>
@@ -209,15 +234,19 @@ function VoteBreakdownChart({ yes, no, abstain, isGame, isLight }: VoteBreakdown
   );
 }
 
-// Engagement chart colors
+// Engagement chart colors — game theme matches DRep dashboard donut
 const ENGAGEMENT_COLORS = {
   game: {
-    voted: "#22c55e",     // green
-    notVoted: "#6b7280",  // gray
+    voted: "rgba(20, 20, 20, 0.7)",
+    notVoted: "rgba(55, 55, 55, 0.7)",
   },
   light: {
     voted: "#ffffff",
     notVoted: "#e2e8f0",  // slate-200 gray
+  },
+  dark: {
+    voted: "rgba(11, 209, 162, 0.6)",
+    notVoted: "rgba(11, 209, 162, 0.15)",
   },
 };
 
@@ -226,9 +255,10 @@ interface EngagementChartProps {
   participationPercent: number;
   isGame: boolean;
   isLight: boolean;
+  labels: { voted: string; notVoted: string; empty: string };
 }
 
-function EngagementChart({ totalVotesCast, participationPercent, isGame, isLight }: EngagementChartProps) {
+function EngagementChart({ totalVotesCast, participationPercent, isGame, isLight, labels }: EngagementChartProps) {
   // Calculate total proposals and not voted count
   const voted = totalVotesCast;
   const totalProposals = participationPercent > 0
@@ -237,71 +267,80 @@ function EngagementChart({ totalVotesCast, participationPercent, isGame, isLight
   const notVoted = totalProposals - voted;
   const total = voted + notVoted;
 
-  const colors = isGame ? ENGAGEMENT_COLORS.game : (isLight ? ENGAGEMENT_COLORS.light : ENGAGEMENT_COLORS.game);
+  const colors = isGame ? ENGAGEMENT_COLORS.game : isLight ? ENGAGEMENT_COLORS.light : ENGAGEMENT_COLORS.dark;
 
   if (total === 0) {
     return (
       <div className="h-[200px] flex items-center justify-center text-muted-foreground">
-        No proposals available
+        {labels.empty}
       </div>
     );
   }
 
   const data = [
-    { name: "Voted", value: voted, color: colors.voted },
-    { name: "Not Voted", value: notVoted, color: colors.notVoted },
+    { name: labels.voted, value: voted, color: colors.voted },
+    { name: labels.notVoted, value: notVoted, color: colors.notVoted },
   ].filter((d) => d.value > 0);
 
   return (
-    <div className="h-[200px] overflow-visible [&_.recharts-wrapper]:!overflow-visible">
-      <ResponsiveContainer width="100%" height="100%">
-        <PieChart style={{ overflow: "visible" }}>
-          <defs>
+    <div className="overflow-visible [&_.recharts-wrapper]:!overflow-visible">
+      <div className="h-[200px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart style={{ overflow: "visible" }}>
             {isLight && (
-              <filter id="engagementShadow" x="-50%" y="-50%" width="200%" height="200%">
-                <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#0f172a" floodOpacity="0.25" />
-              </filter>
+              <defs>
+                <filter id="engagementShadow" x="-50%" y="-50%" width="200%" height="200%">
+                  <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#0f172a" floodOpacity="0.25" />
+                </filter>
+              </defs>
             )}
-          </defs>
-          <Pie
-            data={data}
-            cx="50%"
-            cy="50%"
-            innerRadius={50}
-            outerRadius={80}
-            paddingAngle={3}
-            dataKey="value"
-            style={isLight ? { filter: "url(#engagementShadow)" } : undefined}
-          >
-            {data.map((entry, index) => (
-              <Cell
-                key={`cell-${index}`}
-                fill={entry.color}
-                stroke={isLight ? "rgba(15, 23, 42, 0.15)" : "none"}
-                strokeWidth={isLight ? 2 : 0}
-              />
-            ))}
-          </Pie>
-          <Tooltip
-            content={({ active, payload }) => {
-              if (!active || !payload?.[0]) return null;
-              const item = payload[0].payload;
-              const percent = ((item.value / total) * 100).toFixed(1);
-              return (
-                <div className={cn(
-                  "rounded-lg p-2 text-sm",
-                  isGame
-                    ? "bg-[#1a1a2e] text-white border border-white/10"
-                    : "bg-white text-gray-900 border border-gray-200 shadow-[0_4px_12px_rgba(15,23,42,0.15)]"
-                )}>
-                  <p className="font-medium">{item.name}: {item.value}</p>
-                  <p className="text-xs opacity-70">{percent}%</p>
-                </div>
-              );
-            }}
-          />
-        </PieChart>
-      </ResponsiveContainer>
+            <Pie
+              data={data}
+              cx="50%"
+              cy="50%"
+              innerRadius={50}
+              outerRadius={80}
+              cornerRadius={isLight ? 0 : 2}
+              paddingAngle={isGame ? 2 : 3}
+              dataKey="value"
+              stroke="none"
+              style={isLight ? { filter: "url(#engagementShadow)" } : undefined}
+            >
+              {data.map((entry, index) => (
+                <Cell
+                  key={`cell-${index}`}
+                  fill={entry.color}
+                  fillOpacity={isGame ? 0.85 : 1}
+                  stroke={isLight ? "rgba(15, 23, 42, 0.15)" : isGame ? `rgba(255,255,255,${0.4 + index * 0.08})` : "rgba(11, 209, 162, 0.5)"}
+                  strokeWidth={isLight ? 2 : 2}
+                />
+              ))}
+            </Pie>
+            <Tooltip
+              isAnimationActive={false}
+              animationDuration={0}
+              content={({ active, payload }) => {
+                if (!active || !payload?.[0]) return null;
+                const item = payload[0].payload;
+                const percent = ((item.value / total) * 100).toFixed(1);
+                return (
+                  <div className={cn(
+                    "rounded-lg p-2 text-sm",
+                    isGame
+                      ? "game-tooltip-card rounded-sm px-3 py-2 text-xs"
+                      : isLight
+                      ? "bg-white text-gray-900 border border-gray-200 shadow-[0_4px_12px_rgba(15,23,42,0.15)]"
+                      : "bg-[rgba(8,8,8,0.95)] border border-[#0bd1a2]/30 rounded-sm px-3 py-2 text-xs"
+                  )}>
+                    <p className={cn("font-medium", isGame ? "text-white" : !isLight && "text-[#0bd1a2]")}>{item.name}: {item.value}</p>
+                    <p className={cn("text-xs opacity-70", isGame ? "text-white/70" : !isLight && "text-[#0bd1a2]/70")}>{percent}%</p>
+                  </div>
+                );
+              }}
+            />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
       {/* Legend */}
       <div className="flex justify-center gap-4 mt-2">
         {data.map((item) => {
@@ -309,14 +348,14 @@ function EngagementChart({ totalVotesCast, participationPercent, isGame, isLight
           return (
             <div key={item.name} className="flex items-center gap-1.5 text-xs">
               <div
-                className="w-2.5 h-2.5"
+                className="w-2.5 h-2.5 rounded-sm"
                 style={{
                   backgroundColor: item.color,
-                  border: isWhite ? "1.5px solid rgba(15, 23, 42, 0.3)" : undefined,
+                  border: isWhite ? "1.5px solid rgba(15, 23, 42, 0.3)" : isGame ? "1px solid rgba(255,255,255,0.25)" : !isLight ? "1px solid rgba(11, 209, 162, 0.5)" : undefined,
                   boxShadow: isLight ? "0 1px 3px rgba(15,23,42,0.2)" : undefined,
                 }}
               />
-              <span className={isGame ? "text-white/70" : "text-muted-foreground"}>
+              <span className={isGame ? "text-white/70" : isLight ? "text-muted-foreground" : "text-[#0bd1a2]/70"}>
                 {item.name}: {item.value}
               </span>
             </div>
@@ -327,15 +366,19 @@ function EngagementChart({ totalVotesCast, participationPercent, isGame, isLight
   );
 }
 
-// Rationale chart colors
+// Rationale chart colors — game theme matches DRep dashboard donut
 const RATIONALE_COLORS = {
   game: {
-    withRationale: "#8b5cf6",    // purple
-    withoutRationale: "#6b7280", // gray
+    withRationale: "rgba(20, 20, 20, 0.7)",
+    withoutRationale: "rgba(55, 55, 55, 0.7)",
   },
   light: {
     withRationale: "#ffffff",
     withoutRationale: "#e2e8f0", // slate-200 gray
+  },
+  dark: {
+    withRationale: "rgba(11, 209, 162, 0.6)",
+    withoutRationale: "rgba(11, 209, 162, 0.15)",
   },
 };
 
@@ -344,78 +387,88 @@ interface RationaleChartProps {
   totalVotesCast: number;
   isGame: boolean;
   isLight: boolean;
+  labels: { withRationale: string; without: string; empty: string };
 }
 
-function RationaleChart({ rationalesProvided, totalVotesCast, isGame, isLight }: RationaleChartProps) {
+function RationaleChart({ rationalesProvided, totalVotesCast, isGame, isLight, labels }: RationaleChartProps) {
   const withRationale = rationalesProvided;
   const withoutRationale = totalVotesCast - rationalesProvided;
   const total = totalVotesCast;
 
-  const colors = isGame ? RATIONALE_COLORS.game : (isLight ? RATIONALE_COLORS.light : RATIONALE_COLORS.game);
+  const colors = isGame ? RATIONALE_COLORS.game : isLight ? RATIONALE_COLORS.light : RATIONALE_COLORS.dark;
 
   if (total === 0) {
     return (
       <div className="h-[200px] flex items-center justify-center text-muted-foreground">
-        No votes cast yet
+        {labels.empty}
       </div>
     );
   }
 
   const data = [
-    { name: "With Rationale", value: withRationale, color: colors.withRationale },
-    { name: "Without", value: withoutRationale, color: colors.withoutRationale },
+    { name: labels.withRationale, value: withRationale, color: colors.withRationale },
+    { name: labels.without, value: withoutRationale, color: colors.withoutRationale },
   ].filter((d) => d.value > 0);
 
   return (
-    <div className="h-[200px] overflow-visible [&_.recharts-wrapper]:!overflow-visible">
-      <ResponsiveContainer width="100%" height="100%">
-        <PieChart style={{ overflow: "visible" }}>
-          <defs>
+    <div className="overflow-visible [&_.recharts-wrapper]:!overflow-visible">
+      <div className="h-[200px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart style={{ overflow: "visible" }}>
             {isLight && (
-              <filter id="rationaleShadow" x="-50%" y="-50%" width="200%" height="200%">
-                <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#0f172a" floodOpacity="0.25" />
-              </filter>
+              <defs>
+                <filter id="rationaleShadow" x="-50%" y="-50%" width="200%" height="200%">
+                  <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#0f172a" floodOpacity="0.25" />
+                </filter>
+              </defs>
             )}
-          </defs>
-          <Pie
-            data={data}
-            cx="50%"
-            cy="50%"
-            innerRadius={50}
-            outerRadius={80}
-            paddingAngle={3}
-            dataKey="value"
-            style={isLight ? { filter: "url(#rationaleShadow)" } : undefined}
-          >
-            {data.map((entry, index) => (
-              <Cell
-                key={`cell-${index}`}
-                fill={entry.color}
-                stroke={isLight ? "rgba(15, 23, 42, 0.15)" : "none"}
-                strokeWidth={isLight ? 2 : 0}
-              />
-            ))}
-          </Pie>
-          <Tooltip
-            content={({ active, payload }) => {
-              if (!active || !payload?.[0]) return null;
-              const item = payload[0].payload;
-              const percent = ((item.value / total) * 100).toFixed(1);
-              return (
-                <div className={cn(
-                  "rounded-lg p-2 text-sm",
-                  isGame
-                    ? "bg-[#1a1a2e] text-white border border-white/10"
-                    : "bg-white text-gray-900 border border-gray-200 shadow-[0_4px_12px_rgba(15,23,42,0.15)]"
-                )}>
-                  <p className="font-medium">{item.name}: {item.value}</p>
-                  <p className="text-xs opacity-70">{percent}%</p>
-                </div>
-              );
-            }}
-          />
-        </PieChart>
-      </ResponsiveContainer>
+            <Pie
+              data={data}
+              cx="50%"
+              cy="50%"
+              innerRadius={50}
+              outerRadius={80}
+              cornerRadius={isLight ? 0 : 2}
+              paddingAngle={isGame ? 2 : 3}
+              dataKey="value"
+              stroke="none"
+              style={isLight ? { filter: "url(#rationaleShadow)" } : undefined}
+            >
+              {data.map((entry, index) => (
+                <Cell
+                  key={`cell-${index}`}
+                  fill={entry.color}
+                  fillOpacity={isGame ? 0.85 : 1}
+                  stroke={isLight ? "rgba(15, 23, 42, 0.15)" : isGame ? `rgba(255,255,255,${0.4 + index * 0.08})` : "rgba(11, 209, 162, 0.5)"}
+                  strokeWidth={isLight ? 2 : 2}
+                />
+              ))}
+            </Pie>
+            <Tooltip
+              isAnimationActive={false}
+              animationDuration={0}
+              content={({ active, payload }) => {
+                if (!active || !payload?.[0]) return null;
+                const item = payload[0].payload;
+                const percent = ((item.value / total) * 100).toFixed(1);
+                return (
+                  <div className={cn(
+                    "rounded-lg p-2 text-sm",
+                    isGame
+                      ? "game-tooltip-card rounded-sm px-3 py-2 text-xs"
+                      : isLight
+                      ? "bg-white text-gray-900 border border-gray-200 shadow-[0_4px_12px_rgba(15,23,42,0.15)]"
+                      : "bg-[rgba(8,8,8,0.95)] border border-[#0bd1a2]/30 rounded-sm px-3 py-2 text-xs"
+                  )}>
+                    <p className={cn("font-medium", isGame ? "text-white" : !isLight && "text-[#0bd1a2]")}>{item.name}: {item.value}</p>
+                    <p className={cn("text-xs opacity-70", isGame ? "text-white/70" : !isLight && "text-[#0bd1a2]/70")}>{percent}%</p>
+                  </div>
+                );
+              }}
+            />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
       {/* Legend */}
       <div className="flex justify-center gap-4 mt-2">
         {data.map((item) => {
@@ -423,14 +476,14 @@ function RationaleChart({ rationalesProvided, totalVotesCast, isGame, isLight }:
           return (
             <div key={item.name} className="flex items-center gap-1.5 text-xs">
               <div
-                className="w-2.5 h-2.5"
+                className="w-2.5 h-2.5 rounded-sm"
                 style={{
                   backgroundColor: item.color,
-                  border: isWhite ? "1.5px solid rgba(15, 23, 42, 0.3)" : undefined,
+                  border: isWhite ? "1.5px solid rgba(15, 23, 42, 0.3)" : isGame ? "1px solid rgba(255,255,255,0.25)" : !isLight ? "1px solid rgba(11, 209, 162, 0.5)" : undefined,
                   boxShadow: isLight ? "0 1px 3px rgba(15,23,42,0.2)" : undefined,
                 }}
               />
-              <span className={isGame ? "text-white/70" : "text-muted-foreground"}>
+              <span className={isGame ? "text-white/70" : isLight ? "text-muted-foreground" : "text-[#0bd1a2]/70"}>
                 {item.name}: {item.value}
               </span>
             </div>
@@ -441,130 +494,6 @@ function RationaleChart({ rationalesProvided, totalVotesCast, isGame, isLight }:
   );
 }
 
-// Monthly voting activity line chart
-const ACTIVITY_COLORS = {
-  game: { line: "#ffffff", grid: "rgba(255,255,255,0.08)", shadow: "rgba(255,255,255,0.3)" },
-  dark: { line: "#ffffff", grid: "rgba(255,255,255,0.08)", shadow: "rgba(255,255,255,0.3)" },
-  light: { line: "#ffffff", grid: "rgba(0,0,0,0.08)", shadow: "rgba(15,23,42,0.25)" },
-};
-
-interface MonthlyDataPoint {
-  month: string;
-  votes: number;
-  yes: number;
-  no: number;
-  abstain: number;
-}
-
-interface VotingActivityChartProps {
-  votes: DRepVoteRecord[];
-  isLoading: boolean;
-  isGame: boolean;
-  isLight: boolean;
-}
-
-function VotingActivityChart({ votes, isLoading, isGame, isLight }: VotingActivityChartProps) {
-  const colors = isGame ? ACTIVITY_COLORS.game : isLight ? ACTIVITY_COLORS.light : ACTIVITY_COLORS.dark;
-
-  const monthlyData = useMemo(() => {
-    if (!votes.length) return [];
-
-    // Group votes by month
-    const byMonth = new Map<string, { votes: number; yes: number; no: number; abstain: number }>();
-
-    for (const vote of votes) {
-      if (!vote.votedAt) continue;
-      const date = new Date(vote.votedAt);
-      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-
-      const entry = byMonth.get(key) || { votes: 0, yes: 0, no: 0, abstain: 0 };
-      entry.votes++;
-      if (vote.vote === "Yes") entry.yes++;
-      else if (vote.vote === "No") entry.no++;
-      else if (vote.vote === "Abstain") entry.abstain++;
-      byMonth.set(key, entry);
-    }
-
-    // Sort chronologically and format month labels
-    return Array.from(byMonth.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([key, data]): MonthlyDataPoint => {
-        const [year, month] = key.split("-");
-        const date = new Date(Number(year), Number(month) - 1);
-        const label = date.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
-        return { month: label, ...data };
-      });
-  }, [votes]);
-
-  if (isLoading) {
-    return (
-      <div className="h-[220px] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary" />
-      </div>
-    );
-  }
-
-  if (!monthlyData.length) {
-    return (
-      <div className="h-[220px] flex items-center justify-center text-muted-foreground text-sm">
-        No voting activity data
-      </div>
-    );
-  }
-
-  return (
-    <div className="h-[220px]">
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={monthlyData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
-          <defs>
-            <filter id="lineShadow" x="-50%" y="-50%" width="200%" height="200%">
-              <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor={colors.shadow} floodOpacity="1" />
-            </filter>
-          </defs>
-          <CartesianGrid stroke="none" />
-          <XAxis
-            dataKey="month"
-            tick={{ fontSize: 10, fill: isGame ? "rgba(255,255,255,0.5)" : isLight ? "rgba(0,0,0,0.5)" : "rgba(255,255,255,0.5)" }}
-            tickLine={false}
-            axisLine={false}
-          />
-          <YAxis
-            allowDecimals={false}
-            tick={{ fontSize: 10, fill: isGame ? "rgba(255,255,255,0.5)" : isLight ? "rgba(0,0,0,0.5)" : "rgba(255,255,255,0.5)" }}
-            tickLine={false}
-            axisLine={false}
-          />
-          <Tooltip
-            content={({ active, payload, label }) => {
-              if (!active || !payload?.[0]) return null;
-              const data = payload[0].payload as MonthlyDataPoint;
-              return (
-                <div className={cn(
-                  "rounded-lg p-2 text-sm",
-                  isGame
-                    ? "bg-[#1a1a2e] text-white border border-white/10"
-                    : "bg-white text-gray-900 border border-gray-200 shadow-[0_4px_12px_rgba(15,23,42,0.15)]"
-                )}>
-                  <p className="font-medium">{label}</p>
-                  <p>{data.votes} vote{data.votes !== 1 ? "s" : ""}</p>
-                </div>
-              );
-            }}
-          />
-          <Line
-            type="monotone"
-            dataKey="votes"
-            stroke={colors.line}
-            strokeWidth={2.5}
-            dot={false}
-            activeDot={false}
-            style={{ filter: "url(#lineShadow)" }}
-          />
-        </LineChart>
-      </ResponsiveContainer>
-    </div>
-  );
-}
 
 /** Convert a DRepVoteRecord to the VoteRecord shape the rationale modal expects */
 function toVoteRecord(vote: DRepVoteRecord, drepId: string, drepName: string): VoteRecord {
@@ -589,10 +518,26 @@ interface VotingHistoryTableProps {
   drepId: string;
   drepName: string;
   isGame: boolean;
+  isLight: boolean;
   isLoading: boolean;
+  locale: string;
+  labels: {
+    empty: string;
+    proposal: string;
+    type: string;
+    vote: string;
+    votingPower: string;
+    date: string;
+    rationale: string;
+    view: string;
+    unknown: string;
+    yes: string;
+    no: string;
+    abstain: string;
+  };
 }
 
-function VotingHistoryTable({ votes, drepId, drepName, isGame, isLoading }: VotingHistoryTableProps) {
+function VotingHistoryTable({ votes, drepId, drepName, isGame, isLight, isLoading, locale, labels }: VotingHistoryTableProps) {
   const [selectedVote, setSelectedVote] = useState<VoteRecord | null>(null);
 
   if (isLoading) {
@@ -606,7 +551,7 @@ function VotingHistoryTable({ votes, drepId, drepName, isGame, isLoading }: Voti
   if (votes.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
-        No voting history available
+        {labels.empty}
       </div>
     );
   }
@@ -618,14 +563,13 @@ function VotingHistoryTable({ votes, drepId, drepName, isGame, isLoading }: Voti
           <thead>
             <tr className={cn(
               "border-b text-left",
-              isGame ? "border-white/10 text-white/60" : "border-gray-200 dark:border-gray-700 text-muted-foreground"
+              isGame ? "border-white/10 text-white/60" : isLight ? "border-gray-200 text-muted-foreground" : "border-[#0bd1a2]/30 text-[#0bd1a2]/60"
             )}>
-              <th className="py-3 px-2 font-medium">Proposal</th>
-              <th className="py-3 px-2 font-medium">Type</th>
-              <th className="py-3 px-2 font-medium">Vote</th>
-              <th className="py-3 px-2 font-medium text-right">Voting Power</th>
-              <th className="py-3 px-2 font-medium">Date</th>
-              <th className="py-3 px-2 font-medium">Rationale</th>
+              <th className="py-3 px-2 font-medium">{labels.proposal}</th>
+              <th className="py-3 px-2 font-medium hidden sm:table-cell">{labels.type}</th>
+              <th className="py-3 px-2 font-medium">{labels.vote}</th>
+              <th className="py-3 px-2 font-medium">{labels.date}</th>
+              <th className="py-3 px-2 font-medium hidden sm:table-cell">{labels.rationale}</th>
             </tr>
           </thead>
           <tbody>
@@ -638,7 +582,9 @@ function VotingHistoryTable({ votes, drepId, drepName, isGame, isLoading }: Voti
                     "border-b transition-colors",
                     isGame
                       ? "border-white/5 hover:bg-white/5"
-                      : "border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                      : isLight
+                      ? "border-gray-100 hover:bg-gray-50"
+                      : "border-[#0bd1a2]/10 hover:bg-[#0bd1a2]/5"
                   )}
                 >
                   <td className="py-3 px-2">
@@ -646,55 +592,52 @@ function VotingHistoryTable({ votes, drepId, drepName, isGame, isLoading }: Voti
                       href={`/governance/${encodeURIComponent(vote.proposalId)}`}
                       className={cn(
                         "hover:underline font-medium",
-                        isGame ? "text-[#0bd1a2]" : "text-primary"
+                        isGame ? "text-white" : isLight ? "text-primary" : "text-[#0bd1a2]"
                       )}
                     >
                       {vote.proposalTitle || truncateId(vote.proposalId)}
                     </Link>
                   </td>
-                  <td className="py-3 px-2">
+                  <td className="py-3 px-2 hidden sm:table-cell">
                     <span className={cn(
                       "text-xs px-2 py-0.5 rounded",
-                      isGame ? "bg-white/10 text-white/70" : "bg-gray-100 dark:bg-gray-800 text-muted-foreground"
+                      isGame ? "bg-white/10 text-white/70" : isLight ? "bg-gray-100 text-muted-foreground" : "bg-[#0bd1a2]/10 text-[#0bd1a2]/70"
                     )}>
-                      {vote.proposalType || "Unknown"}
+                      {vote.proposalType || labels.unknown}
                     </span>
                   </td>
                   <td className="py-3 px-2">
                     <span className={cn(
-                      "text-xs px-2 py-1 rounded-full font-medium",
-                      getVoteBadgeClass(vote.vote, isGame)
+                      "text-xs px-2 py-1 font-medium",
+                      isLight ? "rounded-full" : "rounded-none",
+                      getVoteBadgeClass(vote.vote, isGame, isLight)
                     )}>
-                      {vote.vote}
+                      {vote.vote === "Yes" ? labels.yes : vote.vote === "No" ? labels.no : labels.abstain}
                     </span>
-                  </td>
-                  <td className={cn(
-                    "py-3 px-2 text-right tabular-nums",
-                    isGame ? "text-white/70" : "text-muted-foreground"
-                  )}>
-                    {formatCompactNumber(vote.votingPowerAda)} ADA
                   </td>
                   <td className={cn(
                     "py-3 px-2",
-                    isGame ? "text-white/60" : "text-muted-foreground"
+                    isGame ? "text-white/60" : isLight ? "text-muted-foreground" : "text-[#0bd1a2]/60"
                   )}>
-                    {formatDate(vote.votedAt)}
+                    {formatDate(vote.votedAt, locale)}
                   </td>
-                  <td className="py-3 px-2">
+                  <td className="py-3 px-2 hidden sm:table-cell">
                     {hasRationale ? (
                       <button
                         onClick={() => setSelectedVote(toVoteRecord(vote, drepId, drepName))}
                         className={cn(
-                          "text-xs font-medium px-2.5 py-1 rounded-md transition-colors",
+                          "text-xs font-medium px-2.5 py-1 transition-colors",
                           isGame
-                            ? "bg-[#0bd1a2]/15 text-[#0bd1a2] hover:bg-[#0bd1a2]/25"
-                            : "bg-primary/10 text-primary hover:bg-primary/20"
+                            ? "game-nav-btn-sm"
+                            : isLight
+                            ? "rounded-md bg-white text-black shadow-[0_4px_12px_rgba(15,23,42,0.15)] hover:bg-black hover:text-white"
+                            : "rounded-none border border-[#0bd1a2]/40 text-[#0bd1a2] hover:bg-[#0bd1a2]/10"
                         )}
                       >
-                        View
+                        {labels.view}
                       </button>
                     ) : (
-                      <span className={isGame ? "text-white/30" : "text-muted-foreground/50"}>--</span>
+                      <span className={isGame ? "text-white/30" : isLight ? "text-muted-foreground/50" : "text-[#0bd1a2]/30"}>--</span>
                     )}
                   </td>
                 </tr>
@@ -716,6 +659,9 @@ export default function DRepProfile() {
   const router = useRouter();
   const { drepId } = router.query;
   const { activeTheme } = useTheme();
+  const t = useTranslations("drep.profile");
+  const tCommon = useTranslations("common");
+  const locale = useLocale();
   const isGame = activeTheme.id === "game";
   const isLight = activeTheme.id === "light";
   const drepIdStr = typeof drepId === "string" ? drepId : null;
@@ -725,35 +671,42 @@ export default function DRepProfile() {
 
   const isLoading = isLoadingDrep && !drep;
 
-  // Card styling
-  const cardClass = cn(
-    "rounded-2xl border border-white/8 bg-[#faf9f6] p-4 sm:p-6 shadow-[0_12px_30px_rgba(15,23,42,0.25)]",
-    "dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
-  );
+  // Card styling — tri-state for light / game / dark
+  const cardClass = isGame
+    ? "rounded-[2px] border-none bg-[rgba(12,12,12,0.5)] p-4 sm:p-6 shadow-[0_18px_36px_rgba(0,0,0,0.55),0_6px_18px_rgba(0,0,0,0.4)]"
+    : isLight
+    ? "rounded-2xl border border-white/8 bg-[#faf9f6] p-4 sm:p-6 shadow-[0_12px_30px_rgba(15,23,42,0.25)]"
+    : "rounded-none border border-[#0bd1a2] bg-transparent p-4 sm:p-6 shadow-none";
 
   return (
     <>
       <Head>
-        <title>{drep?.name || "DRep Profile"} - CGOV</title>
+        <title>{drep?.name ? t("pageTitle", { name: drep.name }) : t("pageTitleFallback")}</title>
         <meta
           name="description"
-          content={`View ${drep?.name || "DRep"} profile - voting power, participation, and voting history on Cardano governance`}
+          content={drep?.name ? t("pageDescription", { name: drep.name }) : t("pageDescriptionFallback")}
         />
       </Head>
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-3 pt-8 pb-4 sm:px-4 sm:pt-10 sm:pb-6 md:px-6 md:pt-12 md:pb-8">
           {/* Back link */}
-          <Link
-            href="/drep"
-            className={cn(
-              "inline-flex items-center gap-1 text-sm mb-4 transition-colors",
-              isGame ? "text-[#0bd1a2] hover:text-[#0bd1a2]/80" : "text-primary hover:text-primary/80"
-            )}
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to DRep Dashboard
+          <Link href="/drep">
+            <Button
+              variant="default"
+              className={cn(
+                "mb-4",
+                isGame
+                  ? "game-nav-btn"
+                  : isLight
+                  ? "bg-white text-black shadow-[0_12px_30px_rgba(15,23,42,0.25)] hover:bg-black hover:text-white"
+                  : "rounded-none border border-[#0bd1a2] bg-transparent text-[#0bd1a2] shadow-none hover:bg-[#0bd1a2] hover:text-black"
+              )}
+            >
+              <svg className="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              {t("backToDashboard")}
+            </Button>
           </Link>
 
           {/* Loading state */}
@@ -767,7 +720,7 @@ export default function DRepProfile() {
                 <div className="flex flex-col items-center justify-center">
                   <div className="animate-spin rounded-full h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 border-b-2 border-primary mb-3 sm:mb-4" />
                   <p className="text-muted-foreground text-sm sm:text-base">
-                    Loading DRep profile...
+                    {t("loadingProfile")}
                   </p>
                 </div>
               </Card>
@@ -782,13 +735,13 @@ export default function DRepProfile() {
                 <Card className="p-3 sm:p-4 mb-4 sm:mb-6 border-destructive/50 bg-destructive/5">
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-destructive text-sm">
-                      DRep profile details are temporarily unavailable.
+                      {t("detailsUnavailable")}
                     </p>
                     <button
                       onClick={refresh}
                       className="shrink-0 px-3 py-1.5 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
                     >
-                      Retry
+                      {tCommon("retry")}
                     </button>
                   </div>
                 </Card>
@@ -801,36 +754,41 @@ export default function DRepProfile() {
                 <div className={cn(cardClass, "w-full md:w-[360px] md:flex-shrink-0")}>
                 <div className="flex flex-col gap-5">
                   {/* Profile Info - Centered */}
-                  <div className="flex flex-col items-center text-center pb-5 border-b border-black/5 dark:border-white/10">
-                    {/* Avatar - Smaller */}
-                    <div className={cn(
-                      "w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center text-xl font-bold mb-3",
-                      isGame
-                        ? "bg-[#0bd1a2]/20 text-[#0bd1a2]"
-                        : "bg-primary/10 text-primary"
-                    )}>
-                      {drep.iconUrl ? (
-                        <img
-                          src={drep.iconUrl}
-                          alt={drep.name || "DRep"}
-                          className="w-full h-full rounded-full object-cover"
-                        />
-                      ) : (
-                        (drep.name?.[0] || "D").toUpperCase()
-                      )}
-                    </div>
+                  <div className={cn(
+                    "flex flex-col items-center text-center pb-5 border-b",
+                    isGame ? "border-white/10" : isLight ? "border-black/5" : "border-[#0bd1a2]/30"
+                  )}>
+                    {/* Avatar */}
+                    {drep.iconUrl ? (
+                      <img
+                        src={drep.iconUrl}
+                        alt={drep.name || t("anonymousDRep")}
+                        className="w-14 h-14 sm:w-16 sm:h-16 rounded-full object-cover mb-3"
+                      />
+                    ) : (
+                      <div className={cn(
+                        "w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center text-xl font-bold mb-3",
+                        isGame
+                          ? "text-white"
+                          : isLight
+                          ? "bg-primary/10 text-primary"
+                          : "border border-[#0bd1a2] bg-transparent text-[#0bd1a2]"
+                      )}>
+                        {(drep.name?.[0] || "D").toUpperCase()}
+                      </div>
+                    )}
                     {/* Name */}
                     <h1 className={cn(
                       "text-lg sm:text-xl font-bold",
-                      isGame ? "text-white" : "text-foreground"
+                      isGame ? "landing-title text-white" : isLight ? "text-foreground" : "text-[#0bd1a2]"
                     )}>
-                      {drep.name || "Anonymous DRep"}
+                      {drep.name || t("anonymousDRep")}
                     </h1>
                     {/* DRep ID with copy button */}
                     <div className="flex items-center gap-1.5 mt-2">
                       <p className={cn(
                         "text-xs font-mono",
-                        isGame ? "text-white/50" : "text-muted-foreground/70"
+                        isGame ? "text-white/50" : isLight ? "text-muted-foreground/70" : "text-[#0bd1a2]/50"
                       )}>
                         {truncateId(drepIdStr || "", 8, 6)}
                       </p>
@@ -839,10 +797,12 @@ export default function DRepProfile() {
                         className={cn(
                           "p-1 rounded transition-colors",
                           isGame
-                            ? "text-[#0bd1a2]/60 hover:text-[#0bd1a2] hover:bg-white/10"
-                            : "text-muted-foreground/60 hover:text-foreground hover:bg-black/5"
+                            ? "text-white/40 hover:text-white hover:bg-white/10"
+                            : isLight
+                            ? "text-muted-foreground/60 hover:text-foreground hover:bg-black/5"
+                            : "text-[#0bd1a2]/40 hover:text-[#0bd1a2] hover:bg-[#0bd1a2]/10"
                         )}
-                        title="Copy DRep ID"
+                        title={t("copyDRepId")}
                       >
                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -856,51 +816,51 @@ export default function DRepProfile() {
                     <tbody>
                       <tr className={cn(
                         "border-b",
-                        isGame ? "border-white/10" : "border-black/5"
+                        isGame ? "border-white/10" : isLight ? "border-black/5" : "border-[#0bd1a2]/20"
                       )}>
                         <td className={cn(
                           "py-2.5",
-                          isGame ? "text-white/60" : "text-muted-foreground"
+                          isGame ? "text-white/60" : isLight ? "text-muted-foreground" : "text-[#0bd1a2]/60"
                         )}>
-                          Voting Power
+                          {t("votingPower")}
                         </td>
                         <td className={cn(
                           "py-2.5 text-right font-medium",
-                          isGame ? "text-[#0bd1a2]" : "text-foreground"
+                          isGame ? "text-white" : isLight ? "text-foreground" : "text-[#0bd1a2]"
                         )}>
                           {formatCompactNumber(drep.votingPowerAda)} ADA
                         </td>
                       </tr>
                       <tr className={cn(
                         "border-b",
-                        isGame ? "border-white/10" : "border-black/5"
+                        isGame ? "border-white/10" : isLight ? "border-black/5" : "border-[#0bd1a2]/20"
                       )}>
                         <td className={cn(
                           "py-2.5",
-                          isGame ? "text-white/60" : "text-muted-foreground"
+                          isGame ? "text-white/60" : isLight ? "text-muted-foreground" : "text-[#0bd1a2]/60"
                         )}>
-                          Delegators
+                          {t("delegators")}
                         </td>
                         <td className={cn(
                           "py-2.5 text-right font-medium",
-                          isGame ? "text-[#0bd1a2]" : "text-foreground"
+                          isGame ? "text-white" : isLight ? "text-foreground" : "text-[#0bd1a2]"
                         )}>
                           {formatNumber(drep.delegatorCount)}
                         </td>
                       </tr>
                       <tr className={cn(
                         "border-b",
-                        isGame ? "border-white/10" : "border-black/5"
+                        isGame ? "border-white/10" : isLight ? "border-black/5" : "border-[#0bd1a2]/20"
                       )}>
                         <td className={cn(
                           "py-2.5",
-                          isGame ? "text-white/60" : "text-muted-foreground"
+                          isGame ? "text-white/60" : isLight ? "text-muted-foreground" : "text-[#0bd1a2]/60"
                         )}>
-                          Votes Cast
+                          {t("votesCast")}
                         </td>
                         <td className={cn(
                           "py-2.5 text-right font-medium",
-                          isGame ? "text-[#0bd1a2]" : "text-foreground"
+                          isGame ? "text-white" : isLight ? "text-foreground" : "text-[#0bd1a2]"
                         )}>
                           {formatNumber(drep.totalVotesCast)}
                         </td>
@@ -908,13 +868,13 @@ export default function DRepProfile() {
                       <tr>
                         <td className={cn(
                           "py-2.5",
-                          isGame ? "text-white/60" : "text-muted-foreground"
+                          isGame ? "text-white/60" : isLight ? "text-muted-foreground" : "text-[#0bd1a2]/60"
                         )}>
-                          Participation
+                          {t("participation")}
                         </td>
                         <td className={cn(
                           "py-2.5 text-right font-medium",
-                          isGame ? "text-[#0bd1a2]" : "text-foreground"
+                          isGame ? "text-white" : isLight ? "text-foreground" : "text-[#0bd1a2]"
                         )}>
                           {drep.proposalParticipationPercent.toFixed(1)}%
                         </td>
@@ -924,34 +884,34 @@ export default function DRepProfile() {
 
                   {/* Additional Information */}
                   <div className={cn(
-                    "p-4 rounded-xl",
-                    isGame ? "bg-white/5" : "bg-black/[0.02]"
+                    "p-4",
+                    isGame ? "bg-white/5 rounded-[2px]" : isLight ? "bg-black/[0.02] rounded-xl" : "border border-[#0bd1a2]/20 rounded-none bg-transparent"
                   )}>
                     <h3 className={cn(
                       "text-sm font-semibold mb-3",
-                      isGame ? "text-white/80" : "text-foreground"
+                      isGame ? "text-white/80" : isLight ? "text-foreground" : "text-[#0bd1a2]"
                     )}>
-                      Additional Information
+                      {t("additionalInfo")}
                     </h3>
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between items-center">
-                        <span className={isGame ? "text-white/60" : "text-muted-foreground"}>
-                          Rationales Provided
+                        <span className={isGame ? "text-white/60" : isLight ? "text-muted-foreground" : "text-[#0bd1a2]/60"}>
+                          {t("rationalesProvided")}
                         </span>
                         <span className={cn(
                           "font-medium",
-                          isGame ? "text-white" : "text-foreground"
+                          isGame ? "text-white" : isLight ? "text-foreground" : "text-[#0bd1a2]"
                         )}>
                           {drep.rationalesProvided} / {drep.totalVotesCast}
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className={isGame ? "text-white/60" : "text-muted-foreground"}>
-                          Rationale Rate
+                        <span className={isGame ? "text-white/60" : isLight ? "text-muted-foreground" : "text-[#0bd1a2]/60"}>
+                          {t("rationaleRate")}
                         </span>
                         <span className={cn(
                           "font-medium",
-                          isGame ? "text-white" : "text-foreground"
+                          isGame ? "text-white" : isLight ? "text-foreground" : "text-[#0bd1a2]"
                         )}>
                           {drep.totalVotesCast > 0
                             ? ((drep.rationalesProvided / drep.totalVotesCast) * 100).toFixed(1)
@@ -970,24 +930,29 @@ export default function DRepProfile() {
                     <div className="flex flex-col items-center justify-center overflow-visible">
                       <h3 className={cn(
                         "text-sm font-medium mb-2 text-center",
-                        isGame ? "text-white/70" : "text-muted-foreground"
+                        isGame ? "text-white/70" : isLight ? "text-muted-foreground" : "text-[#0bd1a2]/70"
                       )}>
-                        Engagement
+                        {t("engagement")}
                       </h3>
                       <EngagementChart
                         totalVotesCast={drep.totalVotesCast}
                         participationPercent={drep.proposalParticipationPercent}
                         isGame={isGame}
                         isLight={isLight}
+                        labels={{
+                          voted: t("voted"),
+                          notVoted: t("notVoted"),
+                          empty: t("noProposalsAvailable"),
+                        }}
                       />
                     </div>
                     {/* Vote Breakdown Chart */}
                     <div className="flex flex-col items-center justify-center overflow-visible">
                       <h3 className={cn(
                         "text-sm font-medium mb-2 text-center",
-                        isGame ? "text-white/70" : "text-muted-foreground"
+                        isGame ? "text-white/70" : isLight ? "text-muted-foreground" : "text-[#0bd1a2]/70"
                       )}>
-                        Vote Breakdown
+                        {t("voteBreakdown")}
                       </h3>
                       <VoteBreakdownChart
                         yes={drep.voteBreakdown.yes}
@@ -995,34 +960,36 @@ export default function DRepProfile() {
                         abstain={drep.voteBreakdown.abstain}
                         isGame={isGame}
                         isLight={isLight}
+                        labels={{
+                          yes: t("yes"),
+                          no: t("no"),
+                          abstain: t("abstain"),
+                          empty: t("noVotesCastYet"),
+                        }}
                       />
                     </div>
                     {/* Rationale Chart */}
                     <div className="flex flex-col items-center justify-center overflow-visible">
                       <h3 className={cn(
                         "text-sm font-medium mb-2 text-center",
-                        isGame ? "text-white/70" : "text-muted-foreground"
+                        isGame ? "text-white/70" : isLight ? "text-muted-foreground" : "text-[#0bd1a2]/70"
                       )}>
-                        Rationales
+                        {t("rationales")}
                       </h3>
                       <RationaleChart
                         rationalesProvided={drep.rationalesProvided}
                         totalVotesCast={drep.totalVotesCast}
                         isGame={isGame}
                         isLight={isLight}
+                        labels={{
+                          withRationale: t("withRationale"),
+                          without: t("without"),
+                          empty: t("noVotesCastYet"),
+                        }}
                       />
                     </div>
                   </div>
 
-                  {/* Voting Activity Line Chart */}
-                  <div className="mt-auto pt-14 border-t border-black/5 dark:border-white/10">
-                    <VotingActivityChart
-                      votes={allVotes}
-                      isLoading={isLoadingAllVotes}
-                      isGame={isGame}
-                      isLight={isLight}
-                    />
-                  </div>
                 </div>
               </div>
               )}
@@ -1031,17 +998,33 @@ export default function DRepProfile() {
               <div className={cardClass}>
                 <h2 className={cn(
                   "text-lg font-semibold mb-4",
-                  isGame ? "text-white" : "text-foreground"
+                  isGame ? "landing-title text-white" : isLight ? "text-foreground" : "text-[#0bd1a2]"
                 )}>
-                  Voting History
+                  {t("votingHistory")}
                 </h2>
                 <div className="max-h-[500px] overflow-y-auto">
                   <VotingHistoryTable
                     votes={allVotes}
                     drepId={drepIdStr || ""}
-                    drepName={drep?.name || "Anonymous DRep"}
+                    drepName={drep?.name || t("anonymousDRep")}
                     isGame={isGame}
+                    isLight={isLight}
                     isLoading={isLoadingAllVotes}
+                    locale={locale}
+                    labels={{
+                      empty: t("noVotingHistory"),
+                      proposal: t("columnProposal"),
+                      type: t("columnType"),
+                      vote: t("columnVote"),
+                      votingPower: t("columnVotingPower"),
+                      date: t("columnDate"),
+                      rationale: t("columnRationale"),
+                      view: t("viewRationale"),
+                      unknown: t("unknown"),
+                      yes: t("yes"),
+                      no: t("no"),
+                      abstain: t("abstain"),
+                    }}
                   />
                 </div>
               </div>

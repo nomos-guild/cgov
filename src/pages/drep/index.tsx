@@ -1,18 +1,33 @@
-import { useState } from "react";
-import type { GetStaticProps } from "next";
+import { useState, useMemo } from "react";
+import { Info } from "lucide-react";
+import type { GetStaticProps, InferGetStaticPropsType } from "next";
 import Head from "next/head";
+import { useTranslations } from "next-intl";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { GameLoader } from "@/components/ui/game-loader";
 import { useTheme } from "@/lib/theme";
-import { useDRepStats } from "@/hooks/useDRepData";
+import { useDRepStats, useAllDReps } from "@/hooks/useDRepData";
+import type { DRepStatsApiResponse } from "@/hooks/useDRepData";
 import { DRepSunburstChart } from "@/components/dreps/DRepSunburstChart";
 import { cn } from "@/lib/utils";
+import {
+  fetchDRepStatsServer,
+  fetchAllDRepsServer,
+  type DRepServerItem,
+} from "@/lib/serverFetch";
+import type { DRepSummary } from "@/types/drep";
 
 type IntlMessages = typeof import("@/messages/en.json");
 
+interface InitialDRepData {
+  drepStats: DRepStatsApiResponse | null;
+  allDreps: DRepServerItem[];
+}
+
 interface DRepDashboardPageProps {
   messages: IntlMessages;
+  initialData: InitialDRepData;
 }
 
 /**
@@ -38,36 +53,67 @@ function formatNumber(value: number): string {
   return value.toLocaleString();
 }
 
-export default function DRepDashboard() {
+/**
+ * Transform raw server DRep items to DRepSummary (same transform as useDRepData)
+ */
+function transformServerDreps(items: DRepServerItem[]): DRepSummary[] {
+  return items.map((d) => ({
+    drepId: d.drepId,
+    name: d.name,
+    iconUrl: d.iconUrl,
+    votingPower: d.votingPower,
+    votingPowerAda: parseFloat(d.votingPowerAda) || 0,
+    totalVotesCast: d.totalVotesCast,
+    delegatorCount: d.delegatorCount ?? null,
+  }));
+}
+
+export default function DRepDashboard({ initialData }: InferGetStaticPropsType<typeof getStaticProps>) {
+  const t = useTranslations("drep");
   const { activeTheme } = useTheme();
   const isGame = activeTheme.id === "game";
-  const [selectedTab, setSelectedTab] = useState("drep-list");
+  const isLight = activeTheme.id === "light";
+  const [selectedTab, setSelectedTab] = useState("drep-table");
 
-  const { stats, isLoading } = useDRepStats();
+  // Transform ISR DRep data once for hooks
+  const initialDreps = useMemo(
+    () => initialData?.allDreps?.length ? transformServerDreps(initialData.allDreps) : undefined,
+    [initialData?.allDreps]
+  );
+
+  const { stats, isLoading } = useDRepStats(initialData?.drepStats ?? undefined);
+  const { dreps } = useAllDReps({}, initialDreps);
+
+  const totalDelegators = useMemo(
+    () => dreps.reduce((sum, d) => sum + (d.delegatorCount ?? 0), 0),
+    [dreps]
+  );
+
+  const activeDRepCount = useMemo(
+    () => dreps.filter((d) => d.votingPowerAda > 0).length,
+    [dreps]
+  );
 
   const showLoadingSpinner = isLoading && !stats;
 
   // Tab button styling
   const tabButtonClass = isGame
     ? "game-tab-btn data-[state=active]:game-tab-btn-active text-[10px] sm:text-xs"
-    : "px-3 py-1.5 text-xs sm:text-sm font-medium rounded-full transition-colors bg-secondary text-secondary-foreground hover:bg-secondary/80 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground";
+    : "rounded-full border border-white/8 bg-white text-black px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold uppercase tracking-wide transform-gpu transition-transform transition-shadow duration-450 ease-in-out shadow-[0_12px_30px_rgba(15,23,42,0.25)] data-[state=active]:bg-black data-[state=active]:text-white hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon";
 
   return (
     <>
       <Head>
-        <title>DRep Dashboard - CGOV</title>
-        <meta name="description" content="Explore Cardano Delegated Representatives (DReps) - voting power, participation, and voting history" />
+        <title>{t("pageTitle")}</title>
+        <meta name="description" content={t("pageDescription")} />
       </Head>
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-3 pt-8 pb-4 sm:px-4 sm:pt-10 sm:pb-6 md:px-6 md:pt-12 md:pb-8">
           {/* Header */}
           <div className="mb-6 sm:mb-8 md:mb-10 text-left">
             <h1 className="landing-title text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-black dark:text-foreground">
-              DRep Dashboard
+              {t("title")}
             </h1>
-            <p className="mt-2 text-muted-foreground text-sm sm:text-base md:text-lg">
-              Explore Delegated Representatives and their voting activity
-            </p>
           </div>
 
           {/* Loading state */}
@@ -81,7 +127,7 @@ export default function DRepDashboard() {
                 <div className="flex flex-col items-center justify-center">
                   <div className="animate-spin rounded-full h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 border-b-2 border-primary mb-3 sm:mb-4"></div>
                   <p className="text-muted-foreground text-sm sm:text-base">
-                    Loading DRep data...
+                    {t("loadingData")}
                   </p>
                 </div>
               </Card>
@@ -92,25 +138,45 @@ export default function DRepDashboard() {
           {!showLoadingSpinner && (
             <>
               {/* Stats Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 game-drep-stats">
-                <div className="rounded-2xl border border-white/8 bg-[#faf9f6] p-4 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none">
-                  <p className="text-sm text-muted-foreground dark:text-[#0bd1a2]">Total DReps</p>
-                  <p className="text-2xl font-bold dark:text-[#0bd1a2]">
-                    {stats ? formatNumber(stats.totalDReps) : "--"}
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-white/8 bg-[#faf9f6] p-4 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none">
-                  <p className="text-sm text-muted-foreground dark:text-[#0bd1a2]">Total Delegated ADA</p>
-                  <p className="text-2xl font-bold dark:text-[#0bd1a2]">
-                    {stats ? `${formatCompactNumber(stats.totalDelegatedAda)} ADA` : "--"}
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-white/8 bg-[#faf9f6] p-4 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none">
-                  <p className="text-sm text-muted-foreground dark:text-[#0bd1a2]">Total Votes Cast</p>
-                  <p className="text-2xl font-bold dark:text-[#0bd1a2]">
-                    {stats ? formatNumber(stats.totalVotesCast) : "--"}
-                  </p>
-                </div>
+              <div className={cn(
+                "grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6",
+                isGame && "game-drep-stats"
+              )}>
+                {([
+                  { label: t("totalDReps"), value: dreps.length ? formatNumber(activeDRepCount) : "--", tooltip: t("activeDRepsTooltip") },
+                  { label: t("totalDelegators"), value: dreps.length ? formatNumber(totalDelegators) : "--" },
+                  { label: t("totalDelegatedAda"), value: stats ? `${formatCompactNumber(stats.totalDelegatedAda)} ADA` : "--" },
+                  { label: t("totalVotesCast"), value: stats ? formatNumber(stats.totalVotesCast) : "--" },
+                ] as { label: string; value: string; tooltip?: string }[]).map(({ label, value, tooltip }) => (
+                  <div
+                    key={label}
+                    className={
+                      isLight
+                        ? "rounded-2xl border border-white/8 bg-[#faf9f6] p-4 shadow-[0_12px_30px_rgba(15,23,42,0.25)]"
+                        : isGame
+                        ? "rounded-[2px] border-none bg-[rgba(12,12,12,0.5)] p-4 shadow-[0_12px_28px_rgba(0,0,0,0.5),0_4px_12px_rgba(0,0,0,0.35)]"
+                        : "rounded-none border border-[#0bd1a2] bg-transparent p-4 shadow-none"
+                    }
+                  >
+                    <p className={`text-sm ${isGame ? "text-white/70" : isLight ? "text-muted-foreground" : "text-[#0bd1a2]"}`}>
+                      {label}
+                      {tooltip && (
+                        <span className="relative ml-1 inline-block align-middle group">
+                          <Info className={cn("inline h-3.5 w-3.5 cursor-help", isGame ? "text-white/50" : isLight ? "text-muted-foreground" : "text-[#0bd1a2]/60")} />
+                          <span className={cn(
+                            "pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 w-48 rounded px-2.5 py-1.5 text-xs font-normal leading-snug opacity-0 transition-opacity group-hover:opacity-100 z-50",
+                            isGame ? "bg-black/90 text-white border border-white/20" : isLight ? "bg-foreground text-background shadow-lg" : "bg-black text-[#0bd1a2] border border-[#0bd1a2]"
+                          )}>
+                            {tooltip}
+                          </span>
+                        </span>
+                      )}
+                    </p>
+                    <p className={`text-2xl font-bold ${isGame ? "text-white" : isLight ? "" : "text-[#0bd1a2]"}`}>
+                      {value}
+                    </p>
+                  </div>
+                ))}
               </div>
 
               {/* Tabbed Chart Section */}
@@ -119,33 +185,47 @@ export default function DRepDashboard() {
                 onValueChange={setSelectedTab}
                 className="w-full"
               >
-                <div className={cn(
-                  "rounded-2xl border border-white/8 bg-[#faf9f6] px-4 sm:px-6 py-3 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none mb-4",
-                  isGame && "game-drep-content"
-                )}>
+                <div className={
+                  isLight
+                    ? "rounded-2xl border border-white/8 bg-[#faf9f6] px-4 sm:px-6 py-3 shadow-[0_12px_30px_rgba(15,23,42,0.25)] mb-4"
+                    : isGame
+                    ? "game-drep-content rounded-[2px] border-none bg-[rgba(12,12,12,0.5)] px-4 sm:px-6 py-3 shadow-[0_18px_36px_rgba(0,0,0,0.55),0_6px_18px_rgba(0,0,0,0.4)] mb-4"
+                    : "rounded-none border border-[#0bd1a2] bg-transparent px-4 sm:px-6 py-3 shadow-none mb-4"
+                }>
                   <TabsList className="flex-1 flex-wrap items-center justify-start gap-1.5 sm:gap-2 bg-transparent p-0 overflow-x-auto overflow-visible">
+                    <TabsTrigger value="drep-table" className={tabButtonClass}>
+                      {t("tabDRepList")}
+                    </TabsTrigger>
                     <TabsTrigger value="drep-list" className={tabButtonClass}>
-                      DRep
+                      {t("tabDRep")}
                     </TabsTrigger>
                     <TabsTrigger value="analytics" className={tabButtonClass}>
-                      Analytics
+                      {t("tabAnalytics")}
                     </TabsTrigger>
                   </TabsList>
                 </div>
 
-                {/* DRep List Tab */}
+                {/* DRep Chart Tab */}
                 <TabsContent value="drep-list" className="mt-0">
-                  <DRepSunburstChart />
+                  <DRepSunburstChart initialDreps={initialDreps} view="chart" />
+                </TabsContent>
+
+                {/* DRep List Tab */}
+                <TabsContent value="drep-table" className="mt-0">
+                  <DRepSunburstChart initialDreps={initialDreps} view="list" />
                 </TabsContent>
 
                 {/* Analytics Tab */}
                 <TabsContent value="analytics" className="mt-0">
-                  <div className={cn(
-                    "rounded-2xl border border-white/8 bg-[#faf9f6] p-4 sm:p-6 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none",
-                    isGame && "game-drep-content"
-                  )}>
-                    <div className="text-center py-12 text-muted-foreground">
-                      Analytics coming soon...
+                  <div className={
+                    isLight
+                      ? "rounded-2xl border border-white/8 bg-[#faf9f6] p-4 sm:p-6 shadow-[0_12px_30px_rgba(15,23,42,0.25)]"
+                      : isGame
+                      ? "game-drep-content rounded-[2px] border-none bg-[rgba(12,12,12,0.5)] p-4 sm:p-6 shadow-[0_18px_36px_rgba(0,0,0,0.55),0_6px_18px_rgba(0,0,0,0.4)]"
+                      : "rounded-none border border-[#0bd1a2] bg-transparent p-4 sm:p-6 shadow-none"
+                  }>
+                    <div className={`text-center py-12 ${isGame ? "text-white/60" : "text-muted-foreground"}`}>
+                      {t("analyticsSoon")}
                     </div>
                   </div>
                 </TabsContent>
@@ -158,12 +238,35 @@ export default function DRepDashboard() {
   );
 }
 
+/**
+ * Incremental Static Regeneration (ISR)
+ * Pre-fetches DRep stats + list at build time, revalidates every 60 seconds.
+ * Users get instant HTML with data already embedded.
+ */
 export const getStaticProps: GetStaticProps<DRepDashboardPageProps> = async ({ locale }) => {
   const messages = (await import(`@/messages/${locale ?? "en"}.json`)).default;
 
-  return {
-    props: {
-      messages,
-    },
-  };
+  try {
+    const [drepStats, allDreps] = await Promise.all([
+      fetchDRepStatsServer(),
+      fetchAllDRepsServer(),
+    ]);
+
+    return {
+      props: {
+        messages,
+        initialData: { drepStats, allDreps },
+      },
+      revalidate: 60,
+    };
+  } catch (error) {
+    console.error("Failed to fetch DRep data for ISR:", error);
+    return {
+      props: {
+        messages,
+        initialData: { drepStats: null, allDreps: [] },
+      },
+      revalidate: 30,
+    };
+  }
 };

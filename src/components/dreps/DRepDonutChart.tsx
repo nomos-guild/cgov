@@ -1,9 +1,10 @@
 import { useMemo, useState, useRef, useEffect } from "react";
 import * as d3 from "d3";
+import { useTranslations } from "next-intl";
 import { useTheme } from "@/lib/theme";
 import type { DRepSummary } from "@/types/drep";
 
-type ChartMetric = "votingPower" | "delegators" | "votesCast";
+type ChartMetric = "votingPower" | "delegators";
 
 interface DRepDonutChartProps {
   dreps: DRepSummary[];
@@ -51,8 +52,6 @@ function getMetricValue(drep: DRepSummary, metric: ChartMetric): number {
       return Math.max(drep.votingPowerAda, 1);
     case "delegators":
       return Math.max(drep.delegatorCount ?? 0, 1);
-    case "votesCast":
-      return Math.max(drep.totalVotesCast, 1);
   }
 }
 
@@ -115,6 +114,7 @@ const OUTER_RADIUS = SVG_SIZE / 2 - 20;
 const INNER_RADIUS = OUTER_RADIUS * 0.55;
 
 export function DRepDonutChart({ dreps, metric, topN, rationaleMap }: DRepDonutChartProps) {
+  const t = useTranslations("drep");
   const { theme, activeTheme } = useTheme();
   const isDark = theme === "dark";
   const isGame = activeTheme.id === "game";
@@ -333,14 +333,24 @@ export function DRepDonutChart({ dreps, metric, topN, rationaleMap }: DRepDonutC
           <filter id="drep-donut-game-text-shadow" x="-50%" y="-50%" width="200%" height="200%">
             <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="rgba(0,0,0,0.8)" floodOpacity="1"/>
           </filter>
+          {/* Game theme hover glow */}
+          <filter id="drep-donut-game-glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur"/>
+            <feFlood floodColor="rgba(255,255,255,0.2)" result="color"/>
+            <feComposite in="color" in2="blur" operator="in" result="glow"/>
+            <feMerge>
+              <feMergeNode in="glow"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
         </defs>
         <g transform={`translate(${CENTER},${CENTER})`}>
           {slices.map((slice) => {
             const sliceKey = slice.isOthers ? "__others__" : slice.drep!.drepId;
             const isHovered = hoveredId === sliceKey;
             const color = slice.isOthers
-              ? (isDark ? "#555" : isGame ? "#444" : "#94a3b8")
-              : generateColor(slice.rank - 1, dreps.length);
+              ? (isGame ? "rgba(30, 30, 30, 0.7)" : isDark ? "#0bd1a2" : "#94a3b8")
+              : isGame ? "rgba(20, 20, 20, 0.7)" : isDark ? "#0bd1a2" : generateColor(slice.rank - 1, dreps.length);
             const angleDeg = ((slice.endAngle - slice.startAngle) * 180) / Math.PI;
 
             const getShadowFilter = () => {
@@ -362,9 +372,14 @@ export function DRepDonutChart({ dreps, metric, topN, rationaleMap }: DRepDonutC
             const isLight = !isDark && !isGame;
             const fillColor = isLight ? "#ffffff" : color;
 
+            // Game: rank-based stroke variation
+            const sliceRankRatio = slice.isOthers ? 0 : 1 - (slice.rank - 1) / Math.max(dreps.length - 1, 1);
+            const gameStrokeOpacity = 0.08 + sliceRankRatio * 0.2;
+            const gameStrokeW = 0.8 + sliceRankRatio * 1;
+
             const getStroke = () => {
+              if (isGame) return `rgba(255,255,255,${gameStrokeOpacity})`;
               if (isDark) return "rgba(0,0,0,0.3)";
-              if (isGame) return "rgba(0,0,0,0.2)";
               return "transparent";
             };
 
@@ -375,8 +390,8 @@ export function DRepDonutChart({ dreps, metric, topN, rationaleMap }: DRepDonutC
                   fill={fillColor}
                   fillOpacity={getFillOpacity()}
                   stroke={getStroke()}
-                  strokeWidth={1.5}
-                  filter={getShadowFilter()}
+                  strokeWidth={isGame ? gameStrokeW : 1.5}
+                  filter={isGame && isHovered ? "url(#drep-donut-game-glow)" : getShadowFilter()}
                   className="cursor-pointer"
                   onMouseEnter={(e) => {
                     setHoveredId(sliceKey);
@@ -395,7 +410,7 @@ export function DRepDonutChart({ dreps, metric, topN, rationaleMap }: DRepDonutC
                     className="pointer-events-none font-semibold"
                     fontSize={Math.min(angleDeg * 0.5, 11)}
                   >
-                    {slice.label.slice(0, Math.floor(angleDeg / 3))}
+                    {(slice.isOthers ? t("others") : (slice.drep?.name || t("anonymous"))).slice(0, Math.floor(angleDeg / 3))}
                   </text>
                 )}
               </g>
@@ -419,11 +434,11 @@ export function DRepDonutChart({ dreps, metric, topN, rationaleMap }: DRepDonutC
           {hoveredSlice.slice.isOthers ? (
             <>
               <div className={isGame ? "font-semibold text-white" : "font-semibold text-foreground"}>
-                Others ({hoveredSlice.slice.othersCount} DReps)
+                {t("othersDReps", { count: hoveredSlice.slice.othersCount })}
               </div>
               <div className={`mt-1.5 space-y-0.5 ${isGame ? "text-white/70" : "text-muted-foreground"}`}>
                 <div>
-                  <span className="font-medium">Share:</span>{" "}
+                  <span className="font-medium">{t("share")}:</span>{" "}
                   {hoveredSlice.slice.percentage.toFixed(1)}%
                 </div>
               </div>
@@ -431,27 +446,27 @@ export function DRepDonutChart({ dreps, metric, topN, rationaleMap }: DRepDonutC
           ) : (
             <>
               <div className={isGame ? "font-semibold text-white" : "font-semibold text-foreground"}>
-                #{hoveredSlice.slice.rank} {hoveredSlice.slice.drep?.name || "Anonymous"}
+                #{hoveredSlice.slice.rank} {hoveredSlice.slice.drep?.name || t("anonymous")}
               </div>
               <div className={`mt-1.5 space-y-0.5 ${isGame ? "text-white/70" : "text-muted-foreground"}`}>
                 <div>
-                  <span className="font-medium">Voting Power:</span>{" "}
+                  <span className="font-medium">{t("votingPower")}:</span>{" "}
                   {formatCompact(hoveredSlice.slice.drep?.votingPowerAda ?? 0)} ADA
                 </div>
                 <div>
-                  <span className="font-medium">Delegators:</span>{" "}
+                  <span className="font-medium">{t("delegators")}:</span>{" "}
                   {hoveredSlice.slice.drep?.delegatorCount != null ? hoveredSlice.slice.drep.delegatorCount.toLocaleString() : "--"}
                 </div>
                 <div>
-                  <span className="font-medium">Votes Cast:</span>{" "}
+                  <span className="font-medium">{t("votesCast")}:</span>{" "}
                   {hoveredSlice.slice.drep?.totalVotesCast ?? 0}
                 </div>
                 <div>
-                  <span className="font-medium">Rationales:</span>{" "}
+                  <span className="font-medium">{t("rationales")}:</span>{" "}
                   {hoveredSlice.slice.drep ? (rationaleMap.get(hoveredSlice.slice.drep.drepId) ?? "--") : "--"}
                 </div>
                 <div>
-                  <span className="font-medium">Share:</span>{" "}
+                  <span className="font-medium">{t("share")}:</span>{" "}
                   {hoveredSlice.slice.percentage.toFixed(1)}%
                 </div>
               </div>

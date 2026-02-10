@@ -297,3 +297,80 @@ export async function fetchAllGovernanceData() {
 
   return { actions, overview, nclData };
 }
+
+// ── DRep server-side fetching ──────────────────────────────────────
+
+/** Matches DRepStatsApiResponse in hooks/useDRepData.ts */
+export interface DRepStatsServerResponse {
+  totalDReps: number;
+  totalDelegatedLovelace: string;
+  totalDelegatedAda: string;
+  totalVotesCast: number;
+  activeDReps: number;
+}
+
+/** Matches DRepListApiResponse in hooks/useDRepData.ts */
+interface DRepListServerResponse {
+  dreps: Array<{
+    drepId: string;
+    name: string | null;
+    iconUrl: string | null;
+    votingPower: string;
+    votingPowerAda: string;
+    totalVotesCast: number;
+    delegatorCount?: number | null;
+  }>;
+  pagination: {
+    page: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+  };
+}
+
+/** Raw DRep item from the server (serializable for ISR props) */
+export type DRepServerItem = DRepListServerResponse["dreps"][0];
+
+/**
+ * Server-side fetch for DRep statistics
+ */
+export async function fetchDRepStatsServer(): Promise<DRepStatsServerResponse | null> {
+  try {
+    return await fetchBackend<DRepStatsServerResponse>("/dreps/stats");
+  } catch (error) {
+    console.error("Failed to fetch DRep stats server-side:", error);
+    return null;
+  }
+}
+
+/**
+ * Server-side fetch for ALL DReps (auto-paginates).
+ * Returns raw API items (not yet transformed to DRepSummary).
+ */
+export async function fetchAllDRepsServer(): Promise<DRepServerItem[]> {
+  try {
+    const params = "page=1&pageSize=100&sortBy=votingPower&sortOrder=desc";
+    const firstPage = await fetchBackend<DRepListServerResponse>(`/dreps?${params}`);
+    const accumulated = [...firstPage.dreps];
+    const { totalPages } = firstPage.pagination;
+
+    if (totalPages > 1) {
+      const remaining = Array.from({ length: totalPages - 1 }, (_, i) => i + 2);
+      const results = await Promise.all(
+        remaining.map((pg) =>
+          fetchBackend<DRepListServerResponse>(
+            `/dreps?page=${pg}&pageSize=100&sortBy=votingPower&sortOrder=desc`
+          )
+        )
+      );
+      for (const result of results) {
+        accumulated.push(...result.dreps);
+      }
+    }
+
+    return sanitizeForJson(accumulated);
+  } catch (error) {
+    console.error("Failed to fetch all DReps server-side:", error);
+    return [];
+  }
+}
