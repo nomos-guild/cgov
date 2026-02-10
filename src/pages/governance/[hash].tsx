@@ -5,19 +5,22 @@ import {
   useState,
   useMemo,
   useCallback,
+  useRef,
+  type ComponentType,
 } from "react";
+import type { GetStaticProps, GetStaticPaths } from "next";
 import { useRouter } from "next/router";
+import { useTranslations } from "next-intl";
 import Head from "next/head";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { VoteProgress } from "@/components/ui/vote-progress";
 import { Progress } from "@/components/ui/progress";
 import { VotingRecords } from "@/components/VotingRecords";
 import { BubbleMap } from "@/components/BubbleMap";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { loadGovernanceActionDetail } from "@/store/governanceSlice";
+import { useAppSelector } from "@/store/hooks";
+import { useGovernanceActionDetail } from "@/hooks/useGovernanceData";
 import { ArrowLeft, Copy, Check, Info } from "lucide-react";
 import type {
   GovernanceActionDetail,
@@ -40,6 +43,8 @@ import {
   exportToMarkdown,
   exportToCSV,
   downloadFile,
+  translateVotesForExport,
+  type ExportLabels,
 } from "@/lib/exportRationales";
 import {
   canRoleVoteOnAction,
@@ -47,6 +52,8 @@ import {
   getVoteDataPresence,
 } from "@/lib/governanceVotingEligibility";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { GameDropdown } from "@/components/ui/game-dropdown";
 import {
   buildDonutSegments,
   buildLegendSegments,
@@ -57,6 +64,7 @@ import {
   type VoteSegment,
 } from "@/lib/voteBreakdownCalculator";
 import { ProposalContent } from "@/components/ProposalContent";
+import { useContentTranslation } from "@/hooks/useContentTranslation";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/lib/theme";
 import { GameLoader } from "@/components/ui/game-loader";
@@ -262,11 +270,42 @@ type TimelinePoint = {
 
 type RoleFilter = "All" | VoterType;
 
-export default function GovernanceDetail() {
+interface VoteOnProposalProps {
+  txHash: string;
+  certIndex: number;
+  proposalTitle: string;
+  status: string;
+  proposalId: string;
+}
+
+function LazyVoteOnProposal(props: VoteOnProposalProps) {
+  const [Comp, setComp] = useState<ComponentType<VoteOnProposalProps> | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!(window.crypto && window.crypto.subtle)) return;
+    import("@/components/governance/VoteOnProposal")
+      .then((mod) => setComp(() => mod.VoteOnProposal))
+      .catch(() => {});
+  }, []);
+
+  if (!Comp) return null;
+  return <Comp {...props} />;
+}
+
+interface GovernanceDetailProps {
+  initialDetail?: GovernanceActionDetail | null;
+}
+
+export default function GovernanceDetail({ initialDetail }: GovernanceDetailProps) {
   const router = useRouter();
   const { hash } = router.query;
-  const dispatch = useAppDispatch();
   const { theme, activeTheme } = useTheme();
+  const tExpiry = useTranslations("expiry");
+  const tTabs = useTranslations("tabs");
+  const tVoting = useTranslations("voting");
+  const tProposal = useTranslations("proposal");
+  const tExport = useTranslations("export");
   const isDark = theme === "dark";
   const isGame = activeTheme.id === "game";
   const isNeural = activeTheme.id === "neural";
@@ -274,14 +313,27 @@ export default function GovernanceDetail() {
     () => isNeural ? VOTE_COLORS_NEURAL : (isDark || isGame ? VOTE_COLORS_DARK : VOTE_COLORS_LIGHT),
     [isDark, isGame, isNeural]
   );
-  const { selectedAction, isLoadingDetail, detailError } = useAppSelector(
-    (state) => state.governance
-  );
+  const proposalId = typeof hash === "string" ? hash : null;
+
+  // SWR-based data loading with ISR fallback for instant hydration
+  const { isLoading: swrLoading, error: swrError, refresh } =
+    useGovernanceActionDetail(proposalId, initialDetail);
+
+  // Redux still has the data (synced by the hook) for components that read from it
+  const { selectedAction } = useAppSelector((state) => state.governance);
+
+  // Derive vote transaction props from selectedAction hash ("txHash:certIndex" format)
+  const [voteTxHash, voteCertIndexStr] = (selectedAction?.hash || "").split(/[:#]/);
+  const voteCertIndex = parseInt(voteCertIndexStr, 10) || 0;
+
+  // Alias for backward compatibility with the rest of the JSX
+  const isLoadingDetail = swrLoading;
+  const detailError = swrError;
 
   const [downloadFormat, setDownloadFormat] = useState<string>("");
-  const [contentVisible, setContentVisible] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [contentVisible, setContentVisible] = useState(!!initialDetail);
   const [isContentExpanded, setIsContentExpanded] = useState<boolean>(false);
-  const [isTimeExpanded, setIsTimeExpanded] = useState<boolean>(false);
   const [isDrepExcludedExpanded, setIsDrepExcludedExpanded] = useState<boolean>(false);
   const [isSpoExcludedExpanded, setIsSpoExcludedExpanded] = useState<boolean>(false);
   const [isCcExcludedExpanded, setIsCcExcludedExpanded] = useState<boolean>(false);
@@ -289,24 +341,35 @@ export default function GovernanceDetail() {
     useState<RoleFilter>("All");
   const [selectedTab, setSelectedTab] = useState<string>("live-voting");
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [submittedAt, setSubmittedAt] = useState<number | null>(null);
 
-  // Track the hash we're currently showing to detect route changes
-  const [displayedHash, setDisplayedHash] = useState<string | null>(null);
-
+  // Fetch precise submission timestamp from Koios via txHash
   useEffect(() => {
-    if (typeof hash === "string" && hash !== displayedHash) {
+    if (!voteTxHash || voteTxHash.length !== 64) return;
+    setSubmittedAt(null);
+    fetch(`/api/tx-timestamp?txHash=${voteTxHash}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d?.timestamp) setSubmittedAt(d.timestamp * 1000); // unix s → ms
+      })
+      .catch(() => {/* fall back to epoch-derived date */});
+  }, [voteTxHash]);
+
+  // Reset visibility on proposal change, fade in when data arrives
+  const prevProposalId = useRef(proposalId);
+  useEffect(() => {
+    if (proposalId !== prevProposalId.current) {
       setContentVisible(false);
-      dispatch(loadGovernanceActionDetail(hash));
-      setDisplayedHash(hash);
+      prevProposalId.current = proposalId;
     }
-  }, [hash, dispatch, displayedHash]);
+  }, [proposalId]);
 
   useEffect(() => {
-    if (selectedAction && !contentVisible && displayedHash === hash) {
+    if (selectedAction && !contentVisible) {
       const timeout = setTimeout(() => setContentVisible(true), 150);
       return () => clearTimeout(timeout);
     }
-  }, [selectedAction, contentVisible, displayedHash, hash]);
+  }, [selectedAction, contentVisible]);
 
   const allVotes = useMemo(() => {
     if (!selectedAction) return [];
@@ -315,6 +378,45 @@ export default function GovernanceDetail() {
       ...(selectedAction.ccVotes || []),
     ];
   }, [selectedAction]);
+
+  // Aggregate voting data (breakdowns, CC counts) may be available even when
+  // individual vote records haven't been indexed yet. The Live Voting donuts
+  // use aggregate data, so gate them on this rather than allVotes.length.
+  const hasAggregateVotingData = useMemo(() => {
+    if (!selectedAction) return false;
+    return !!(
+      selectedAction.drepBreakdown ||
+      selectedAction.spoBreakdown ||
+      selectedAction.cc
+    );
+  }, [selectedAction]);
+
+  const exportLabels: ExportLabels = useMemo(
+    () => ({
+      noRationale: tExport("noRationale"),
+      voteYes: tExport("voteYes"),
+      voteNo: tExport("voteNo"),
+      voteAbstain: tExport("voteAbstain"),
+      headingVotingRationales: tExport("headingVotingRationales"),
+      labelExported: tExport("labelExported"),
+      labelTotalVotes: tExport("labelTotalVotes"),
+      labelVote: tExport("labelVote"),
+      labelVotingPower: tExport("labelVotingPower"),
+      labelVotedAt: tExport("labelVotedAt"),
+      labelRationaleLink: tExport("labelRationaleLink"),
+      headingRationale: tExport("headingRationale"),
+      csvProposal: tExport("csvProposal"),
+      csvVoterType: tExport("csvVoterType"),
+      csvVoterId: tExport("csvVoterId"),
+      csvVoterName: tExport("csvVoterName"),
+      csvVote: tExport("csvVote"),
+      csvVotingPower: tExport("csvVotingPower"),
+      csvVotedAt: tExport("csvVotedAt"),
+      csvRationale: tExport("csvRationale"),
+      csvAnchorUrl: tExport("csvAnchorUrl"),
+    }),
+    [tExport],
+  );
 
   const contentPreview = useMemo(() => {
     if (!selectedAction) return null;
@@ -394,6 +496,15 @@ export default function GovernanceDetail() {
       references: allReferences, // Combined: API references + URLs from content
     };
   }, [selectedAction]);
+
+  // Translation hooks for title and content
+  const titleTranslation = useContentTranslation({
+    originalText: selectedAction?.title || "",
+  });
+
+  const contentTranslation = useContentTranslation({
+    originalText: contentPreview?.full || "",
+  });
 
   const eligibleRoles = useMemo<VoterType[]>(() => {
     if (!selectedAction) return [];
@@ -662,11 +773,7 @@ export default function GovernanceDetail() {
               </p>
               <p className="text-sm text-muted-foreground">{detailError}</p>
               <button
-                onClick={() => {
-                  if (typeof hash === "string") {
-                    dispatch(loadGovernanceActionDetail(hash));
-                  }
-                }}
+                onClick={() => refresh()}
                 className="mt-4 rounded-md bg-primary px-4 py-2 text-primary-foreground transition-colors hover:bg-primary/90"
               >
                 Retry
@@ -686,13 +793,13 @@ export default function GovernanceDetail() {
           <Link href="/">
             <Button variant="default" className="mb-6 bg-white text-black hover:bg-black hover:text-white shadow-[0_12px_30px_rgba(15,23,42,0.25)]">
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Dashboard
+              {tProposal("backToDashboard")}
             </Button>
           </Link>
           <Card className="p-12">
             <div className="text-center">
               <p className="text-muted-foreground">
-                Governance action not found
+                {tProposal("govActionNotFound")}
               </p>
             </div>
           </Card>
@@ -722,10 +829,10 @@ export default function GovernanceDetail() {
   // to drive placeholder messaging.
   const drepInfo = selectedAction.drep;
   const spoThreshold = selectedAction.threshold?.spoThreshold;
-  // Show SPO info if threshold exists OR if there are SPO votes (security-critical parameter changes)
+  // Show SPO info if threshold exists, SPO breakdown data is available, or if there are SPO votes
   const hasSpoVotes = selectedAction.votes?.some((v) => v.voterType === "SPO") ?? false;
   const spoInfo =
-    (spoThreshold !== null && spoThreshold !== undefined) || hasSpoVotes
+    (spoThreshold !== null && spoThreshold !== undefined) || hasSpoVotes || selectedAction.spoBreakdown
       ? selectedAction.spo
       : undefined;
   const ccThreshold = selectedAction.threshold?.ccThreshold;
@@ -765,36 +872,46 @@ export default function GovernanceDetail() {
     window.open(twitterUrl, "_blank", "noopener,noreferrer");
   };
 
-  const handleExport = (format: "json" | "markdown" | "csv") => {
+  const handleExport = async (format: "json" | "markdown" | "csv") => {
     const sanitizedTitle = selectedAction.title
       .replace(/[^a-z0-9]/gi, "_")
       .toLowerCase();
     const timestamp = new Date().toISOString().split("T")[0];
+    const locale = router.locale ?? "en";
 
-    let content: string;
-    let filename: string;
-    let mimeType: string;
+    setIsExporting(true);
 
-    switch (format) {
-      case "json":
-        content = exportToJSON(allVotes, selectedAction.title);
-        filename = `voting-rationales-${sanitizedTitle}-${timestamp}.json`;
-        mimeType = "application/json";
-        break;
-      case "markdown":
-        content = exportToMarkdown(allVotes, selectedAction.title);
-        filename = `voting-rationales-${sanitizedTitle}-${timestamp}.md`;
-        mimeType = "text/markdown";
-        break;
-      case "csv":
-        content = exportToCSV(allVotes, selectedAction.title);
-        filename = `voting-rationales-${sanitizedTitle}-${timestamp}.csv`;
-        mimeType = "text/csv";
-        break;
+    try {
+      // Translate rationale content for non-English locales
+      const translatedVotes = await translateVotesForExport(allVotes, locale);
+
+      let content: string;
+      let filename: string;
+      let mimeType: string;
+
+      switch (format) {
+        case "json":
+          content = exportToJSON(translatedVotes, selectedAction.title, exportLabels);
+          filename = `voting-rationales-${sanitizedTitle}-${timestamp}.json`;
+          mimeType = "application/json";
+          break;
+        case "markdown":
+          content = exportToMarkdown(translatedVotes, selectedAction.title, exportLabels, locale);
+          filename = `voting-rationales-${sanitizedTitle}-${timestamp}.md`;
+          mimeType = "text/markdown";
+          break;
+        case "csv":
+          content = exportToCSV(translatedVotes, selectedAction.title, exportLabels);
+          filename = `voting-rationales-${sanitizedTitle}-${timestamp}.csv`;
+          mimeType = "text/csv";
+          break;
+      }
+
+      downloadFile(content, filename, mimeType);
+    } finally {
+      setIsExporting(false);
+      setTimeout(() => setDownloadFormat(""), 100);
     }
-
-    downloadFile(content, filename, mimeType);
-    setTimeout(() => setDownloadFormat(""), 100);
   };
 
   const handleCopy = async (text: string, id: string) => {
@@ -846,35 +963,44 @@ export default function GovernanceDetail() {
                 }
                 onClick={handleTwitterShare}
               >
-                Share on X
+                {tProposal("shareOnX")}
               </Button>
             )}
           </div>
 
-          {/* Header Section */}
+          {/* Proposal Detail + Expiry Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6 mb-4 sm:mb-6 md:mb-8">
+            {/* Proposal Detail */}
           <Card className={cn(
-            "mb-4 sm:mb-6 md:mb-8 p-3 sm:p-4 md:p-6",
+            "lg:col-span-2 p-3 sm:p-4 md:p-6 flex flex-col",
             isGame && "game-proposal-header-card"
           )}>
             <div className="mb-2 sm:mb-3 flex items-center gap-2 sm:gap-3">
               <h1 className="proposal-detail-title text-xl font-bold sm:text-2xl md:text-3xl lg:text-4xl">
-                {selectedAction.title}
+                {titleTranslation.isTranslating ? (
+                  <span className="opacity-50">{selectedAction.title}</span>
+                ) : (
+                  titleTranslation.displayText
+                )}
               </h1>
+              {titleTranslation.isTranslating && (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent shrink-0" />
+              )}
             </div>
             {contentPreview && (
-              <div className="border-t border-border/50 pt-4">
+              <div className="border-t border-border/50 pt-4 flex-1 flex flex-col">
                 <div
                   className={cn(
-                    "transition-all duration-500 ease-in-out [scrollbar-gutter:stable]",
+                    "transition-all duration-500 ease-in-out [scrollbar-gutter:stable] flex-1",
                     isContentExpanded
                       ? "max-h-[60vh] overflow-y-auto"
-                      : "max-h-[3rem] overflow-hidden"
+                      : "max-h-[14rem] overflow-hidden relative"
                   )}
                 >
                   <div className="pr-2">
                     <div className="overflow-x-auto">
                       <ProposalContent
-                        content={contentPreview.full}
+                        content={contentTranslation.displayText}
                         className="proposal-detail-content text-sm sm:text-base px-1 pr-4"
                         headingLevels={[1, 2, 3, 4]}
                       />
@@ -906,10 +1032,14 @@ export default function GovernanceDetail() {
                         </div>
                       )}
                   </div>
+                  {/* Fade overlay when collapsed */}
+                  {!isContentExpanded && contentPreview.shouldTruncate && (
+                    <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-card to-transparent pointer-events-none" />
+                  )}
                 </div>
-                {/* Expand/Collapse Arrow */}
+                {/* Expand/Collapse Button at bottom */}
                 {contentPreview.shouldTruncate && (
-                  <div className="flex justify-center items-center pt-6">
+                  <div className="flex justify-center items-center pt-3 mt-auto">
                     <div
                       className={cn(
                         "flex w-full items-center justify-center px-3 py-1.5 cursor-pointer transition-all duration-300",
@@ -938,6 +1068,231 @@ export default function GovernanceDetail() {
             )}
           </Card>
 
+          {/* Time Until Expiry Card */}
+          {selectedAction && (() => {
+            // Calculate expiry based on epoch, not days
+            // Governance actions expire at the END of the expiryEpoch
+            const now = Date.now();
+            const currentEpoch = getCurrentEpoch();
+            const submissionEpoch = selectedAction.submissionEpoch > 0
+              ? selectedAction.submissionEpoch
+              : currentEpoch;
+
+            // Get expiry epoch (default to submission + 6 epochs if not set)
+            // The "Valid Until Epoch" is expiryEpoch - 1, meaning voting ends at the end of that epoch
+            const expiryEpoch = selectedAction.expiryEpoch > 0
+              ? selectedAction.expiryEpoch
+              : submissionEpoch + 6;
+
+            // Calculate timestamps for the start and end of the voting period
+            const submissionTimestamp = epochToTimestamp(submissionEpoch);
+            // Voting ends at the END of (expiryEpoch - 1), which is the START of expiryEpoch
+            const expiryTimestamp = epochToTimestamp(expiryEpoch);
+
+            // Calculate time remaining until end of voting period
+            const timeRemaining = Math.max(0, expiryTimestamp - now);
+            const daysRemaining = Math.floor(timeRemaining / (24 * 60 * 60 * 1000));
+
+            // Calculate progress based on epochs
+            const totalEpochs = expiryEpoch - submissionEpoch;
+            const epochsElapsed = currentEpoch - submissionEpoch;
+            const progressPercent = totalEpochs > 0
+              ? Math.min(100, Math.max(0, (epochsElapsed / totalEpochs) * 100))
+              : 0;
+
+            return (
+              <Card className={cn("p-6", isGame && "game-detail-card")}>
+                <div className="flex items-center justify-between mb-4">
+                  <label className={cn(
+                    "text-sm font-semibold",
+                    isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
+                  )}>
+                    {tExpiry("timeUntilExpiry")}
+                  </label>
+                  <div className={cn(
+                    "text-base font-semibold",
+                    isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
+                  )}>
+                    {daysRemaining > 0 ? (
+                      <>
+                        {daysRemaining}{" "}
+                        {daysRemaining === 1 ? tExpiry("day") : tExpiry("days")}
+                      </>
+                    ) : (
+                      <span className={isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"}>
+                        {tExpiry("expired")}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <Progress
+                  value={progressPercent}
+                  className={cn(
+                    "h-3",
+                    isGame
+                      ? "rounded-full bg-white/20"
+                      : "rounded-full bg-secondary dark:bg-transparent dark:border dark:border-[#0bd1a2] dark:rounded-none"
+                  )}
+                  indicatorClassName={isGame ? "bg-white/50" : "bg-black dark:bg-[#0bd1a2]"}
+                />
+
+                {/* Proposal Info + Epoch Details */}
+                <div className="mt-4 pt-3 border-t border-border/50">
+                    <table className="text-xs w-full">
+                      <tbody>
+                        <tr className={cn(
+                          "border-b",
+                          isGame ? "border-white/10" : "border-border/30"
+                        )}>
+                          <td className={cn(
+                            "py-2 pr-4",
+                            isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
+                          )}>
+                            {tProposal("govActionType")}
+                          </td>
+                          <td className={cn(
+                            "py-2 font-semibold whitespace-nowrap",
+                            isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
+                          )}>
+                            {selectedAction.type}
+                          </td>
+                        </tr>
+                        <tr className={cn(
+                          "border-b",
+                          isGame ? "border-white/10" : "border-border/30"
+                        )}>
+                          <td className={cn(
+                            "py-2 pr-4",
+                            isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
+                          )}>
+                            {tProposal("status")}
+                          </td>
+                          <td className={cn(
+                            "py-2 font-semibold whitespace-nowrap",
+                            isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
+                          )}>
+                            {selectedAction.status}
+                          </td>
+                        </tr>
+                        <tr className={cn(
+                          "border-b",
+                          isGame ? "border-white/10" : "border-border/30"
+                        )}>
+                          <td className={cn(
+                            "py-2 pr-4",
+                            isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
+                          )}>
+                            {tProposal("constitutionality")}
+                          </td>
+                          <td className={cn(
+                            "py-2 font-semibold whitespace-nowrap",
+                            isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
+                          )}>
+                            {isInfoAction ? (
+                              <div className="flex items-center gap-1.5">
+                                <span className={isGame ? "text-white/60" : "text-muted-foreground dark:text-[#0bd1a2]/60"}>
+                                  {tProposal("notApplicable")}
+                                </span>
+                                <div className="group relative">
+                                  <Info
+                                    className={cn(
+                                      "h-3.5 w-3.5 cursor-help",
+                                      isGame ? "text-white/50" : "text-muted-foreground/60 dark:text-[#0bd1a2]/60"
+                                    )}
+                                  />
+                                  <div className="pointer-events-none absolute right-0 top-full z-50 mt-1 hidden w-48 rounded-md border bg-popover p-2 text-xs text-popover-foreground shadow-md group-hover:block">
+                                    {tProposal("infoActionTooltip")}
+                                  </div>
+                                </div>
+                              </div>
+                            ) : selectedAction.constitutionality ? (
+                              selectedAction.status === "Active" && selectedAction.constitutionality.toLowerCase() !== "constitutional"
+                                ? tProposal("pending")
+                                : selectedAction.constitutionality
+                            ) : null}
+                          </td>
+                        </tr>
+                        <tr className={cn(
+                          "border-b",
+                          isGame ? "border-white/10" : "border-border/30"
+                        )}>
+                          <td className={cn(
+                            "py-2 pr-4",
+                            isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
+                          )}>
+                            {tExpiry("submissionDate")}
+                          </td>
+                          <td className={cn(
+                            "py-2 font-semibold whitespace-nowrap",
+                            isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
+                          )}>
+                            {new Date(submittedAt ?? submissionTimestamp).toLocaleDateString("en-GB", {
+                              day: "2-digit",
+                              month: "2-digit",
+                              year: "numeric"
+                            })}
+                          </td>
+                        </tr>
+                        <tr className={cn(
+                          "border-b",
+                          isGame ? "border-white/10" : "border-border/30"
+                        )}>
+                          <td className={cn(
+                            "py-2 pr-4",
+                            isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
+                          )}>
+                            {tExpiry("epochBoundary")}
+                          </td>
+                          <td className={cn(
+                            "py-2 font-semibold whitespace-nowrap",
+                            isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
+                          )}>
+                            {new Date(expiryTimestamp).toLocaleDateString("en-GB", {
+                              day: "2-digit",
+                              month: "2-digit",
+                              year: "numeric"
+                            })}
+                          </td>
+                        </tr>
+                        <tr className={cn(
+                          "border-b",
+                          isGame ? "border-white/10" : "border-border/30"
+                        )}>
+                          <td className={cn(
+                            "py-2 pr-4",
+                            isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
+                          )}>
+                            {tExpiry("submissionEpoch")}
+                          </td>
+                          <td className={cn(
+                            "py-2 font-semibold whitespace-nowrap",
+                            isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
+                          )}>
+                            {submissionEpoch}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className={cn(
+                            "py-2 pr-4",
+                            isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
+                          )}>
+                            {tExpiry("validUntilEpoch")}
+                          </td>
+                          <td className={cn(
+                            "py-2 font-semibold whitespace-nowrap",
+                            isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
+                          )}>
+                            {(selectedAction.expiryEpoch > 0 ? selectedAction.expiryEpoch : submissionEpoch + 6) - 1}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+              </Card>
+            );
+          })()}
+          </div>
+
           {/* Main Grid: 2/3 Left, 1/3 Right */}
           <div className="grid grid-cols-1 gap-4 sm:gap-5 md:gap-6 lg:grid-cols-3">
             {/* Left Column - Tabs for donuts, bubble map, curves, details */}
@@ -962,7 +1317,7 @@ export default function GovernanceDetail() {
                               : "rounded-md border border-white/8 bg-white text-black px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold uppercase tracking-wide transform-gpu transition-transform transition-shadow duration-450 ease-in-out shadow-[0_12px_30px_rgba(15,23,42,0.25)] data-[state=active]:bg-black data-[state=active]:text-white hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon"
                           }
                         >
-                          Live Voting
+                          {tTabs("liveVoting")}
                         </TabsTrigger>
                         <TabsTrigger
                           value="thresholds"
@@ -972,7 +1327,7 @@ export default function GovernanceDetail() {
                               : "rounded-md border border-white/8 bg-white text-black px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold uppercase tracking-wide transform-gpu transition-transform transition-shadow duration-450 ease-in-out shadow-[0_12px_30px_rgba(15,23,42,0.25)] data-[state=active]:bg-black data-[state=active]:text-white hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon"
                           }
                         >
-                          Thresholds
+                          {tTabs("thresholds")}
                         </TabsTrigger>
                         <TabsTrigger
                           value="bubble-map"
@@ -982,7 +1337,7 @@ export default function GovernanceDetail() {
                               : "rounded-md border border-white/8 bg-white text-black px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold uppercase tracking-wide transform-gpu transition-transform transition-shadow duration-450 ease-in-out shadow-[0_12px_30px_rgba(15,23,42,0.25)] data-[state=active]:bg-black data-[state=active]:text-white hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon"
                           }
                         >
-                          Bubble Map
+                          {tTabs("bubbleMap")}
                         </TabsTrigger>
                         <TabsTrigger
                           value="curves"
@@ -992,7 +1347,7 @@ export default function GovernanceDetail() {
                               : "rounded-md border border-white/8 bg-white text-black px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold uppercase tracking-wide transform-gpu transition-transform transition-shadow duration-450 ease-in-out shadow-[0_12px_30px_rgba(15,23,42,0.25)] data-[state=active]:bg-black data-[state=active]:text-white hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon"
                           }
                         >
-                          Curves
+                          {tTabs("curves")}
                         </TabsTrigger>
                         <TabsTrigger
                           value="details"
@@ -1002,7 +1357,7 @@ export default function GovernanceDetail() {
                               : "rounded-md border border-white/8 bg-white text-black px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold uppercase tracking-wide transform-gpu transition-transform transition-shadow duration-450 ease-in-out shadow-[0_12px_30px_rgba(15,23,42,0.25)] data-[state=active]:bg-black data-[state=active]:text-white hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon"
                           }
                         >
-                          Details
+                          {tTabs("details")}
                         </TabsTrigger>
                       </TabsList>
                     </div>
@@ -1010,7 +1365,7 @@ export default function GovernanceDetail() {
                     <>
                         {/* Live voting donuts */}
                         <TabsContent value="live-voting" className="mt-0">
-                          {allVotes.length > 0 ? (
+                          {(allVotes.length > 0 || hasAggregateVotingData) ? (
                             <div className="space-y-0 sm:space-y-4">
                               {/* Mobile: horizontal donut + legend. Desktop: horizontal row with vertical stacks */}
                               <div className={cn(
@@ -1023,7 +1378,7 @@ export default function GovernanceDetail() {
                                     drepInfo ? (
                                       <>
                                         <VoteProgress
-                                          title="DRep Votes"
+                                          title={tProposal("drepVotes")}
                                           segments={drepDonutSegments ?? undefined}
                                           valueUnit="ada"
                                           className="origin-left scale-[0.5] -mr-24 sm:mr-0 sm:origin-center sm:scale-90 md:scale-100 shrink-0"
@@ -1049,13 +1404,14 @@ export default function GovernanceDetail() {
                                     ) : (
                                       <RolePlaceholder
                                         role="DRep"
-                                        message="No on-chain data yet"
+                                        message={tProposal("noOnChainData")}
                                       />
                                     )
                                   ) : (
                                     <RolePlaceholder
                                       role="DRep"
-                                      message="Not eligible for this action"
+                                      message={tProposal("notEligibleForAction")}
+                                      notEligible
                                     />
                                   )}
                                 </div>
@@ -1066,7 +1422,7 @@ export default function GovernanceDetail() {
                                   {allowCC ? (
                                     <>
                                       <VoteProgress
-                                        title="CC Votes"
+                                        title={tProposal("ccVotes")}
                                         yesPercent={ccYesPercent}
                                         noPercent={ccNoPercent}
                                         pendingPercent={ccPendingPercentRecalc}
@@ -1101,7 +1457,8 @@ export default function GovernanceDetail() {
                                   ) : (
                                     <RolePlaceholder
                                       role="CC"
-                                      message="Not eligible for this action"
+                                      message={tProposal("notEligibleForAction")}
+                                      notEligible
                                     />
                                   )}
                                 </div>
@@ -1113,7 +1470,7 @@ export default function GovernanceDetail() {
                                     spoInfo ? (
                                       <>
                                         <VoteProgress
-                                          title="SPO Votes"
+                                          title={tProposal("spoVotes")}
                                           segments={spoDonutSegments ?? undefined}
                                           valueUnit="ada"
                                           className="origin-left scale-[0.5] -mr-24 sm:mr-0 sm:origin-center sm:scale-90 md:scale-100 shrink-0"
@@ -1139,13 +1496,14 @@ export default function GovernanceDetail() {
                                     ) : (
                                       <RolePlaceholder
                                         role="SPO"
-                                        message="No on-chain data yet"
+                                        message={tProposal("noOnChainData")}
                                       />
                                     )
                                   ) : (
                                     <RolePlaceholder
                                       role="SPO"
-                                      message="Not eligible for this action"
+                                      message={tProposal("notEligibleForAction")}
+                                      notEligible
                                     />
                                   )}
                                 </div>
@@ -1153,7 +1511,7 @@ export default function GovernanceDetail() {
                             </div>
                           ) : (
                             <div className="flex items-center justify-center py-6 text-sm text-muted-foreground">
-                              No voting activity yet.
+                              {tProposal("noVotingActivity")}
                             </div>
                           )}
                         </TabsContent>
@@ -1164,7 +1522,7 @@ export default function GovernanceDetail() {
                             <BubbleMap votes={allVotes} />
                           ) : (
                             <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground">
-                              No voting activity yet.
+                              {tProposal("noVotingActivity")}
                             </div>
                           )}
                         </TabsContent>
@@ -1177,15 +1535,15 @@ export default function GovernanceDetail() {
                           )}>
                             <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                               <div className="space-y-1">
-                                <h3 className={cn("text-lg font-semibold", isGame && "text-white")}>Voting trend</h3>
+                                <h3 className={cn("text-lg font-semibold", isGame && "text-white")}>{tProposal("votingTrend")}</h3>
                                 <p className={cn("text-sm", isGame ? "text-white/70" : "text-muted-foreground")}>
                                   {shouldShowPower
-                                    ? "Cumulative voting power (ADA)"
-                                    : "Cumulative yes / no / abstain votes"}{" "}
+                                    ? tProposal("cumulativePower")
+                                    : tProposal("cumulativeVotes")}{" "}
                                   · {" "}
                                   {curveRoleFilter === "All"
-                                    ? "All roles"
-                                    : `${curveRoleFilter} only`}
+                                    ? tVoting("allRoles")
+                                    : tProposal("roleOnly", { role: curveRoleFilter })}
                                 </p>
                                 <div className="flex flex-wrap gap-2 pt-1">
                                   {curveRoleOptions.map((role) => {
@@ -1207,7 +1565,7 @@ export default function GovernanceDetail() {
                                               }`
                                         )}
                                       >
-                                        {role === "All" ? "All Roles" : role}
+                                        {role === "All" ? tVoting("allRoles") : role}
                                       </button>
                                     );
                                   })}
@@ -1276,7 +1634,7 @@ export default function GovernanceDetail() {
                                             useDashedPowerLines ? "5 4" : undefined
                                           }
                                           dot={false}
-                                          name="Yes Power"
+                                          name={tProposal("yesPower")}
                                           yAxisId="primary"
                                         />
                                         <Line
@@ -1288,7 +1646,7 @@ export default function GovernanceDetail() {
                                             useDashedPowerLines ? "5 4" : undefined
                                           }
                                           dot={false}
-                                          name="No Power"
+                                          name={tProposal("noPower")}
                                           yAxisId="primary"
                                         />
                                         <Line
@@ -1301,7 +1659,7 @@ export default function GovernanceDetail() {
                                             useDashedPowerLines ? "5 4" : undefined
                                           }
                                           dot={false}
-                                          name="Abstain Power"
+                                          name={tProposal("abstainPower")}
                                           yAxisId="primary"
                                         />
                                       </>
@@ -1313,7 +1671,7 @@ export default function GovernanceDetail() {
                                           stroke={voteColors.yes}
                                           strokeWidth={2}
                                           dot={false}
-                                          name="Yes Votes"
+                                          name={tProposal("yesVotes")}
                                           yAxisId="primary"
                                         />
                                         <Line
@@ -1322,7 +1680,7 @@ export default function GovernanceDetail() {
                                           stroke={voteColors.no}
                                           strokeWidth={2}
                                           dot={false}
-                                          name="No Votes"
+                                          name={tProposal("noVotes")}
                                           yAxisId="primary"
                                         />
                                         <Line
@@ -1332,7 +1690,7 @@ export default function GovernanceDetail() {
                                           strokeOpacity={0.9}
                                           strokeWidth={2}
                                           dot={false}
-                                          name="Abstain Votes"
+                                          name={tProposal("abstainVotes")}
                                           yAxisId="primary"
                                         />
                                       </>
@@ -1342,7 +1700,7 @@ export default function GovernanceDetail() {
                               </div>
                             ) : (
                               <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground">
-                                Not enough voting data yet.
+                                {tProposal("notEnoughData")}
                               </div>
                             )}
                           </Card>
@@ -1362,7 +1720,7 @@ export default function GovernanceDetail() {
                                 "mb-3 block text-sm font-semibold sm:text-base",
                                 isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
                               )}>
-                                Voting Participation
+                                {tProposal("votingParticipation")}
                               </label>
                               <div className={cn(
                                 "overflow-hidden",
@@ -1394,13 +1752,13 @@ export default function GovernanceDetail() {
                                                 "px-3 py-2.5 text-sm",
                                                 isGame ? "text-white/80" : "text-muted-foreground dark:text-[#0bd1a2]/80"
                                               )}>
-                                                DReps
+                                                {tVoting("dreps")}
                                               </td>
                                               <td className={cn(
                                                 "px-3 py-2.5 text-sm font-semibold text-right",
                                                 isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
                                               )}>
-                                                {drepVotes.length.toLocaleString()} voted
+                                                {drepVotes.length.toLocaleString()} {tProposal("voted")}
                                               </td>
                                             </tr>
                                           )}
@@ -1415,13 +1773,13 @@ export default function GovernanceDetail() {
                                                 "px-3 py-2.5 text-sm",
                                                 isGame ? "text-white/80" : "text-muted-foreground dark:text-[#0bd1a2]/80"
                                               )}>
-                                                SPOs
+                                                {tVoting("spos")}
                                               </td>
                                               <td className={cn(
                                                 "px-3 py-2.5 text-sm font-semibold text-right",
                                                 isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
                                               )}>
-                                                {spoVotes.length.toLocaleString()} voted
+                                                {spoVotes.length.toLocaleString()} {tProposal("voted")}
                                               </td>
                                             </tr>
                                           )}
@@ -1431,13 +1789,13 @@ export default function GovernanceDetail() {
                                                 "px-3 py-2.5 text-sm",
                                                 isGame ? "text-white/80" : "text-muted-foreground dark:text-[#0bd1a2]/80"
                                               )}>
-                                                CC Members
+                                                {tProposal("ccMembers")}
                                               </td>
                                               <td className={cn(
                                                 "px-3 py-2.5 text-sm font-semibold text-right",
                                                 isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
                                               )}>
-                                                {ccVotes.length.toLocaleString()} voted
+                                                {ccVotes.length.toLocaleString()} {tProposal("voted")}
                                               </td>
                                             </tr>
                                           )}
@@ -1459,7 +1817,7 @@ export default function GovernanceDetail() {
                                 "mb-3 block text-sm font-semibold sm:text-base",
                                 isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
                               )}>
-                                Governance Action ID
+                                {tProposal("governanceActionId")}
                               </label>
                               <div className="flex items-start gap-2">
                                 <code className={cn(
@@ -1503,7 +1861,7 @@ export default function GovernanceDetail() {
                                 "mb-3 block text-sm font-semibold sm:text-base",
                                 isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
                               )}>
-                                Legacy Governance Action ID (CIP-105)
+                                {tProposal("legacyGovActionId")}
                               </label>
                               <div className="flex items-start gap-2">
                                 <code className={cn(
@@ -1547,7 +1905,7 @@ export default function GovernanceDetail() {
                                 "mb-3 block text-sm font-semibold sm:text-base",
                                 isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
                               )}>
-                                Transaction Hash
+                                {tProposal("transactionHash")}
                               </label>
                               <div className="flex items-start gap-2">
                                 <code className={cn(
@@ -1598,7 +1956,7 @@ export default function GovernanceDetail() {
                                 "text-sm font-semibold",
                                 isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
                               )}>
-                                Total Voting Power
+                                {tProposal("totalVotingPower")}
                               </h4>
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                 {/* DRep Total */}
@@ -1611,7 +1969,7 @@ export default function GovernanceDetail() {
                                       "text-xs",
                                       isGame ? "text-white/60" : "text-muted-foreground"
                                     )}>
-                                      DReps
+                                      {tVoting("dreps")}
                                     </div>
                                     <div className={cn(
                                       "text-lg font-semibold",
@@ -1633,7 +1991,7 @@ export default function GovernanceDetail() {
                                       "text-xs",
                                       isGame ? "text-white/60" : "text-muted-foreground"
                                     )}>
-                                      SPOs
+                                      {tVoting("spos")}
                                     </div>
                                     <div className={cn(
                                       "text-lg font-semibold",
@@ -1658,13 +2016,13 @@ export default function GovernanceDetail() {
                                         "text-xs",
                                         isGame ? "text-white/60" : "text-muted-foreground"
                                       )}>
-                                        CC Members
+                                        {tProposal("ccMembers")}
                                       </div>
                                       <div className={cn(
                                         "text-lg font-semibold",
                                         isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
                                       )}>
-                                        {ccTotalMembers} members
+                                        {tProposal("members", { count: ccTotalMembers })}
                                       </div>
                                     </div>
                                   );
@@ -1678,7 +2036,7 @@ export default function GovernanceDetail() {
                                 "text-sm font-semibold",
                                 isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
                               )}>
-                                Approval Progress
+                                {tProposal("approvalProgress")}
                               </h4>
 
                               {/* DRep Threshold */}
@@ -1694,7 +2052,7 @@ export default function GovernanceDetail() {
                                         "text-sm font-medium",
                                         isGame ? "text-white" : "text-foreground"
                                       )}>
-                                        DReps
+                                        {tVoting("dreps")}
                                       </span>
                                       <span className={cn(
                                         "text-sm",
@@ -1742,7 +2100,7 @@ export default function GovernanceDetail() {
                                         "text-sm font-medium",
                                         isGame ? "text-white" : "text-foreground"
                                       )}>
-                                        SPOs
+                                        {tVoting("spos")}
                                       </span>
                                       <span className={cn(
                                         "text-sm",
@@ -1788,7 +2146,7 @@ export default function GovernanceDetail() {
                                         "text-sm font-medium",
                                         isGame ? "text-white" : "text-foreground"
                                       )}>
-                                        Constitutional Committee
+                                        {tVoting("ccFull")}
                                       </span>
                                       <span className={cn(
                                         "text-sm",
@@ -1829,7 +2187,7 @@ export default function GovernanceDetail() {
                                 "text-sm",
                                 isGame ? "text-white/70" : "text-muted-foreground"
                               )}>
-                                No threshold data available for this proposal.
+                                {tProposal("noThresholdData")}
                               </p>
                             )}
                           </div>
@@ -1838,211 +2196,50 @@ export default function GovernanceDetail() {
                   </div>
                 </Tabs>
               </Card>
+
             </div>
 
             {/* Right Column - Sidebar (voting summary) */}
-            <div className="space-y-6">
-              {/* Time Until Expiry Card */}
-              {selectedAction && (() => {
-                // Calculate expiry based on epoch, not days
-                // Governance actions expire at the END of the expiryEpoch
-                const now = Date.now();
-                const currentEpoch = getCurrentEpoch();
-                const submissionEpoch = selectedAction.submissionEpoch > 0
-                  ? selectedAction.submissionEpoch
-                  : currentEpoch;
-
-                // Get expiry epoch (default to submission + 6 epochs if not set)
-                // The "Valid Until Epoch" is expiryEpoch - 1, meaning voting ends at the end of that epoch
-                const expiryEpoch = selectedAction.expiryEpoch > 0
-                  ? selectedAction.expiryEpoch
-                  : submissionEpoch + 6;
-
-                // Calculate timestamps for the start and end of the voting period
-                const submissionTimestamp = epochToTimestamp(submissionEpoch);
-                // Voting ends at the END of (expiryEpoch - 1), which is the START of expiryEpoch
-                const expiryTimestamp = epochToTimestamp(expiryEpoch);
-
-                // Calculate time remaining until end of voting period
-                const timeRemaining = Math.max(0, expiryTimestamp - now);
-                const daysRemaining = Math.floor(timeRemaining / (24 * 60 * 60 * 1000));
-
-                // Calculate progress based on epochs
-                const totalEpochs = expiryEpoch - submissionEpoch;
-                const epochsElapsed = currentEpoch - submissionEpoch;
-                const progressPercent = totalEpochs > 0
-                  ? Math.min(100, Math.max(0, (epochsElapsed / totalEpochs) * 100))
-                  : 0;
-
-                return (
-                  <Card className={cn("p-6", isGame && "game-detail-card")}>
-                    <div className="flex items-center justify-between mb-4">
-                      <label className={cn(
-                        "text-sm font-semibold",
-                        isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
-                      )}>
-                        Time Until Expiry
-                      </label>
-                      <div className={cn(
-                        "text-base font-semibold",
-                        isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
-                      )}>
-                        {daysRemaining > 0 ? (
-                          <>
-                            {daysRemaining}{" "}
-                            {daysRemaining === 1 ? "day" : "days"}
-                          </>
-                        ) : (
-                          <span className={isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"}>
-                            Expired
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <Progress
-                      value={progressPercent}
-                      className={cn(
-                        "h-3",
-                        isGame
-                          ? "rounded-full bg-white/20"
-                          : "rounded-full bg-secondary dark:bg-transparent dark:border dark:border-[#0bd1a2] dark:rounded-none"
-                      )}
-                      indicatorClassName={isGame ? "bg-white/50" : "bg-black dark:bg-[#0bd1a2]"}
-                    />
-
-                    {/* Expandable details section */}
-                    <div className={cn(
-                      "overflow-hidden transition-all duration-300 ease-in-out",
-                      isTimeExpanded ? "max-h-[300px] opacity-100" : "max-h-0 opacity-0"
-                    )}>
-                      <div className="mt-4 pt-3 border-t border-border/50">
-                        <table className="text-xs">
-                          <thead>
-                            <tr className={cn(
-                              "border-b",
-                              isGame ? "border-white/20" : "border-border/50"
-                            )}>
-                              <th className={cn(
-                                "text-left py-2 font-medium",
-                                isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
-                              )}>
-                                Subject
-                              </th>
-                              <th></th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            <tr className={cn(
-                              "border-b",
-                              isGame ? "border-white/10" : "border-border/30"
-                            )}>
-                              <td className={cn(
-                                "py-2 pr-4",
-                                isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
-                              )}>
-                                Submission Date
-                              </td>
-                              <td className={cn(
-                                "py-2 font-semibold whitespace-nowrap",
-                                isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
-                              )}>
-                                {new Date(submissionTimestamp).toLocaleDateString("en-GB", {
-                                  day: "2-digit",
-                                  month: "2-digit",
-                                  year: "numeric"
-                                })}
-                              </td>
-                            </tr>
-                            <tr className={cn(
-                              "border-b",
-                              isGame ? "border-white/10" : "border-border/30"
-                            )}>
-                              <td className={cn(
-                                "py-2 pr-4",
-                                isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
-                              )}>
-                                Epoch Boundary
-                              </td>
-                              <td className={cn(
-                                "py-2 font-semibold whitespace-nowrap",
-                                isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
-                              )}>
-                                {new Date(expiryTimestamp).toLocaleDateString("en-GB", {
-                                  day: "2-digit",
-                                  month: "2-digit",
-                                  year: "numeric"
-                                })}
-                              </td>
-                            </tr>
-                            <tr className={cn(
-                              "border-b",
-                              isGame ? "border-white/10" : "border-border/30"
-                            )}>
-                              <td className={cn(
-                                "py-2 pr-4",
-                                isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
-                              )}>
-                                Submission Epoch
-                              </td>
-                              <td className={cn(
-                                "py-2 font-semibold whitespace-nowrap",
-                                isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
-                              )}>
-                                {submissionEpoch}
-                              </td>
-                            </tr>
-                            <tr>
-                              <td className={cn(
-                                "py-2 pr-4",
-                                isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
-                              )}>
-                                Valid Until Epoch
-                              </td>
-                              <td className={cn(
-                                "py-2 font-semibold whitespace-nowrap",
-                                isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
-                              )}>
-                                {(selectedAction.expiryEpoch > 0 ? selectedAction.expiryEpoch : submissionEpoch + 6) - 1}
-                              </td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-
-                    {/* Expand/Collapse Arrow */}
-                    <div className="flex justify-center items-center pt-3">
-                      <div
-                        className={cn(
-                          "flex w-full items-center justify-center px-3 py-1.5 cursor-pointer transition-all duration-300",
-                          isGame
-                            ? "game-expand-btn rounded-lg"
-                            : "rounded-lg border border-border/50 bg-card/50 hover:bg-white hover:shadow-lg hover:scale-[1.02] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:hover:bg-[#0bd1a2]/10 dark:hover:shadow-none"
-                        )}
-                        onClick={() => setIsTimeExpanded((prev) => !prev)}
-                      >
-                        <svg
-                          className={cn(
-                            "h-4 w-4 transition-transform duration-300",
-                            isTimeExpanded ? "rotate-180" : "",
-                            isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
-                          )}
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </div>
-                    </div>
-                  </Card>
-                );
-              })()}
-
+            <div className="space-y-6 lg:sticky lg:top-6 lg:self-start">
               {/* Voting Trend Chart */}
               {voteTimelineData.length > 0 && (
                 <Card className={cn("p-6", isGame && "game-detail-card")}>
-                  <h3 className={cn("text-sm font-semibold mb-4", isGame && "text-white")}>Voting Trend</h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className={cn("text-sm font-semibold", isGame && "text-white")}>{tProposal("votingTrend")}</h3>
+                    {curveRoleOptions.length > 1 && (
+                      isGame ? (
+                        <GameDropdown
+                          value={curveRoleFilter}
+                          onValueChange={(value) => setCurveRoleFilter(value as RoleFilter)}
+                          options={curveRoleOptions.map((role) => ({
+                            value: role,
+                            label: role === "All" ? "All Roles" : role,
+                          }))}
+                          className="w-[120px]"
+                        />
+                      ) : (
+                        <Select
+                          value={curveRoleFilter}
+                          onValueChange={(value: string) => setCurveRoleFilter(value as RoleFilter)}
+                        >
+                          <SelectTrigger className="w-[120px] h-8 text-xs btn-neon ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:ring-offset-0 focus:border-black data-[state=open]:ring-0 data-[state=open]:ring-transparent data-[state=open]:ring-offset-0 data-[state=open]:border-black dark:focus:border-[#0bd1a2] dark:data-[state=open]:border-[#0bd1a2]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-none dark:border dark:border-[#0bd1a2] dark:bg-black dark:text-[#0bd1a2] dark:rounded-none">
+                            {curveRoleOptions.map((role) => (
+                              <SelectItem
+                                key={role}
+                                value={role}
+                                className="text-xs cursor-pointer dark:focus:bg-[#0bd1a2]/20 dark:focus:text-[#0bd1a2]"
+                              >
+                                {role === "All" ? tVoting("allRoles") : role}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )
+                    )}
+                  </div>
                   <div className="h-[200px] w-full min-w-0">
                     <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                       <LineChart
@@ -2134,83 +2331,17 @@ export default function GovernanceDetail() {
                 </Card>
               )}
 
-              {/* Vote Summary Card */}
-              <Card className={cn("p-6", isGame && "game-detail-card")}>
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center justify-between">
-                    <span className={isGame ? "text-white/70" : "text-muted-foreground"}>Gov action type</span>
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "rounded-[6px] bg-transparent px-3 py-1 text-xs font-semibold uppercase tracking-wide leading-none",
-                        isGame
-                          ? "border-white/30 text-white"
-                          : "border-foreground/20 dark:rounded-none dark:border-[#0bd1a2] dark:text-[#0bd1a2]"
-                      )}
-                    >
-                      {selectedAction.type}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className={isGame ? "text-white/70" : "text-muted-foreground"}>Status</span>
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "rounded-[6px] bg-transparent px-3 py-1 text-xs font-semibold uppercase tracking-wide leading-none",
-                        isGame
-                          ? "border-white/30 text-white"
-                          : "border-foreground/20 dark:rounded-none dark:border-[#0bd1a2] dark:text-[#0bd1a2]"
-                      )}
-                    >
-                      {selectedAction.status}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className={isGame ? "text-white/70" : "text-muted-foreground"}>Constitutionality</span>
-                    {isInfoAction ? (
-                      <div className="flex items-center gap-1.5">
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            "rounded-[6px] bg-transparent px-3 py-1 text-xs font-semibold uppercase tracking-wide leading-none",
-                            isGame
-                              ? "border-white/30 text-white/60"
-                              : "border-foreground/10 text-muted-foreground dark:rounded-none dark:border-[#0bd1a2]/50 dark:text-[#0bd1a2]/60"
-                          )}
-                        >
-                          Not Applicable
-                        </Badge>
-                        <div className="group relative">
-                          <Info
-                            className={cn(
-                              "h-3.5 w-3.5 cursor-help",
-                              isGame ? "text-white/50" : "text-muted-foreground/60 dark:text-[#0bd1a2]/60"
-                            )}
-                          />
-                          <div className="pointer-events-none absolute right-0 top-full z-50 mt-1 hidden w-48 rounded-md border bg-popover p-2 text-xs text-popover-foreground shadow-md group-hover:block">
-                            Info Actions are informational only and do not require constitutional review as they don&apos;t change the protocol.
-                          </div>
-                        </div>
-                      </div>
-                    ) : selectedAction.constitutionality ? (
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "rounded-[6px] bg-transparent px-3 py-1 text-xs font-semibold uppercase tracking-wide leading-none",
-                          isGame
-                            ? "border-white/30 text-white"
-                            : "border-foreground/20 dark:rounded-none dark:border-[#0bd1a2] dark:text-[#0bd1a2]"
-                        )}
-                      >
-                        {/* Show "Pending" for active proposals where CC votes are still being cast */}
-                        {selectedAction.status === "Active" && selectedAction.constitutionality.toLowerCase() !== "constitutional"
-                          ? "Pending"
-                          : selectedAction.constitutionality}
-                      </Badge>
-                    ) : null}
-                  </div>
-                </div>
-              </Card>
+              {/* Cast Your Vote Card */}
+              {selectedAction && voteTxHash && (
+                <LazyVoteOnProposal
+                  txHash={voteTxHash}
+                  certIndex={voteCertIndex}
+                  proposalTitle={selectedAction.title}
+                  status={selectedAction.status}
+                  proposalId={selectedAction.proposalId || selectedAction.hash}
+                />
+              )}
+
             </div>
           </div>
 
@@ -2222,6 +2353,7 @@ export default function GovernanceDetail() {
                 proposalId={selectedAction.proposalId || selectedAction.hash}
                 showDownload={allVotes.length > 0}
                 downloadFormat={downloadFormat}
+                isExporting={isExporting}
                 onDownloadFormatChange={(value) => handleExport(value)}
               />
             </div>
@@ -2248,6 +2380,9 @@ function VoteTrendTooltip({
   colors: VoteColorSet;
   isGame: boolean;
 }) {
+  const tVoting = useTranslations("voting");
+  const tProposal = useTranslations("proposal");
+
   if (!active || !payload?.length) {
     return null;
   }
@@ -2259,26 +2394,26 @@ function VoteTrendTooltip({
 
   const rows = [
     {
-      label: "Yes",
+      label: tVoting("yes"),
       value: showPower
         ? formatAdaValue(point.yesPower)
-        : `${point.yesCount.toLocaleString()} votes`,
+        : `${point.yesCount.toLocaleString()} ${tProposal("votes")}`,
         color: colors.yes,
       border: "transparent",
     },
     {
-      label: "No",
+      label: tVoting("no"),
       value: showPower
         ? formatAdaValue(point.noPower)
-        : `${point.noCount.toLocaleString()} votes`,
+        : `${point.noCount.toLocaleString()} ${tProposal("votes")}`,
         color: colors.no,
       border: "transparent",
     },
     {
-      label: "Abstain",
+      label: tVoting("abstain"),
       value: showPower
         ? formatAdaValue(point.abstainPower)
-        : `${point.abstainCount.toLocaleString()} votes`,
+        : `${point.abstainCount.toLocaleString()} ${tProposal("votes")}`,
         color: colors.abstain,
       border: "rgba(148, 163, 184, 0.85)",
     },
@@ -2337,11 +2472,25 @@ function RoleLegend({
 }) {
   const { activeTheme } = useTheme();
   const isGame = activeTheme.id === "game";
+  const tVoting = useTranslations("voting");
+  const tProposal = useTranslations("proposal");
+
+  // Translate segment type to localized label
+  const segmentLabel = (type: string, fallback: string) => {
+    const map: Record<string, string> = {
+      yes: tVoting("yes"),
+      no: tVoting("no"),
+      abstain: tVoting("abstain"),
+      notVoted: tVoting("notVoted"),
+      alwaysNoConfidence: "ANC",
+    };
+    return map[type] ?? fallback;
+  };
 
   // Use segments when provided (DRep/SPO), otherwise use legacy props (CC)
   const items = segments && segments.length > 0
     ? segments.map((seg) => ({
-        label: seg.label,
+        label: segmentLabel(seg.type, seg.label),
         type: seg.type,
         value: formatAdaValue(seg.value),
         // For ANC with black color, don't apply opacity to keep it black
@@ -2355,23 +2504,23 @@ function RoleLegend({
     : [
         // CC legacy fallback - uses SEGMENT_COLORS with 45% opacity
         {
-          label: "Yes",
+          label: tVoting("yes"),
           type: "yes",
           value: yesLabel ?? "0",
           color: `${SEGMENT_COLORS.yes}73`,
           border: "transparent",
         },
         {
-          label: "No",
+          label: tVoting("no"),
           type: "no",
           value: noLabel ?? "0",
           color: `${SEGMENT_COLORS.no}73`,
           border: "transparent",
         },
         {
-          label: "Not Voted",
+          label: tVoting("notVoted"),
           type: "notVoted",
-          value: pendingLabel ?? (unit === "ADA" ? "0 ₳" : "0 votes"),
+          value: pendingLabel ?? (unit === "ADA" ? "0 ₳" : `0 ${tProposal("votes")}`),
           color: `${SEGMENT_COLORS.notVoted}73`,
           border: "rgba(148, 163, 184, 0.85)",
         },
@@ -2430,7 +2579,7 @@ function RoleLegend({
                         ? "bg-black/90 text-white border border-white/20"
                         : "bg-popover text-popover-foreground border border-border"
                     )}>
-                      Always No Confidence
+                      {tProposal("alwaysNoConfidence")}
                     </div>
                   </div>
                 )}
@@ -2464,6 +2613,8 @@ function ExcludedBreakdownDisplay({
 }) {
   const { activeTheme } = useTheme();
   const isGame = activeTheme.id === "game";
+  const tVoting = useTranslations("voting");
+  const tProposal = useTranslations("proposal");
 
   if (!breakdown) return null;
 
@@ -2477,12 +2628,12 @@ function ExcludedBreakdownDisplay({
   if (!isCC && (!fullBreakdown || fullBreakdown.total === 0)) return null;
 
   const items = isCC
-    ? [{ label: "Abstain", value: ccAbstain }]
+    ? [{ label: tVoting("abstain"), value: ccAbstain }]
     : [
-        { label: "Active Abstain", value: fullBreakdown!.activeAbstain },
-        { label: "Always Abstain", value: fullBreakdown!.alwaysAbstain },
+        { label: tProposal("activeAbstain"), value: fullBreakdown!.activeAbstain },
+        { label: tProposal("alwaysAbstain"), value: fullBreakdown!.alwaysAbstain },
         ...(fullBreakdown!.inactive !== undefined && role === "DRep"
-          ? [{ label: "Inactive", value: fullBreakdown!.inactive }]
+          ? [{ label: tProposal("inactive"), value: fullBreakdown!.inactive }]
           : []),
       ];
 
@@ -2504,7 +2655,7 @@ function ExcludedBreakdownDisplay({
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="text-[10px] uppercase tracking-wide">
-          {isInfoAction ? "Excluded" : "Excluded from ratification"}
+          {isInfoAction ? tProposal("excluded") : tProposal("excludedFromRatification")}
         </div>
         <div className="flex items-center gap-2">
           <span className={cn(
@@ -2568,20 +2719,19 @@ function ExcludedBreakdownDisplay({
   );
 }
 
-function RolePlaceholder({ role, message }: { role: string; message: string }) {
+function RolePlaceholder({ role, message, notEligible }: { role: string; message: string; notEligible?: boolean }) {
   const { activeTheme } = useTheme();
   const isGame = activeTheme.id === "game";
+  const tVoting = useTranslations("voting");
 
-  const isNotEligible = message === "Not eligible for this action";
-
-  if (isNotEligible) {
+  if (notEligible) {
     // Show empty donut with single gray slice and legend showing "Not eligible"
     return (
       <>
         <VoteProgress
-          title={`${role} Votes`}
+          title={`${role} ${tVoting("notEligible")}`}
           titlePosition="top"
-          centerText="Not Eligible"
+          centerText={tVoting("notEligible")}
           yesPercent={0}
           noPercent={0}
           abstainPercent={0}
@@ -2606,37 +2756,39 @@ function RolePlaceholder({ role, message }: { role: string; message: string }) {
             <span className={cn("font-semibold", isGame ? "text-white" : "dark:text-[#0bd1a2]")}>{role}</span>
           </div>
           <div className="space-y-1.5">
-            {["Yes", "No", "Abstain", "Not Voted"].map((label) => {
-              const colorKey = label.toLowerCase().replace(" ", "") === "notvoted" ? "notVoted" : label.toLowerCase() as keyof typeof SEGMENT_COLORS;
-              return (
-                <div
-                  key={label}
-                  className="flex items-start justify-between gap-2"
-                >
-                  <div className="flex items-start gap-2 min-w-0 flex-1">
-                    <span
-                      className="h-2.5 w-2.5 border shrink-0 mt-0.5"
-                      style={{
-                        backgroundColor: `${SEGMENT_COLORS[colorKey] || SEGMENT_COLORS.excluded}73`,
-                        borderColor: label === "Abstain" || label === "Not Voted" ? "rgba(148, 163, 184, 0.85)" : "transparent",
-                      }}
-                    />
-                    <span className={cn(
-                      "font-semibold leading-tight",
-                      isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
-                    )}>
-                      {label}
-                    </span>
-                  </div>
+            {([
+              { label: tVoting("yes"), colorKey: "yes" as keyof typeof SEGMENT_COLORS, hasBorder: false },
+              { label: tVoting("no"), colorKey: "no" as keyof typeof SEGMENT_COLORS, hasBorder: false },
+              { label: tVoting("abstain"), colorKey: "abstain" as keyof typeof SEGMENT_COLORS, hasBorder: true },
+              { label: tVoting("notVoted"), colorKey: "notVoted" as keyof typeof SEGMENT_COLORS, hasBorder: true },
+            ]).map((item) => (
+              <div
+                key={item.colorKey}
+                className="flex items-start justify-between gap-2"
+              >
+                <div className="flex items-start gap-2 min-w-0 flex-1">
+                  <span
+                    className="h-2.5 w-2.5 border shrink-0 mt-0.5"
+                    style={{
+                      backgroundColor: `${SEGMENT_COLORS[item.colorKey] || SEGMENT_COLORS.excluded}73`,
+                      borderColor: item.hasBorder ? "rgba(148, 163, 184, 0.85)" : "transparent",
+                    }}
+                  />
                   <span className={cn(
-                    "font-mono text-[11px] shrink-0 text-right italic",
-                    isGame ? "text-white/60" : "text-muted-foreground/60 dark:text-[#0bd1a2]/60"
+                    "font-semibold leading-tight",
+                    isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
                   )}>
-                    Not eligible
+                    {item.label}
                   </span>
                 </div>
-              );
-            })}
+                <span className={cn(
+                  "font-mono text-[11px] shrink-0 text-right italic",
+                  isGame ? "text-white/60" : "text-muted-foreground/60 dark:text-[#0bd1a2]/60"
+                )}>
+                  {tVoting("notEligible")}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
       </>
@@ -2659,3 +2811,29 @@ function RolePlaceholder({ role, message }: { role: string; message: string }) {
     </div>
   );
 }
+
+export const getStaticPaths: GetStaticPaths = async () => {
+  return {
+    paths: [],
+    fallback: "blocking",
+  };
+};
+
+export const getStaticProps: GetStaticProps = async ({ params, locale }) => {
+  const messages = (await import(`@/messages/${locale ?? "en"}.json`)).default;
+  const hash = typeof params?.hash === "string" ? params.hash : null;
+
+  let initialDetail: GovernanceActionDetail | null = null;
+  if (hash) {
+    const { fetchGovernanceActionDetailServer } = await import("@/lib/serverFetch");
+    initialDetail = await fetchGovernanceActionDetailServer(hash);
+  }
+
+  return {
+    props: {
+      messages,
+      initialDetail,
+    },
+    revalidate: hash && !initialDetail ? 10 : 60,
+  };
+};

@@ -178,6 +178,53 @@
     0 5px 10px rgba(0, 0, 0, 0.4);
 }
 
+/* Compact variant for inline dropdowns (voting trend, etc.) */
+[data-theme="game"] .game-nav-btn-sm {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  min-width: 0;
+  min-height: 28px;
+  height: 28px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #ffffff;
+  font-family: var(--font-sans);
+  background: linear-gradient(to bottom, #171717, #242424);
+  border-radius: 9999px;
+  cursor: pointer;
+  border: 1px solid #292929;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.8),
+    0 4px 10px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+}
+[data-theme="game"] .game-nav-btn-sm::before {
+  content: "";
+  position: absolute;
+  top: -2px;
+  right: -1px;
+  bottom: -1px;
+  left: -1px;
+  background: linear-gradient(to bottom, #292929, #000000);
+  z-index: -1;
+  border-radius: 9999px;
+  transition: all 0.2s ease;
+  opacity: 1;
+}
+[data-theme="game"] .game-nav-btn-sm:hover {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  color: #ffffff;
+}
+[data-theme="game"] .game-nav-btn-sm:hover::before {
+  opacity: 0;
+}
+
 [data-theme="game"] .game-expand-btn {
   position: relative;
   background: linear-gradient(to bottom, #171717, #242424);
@@ -255,6 +302,40 @@
     0 12px 28px rgba(0, 0, 0, 0.5),
     0 4px 12px rgba(0, 0, 0, 0.35) !important;
   border-radius: 2px !important;
+}
+
+[data-theme="game"] .game-drep-stats,
+[data-theme="game"] .game-drep-stats * {
+  font-family: var(--font-sans);
+}
+
+[data-theme="game"] .game-drep-stats > div {
+  background: rgba(12, 12, 12, 0.5) !important;
+  border: none !important;
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.5),
+    0 4px 12px rgba(0, 0, 0, 0.35) !important;
+  border-radius: 2px !important;
+}
+
+[data-theme="game"] .game-drep-stats,
+[data-theme="game"] .game-drep-stats * {
+  color: #ffffff !important;
+}
+
+[data-theme="game"] .game-drep-content {
+  background: rgba(12, 12, 12, 0.5) !important;
+  border: none !important;
+  box-shadow:
+    0 18px 36px rgba(0, 0, 0, 0.55),
+    0 6px 18px rgba(0, 0, 0, 0.4) !important;
+  border-radius: 2px !important;
+}
+
+[data-theme="game"] .game-drep-content,
+[data-theme="game"] .game-drep-content * {
+  font-family: var(--font-sans);
+  color: #ffffff;
 }
 
 [data-theme="game"] .game-filters-card {
@@ -643,6 +724,65 @@
   border-radius: 2px !important;
 }
 
+/* Vote buttons — pill-shaped gradient buttons with glow effects */
+[data-theme="game"] .vote-btn-yes,
+[data-theme="game"] .vote-btn-no,
+[data-theme="game"] .vote-btn-abstain {
+  background: linear-gradient(to bottom, #171717, #242424) !important;
+  border-radius: 9999px !important;
+  border: 1px solid #292929 !important;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 1),
+    0 10px 20px rgba(0, 0, 0, 0.4) !important;
+  color: #ffffff !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  font-weight: 700 !important;
+  transition: all 0.2s ease !important;
+}
+[data-theme="game"] .vote-btn-yes:hover {
+  border-color: #22cc44 !important;
+  box-shadow:
+    0 0 15px rgba(34, 204, 68, 0.3),
+    0 2px 4px rgba(0, 0, 0, 1) !important;
+}
+[data-theme="game"] .vote-btn-no:hover {
+  border-color: #cc2244 !important;
+  box-shadow:
+    0 0 15px rgba(204, 34, 68, 0.3),
+    0 2px 4px rgba(0, 0, 0, 1) !important;
+}
+[data-theme="game"] .vote-btn-abstain:hover {
+  border-color: #666666 !important;
+  box-shadow:
+    0 0 15px rgba(102, 102, 102, 0.3),
+    0 2px 4px rgba(0, 0, 0, 1) !important;
+}
+[data-theme="game"] .vote-btn-yes.selected {
+  background: linear-gradient(to bottom, #0a2a0a, #1a5a1a) !important;
+  border-color: #22cc44 !important;
+  box-shadow:
+    0 0 20px rgba(34, 204, 68, 0.5),
+    0 2px 4px rgba(0, 0, 0, 1) !important;
+  color: #22cc44 !important;
+}
+[data-theme="game"] .vote-btn-no.selected {
+  background: linear-gradient(to bottom, #2a0a0a, #5a1a1a) !important;
+  border-color: #cc2244 !important;
+  box-shadow:
+    0 0 20px rgba(204, 34, 68, 0.5),
+    0 2px 4px rgba(0, 0, 0, 1) !important;
+  color: #cc2244 !important;
+}
+[data-theme="game"] .vote-btn-abstain.selected {
+  background: linear-gradient(to bottom, #1a1a1a, #3a3a3a) !important;
+  border-color: #888888 !important;
+  box-shadow:
+    0 0 20px rgba(136, 136, 136, 0.4),
+    0 2px 4px rgba(0, 0, 0, 1) !important;
+  color: #aaaaaa !important;
+}
+
 [data-theme="game"] .game-tooltip-card {
   background: rgba(12, 12, 12, 0.85) !important;
   border: none !important;
@@ -966,6 +1106,85 @@
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
   border-radius: 16px !important;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8) !important;
+}
+
+/* Vote confirmation dialog */
+[data-theme="game"] [role="dialog"] {
+  background: #0c0c0c !important;
+  border: none !important;
+  box-shadow:
+    0 25px 60px rgba(0, 0, 0, 0.8),
+    0 8px 20px rgba(0, 0, 0, 0.6) !important;
+}
+[data-theme="game"] [role="dialog"] button[class*="flex-1"] {
+  border-radius: 9999px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  transition: all 0.2s ease !important;
+}
+[data-theme="game"] [role="dialog"] button[class*="flex-1"]:first-child {
+  background: linear-gradient(to bottom, #171717, #242424) !important;
+  border: 1px solid #292929 !important;
+  color: #ffffff !important;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 1),
+    0 10px 20px rgba(0, 0, 0, 0.4) !important;
+}
+[data-theme="game"] [role="dialog"] button[class*="flex-1"]:first-child:hover {
+  border-color: #666666 !important;
+  box-shadow:
+    0 0 15px rgba(102, 102, 102, 0.3),
+    0 2px 4px rgba(0, 0, 0, 1) !important;
+}
+[data-theme="game"] [role="dialog"] button[class*="flex-1"]:last-child {
+  background: linear-gradient(to bottom, #242424, #333333) !important;
+  border: 1px solid #555555 !important;
+  color: #ffffff !important;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 1),
+    0 10px 20px rgba(0, 0, 0, 0.4) !important;
+}
+[data-theme="game"] [role="dialog"] button[class*="flex-1"]:last-child:hover {
+  border-color: #888888 !important;
+  box-shadow:
+    0 0 15px rgba(136, 136, 136, 0.3),
+    0 2px 4px rgba(0, 0, 0, 1) !important;
+}
+/* Success state: neutralize green/colored text */
+[data-theme="game"] [role="dialog"] .text-success {
+  color: #ffffff !important;
+}
+[data-theme="game"] [role="dialog"] .text-primary {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+[data-theme="game"] [role="dialog"] .text-primary:hover {
+  color: #ffffff !important;
+}
+/* Close / View Updated Records button */
+[data-theme="game"] [role="dialog"] button[class*="w-full"] {
+  background: linear-gradient(to bottom, #171717, #242424) !important;
+  border: 1px solid #292929 !important;
+  border-radius: 9999px !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 1),
+    0 10px 20px rgba(0, 0, 0, 0.4) !important;
+  transition: all 0.2s ease !important;
+}
+[data-theme="game"] [role="dialog"] button[class*="w-full"]:hover {
+  border-color: #666666 !important;
+  box-shadow:
+    0 0 15px rgba(102, 102, 102, 0.3),
+    0 2px 4px rgba(0, 0, 0, 1) !important;
+}
+/* Sync status box */
+[data-theme="game"] [role="dialog"] .bg-secondary\/50 {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-radius: 8px !important;
 }
 
 /* Game Loader */

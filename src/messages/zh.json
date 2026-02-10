@@ -1,0 +1,325 @@
+{
+  "common": {
+    "loading": "正在加载...",
+    "error": "错误",
+    "retry": "重试",
+    "search": "搜索...",
+    "all": "全部",
+    "reset": "重置",
+    "view": "查看",
+    "showMore": "显示更多{count}项",
+    "showMoreProposals": "显示更多{count}个提案",
+    "showMoreVotes": "显示更多{count}个投票",
+    "selected": "已选择{count}项"
+  },
+  "meta": {
+    "homeTitle": "CGOV - 卡达诺治理平台",
+    "homeDescription": "集成卡达诺链上平台",
+    "dashboardTitle": "仪表板 - CGOV",
+    "dashboardDescription": "CGOV 控制面板 - 管理概览",
+    "notFoundTitle": "404 - 找不到页面",
+    "notFoundDescription": "您要查找的页面不存在"
+  },
+  "landing": {
+    "title": "卡达诺治理",
+    "subtitle": "跟踪和监测链上治理行动"
+  },
+  "dashboard": {
+    "title": "仪表板",
+    "subtitle": "可定制的管理概览",
+    "loadingData": "加载仪表板数据..."
+  },
+  "notFound": {
+    "title": "404",
+    "description": "您要查找的治理操作或页面不存在。",
+    "returnHome": "返回仪表板"
+  },
+  "stats": {
+    "total": "总计",
+    "active": "活跃",
+    "ratified": "批准",
+    "expired": "已过期",
+    "ncl": "{年份｝NCL"
+  },
+  "status": {
+    "Active": "活跃",
+    "Ratified": "批准",
+    "Enacted": "已颁布",
+    "Expired": "已过期",
+    "Closed": "关闭"
+  },
+  "actionTypes": {
+    "NoConfidence": "不信任动议",
+    "UpdateCommittee": "更新委员会/条款",
+    "NewConstitution": "章程更新",
+    "HardForkInitiation": "硬分叉启动",
+    "ParameterChange": "协议参数更改",
+    "Treasury": "国库提款",
+    "InfoAction": "信息行动"
+  },
+  "filters": {
+    "filterActionTypes": "过滤操作类型",
+    "filterByStatus": "按状态筛选",
+    "filterByVote": "按投票筛选",
+    "filterByRole": "按角色筛选",
+    "filterByRationale": "按理由筛选",
+    "actionTypes": "行动类型",
+    "types": "类型",
+    "status": "现状"
+  },
+  "table": {
+    "proposalTitle": "提案标题",
+    "actionType": "行动类型",
+    "type": "类型",
+    "noActionsFound": "未发现治理行动",
+    "voter": "选民",
+    "transaction": "交易",
+    "vote": "投票",
+    "votingPower": "投票权",
+    "votedAt": "投票数",
+    "rationale": "理由"
+  },
+  "voting": {
+    "allRoles": "所有角色",
+    "drep": "DRep",
+    "drepFull": "委派代表",
+    "dreps": "DReps",
+    "spo": "SPO",
+    "spoFull": "桩池经营者",
+    "spos": "SPOs",
+    "cc": "CC",
+    "ccFull": "制宪委员会",
+    "yes": "是",
+    "no": "没有",
+    "abstain": "弃权",
+    "notVoted": "未投票",
+    "notEligible": "不符合条件",
+    "threshold": "阈值",
+    "votingPower": "投票权",
+    "oneMemberOneVote": "一个成员一票",
+    "noRationale": "没有理由",
+    "noVotingRecordsFound": "未找到投票记录"
+  },
+  "charts": {
+    "proposalStatus": {
+      "title": "提案状态",
+      "description": "正在执行、已批准、已颁布和已失效的提案概览"
+    },
+    "proposalType": {
+      "title": "提案类型",
+      "description": "按治理行动类型分列的提案分布情况"
+    },
+    "nclProgress": {
+      "title": "NCL 进展",
+      "description": "资金提取净变动限额跟踪"
+    },
+    "votingPower": {
+      "title": "投票权",
+      "description": "DRep 和 SPO 的投票权分配"
+    },
+    "participation": {
+      "title": "参与",
+      "description": "各提案的 DRep 参与率"
+    },
+    "proposalSubmission": {
+      "title": "提交建议",
+      "description": "每月提交的提案数量"
+    }
+  },
+  "sort": {
+    "sortByTime": "按时间排序",
+    "newestFirst": "最新最先",
+    "oldestFirst": "年龄最大者优先",
+    "sortByVotingPower": "按投票权排序",
+    "votingPower": "投票权",
+    "highestPower": "最高功率",
+    "lowestPower": "最低功率"
+  },
+  "download": {
+    "downloadRationales": "下载理由",
+    "json": "JSON",
+    "markdown": "Markdown",
+    "csv": "CSV"
+  },
+  "rationaleFilter": {
+    "allRecords": "所有记录",
+    "withRationale": "附理由"
+  },
+  "errors": {
+    "failedToLoadData": "加载数据失败",
+    "loadingGovernanceData": "加载治理数据..."
+  },
+  "accessibility": {
+    "website": "网站",
+    "github": "GitHub",
+    "twitter": "X (Twitter)",
+    "switchToCompactView": "切换到紧凑型视图",
+    "switchToDefaultView": "切换到默认视图",
+    "copyTransactionHash": "复制交易哈希值"
+  },
+  "footer": {
+    "builtBy": "由 Nomos | Mesh 和 SIDAN Lab 打造。"
+  },
+  "language": {
+    "en": "英语",
+    "de": "德语",
+    "fr": "法语",
+    "es": "西班牙语",
+    "pt": "葡萄牙语",
+    "ja": "日本語",
+    "zh": "中文",
+    "selectLanguage": "选择语言"
+  },
+  "translation": {
+    "translate": "翻译",
+    "translating": "翻译...",
+    "showOriginal": "显示原文",
+    "translationFailed": "翻译失败",
+    "autoTranslated": "自动翻译自英文"
+  },
+  "expiry": {
+    "timeUntilExpiry": "到期时间",
+    "day": "天",
+    "days": "天",
+    "expired": "已过期",
+    "subject": "主题",
+    "submissionDate": "提交日期",
+    "epochBoundary": "纪元边界",
+    "submissionEpoch": "提交纪元",
+    "validUntilEpoch": "有效期至纪元"
+  },
+  "tabs": {
+    "liveVoting": "实时投票",
+    "thresholds": "阈值",
+    "bubbleMap": "气泡图",
+    "curves": "曲线",
+    "details": "详情"
+  },
+  "proposal": {
+    "backToDashboard": "返回仪表板",
+    "govActionNotFound": "未找到治理操作",
+    "noOnChainData": "尚无链上数据",
+    "notEligibleForAction": "无资格参与此操作",
+    "noVotingActivity": "尚无投票活动。",
+    "notEnoughData": "投票数据尚不充分。",
+    "drepVotes": "DRep投票",
+    "ccVotes": "CC投票",
+    "spoVotes": "SPO投票",
+    "voted": "已投票",
+    "alwaysNoConfidence": "始终不信任",
+    "activeAbstain": "主动弃权",
+    "alwaysAbstain": "始终弃权",
+    "inactive": "非活跃",
+    "excluded": "已排除",
+    "excludedFromRatification": "排除在批准之外",
+    "votingTrend": "投票趋势",
+    "cumulativePower": "累计投票权 (ADA)",
+    "cumulativeVotes": "累计赞成 / 反对 / 弃权票",
+    "roleOnly": "仅 {role}",
+    "yesPower": "赞成权力",
+    "noPower": "反对权力",
+    "abstainPower": "弃权权力",
+    "yesVotes": "赞成票",
+    "noVotes": "反对票",
+    "abstainVotes": "弃权票",
+    "totalVotingPower": "总投票权",
+    "approvalProgress": "批准进度",
+    "ccMembers": "CC成员",
+    "members": "{count}名成员",
+    "noThresholdData": "此提案没有可用的阈值数据。",
+    "votingParticipation": "投票参与",
+    "governanceActionId": "治理操作ID",
+    "legacyGovActionId": "旧版治理操作ID (CIP-105)",
+    "transactionHash": "交易哈希",
+    "govActionType": "操作类型",
+    "status": "状态",
+    "constitutionality": "合宪性",
+    "notApplicable": "不适用",
+    "infoActionTooltip": "Info操作仅供参考，由于不会更改协议，因此不需要宪法审查。",
+    "pending": "待处理",
+    "votes": "票",
+    "shareOnX": "分享到X"
+  },
+  "export": {
+    "noRationale": "未提供理由。",
+    "voteYes": "赞成",
+    "voteNo": "反对",
+    "voteAbstain": "弃权",
+    "headingVotingRationales": "投票理由",
+    "labelExported": "导出时间",
+    "labelTotalVotes": "总票数",
+    "labelVote": "投票",
+    "labelVotingPower": "投票权",
+    "labelVotedAt": "投票时间",
+    "labelRationaleLink": "理由链接",
+    "headingRationale": "理由",
+    "csvProposal": "提案",
+    "csvVoterType": "投票者类型",
+    "csvVoterId": "投票者ID",
+    "csvVoterName": "投票者名称",
+    "csvVote": "投票",
+    "csvVotingPower": "投票权 (ADA)",
+    "csvVotedAt": "投票时间",
+    "csvRationale": "理由",
+    "csvAnchorUrl": "锚点URL"
+  },
+  "wallet": {
+    "connectWallet": "连接钱包",
+    "walletConnected": "钱包已连接",
+    "connecting": "连接中...",
+    "disconnectWallet": "断开钱包",
+    "connectedWallet": "已连接的钱包",
+    "stakeAddress": "质押地址",
+    "walletConnectedDesc": "您的钱包已连接。您现在可以对治理操作进行投票。",
+    "connectWalletDesc": "连接您的Cardano钱包以对治理操作进行投票。",
+    "noWalletsDetected": "未检测到Cardano钱包",
+    "installWalletExtension": "请安装Cardano钱包扩展程序以继续。",
+    "connectToStartVoting": "连接以开始投票",
+    "failedToConnect": "钱包连接失败"
+  },
+  "voteAction": {
+    "castYourVote": "投出您的票",
+    "votingNoLongerAvailable": "此提案的投票已结束。",
+    "connectWalletToVote": "连接您的钱包以对此治理操作进行投票。",
+    "selectVoteChoice": "选择您的投票选项：",
+    "voteSubmittedOnChain": "您的投票将作为DRep投票提交到链上。",
+    "confirmYourVote": "确认您的投票",
+    "aboutToVote": "您即将对此治理操作投<bold>{vote}</bold>票。",
+    "voteSubmittedSuccess": "投票提交成功！",
+    "voteSubmittedToBlockchain": "您的投票已提交到区块链。",
+    "syncingVote": "正在同步您的投票... ({current}/{max})",
+    "voteSynced": "投票已同步！您可以在下方的投票记录中查看。",
+    "syncTimedOut": "同步超时。您的投票已成功提交。",
+    "syncTimedOutDetail": "可能还需要几分钟才能出现在投票记录中。",
+    "preparingToSync": "准备同步...",
+    "viewUpdatedRecords": "查看更新记录",
+    "close": "关闭",
+    "proposal": "提案",
+    "rationaleUrlOptional": "理由URL（可选）",
+    "rationaleUrlPlaceholder": "https://... 或 ipfs://...",
+    "rationaleUrlHelp": "提供您投票理由的URL（例如，指向JSON文档的IPFS链接）。",
+    "cancel": "取消",
+    "confirmVote": "确认投票",
+    "submitting": "提交中...",
+    "onChainTransactionNote": "这将创建一笔链上交易。您将被要求使用钱包进行签名。",
+    "viewOnAdaStat": "在AdaStat上查看",
+    "drepIdError": "无法获取DRep ID。请确保您的钱包已注册为DRep。",
+    "failedToSubmitVote": "投票提交失败"
+  },
+  "votingSummary": {
+    "votingRecords": "投票记录",
+    "summaryOfVotes": "投票和理由摘要",
+    "totalVotes": "总票数",
+    "yesVotes": "赞成票",
+    "noVotes": "反对票",
+    "abstain": "弃权"
+  },
+  "rationaleModal": {
+    "votingRationale": "投票理由",
+    "unknownVoter": "未知投票者",
+    "rationale": "理由",
+    "openOnIpfs": "在IPFS上打开",
+    "ipfs": "IPFS",
+    "noRationaleData": "未提供理由数据。"
+  }
+}

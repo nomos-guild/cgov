@@ -105,6 +105,28 @@
   color: #0bd1a2 !important;
 }
 
+/* Vote buttons — uniform teal, square corners */
+[data-theme="dark"] .vote-on-proposal-card .vote-btn-yes,
+[data-theme="dark"] .vote-on-proposal-card .vote-btn-no,
+[data-theme="dark"] .vote-on-proposal-card .vote-btn-abstain {
+  border-color: #0bd1a2 !important;
+  color: #0bd1a2 !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+}
+[data-theme="dark"] .vote-on-proposal-card .vote-btn-yes:hover,
+[data-theme="dark"] .vote-on-proposal-card .vote-btn-no:hover,
+[data-theme="dark"] .vote-on-proposal-card .vote-btn-abstain:hover {
+  background: rgba(11, 209, 162, 0.15) !important;
+}
+[data-theme="dark"] .vote-on-proposal-card .vote-btn-yes.selected,
+[data-theme="dark"] .vote-on-proposal-card .vote-btn-no.selected,
+[data-theme="dark"] .vote-on-proposal-card .vote-btn-abstain.selected {
+  background: #0bd1a2 !important;
+  color: #000000 !important;
+  border-color: #0bd1a2 !important;
+}
+
 [data-theme="dark"] .role-filter-button,
 [data-theme="dark"] .role-filter-button:first-child,
 [data-theme="dark"] .role-filter-button * {
@@ -115,5 +137,67 @@
 [data-theme="dark"] .role-filter-button.active {
   background-color: #0bd1a2 !important;
   color: #000000 !important;
+}
+
+/* Vote confirmation dialog — terminal aesthetic */
+[data-theme="dark"] [role="dialog"] {
+  background: hsl(230 18% 8%) !important;
+  border: 1px solid #0bd1a2 !important;
+  border-radius: 0 !important;
+  box-shadow:
+    0 0 20px rgba(11, 209, 162, 0.1),
+    0 25px 60px rgba(0, 0, 0, 0.8) !important;
+}
+[data-theme="dark"] [role="dialog"] * {
+  color: #0bd1a2 !important;
+}
+/* Cancel & Confirm buttons */
+[data-theme="dark"] [role="dialog"] button[class*="flex-1"],
+[data-theme="dark"] [role="dialog"] button[class*="w-full"] {
+  border: 1px solid #0bd1a2 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: #0bd1a2 !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  transition: all 0.15s ease !important;
+}
+[data-theme="dark"] [role="dialog"] button[class*="flex-1"]:hover,
+[data-theme="dark"] [role="dialog"] button[class*="w-full"]:hover {
+  background: rgba(11, 209, 162, 0.15) !important;
+}
+/* Confirm button — filled */
+[data-theme="dark"] [role="dialog"] .flex.gap-3 button[class*="flex-1"]:last-child {
+  background: #0bd1a2 !important;
+  color: #000000 !important;
+}
+[data-theme="dark"] [role="dialog"] .flex.gap-3 button[class*="flex-1"]:last-child:hover {
+  background: #09b88e !important;
+}
+/* Textarea */
+[data-theme="dark"] [role="dialog"] textarea {
+  background: transparent !important;
+  border: 1px solid rgba(11, 209, 162, 0.4) !important;
+  border-radius: 0 !important;
+  color: #0bd1a2 !important;
+}
+[data-theme="dark"] [role="dialog"] textarea:focus {
+  border-color: #0bd1a2 !important;
+  box-shadow: 0 0 0 2px rgba(11, 209, 162, 0.2) !important;
+}
+/* Sync status box */
+[data-theme="dark"] [role="dialog"] .bg-secondary\/50 {
+  background: rgba(11, 209, 162, 0.05) !important;
+  border: 1px solid rgba(11, 209, 162, 0.2) !important;
+  border-radius: 0 !important;
+}
+/* Close X button */
+[data-theme="dark"] [role="dialog"] button[class*="absolute"] {
+  color: #0bd1a2 !important;
+}
+/* Table border */
+[data-theme="dark"] [role="dialog"] .border-border {
+  border-color: rgba(11, 209, 162, 0.3) !important;
 }
 

@@ -1,11 +1,7 @@
 ---
 name: add-api-route
-version: 1.0.0
-created: 2026-02-02
-last-evolved: null
-evolution-count: 0
-feedback-count: 0
-description: Create a new Next.js API route with authentication, error handling, and caching. Use when adding backend proxy endpoints.
+updated: 2026-02-10
+description: Create Next.js API routes for backend proxies, server-side aggregation, or third-party API integrations with caching and error handling.
 argument-hint: [routePath] [backendEndpoint]
 allowed-tools: Read, Edit, Write, Glob
 ---
@@ -107,6 +103,7 @@ Adjust `s-maxage` based on data freshness needs:
 - **60s** - Standard for most governance data
 - **300s** - For slowly changing data (NCL, historical)
 - **10s** - For frequently updated data (live votes)
+- **3600s** - For immutable blockchain data (tx timestamps, block hashes) — add `stale-while-revalidate=86400`
 
 ## File Structure Examples
 
@@ -122,3 +119,215 @@ Adjust `s-maxage` based on data freshness needs:
 1. Test the endpoint with `curl http://localhost:3000/api/${$0}`
 2. Check backend connectivity
 3. Verify caching headers in browser DevTools
+
+---
+
+## Server-Side Aggregation Pattern
+
+When a frontend chart needs data from N+1 API calls (list all items, then fetch detail for each), move the aggregation server-side. This prevents hundreds of client-side calls and lets you cache the result for all users.
+
+**When to use:** Any chart that would otherwise make O(N) detail fetches from the browser.
+
+### Create Aggregation Endpoint
+
+```typescript
+import type { NextApiRequest, NextApiResponse } from "next";
+import { callApi } from "@/utils/apiHelper";
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });
+
+  try {
+    // 1. Fetch all list pages
+    const pageSize = 100;
+    const firstRes = await callApi({ endpoint: `/items?page=1&pageSize=${pageSize}`, method: "GET" });
+    const firstData = await firstRes.json();
+    const allItems = [...firstData.items];
+
+    if (firstData.pagination.totalPages > 1) {
+      const remaining = Array.from({ length: firstData.pagination.totalPages - 1 }, (_, i) => i + 2);
+      const pages = await Promise.all(
+        remaining.map(async (pg) => {
+          const r = await callApi({ endpoint: `/items?page=${pg}&pageSize=${pageSize}`, method: "GET" });
+          return (await r.json()).items;
+        })
+      );
+      for (const page of pages) allItems.push(...page);
+    }
+
+    // 2. Fetch details in parallel batches (prevent overwhelming backend)
+    const batchSize = 20;
+    const results = [];
+    for (let i = 0; i < allItems.length; i += batchSize) {
+      const batch = allItems.slice(i, i + batchSize);
+      const details = await Promise.all(
+        batch.map(async (item) => {
+          try {
+            const r = await callApi({ endpoint: `/items/${item.id}`, method: "GET" });
+            const d = await r.json();
+            return { id: item.id, /* extract needed fields */ };
+          } catch {
+            return { id: item.id, /* fallback values */ };
+          }
+        })
+      );
+      results.push(...details);
+    }
+
+    // 3. Cache aggressively — this is an expensive endpoint
+    res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
+    return res.status(200).json({ items: results });
+  } catch (error) {
+    console.error("Aggregation API error:", error);
+    return res.status(500).json({ error: "Failed to aggregate data" });
+  }
+}
+```
+
+### Pair with SWR Hook
+
+```typescript
+// In hooks file
+export function useAggregatedData() {
+  const { data, error, isLoading, mutate } = useSWR(
+    "/api/items/aggregated", fetcher,
+    { revalidateOnFocus: false, dedupingInterval: 300000 } // match server cache
+  );
+  return { items: data?.items || [], isLoading, error: error?.message || null, refresh: () => mutate() };
+}
+```
+
+### Cache Duration Guidelines for Aggregation
+
+| Data Type | s-maxage | stale-while-revalidate |
+|-----------|----------|------------------------|
+| Expensive aggregation (100+ backend calls) | 300s | 600s |
+| Moderate aggregation (10-50 calls) | 120s | 300s |
+| Simple proxy | 60s | 300s |
+
+---
+
+## Third-Party API Integration (Alternative Pattern)
+
+For routes that call external APIs (not the backend), use this pattern with server-side caching:
+
+### Step 1: Create Route with In-Memory Cache
+
+```typescript
+import type { NextApiRequest, NextApiResponse } from "next";
+
+const EXTERNAL_API_URL = "https://api.example.com/v1/endpoint";
+
+// Server-side cache (shared across all users on same instance)
+const serverCache = new Map<string, string>();
+
+// Track in-flight requests to prevent duplicate API calls
+const inFlightRequests = new Map<string, Promise<string>>();
+
+// Simple hash for cache keys
+function hashKey(input: string): string {
+  let hash = 0;
+  for (let i = 0; i < input.length; i++) {
+    hash = ((hash << 5) - hash) + input.charCodeAt(i);
+    hash = hash & hash;
+  }
+  return String(Math.abs(hash));
+}
+
+// Limit cache size to prevent memory issues
+function pruneCache() {
+  if (serverCache.size > 1000) {
+    const keysToDelete = Array.from(serverCache.keys()).slice(0, 200);
+    keysToDelete.forEach(key => serverCache.delete(key));
+  }
+}
+
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  const apiKey = process.env.EXTERNAL_API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ error: "Service not configured" });
+  }
+
+  const { input } = req.body;
+  const cacheKey = hashKey(input);
+
+  // Check server cache first
+  const cached = serverCache.get(cacheKey);
+  if (cached) {
+    return res.status(200).json({ result: cached, cached: true });
+  }
+
+  // Check if there's already an in-flight request for this input
+  const inFlight = inFlightRequests.get(cacheKey);
+  if (inFlight) {
+    try {
+      const result = await inFlight;
+      return res.status(200).json({ result, cached: true });
+    } catch {
+      return res.status(500).json({ error: "Request failed" });
+    }
+  }
+
+  // Create API call promise and track it
+  const apiPromise = callExternalAPI(input, apiKey);
+  inFlightRequests.set(cacheKey, apiPromise);
+
+  try {
+    const result = await apiPromise;
+
+    // Cache the result
+    serverCache.set(cacheKey, result);
+    pruneCache();
+
+    // Clean up in-flight tracker
+    inFlightRequests.delete(cacheKey);
+
+    return res.status(200).json({ result });
+  } catch (error) {
+    inFlightRequests.delete(cacheKey);
+    console.error("External API error:", error);
+    return res.status(500).json({ error: "Service error" });
+  }
+}
+
+async function callExternalAPI(input: string, apiKey: string): Promise<string> {
+  const response = await fetch(EXTERNAL_API_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ input }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.result;
+}
+```
+
+### Key Benefits of This Pattern
+
+| Feature | Benefit |
+|---------|---------|
+| Server-side cache | All users share same cache (1 API call per unique input) |
+| In-flight deduplication | Parallel requests for same input share one API call |
+| Cache pruning | Prevents memory issues on long-running servers |
+| Env var for API key | Keeps secrets server-side |
+
+### When to Use This Pattern
+
+- External translation APIs (DeepL, Google Translate)
+- AI/ML inference APIs
+- Rate-limited third-party services
+- Any API where multiple users might request the same data

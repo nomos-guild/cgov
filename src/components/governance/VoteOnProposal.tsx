@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { useWallet } from "@meshsdk/react";
 import { MeshTxBuilder, hashDrepAnchor } from "@meshsdk/core";
 import { useDispatch, useSelector } from "react-redux";
+import { useTranslations } from "next-intl";
 import type { AppDispatch, RootState } from "@/store";
 import { loadGovernanceActionDetail } from "@/store/governanceSlice";
 import { Card } from "@/components/ui/card";
@@ -14,17 +15,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { ConnectWalletButton } from "@/components/wallet";
 import {
-  ThumbsUp,
-  ThumbsDown,
-  MinusCircle,
   Loader2,
   CheckCircle,
   AlertCircle,
-  ExternalLink,
   RefreshCw,
 } from "lucide-react";
 import { useTheme } from "@/lib/theme";
@@ -64,7 +61,19 @@ export function VoteOnProposal({
   const dispatch = useDispatch<AppDispatch>();
   const { connected, wallet } = useWallet();
   const { activeTheme } = useTheme();
+  const t = useTranslations("voteAction");
+  const tv = useTranslations("voting");
+  const tTable = useTranslations("table");
   const isGame = activeTheme.id === "game";
+  const isDark = activeTheme.id === "dark";
+
+  const translateVote = (vote: VoteChoice) => {
+    switch (vote) {
+      case "Yes": return tv("yes");
+      case "No": return tv("no");
+      case "Abstain": return tv("abstain");
+    }
+  };
   const [selectedVote, setSelectedVote] = useState<VoteChoice | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [anchorUrl, setAnchorUrl] = useState("");
@@ -227,9 +236,7 @@ export function VoteOnProposal({
       const dRep = await wallet.getDRep();
 
       if (!dRep || !dRep.dRepIDCip105) {
-        throw new Error(
-          "Could not get DRep ID. Please ensure your wallet is registered as a DRep."
-        );
+        throw new Error(t("drepIdError"));
       }
 
       const drepId = dRep.dRepIDCip105;
@@ -239,18 +246,14 @@ export function VoteOnProposal({
         verbose: true,
       });
 
-      // Prepare anchor if URL provided
+      // Prepare anchor if URL provided (optional — skip on failure)
       let anchor = undefined;
       if (anchorUrl.trim()) {
         const trimmedUrl = anchorUrl.trim();
-
-        // Fetch the content from the URL and compute Blake2b-256 hash
         try {
           const response = await fetch(trimmedUrl);
           if (!response.ok) {
-            throw new Error(
-              `Failed to fetch anchor content: ${response.status}`
-            );
+            throw new Error(`HTTP ${response.status}`);
           }
           const contentText = await response.text();
           const contentJson = JSON.parse(contentText);
@@ -261,12 +264,7 @@ export function VoteOnProposal({
             anchorDataHash,
           };
         } catch (fetchError) {
-          throw new Error(
-            `Failed to fetch or hash anchor content: ${
-              fetchError instanceof Error ? fetchError.message : "Unknown error"
-            }. ` +
-              `Please ensure the URL is accessible and contains valid JSON.`
-          );
+          console.warn("Anchor fetch failed, proceeding without rationale:", fetchError);
         }
       }
 
@@ -308,11 +306,19 @@ export function VoteOnProposal({
       // Start polling to sync the vote
       startPolling();
     } catch (err) {
+      const message = err instanceof Error ? err.message : t("failedToSubmitVote");
+
+      // If user declined the wallet signing, just close the modal
+      if (message.toLowerCase().includes("user declined") || message.toLowerCase().includes("user rejected")) {
+        closeModal();
+        return;
+      }
+
       console.error("Vote submission error:", err);
       setVoteState({
         isSubmitting: false,
         isSuccess: false,
-        error: err instanceof Error ? err.message : "Failed to submit vote",
+        error: message,
         txHash: null,
       });
     }
@@ -342,22 +348,47 @@ export function VoteOnProposal({
   };
 
   const getVoteButtonClass = (vote: VoteChoice) => {
-    const baseClass = "flex-1 h-16 text-lg font-semibold transition-all";
-    const selectedClass = "ring-2 ring-offset-2 ring-offset-background";
+    const baseClass = "flex-1 h-10 text-sm font-semibold transition-all";
+    const isSelected = selectedVote === vote;
+    const voteTypeClass =
+      vote === "Yes"
+        ? "vote-btn-yes"
+        : vote === "No"
+        ? "vote-btn-no"
+        : "vote-btn-abstain";
 
+    // Game & Dark themes: CSS token overrides handle all visual styling
+    if (isGame || isDark) {
+      return cn(baseClass, voteTypeClass, isSelected && "selected");
+    }
+
+    // Light theme: white card-style buttons with shadow
+    const cardBase = "bg-white border-transparent shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)] hover:bg-gray-50 hover:text-black";
     switch (vote) {
       case "Yes":
-        return selectedVote === vote
-          ? `${baseClass} ${selectedClass} bg-emerald-500 hover:bg-emerald-600 text-white ring-emerald-500`
-          : `${baseClass} bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border-emerald-500/30`;
+        return cn(
+          baseClass,
+          voteTypeClass,
+          isSelected
+            ? "bg-emerald-600 hover:bg-emerald-700 text-white border-transparent shadow-[0_4px_12px_rgba(0,0,0,0.12)]"
+            : `${cardBase} text-black`
+        );
       case "No":
-        return selectedVote === vote
-          ? `${baseClass} ${selectedClass} bg-red-500 hover:bg-red-600 text-white ring-red-500`
-          : `${baseClass} bg-red-500/20 hover:bg-red-500/30 text-red-400 border-red-500/30`;
+        return cn(
+          baseClass,
+          voteTypeClass,
+          isSelected
+            ? "bg-red-600 hover:bg-red-700 text-white border-transparent shadow-[0_4px_12px_rgba(0,0,0,0.12)]"
+            : `${cardBase} text-black`
+        );
       case "Abstain":
-        return selectedVote === vote
-          ? `${baseClass} ${selectedClass} bg-gray-500 hover:bg-gray-600 text-white ring-gray-500`
-          : `${baseClass} bg-gray-500/20 hover:bg-gray-500/30 text-gray-400 border-gray-500/30`;
+        return cn(
+          baseClass,
+          voteTypeClass,
+          isSelected
+            ? "bg-gray-500 hover:bg-gray-600 text-white border-transparent shadow-[0_4px_12px_rgba(0,0,0,0.12)]"
+            : `${cardBase} text-black`
+        );
     }
   };
 
@@ -367,18 +398,18 @@ export function VoteOnProposal({
         "p-6 vote-on-proposal-card",
         isGame && "game-detail-card"
       )}>
-        <h3 className={cn("font-semibold mb-4", isGame && "text-white")}>Cast Your Vote</h3>
+        <h3 className={cn("font-semibold mb-4", isGame && "text-white")}>{t("castYourVote")}</h3>
         <div className="py-6">
           <Badge variant="outline" className={cn(
             "mb-3 rounded-none bg-transparent px-3 py-1 text-sm font-semibold uppercase tracking-wide",
-            isGame 
-              ? "border-white/30 text-white" 
+            isGame
+              ? "border-white/30 text-white"
               : "border-foreground/30 dark:border-[#0bd1a2] dark:text-[#0bd1a2]"
           )}>
             {status}
           </Badge>
           <p className={isGame ? "text-white/70" : "text-muted-foreground"}>
-            Voting is no longer available for this proposal.
+            {t("votingNoLongerAvailable")}
           </p>
         </div>
       </Card>
@@ -391,19 +422,19 @@ export function VoteOnProposal({
         "p-6 vote-on-proposal-card",
         isGame && "game-detail-card"
       )}>
-        <h3 className={cn("font-semibold mb-4", isGame && "text-white")}>Cast Your Vote</h3>
+        <h3 className={cn("font-semibold mb-4", isGame && "text-white")}>{t("castYourVote")}</h3>
 
         {!connected ? (
           <div className="py-6 space-y-4">
             <p className={isGame ? "text-white/70" : "text-muted-foreground"}>
-              Connect your wallet to vote on this governance action.
+              {t("connectWalletToVote")}
             </p>
             <ConnectWalletButton />
           </div>
         ) : (
           <div className="space-y-4">
             <p className={cn("text-sm", isGame ? "text-white/70" : "text-muted-foreground")}>
-              Select your vote choice:
+              {t("selectVoteChoice")}
             </p>
             <div className="flex gap-3">
               <Button
@@ -411,28 +442,25 @@ export function VoteOnProposal({
                 className={getVoteButtonClass("Yes")}
                 onClick={() => handleVoteClick("Yes")}
               >
-                <ThumbsUp className="h-5 w-5 mr-2" />
-                Yes
+                {tv("yes")}
               </Button>
               <Button
                 variant="outline"
                 className={getVoteButtonClass("No")}
                 onClick={() => handleVoteClick("No")}
               >
-                <ThumbsDown className="h-5 w-5 mr-2" />
-                No
+                {tv("no")}
               </Button>
               <Button
                 variant="outline"
                 className={getVoteButtonClass("Abstain")}
                 onClick={() => handleVoteClick("Abstain")}
               >
-                <MinusCircle className="h-5 w-5 mr-2" />
-                Abstain
+                {tv("abstain")}
               </Button>
             </div>
             <p className={cn("text-xs", isGame ? "text-white/70" : "text-muted-foreground")}>
-              Your vote will be submitted on-chain as a DRep vote.
+              {t("voteSubmittedOnChain")}
             </p>
           </div>
         )}
@@ -453,10 +481,12 @@ export function VoteOnProposal({
       >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Confirm Your Vote</DialogTitle>
+            <DialogTitle>{t("confirmYourVote")}</DialogTitle>
             <DialogDescription>
-              You are about to vote <strong>{selectedVote}</strong> on this
-              governance action.
+              {t.rich("aboutToVote", {
+                vote: selectedVote ? translateVote(selectedVote) : "",
+                bold: (chunks) => <strong>{chunks}</strong>,
+              })}
             </DialogDescription>
           </DialogHeader>
 
@@ -471,22 +501,11 @@ export function VoteOnProposal({
               </div>
               <div className="text-center space-y-2">
                 <p className="font-semibold text-success">
-                  Vote Submitted Successfully!
+                  {t("voteSubmittedSuccess")}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  Your vote has been submitted to the blockchain.
+                  {t("voteSubmittedToBlockchain")}
                 </p>
-                {voteState.txHash && (
-                  <a
-                    href={`https://adastat.net/transactions/${voteState.txHash}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary text-sm flex items-center justify-center gap-1 hover:underline"
-                  >
-                    View on AdaStat
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
-                )}
               </div>
 
               {/* Sync Status Indicator */}
@@ -495,73 +514,62 @@ export function VoteOnProposal({
                   <div className="flex items-center justify-center gap-2 text-sm">
                     <RefreshCw className="h-4 w-4 animate-spin text-primary" />
                     <span className="text-muted-foreground">
-                      Syncing your vote... ({syncState.pollCount}/
-                      {syncState.maxPolls})
+                      {t("syncingVote", { current: syncState.pollCount, max: syncState.maxPolls })}
                     </span>
                   </div>
                 ) : syncState.isSynced ? (
                   <div className="flex items-center justify-center gap-2 text-sm text-success">
                     <CheckCircle className="h-4 w-4" />
                     <span>
-                      Vote synced! You can view it in the voting records below.
+                      {t("voteSynced")}
                     </span>
                   </div>
                 ) : syncState.pollCount >= syncState.maxPolls ? (
                   <div className="text-center text-sm text-muted-foreground">
-                    <p>Sync timed out. Your vote was submitted successfully.</p>
+                    <p>{t("syncTimedOut")}</p>
                     <p className="text-xs mt-1">
-                      It may take a few more minutes to appear in the voting
-                      records.
+                      {t("syncTimedOutDetail")}
                     </p>
                   </div>
                 ) : (
                   <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Preparing to sync...</span>
+                    <span>{t("preparingToSync")}</span>
                   </div>
                 )}
               </div>
 
               <Button className="w-full" onClick={closeModal}>
-                {syncState.isSynced ? "View Updated Records" : "Close"}
+                {syncState.isSynced ? t("viewUpdatedRecords") : t("close")}
               </Button>
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="bg-secondary/50 p-4 rounded-lg">
-                <p className="text-sm font-medium mb-1">Proposal:</p>
-                <p className="text-sm text-muted-foreground line-clamp-2">
-                  {proposalTitle}
-                </p>
-              </div>
-
-              <div className="flex justify-center">
-                <Badge
-                  variant="outline"
-                  className={
-                    selectedVote === "Yes"
-                      ? "rounded-none bg-transparent text-emerald-400 border-emerald-500/60 text-lg px-6 py-2 dark:border-[#0bd1a2] dark:text-[#0bd1a2]"
-                      : selectedVote === "No"
-                      ? "rounded-none bg-transparent text-red-400 border-red-500/60 text-lg px-6 py-2 dark:border-[#0bd1a2] dark:text-[#0bd1a2]"
-                      : "rounded-none bg-transparent text-gray-400 border-gray-500/60 text-lg px-6 py-2 dark:border-[#0bd1a2] dark:text-[#0bd1a2]"
-                  }
-                >
-                  {selectedVote}
-                </Badge>
-              </div>
+              <table className="w-full text-sm">
+                <tbody>
+                  <tr className="border-b border-border">
+                    <td className="py-2 pr-4 font-medium text-muted-foreground whitespace-nowrap">{t("proposal")}</td>
+                    <td className="py-2 line-clamp-2">{proposalTitle}</td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 pr-4 font-medium text-muted-foreground whitespace-nowrap">{tTable("vote")}</td>
+                    <td className="py-2 font-semibold">{selectedVote ? translateVote(selectedVote) : ""}</td>
+                  </tr>
+                </tbody>
+              </table>
 
               <div className="space-y-2">
-                <Label htmlFor="anchorUrl">Rationale URL (Optional)</Label>
-                <Input
+                <Label htmlFor="anchorUrl">{t("rationaleUrlOptional")}</Label>
+                <Textarea
                   id="anchorUrl"
-                  placeholder="https://... or ipfs://..."
+                  className="min-h-[100px] focus-visible:ring-black/20"
+                  placeholder={t("rationaleUrlPlaceholder")}
                   value={anchorUrl}
                   onChange={(e) => setAnchorUrl(e.target.value)}
                   disabled={voteState.isSubmitting}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Provide a URL to your voting rationale (e.g., IPFS link to a
-                  JSON document).
+                  {t("rationaleUrlHelp")}
                 </p>
               </div>
 
@@ -579,7 +587,7 @@ export function VoteOnProposal({
                   onClick={closeModal}
                   disabled={voteState.isSubmitting}
                 >
-                  Cancel
+                  {t("cancel")}
                 </Button>
                 <Button
                   className="flex-1"
@@ -589,17 +597,16 @@ export function VoteOnProposal({
                   {voteState.isSubmitting ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Submitting...
+                      {t("submitting")}
                     </>
                   ) : (
-                    "Confirm Vote"
+                    t("confirmVote")
                   )}
                 </Button>
               </div>
 
               <p className="text-xs text-muted-foreground text-center">
-                This will create an on-chain transaction. You will be asked to
-                sign with your wallet.
+                {t("onChainTransactionNote")}
               </p>
             </div>
           )}

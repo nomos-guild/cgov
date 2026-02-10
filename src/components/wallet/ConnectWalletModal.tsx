@@ -1,5 +1,6 @@
 import { useWallet } from "@meshsdk/react";
 import { BrowserWallet, type Wallet } from "@meshsdk/core";
+import { useTranslations } from "next-intl";
 import {
   Dialog,
   DialogContent,
@@ -27,6 +28,7 @@ export function ConnectWalletModal({
   onClose,
 }: ConnectWalletModalProps) {
   const { connect, disconnect, connected, name, wallet } = useWallet();
+  const t = useTranslations("wallet");
   const [availableWallets, setAvailableWallets] = useState<Wallet[]>([]);
   const [walletAddress, setWalletAddress] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
@@ -70,7 +72,7 @@ export function ConnectWalletModal({
         onClose();
       } catch (err) {
         setError(
-          err instanceof Error ? err.message : "Failed to connect wallet"
+          err instanceof Error ? err.message : t("failedToConnect")
         );
       } finally {
         setIsLoading(false);
@@ -96,12 +98,12 @@ export function ConnectWalletModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <WalletIcon className="h-5 w-5" />
-            {connected ? "Wallet Connected" : "Connect Wallet"}
+            {connected ? t("walletConnected") : t("connectWallet")}
           </DialogTitle>
           <DialogDescription>
             {connected
-              ? "Your wallet is connected. You can now vote on governance actions."
-              : "Connect your Cardano wallet to vote on governance actions."}
+              ? t("walletConnectedDesc")
+              : t("connectWalletDesc")}
           </DialogDescription>
         </DialogHeader>
 
@@ -116,14 +118,14 @@ export function ConnectWalletModal({
             <div className="bg-secondary/50 p-4 rounded-lg space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">
-                  Connected Wallet
+                  {t("connectedWallet")}
                 </span>
                 <span className="text-sm font-medium capitalize">{name}</span>
               </div>
               {walletAddress && (
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">
-                    Stake Address
+                    {t("stakeAddress")}
                   </span>
                   <code className="text-xs bg-background px-2 py-1 rounded">
                     {formatAddress(walletAddress)}
@@ -132,12 +134,12 @@ export function ConnectWalletModal({
               )}
             </div>
             <Button
-              variant="destructive"
-              className="w-full"
+              variant="outline"
+              className="w-full bg-white border-transparent shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)] hover:bg-gray-50 text-black hover:text-black"
               onClick={handleDisconnect}
             >
               <LogOut className="h-4 w-4 mr-2" />
-              Disconnect Wallet
+              {t("disconnectWallet")}
             </Button>
           </div>
         ) : (
@@ -145,10 +147,10 @@ export function ConnectWalletModal({
             {availableWallets.length === 0 ? (
               <div className="text-center py-6 space-y-3">
                 <p className="text-muted-foreground">
-                  No Cardano wallets detected
+                  {t("noWalletsDetected")}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  Please install a Cardano wallet extension to continue.
+                  {t("installWalletExtension")}
                 </p>
                 <div className="flex flex-wrap gap-2 justify-center">
                   <a
@@ -182,7 +184,7 @@ export function ConnectWalletModal({
                 {availableWallets.map((detectedWallet) => (
                   <button
                     key={detectedWallet.id}
-                    className="w-full flex items-center gap-3 p-4 rounded-lg border border-border bg-secondary/30 hover:bg-secondary/60 transition-colors disabled:opacity-50"
+                    className="wallet-item w-full flex items-center gap-3 p-4 rounded-lg border border-border bg-secondary/30 hover:bg-secondary/60 transition-colors disabled:opacity-50"
                     onClick={() => handleConnect(detectedWallet.id)}
                     disabled={isLoading}
                   >
@@ -213,7 +215,7 @@ export function ConnectWalletModal({
                     <div className="flex-1 text-left">
                       <div className="font-medium">{detectedWallet.name}</div>
                       <div className="text-xs text-muted-foreground">
-                        Connect to start voting
+                        {t("connectToStartVoting")}
                       </div>
                     </div>
                     <ChevronRight className="h-5 w-5 text-muted-foreground" />

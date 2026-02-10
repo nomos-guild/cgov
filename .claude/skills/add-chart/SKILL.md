@@ -1,10 +1,6 @@
 ---
 name: add-chart
-version: 1.2.0
-created: 2026-02-02
-last-evolved: 2026-02-02
-evolution-count: 2
-feedback-count: 2
+updated: 2026-02-10
 description: Scaffold a new dashboard chart component with registry, types, and proper theme integration. Use when adding charts to the governance dashboard.
 argument-hint: [ChartName] [chartType]
 allowed-tools: Read, Edit, Write, Glob, Grep
@@ -51,6 +47,7 @@ import { ChartSkeleton } from "./ChartSkeleton";
 import type { ChartProps } from "@/types/dashboard";
 import {
   getChartColors,
+  ChartTooltip,
   chartCardClassName,
   chartCardGameClassName,
 } from "@/components/dashboards/shared/chartTheme";
@@ -162,17 +159,31 @@ chartColors.primaryMuted  // faded accent
 
 ### Tooltip Styling
 
+**IMPORTANT:** Recharts `contentStyle` prop is unreliable. Always use the custom `ChartTooltip` component:
+
 ```typescript
+import { ChartTooltip } from "@/components/dashboards/shared/chartTheme";
+
+// Basic usage - theme-aware styling handled automatically
+<Tooltip content={<ChartTooltip themeId={activeTheme.id} />} />
+
+// With custom formatters
 <Tooltip
-  contentStyle={{
-    backgroundColor: chartColors.tooltipBg,
-    border: `1px solid ${chartColors.tooltipBorder}`,
-    borderRadius: activeTheme.isDark ? "0" : "8px",  // Sharp corners in dark/game
-    color: chartColors.tooltipText,
-  }}
-  formatter={(value) => [`${value}`]}
+  content={
+    <ChartTooltip
+      themeId={activeTheme.id}
+      valueFormatter={(value) => `${value} proposals`}
+      labelFormatter={(label) => `Category: ${label}`}
+    />
+  }
 />
 ```
+
+The `ChartTooltip` component provides:
+- White background with shadow (light theme)
+- Dark background with cyan border (dark theme)
+- Black background with white border (game theme)
+- Proper text colors for readability
 
 ### Legend Styling
 
@@ -207,6 +218,8 @@ chartColors.primaryMuted  // faded accent
   innerRadius="30%"  // Donut style
   outerRadius="55%"
   paddingAngle={2}
+  animationDuration={500}
+  animationEasing="ease-in-out"
 >
   {data.map((entry, index) => (
     <Cell
@@ -219,6 +232,104 @@ chartColors.primaryMuted  // faded accent
 </Pie>
 ```
 
+### Light Theme Donut Chart Pattern
+
+For light theme, use white primary slices with grey graduated colors for negative/neutral items. This creates an elegant, minimal aesthetic.
+
+**Color pattern:**
+- Primary (positive): `#ffffff` (pure white)
+- Neutral: `#e2e8f0` (slate-200)
+- Negative: `#94a3b8` (slate-400)
+
+**SVG shadow filter for white slices:**
+
+```typescript
+const CHART_COLORS = {
+  game: { positive: "#22c55e", neutral: "#6b7280", negative: "#ef4444" },
+  light: { positive: "#ffffff", neutral: "#e2e8f0", negative: "#94a3b8" },
+};
+
+// In component:
+const isLight = activeTheme.id === "light";
+const colors = isGame ? CHART_COLORS.game : (isLight ? CHART_COLORS.light : CHART_COLORS.game);
+
+<PieChart>
+  <defs>
+    {isLight && (
+      <filter id="pieShadow" x="-50%" y="-50%" width="200%" height="200%">
+        <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#0f172a" floodOpacity="0.25" />
+      </filter>
+    )}
+  </defs>
+  <Pie
+    style={isLight ? { filter: "url(#pieShadow)" } : undefined}
+  >
+    {data.map((entry, index) => (
+      <Cell
+        key={`cell-${index}`}
+        fill={entry.color}
+        stroke={isLight ? "rgba(15, 23, 42, 0.15)" : "none"}
+        strokeWidth={isLight ? 2 : 0}
+      />
+    ))}
+  </Pie>
+</PieChart>
+```
+
+### CRITICAL: Recharts Pie Chart Overflow Clipping
+
+Recharts' `ResponsiveContainer` creates a `<div class="recharts-wrapper">` with **inline `overflow: hidden`**. This clips pie/donut charts and their drop shadow filters even when you set `overflow: visible` on the PieChart SVG.
+
+**Always apply this 3-layer fix for pie/donut charts with shadows or visual overflow:**
+
+```tsx
+{/* Layer 1: outer div with overflow-visible */}
+{/* Layer 2: Tailwind arbitrary variant overrides recharts-wrapper inline style */}
+<div className="h-[200px] overflow-visible [&_.recharts-wrapper]:!overflow-visible">
+  <ResponsiveContainer width="100%" height="100%">
+    {/* Layer 3: PieChart SVG overflow visible */}
+    <PieChart style={{ overflow: "visible" }}>
+      ...
+    </PieChart>
+  </ResponsiveContainer>
+</div>
+```
+
+**Why all 3 layers?**
+1. **Outer div** `overflow-visible` - prevents CSS clipping at container level
+2. **`[&_.recharts-wrapper]:!overflow-visible`** - overrides Recharts' inline `overflow: hidden` on its wrapper div (needs `!important`)
+3. **`style={{ overflow: "visible" }}`** on PieChart - sets overflow on the SVG element itself
+
+Without layer 2, drop shadows and chart edges will be cut off, especially in narrow grid columns.
+
+### Custom Legend with Square Indicators
+
+For inline legends below charts, use pure squares (not rounded) with borders for white items:
+
+```tsx
+{/* Legend */}
+<div className="flex justify-center gap-4 mt-2">
+  {data.map((item) => {
+    const isWhite = isLight && item.color === "#ffffff";
+    return (
+      <div key={item.name} className="flex items-center gap-1.5 text-xs">
+        <div
+          className="w-2.5 h-2.5"  // Pure square, no rounded-*
+          style={{
+            backgroundColor: item.color,
+            border: isWhite ? "1.5px solid rgba(15, 23, 42, 0.3)" : undefined,
+            boxShadow: isLight ? "0 1px 3px rgba(15,23,42,0.2)" : undefined,
+          }}
+        />
+        <span className={isGame ? "text-white/70" : "text-muted-foreground"}>
+          {item.name}: {item.value}
+        </span>
+      </div>
+    );
+  })}
+</div>
+```
+
 ### Line/Area Chart
 
 ```typescript
@@ -227,7 +338,8 @@ chartColors.primaryMuted  // faded accent
   dataKey="value"
   stroke={chartColors.primary}
   strokeWidth={2}
-  dot={false}
+  dot={false}  // Cleaner look without dots
+  activeDot={{ r: 5, cursor: "pointer" }}  // Shows dot only on hover
 />
 
 <Area
@@ -238,6 +350,21 @@ chartColors.primaryMuted  // faded accent
 />
 ```
 
+### Making Line Clickable for Color Picker
+
+```typescript
+<Line
+  onClick={handleLineClick}  // Opens color picker
+  style={{ cursor: "pointer" }}
+  dot={false}
+  activeDot={{
+    r: 5,
+    cursor: "pointer",
+    onClick: handleLineClick,  // Also opens on dot click
+  }}
+/>
+```
+
 ### CartesianGrid (use sparingly)
 
 ```typescript
@@ -245,6 +372,126 @@ chartColors.primaryMuted  // faded accent
   strokeDasharray="3 3"
   stroke={chartColors.gridLine}
   vertical={false}  // Usually only show horizontal lines
+/>
+```
+
+---
+
+## Chart Element Color Customization
+
+Allow users to click on chart elements (bars, pie slices, lines, progress bars) to customize their colors via the side panel color picker.
+
+### Required Imports
+
+```typescript
+import { useChartColors } from "@/components/dashboards/shared/ChartColorsContext";
+import { useDashboard } from "@/components/dashboards/shared/DashboardProvider";
+```
+
+### Setup in Component
+
+```typescript
+const CHART_ID = "my-chart";  // kebab-case, unique per chart
+
+export function MyChart({ isLoading, className }: ChartProps) {
+  const { getColor } = useChartColors();
+  const { setColorPickerTarget } = useDashboard();
+
+  // Click handler to open color picker
+  const handleElementClick = useCallback(
+    (elementKey: string, elementLabel: string) => {
+      setColorPickerTarget({
+        chartId: CHART_ID,
+        chartTitle: "My Chart",
+        elementKey,      // Unique key for this element (e.g., "Active", "line")
+        elementLabel,    // Human-readable label
+      });
+    },
+    [setColorPickerTarget]
+  );
+
+  // Get color with fallback to default
+  const barColor = getColor(CHART_ID, "Active", chartColors.active);
+  // ...
+}
+```
+
+### Pie/Donut Chart with Clickable Cells
+
+```typescript
+<Cell
+  fill={getColor(CHART_ID, entry.status, entry.defaultFill)}
+  style={{ cursor: "pointer" }}
+  onClick={() => handleElementClick(entry.status, entry.status)}
+/>
+```
+
+### Table Legend with Clickable Color Swatches
+
+For donut charts, add a table legend below with clickable color indicators:
+
+```tsx
+<div className="flex-1 min-h-0" style={{ maxHeight: "55%" }}>
+  <ResponsiveContainer>
+    <PieChart>
+      <Pie innerRadius="35%" outerRadius="70%" paddingAngle={3}>
+        {data.map((entry) => (
+          <Cell
+            fill={getColor(CHART_ID, entry.key, entry.defaultFill)}
+            onClick={() => handleClick(entry.key)}
+            style={{ cursor: "pointer" }}
+          />
+        ))}
+      </Pie>
+    </PieChart>
+  </ResponsiveContainer>
+</div>
+
+{/* Table Legend */}
+<div className="mt-2 overflow-auto" style={{ maxHeight: "45%" }}>
+  <table className="w-full text-xs" style={{ color: chartColors.axisText }}>
+    <thead>
+      <tr className="border-b border-current/20">
+        <th className="text-left py-1 font-medium">Type</th>
+        <th className="text-right py-1 font-medium w-16">Count</th>
+        <th className="text-right py-1 font-medium w-14">%</th>
+      </tr>
+    </thead>
+    <tbody>
+      {data.map((item) => (
+        <tr key={item.key} className="border-b border-current/10 last:border-0">
+          <td className="py-1 flex items-center gap-2">
+            <span
+              className="w-2.5 h-2.5 rounded-sm cursor-pointer hover:ring-2 hover:ring-blue-400"
+              style={{ backgroundColor: getColor(CHART_ID, item.key, item.defaultFill) }}
+              onClick={() => handleClick(item.key)}
+              title="Click to change color"
+            />
+            <span className="truncate">{item.label}</span>
+          </td>
+          <td className="text-right py-1 tabular-nums">{item.count}</td>
+          <td className="text-right py-1 tabular-nums">
+            {((item.count / total) * 100).toFixed(0)}%
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
+```
+
+### Progress Bar Color Customization
+
+For progress bars (like NCL chart), extend the Progress component:
+
+```typescript
+// In Progress component - add indicatorStyle prop
+<Progress
+  value={progress}
+  onClick={onBarClick}
+  className="cursor-pointer hover:ring-2 hover:ring-blue-400"
+  indicatorClassName={cn("rounded-full", !customColor && "bg-white")}
+  indicatorStyle={customColor ? { backgroundColor: customColor } : undefined}
 />
 ```
 
@@ -441,8 +688,12 @@ Row 3 (y=680):  Large/wide charts (780×320)
 
 ```tsx
 // DashboardChartCard provides outer positioning + controls
-<div style={{ left, top, width, height, zIndex }}>
+<div
+  data-chart-card  // Used for selection box exclusion
+  style={{ left, top, width, height, zIndex }}
+>
   {/* Drag handle (top-right, visible on hover) */}
+  {/* Hide button (X icon, visible on hover) */}
   {/* 8 resize handles (visible on hover) */}
 
   {/* Inner wrapper with theme-aware styling */}
@@ -460,9 +711,136 @@ Row 3 (y=680):  Large/wide charts (780×320)
 </div>
 ```
 
+### DashboardChartCard Props
+
+| Prop | Type | Purpose |
+|------|------|---------|
+| `chart` | `ChartDefinition` | Chart from registry |
+| `isLoading` | `boolean` | Passed to your chart |
+| `isSelected` | `boolean` | True when multi-selected |
+| `onHide` | `() => void` | Called when X button clicked |
+| `onSelect` | `(id, additive) => void` | Called on click for selection |
+| `onDragStart` | `() => void` | Notifies grid of drag |
+
 **Important:** Game theme must NOT have colored borders. Always use a 3-way check: `isGame ? ... : isDark ? ... : ...`
 
 Your chart receives `className="h-full w-full"` and should fill that space.
+
+### Data Attributes
+
+The `data-chart-card` attribute on the wrapper is used by the selection system. When a user clicks on an element with this attribute, the box selection won't start - allowing normal drag/resize behavior instead.
+
+---
+
+## i18n: Translating Chart Text
+
+Chart titles, descriptions, and text labels should use translation keys from `next-intl`.
+
+### Chart Title in Component
+
+```typescript
+import { useTranslations } from "next-intl";
+
+const t = useTranslations("charts");
+
+<h3 ...>{t("myChart.title")}</h3>
+```
+
+### Chart Registry
+
+The `title` and `description` in `CHART_REGISTRY` are used for the side panel and visibility dropdown. These are currently hardcoded strings but should match the keys in `src/messages/{locale}.json` under the `"charts"` namespace:
+
+```json
+"charts": {
+  "myChart": {
+    "title": "My Chart",
+    "description": "Description of what this chart shows"
+  }
+}
+```
+
+Add the entry to **all 7 locale files** (en, de, fr, es, pt, ja, zh).
+
+### Exporting chart data
+
+If the chart has an export/download feature, use the `ExportLabels` typed interface pattern from `lib/exportRationales.ts` to pass translated strings to pure utility functions that can't access React hooks.
+
+---
+
+## SWR Hooks for Non-Redux Data
+
+For charts that fetch their own data (e.g., DRep charts), use SWR hooks from `src/hooks/useDRepData.ts` instead of Redux. This is the correct pattern when data is self-contained and doesn't need global state coordination.
+
+```typescript
+import { useDRepList, useDRepStats } from "@/hooks/useDRepData";
+
+export function MyChart({ isLoading, className }: ChartProps) {
+  const { dreps, isLoading: drepsLoading } = useDRepList({ pageSize: 50, sortBy: "votingPower" });
+  const { stats, isLoading: statsLoading } = useDRepStats();
+  const loading = isLoading || drepsLoading || statsLoading;
+  // ...
+}
+```
+
+**When data requires expensive aggregation** (N+1 calls — list + detail for each), create a server-side API route instead. See the `add-api-route` skill's "Server-Side Aggregation" section. Example: `/api/dreps/rationale-stats` aggregates all DRep details in one cached call.
+
+---
+
+## Two-Phase Exit Animation for Pie/Donut Charts
+
+Recharts instantly removes slices from DOM when they leave the data array. To animate removals smoothly:
+
+1. Track previous keys with `useRef<Set<string>>`
+2. Detect removed keys and keep them as ghost slices with `value: 0`
+3. Clean up ghost slices after animation completes
+
+```typescript
+const ANIM_MS = 500;
+const prevKeysRef = useRef<Set<string>>(new Set());
+const cleanupTimer = useRef<ReturnType<typeof setTimeout>>();
+const [exitingKeys, setExitingKeys] = useState<Set<string>>(new Set());
+
+useEffect(() => {
+  const targetKeys = new Set(data.map((d) => d.key));
+  const removed = new Set<string>();
+  for (const key of prevKeysRef.current) {
+    if (!targetKeys.has(key)) removed.add(key);
+  }
+  prevKeysRef.current = targetKeys;
+  if (removed.size === 0) return;
+  setExitingKeys(removed);
+  clearTimeout(cleanupTimer.current);
+  cleanupTimer.current = setTimeout(() => setExitingKeys(new Set()), ANIM_MS + 50);
+  return () => clearTimeout(cleanupTimer.current);
+}, [data]);
+
+// displayData includes ghost slices for animation; use data for tables
+const displayData = useMemo(() => {
+  if (exitingKeys.size === 0) return data;
+  const targetKeys = new Set(data.map((d) => d.key));
+  const extras = [...exitingKeys].filter(k => !targetKeys.has(k)).map(k => ({ ...ghostSlice, key: k, value: 0 }));
+  return [...data, ...extras];
+}, [data, exitingKeys]);
+```
+
+Use `displayData` for the `<Pie data={...}>` and `data` for the table legend.
+
+---
+
+## Table Legend with Stable Columns
+
+For table legends below donut charts, use `table-fixed` layout with `<colgroup>` to prevent column width shifts when data changes:
+
+```tsx
+<table className="w-full text-xs table-fixed" style={{ color: chartColors.axisText }}>
+  <colgroup>
+    <col />              {/* Name column: flexible */}
+    <col className="w-16" />  {/* Value column: fixed */}
+    <col className="w-12" />  {/* Percent column: fixed */}
+  </colgroup>
+  {/* ... thead + tbody */}
+</table>
+```
 
 ---
 
@@ -483,3 +861,6 @@ After creating the chart:
 11. [ ] **Verify game theme has NO colored borders on cards**
 12. [ ] Test drag/resize in dashboard view
 13. [ ] Verify chart appears in visibility dropdown
+14. [ ] **Color customization**: Chart elements are clickable to open color picker
+15. [ ] **Color customization**: Uses `getColor()` with fallback for all element colors
+16. [ ] **Pie/Donut charts**: 3-layer overflow fix applied (`overflow-visible` + `[&_.recharts-wrapper]:!overflow-visible` + PieChart `style`)

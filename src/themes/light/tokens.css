@@ -68,3 +68,15 @@
   --radius: 0.9rem;
 }
 
+/* Wallet modal — white card-style list items */
+[data-theme="light"] [role="dialog"] .wallet-item {
+  background: white !important;
+  border-color: transparent !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+  transition: all 0.2s ease !important;
+}
+[data-theme="light"] [role="dialog"] .wallet-item:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12) !important;
+  background: #fafafa !important;
+}
+

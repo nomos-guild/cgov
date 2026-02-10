@@ -1,0 +1,325 @@
+{
+  "common": {
+    "loading": "Cargando...",
+    "error": "Error",
+    "retry": "Reintentar",
+    "search": "Buscar...",
+    "all": "Todos",
+    "reset": "Restablecer",
+    "view": "Ver",
+    "showMore": "Mostrar {count} más",
+    "showMoreProposals": "Mostrar {count} propuestas más",
+    "showMoreVotes": "Mostrar {count} votos más",
+    "selected": "{count} seleccionado(s)"
+  },
+  "meta": {
+    "homeTitle": "CGOV - Plataforma de Gobernanza de Cardano",
+    "homeDescription": "Plataforma Cardano integrada en la cadena",
+    "dashboardTitle": "Cuadro de mandos - CGOV",
+    "dashboardDescription": "Cuadro de mandos de la CGOV - Visión general de la gobernanza",
+    "notFoundTitle": "404 - Página no encontrada",
+    "notFoundDescription": "La página que buscas no existe"
+  },
+  "landing": {
+    "title": "Gobernanza de Cardano",
+    "subtitle": "Seguimiento y control de las acciones de gobernanza en la cadena"
+  },
+  "dashboard": {
+    "title": "Cuadro de mandos",
+    "subtitle": "Su resumen de gobernanza personalizable",
+    "loadingData": "Cargando datos del cuadro de mandos..."
+  },
+  "notFound": {
+    "title": "404",
+    "description": "La acción de gobierno o página que busca no existe.",
+    "returnHome": "Volver al panel de control"
+  },
+  "stats": {
+    "total": "Total",
+    "active": "Activo",
+    "ratified": "Ratificado",
+    "expired": "Caducado",
+    "ncl": "{año} NCL"
+  },
+  "status": {
+    "Active": "Activo",
+    "Ratified": "Ratificado",
+    "Enacted": "Promulgado",
+    "Expired": "Caducado",
+    "Closed": "Cerrado"
+  },
+  "actionTypes": {
+    "NoConfidence": "Moción de censura",
+    "UpdateCommittee": "Comité de actualización / Términos",
+    "NewConstitution": "Actualización de la Constitución",
+    "HardForkInitiation": "Inicio de la bifurcación dura",
+    "ParameterChange": "Cambio de parámetros de protocolo",
+    "Treasury": "Retirada del Tesoro",
+    "InfoAction": "Información Acción"
+  },
+  "filters": {
+    "filterActionTypes": "Tipos de acción de filtrado",
+    "filterByStatus": "Filtrar por estado",
+    "filterByVote": "Filtrar por voto",
+    "filterByRole": "Filtrar por función",
+    "filterByRationale": "Filtrar por fundamento",
+    "actionTypes": "Tipos de acción",
+    "types": "Tipos",
+    "status": "Estado"
+  },
+  "table": {
+    "proposalTitle": "Título de la propuesta",
+    "actionType": "Tipo de acción",
+    "type": "Tipo",
+    "noActionsFound": "No se han encontrado medidas de gobernanza",
+    "voter": "Votante",
+    "transaction": "Transacción",
+    "vote": "Vote",
+    "votingPower": "Poder de voto",
+    "votedAt": "Votado en",
+    "rationale": "Justificación"
+  },
+  "voting": {
+    "allRoles": "Todos los roles",
+    "drep": "DRep",
+    "drepFull": "Representantes delegados",
+    "dreps": "DReps",
+    "spo": "SPO",
+    "spoFull": "Operadores de piscinas de estacas",
+    "spos": "SPOs",
+    "cc": "CC",
+    "ccFull": "Comisión Constitucional",
+    "yes": "Sí",
+    "no": "No",
+    "abstain": "Abstenerse",
+    "notVoted": "No votado",
+    "notEligible": "No admisible",
+    "threshold": "Umbral",
+    "votingPower": "Poder de voto",
+    "oneMemberOneVote": "Un miembro, un voto",
+    "noRationale": "Sin fundamento",
+    "noVotingRecordsFound": "No se ha encontrado ningún registro de votación"
+  },
+  "charts": {
+    "proposalStatus": {
+      "title": "Estado de la propuesta",
+      "description": "Panorama de las propuestas activas, ratificadas, promulgadas y expiradas"
+    },
+    "proposalType": {
+      "title": "Tipos de propuestas",
+      "description": "Distribución de las propuestas por tipo de acción de gobernanza"
+    },
+    "nclProgress": {
+      "title": "Progresos de la NCL",
+      "description": "Cambio neto Seguimiento del límite para las retiradas de tesorería"
+    },
+    "votingPower": {
+      "title": "Poder de voto",
+      "description": "Distribución del poder de voto de DRep y SPO"
+    },
+    "participation": {
+      "title": "Participación",
+      "description": "Porcentajes de participación del PPE-DE en todas las propuestas"
+    },
+    "proposalSubmission": {
+      "title": "Presentación de propuestas",
+      "description": "Número de propuestas presentadas por mes a lo largo del tiempo"
+    }
+  },
+  "sort": {
+    "sortByTime": "Ordenar por hora",
+    "newestFirst": "Lo más nuevo primero",
+    "oldestFirst": "El más antiguo primero",
+    "sortByVotingPower": "Ordenar por poder de voto",
+    "votingPower": "Poder de voto",
+    "highestPower": "Máxima potencia",
+    "lowestPower": "Potencia más baja"
+  },
+  "download": {
+    "downloadRationales": "Descargar justificaciones",
+    "json": "JSON",
+    "markdown": "Markdown",
+    "csv": "CSV"
+  },
+  "rationaleFilter": {
+    "allRecords": "Todos los registros",
+    "withRationale": "Con fundamentos"
+  },
+  "errors": {
+    "failedToLoadData": "Error al cargar datos",
+    "loadingGovernanceData": "Cargando datos de gobernanza..."
+  },
+  "accessibility": {
+    "website": "Página web",
+    "github": "GitHub",
+    "twitter": "X (Twitter)",
+    "switchToCompactView": "Cambiar a vista compacta",
+    "switchToDefaultView": "Cambiar a la vista por defecto",
+    "copyTransactionHash": "Copiar hash de transacción"
+  },
+  "footer": {
+    "builtBy": "Construido por Nomos | Mesh & SIDAN Lab."
+  },
+  "language": {
+    "en": "Inglés",
+    "de": "Deutsch",
+    "fr": "Français",
+    "es": "English",
+    "pt": "Português",
+    "ja": "日本語",
+    "zh": "中文",
+    "selectLanguage": "Seleccionar idioma"
+  },
+  "translation": {
+    "translate": "Traducir",
+    "translating": "Traducir...",
+    "showOriginal": "Mostrar original",
+    "translationFailed": "Traducción fallida",
+    "autoTranslated": "Traducción automática del inglés"
+  },
+  "expiry": {
+    "timeUntilExpiry": "Tiempo hasta la expiración",
+    "day": "día",
+    "days": "días",
+    "expired": "Expirado",
+    "subject": "Asunto",
+    "submissionDate": "Fecha de presentación",
+    "epochBoundary": "Límite de época",
+    "submissionEpoch": "Época de presentación",
+    "validUntilEpoch": "Válido hasta la época"
+  },
+  "tabs": {
+    "liveVoting": "Votación en vivo",
+    "thresholds": "Umbrales",
+    "bubbleMap": "Mapa de burbujas",
+    "curves": "Curvas",
+    "details": "Detalles"
+  },
+  "proposal": {
+    "backToDashboard": "Volver al panel",
+    "govActionNotFound": "Acción de gobernanza no encontrada",
+    "noOnChainData": "Aún no hay datos on-chain",
+    "notEligibleForAction": "No elegible para esta acción",
+    "noVotingActivity": "Aún no hay actividad de votación.",
+    "notEnoughData": "Aún no hay suficientes datos de votación.",
+    "drepVotes": "Votos DRep",
+    "ccVotes": "Votos CC",
+    "spoVotes": "Votos SPO",
+    "voted": "votaron",
+    "alwaysNoConfidence": "Siempre sin confianza",
+    "activeAbstain": "Abstención activa",
+    "alwaysAbstain": "Siempre abstención",
+    "inactive": "Inactivo",
+    "excluded": "Excluido",
+    "excludedFromRatification": "Excluido de la ratificación",
+    "votingTrend": "Tendencia de votación",
+    "cumulativePower": "Poder de voto acumulado (ADA)",
+    "cumulativeVotes": "Votos acumulados sí / no / abstención",
+    "roleOnly": "Solo {role}",
+    "yesPower": "Poder Sí",
+    "noPower": "Poder No",
+    "abstainPower": "Poder Abstención",
+    "yesVotes": "Votos Sí",
+    "noVotes": "Votos No",
+    "abstainVotes": "Votos Abstención",
+    "totalVotingPower": "Poder de voto total",
+    "approvalProgress": "Progreso de aprobación",
+    "ccMembers": "Miembros CC",
+    "members": "{count} miembros",
+    "noThresholdData": "No hay datos de umbral disponibles para esta propuesta.",
+    "votingParticipation": "Participación en la votación",
+    "governanceActionId": "ID de acción de gobernanza",
+    "legacyGovActionId": "ID legacy de acción de gobernanza (CIP-105)",
+    "transactionHash": "Hash de transacción",
+    "govActionType": "Tipo de acción",
+    "status": "Estado",
+    "constitutionality": "Constitucionalidad",
+    "notApplicable": "No aplicable",
+    "infoActionTooltip": "Las acciones Info son solo informativas y no requieren revisión constitucional ya que no cambian el protocolo.",
+    "pending": "Pendiente",
+    "votes": "votos",
+    "shareOnX": "Compartir en X"
+  },
+  "export": {
+    "noRationale": "No se proporcionó justificación.",
+    "voteYes": "Sí",
+    "voteNo": "No",
+    "voteAbstain": "Abstención",
+    "headingVotingRationales": "Justificaciones de voto",
+    "labelExported": "Exportado",
+    "labelTotalVotes": "Total de votos",
+    "labelVote": "Voto",
+    "labelVotingPower": "Poder de voto",
+    "labelVotedAt": "Votado el",
+    "labelRationaleLink": "Enlace de justificación",
+    "headingRationale": "Justificación",
+    "csvProposal": "Propuesta",
+    "csvVoterType": "Tipo de votante",
+    "csvVoterId": "ID del votante",
+    "csvVoterName": "Nombre del votante",
+    "csvVote": "Voto",
+    "csvVotingPower": "Poder de voto (ADA)",
+    "csvVotedAt": "Votado el",
+    "csvRationale": "Justificación",
+    "csvAnchorUrl": "URL de anclaje"
+  },
+  "wallet": {
+    "connectWallet": "Conectar billetera",
+    "walletConnected": "Billetera conectada",
+    "connecting": "Conectando...",
+    "disconnectWallet": "Desconectar billetera",
+    "connectedWallet": "Billetera conectada",
+    "stakeAddress": "Dirección de stake",
+    "walletConnectedDesc": "Tu billetera está conectada. Ahora puedes votar sobre acciones de gobernanza.",
+    "connectWalletDesc": "Conecta tu billetera Cardano para votar sobre acciones de gobernanza.",
+    "noWalletsDetected": "No se detectaron billeteras Cardano",
+    "installWalletExtension": "Por favor, instala una extensión de billetera Cardano para continuar.",
+    "connectToStartVoting": "Conéctate para votar",
+    "failedToConnect": "Error al conectar la billetera"
+  },
+  "voteAction": {
+    "castYourVote": "Emite tu voto",
+    "votingNoLongerAvailable": "La votación ya no está disponible para esta propuesta.",
+    "connectWalletToVote": "Conecta tu billetera para votar sobre esta acción de gobernanza.",
+    "selectVoteChoice": "Selecciona tu opción de voto:",
+    "voteSubmittedOnChain": "Tu voto se enviará on-chain como un voto DRep.",
+    "confirmYourVote": "Confirma tu voto",
+    "aboutToVote": "Estás a punto de votar <bold>{vote}</bold> en esta acción de gobernanza.",
+    "voteSubmittedSuccess": "¡Voto enviado con éxito!",
+    "voteSubmittedToBlockchain": "Tu voto ha sido enviado a la blockchain.",
+    "syncingVote": "Sincronizando tu voto... ({current}/{max})",
+    "voteSynced": "¡Voto sincronizado! Puedes verlo en los registros de votación abajo.",
+    "syncTimedOut": "Tiempo de sincronización agotado. Tu voto fue enviado con éxito.",
+    "syncTimedOutDetail": "Puede tardar unos minutos más en aparecer en los registros de votación.",
+    "preparingToSync": "Preparando sincronización...",
+    "viewUpdatedRecords": "Ver registros actualizados",
+    "close": "Cerrar",
+    "proposal": "Propuesta",
+    "rationaleUrlOptional": "URL de justificación (Opcional)",
+    "rationaleUrlPlaceholder": "https://... o ipfs://...",
+    "rationaleUrlHelp": "Proporciona una URL a tu justificación de voto (ej. enlace IPFS a un documento JSON).",
+    "cancel": "Cancelar",
+    "confirmVote": "Confirmar voto",
+    "submitting": "Enviando...",
+    "onChainTransactionNote": "Esto creará una transacción on-chain. Se te pedirá que firmes con tu billetera.",
+    "viewOnAdaStat": "Ver en AdaStat",
+    "drepIdError": "No se pudo obtener el ID de DRep. Asegúrate de que tu billetera esté registrada como DRep.",
+    "failedToSubmitVote": "Error al enviar el voto"
+  },
+  "votingSummary": {
+    "votingRecords": "Registros de votación",
+    "summaryOfVotes": "Resumen de votos y justificaciones",
+    "totalVotes": "Total de votos",
+    "yesVotes": "Votos Sí",
+    "noVotes": "Votos No",
+    "abstain": "Abstención"
+  },
+  "rationaleModal": {
+    "votingRationale": "Justificación del voto",
+    "unknownVoter": "Votante desconocido",
+    "rationale": "Justificación",
+    "openOnIpfs": "Abrir en IPFS",
+    "ipfs": "IPFS",
+    "noRationaleData": "No se proporcionaron datos de justificación."
+  }
+}

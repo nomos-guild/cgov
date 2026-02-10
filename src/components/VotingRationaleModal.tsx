@@ -6,8 +6,10 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ExternalLink } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { VoteRecord } from "@/types/governance";
 import { useTheme } from "@/lib/theme";
+import { useContentTranslation } from "@/hooks/useContentTranslation";
 import { cn } from "@/lib/utils";
 
 interface VotingRationaleModalProps {
@@ -81,16 +83,23 @@ export function VotingRationaleModal({
   onOpenChange,
 }: VotingRationaleModalProps) {
   const { activeTheme } = useTheme();
+  const t = useTranslations("rationaleModal");
+  const tt = useTranslations("translation");
   const isGame = activeTheme.id === "game";
-  if (!vote) return null;
-  const isNoVote = vote.vote === "No";
 
   // Prefer rationale text returned directly from the backend/database.
   // This may contain either plain text or a CIP-100-style JSON structure.
-  const rationaleText =
-    vote.rationale && vote.rationale.trim().length > 0
-      ? extractRationaleText(vote.rationale).trim()
-      : "";
+  const rationaleText = vote?.rationale && vote.rationale.trim().length > 0
+    ? extractRationaleText(vote.rationale).trim()
+    : "";
+
+  // Auto-translate rationale when locale is not English
+  const rationaleTranslation = useContentTranslation({
+    originalText: rationaleText,
+  });
+
+  if (!vote) return null;
+  const isNoVote = vote.vote === "No";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -105,7 +114,7 @@ export function VotingRationaleModal({
       >
         <DialogHeader>
           <DialogTitle className={cn("text-xl sm:text-2xl font-bold", isGame ? "text-white" : "dark:text-[#0bd1a2]")}>
-            Voting Rationale
+            {t("votingRationale")}
           </DialogTitle>
         </DialogHeader>
         
@@ -115,7 +124,7 @@ export function VotingRationaleModal({
               {/* Compact voter info on mobile */}
               <div className="space-y-2 sm:space-y-3 pb-3 sm:pb-4 border-b border-white/10">
                 <div className="flex flex-wrap items-center gap-2 text-sm text-white">
-                  <span className="font-semibold">{vote.voterName ?? vote.drepName ?? vote.voterId ?? vote.drepId ?? "Unknown voter"}</span>
+                  <span className="font-semibold">{vote.voterName ?? vote.drepName ?? vote.voterId ?? vote.drepId ?? t("unknownVoter")}</span>
                   <span className={cn("text-xs px-1.5 py-0.5 rounded", vote.vote === "Yes" ? "bg-green-400/20 text-green-400" : vote.vote === "No" ? "bg-red-400/20 text-red-400" : "bg-white/10 text-white/70")}>{vote.vote}</span>
                   {vote.voterType !== "CC" && vote.votingPowerAda && (
                     <span className="text-xs text-white/70">{vote.votingPowerAda.toLocaleString()} ADA</span>
@@ -128,7 +137,7 @@ export function VotingRationaleModal({
 
               <div className="flex-1 flex flex-col min-h-0">
                 <div className="flex items-center justify-between mb-2 sm:mb-4">
-                  <h2 className="text-base sm:text-xl font-semibold text-white">Rationale</h2>
+                  <h2 className="text-base sm:text-xl font-semibold text-white">{t("rationale")}</h2>
                   {vote.anchorUrl && (
                     <a
                       href={resolveAnchorUrl(vote.anchorUrl)}
@@ -137,17 +146,29 @@ export function VotingRationaleModal({
                       className="hover:underline text-xs sm:text-sm flex items-center gap-1 text-white/70 hover:text-white"
                     >
                       <ExternalLink className="h-3 w-3" />
-                      <span className="hidden sm:inline">Open on IPFS</span>
-                      <span className="sm:hidden">IPFS</span>
+                      <span className="hidden sm:inline">{t("openOnIpfs")}</span>
+                      <span className="sm:hidden">{t("ipfs")}</span>
                     </a>
                   )}
                 </div>
                 <ScrollArea className="h-[45vh] sm:h-[400px] w-full overflow-hidden">
                   <div className="text-sm whitespace-pre-wrap leading-relaxed text-white game-proposal-content mr-3 [overflow-wrap:anywhere]">
-                    {rationaleText.length > 0
-                      ? rationaleText
-                      : "No rationale data provided."}
+                    {rationaleText.length > 0 ? (
+                      rationaleTranslation.isTranslating ? (
+                        <span className="opacity-50">{rationaleText}</span>
+                      ) : (
+                        rationaleTranslation.displayText
+                      )
+                    ) : (
+                      t("noRationaleData")
+                    )}
                   </div>
+                  {rationaleTranslation.isTranslating && (
+                    <div className="flex items-center gap-2 mt-2 text-xs text-white/50">
+                      <div className="h-3 w-3 animate-spin rounded-full border-2 border-white/50 border-t-transparent" />
+                      {tt("translating")}
+                    </div>
+                  )}
                 </ScrollArea>
               </div>
             </>
@@ -156,7 +177,7 @@ export function VotingRationaleModal({
               {/* Compact voter info on mobile */}
               <div className="rounded-xl sm:rounded-2xl border border-white/8 bg-[#faf9f6] p-3 sm:p-5 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none space-y-2 sm:space-y-3">
                 <div className="flex flex-wrap items-center gap-2 text-sm dark:text-[#0bd1a2]">
-                  <span className="font-semibold">{vote.voterName ?? vote.drepName ?? vote.voterId ?? vote.drepId ?? "Unknown voter"}</span>
+                  <span className="font-semibold">{vote.voterName ?? vote.drepName ?? vote.voterId ?? vote.drepId ?? t("unknownVoter")}</span>
                   <span className="text-xs px-1.5 py-0.5 rounded border border-current">{vote.vote}</span>
                   {vote.voterType !== "CC" && vote.votingPowerAda && (
                     <span className="text-xs text-muted-foreground dark:text-[#0bd1a2]">{vote.votingPowerAda.toLocaleString()} ADA</span>
@@ -169,7 +190,7 @@ export function VotingRationaleModal({
 
               <div className="flex-1 flex flex-col min-h-0">
                 <div className="flex items-center justify-between mb-2 sm:mb-4">
-                  <h2 className="text-base sm:text-xl font-semibold dark:text-[#0bd1a2]">Rationale</h2>
+                  <h2 className="text-base sm:text-xl font-semibold dark:text-[#0bd1a2]">{t("rationale")}</h2>
                   {vote.anchorUrl && (
                     <a
                       href={resolveAnchorUrl(vote.anchorUrl)}
@@ -178,17 +199,29 @@ export function VotingRationaleModal({
                       className="text-foreground hover:underline text-xs sm:text-sm flex items-center gap-1 dark:text-[#0bd1a2]"
                     >
                       <ExternalLink className="h-3 w-3" />
-                      <span className="hidden sm:inline">Open on IPFS</span>
-                      <span className="sm:hidden">IPFS</span>
+                      <span className="hidden sm:inline">{t("openOnIpfs")}</span>
+                      <span className="sm:hidden">{t("ipfs")}</span>
                     </a>
                   )}
                 </div>
                 <ScrollArea className="h-[45vh] sm:h-[400px] w-full overflow-hidden">
                   <div className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed dark:text-[#0bd1a2] mr-3 [overflow-wrap:anywhere]">
-                    {rationaleText.length > 0
-                      ? rationaleText
-                      : "No rationale data provided."}
+                    {rationaleText.length > 0 ? (
+                      rationaleTranslation.isTranslating ? (
+                        <span className="opacity-50">{rationaleText}</span>
+                      ) : (
+                        rationaleTranslation.displayText
+                      )
+                    ) : (
+                      t("noRationaleData")
+                    )}
                   </div>
+                  {rationaleTranslation.isTranslating && (
+                    <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                      <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                      {tt("translating")}
+                    </div>
+                  )}
                 </ScrollArea>
               </div>
             </>

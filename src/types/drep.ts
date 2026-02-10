@@ -1,0 +1,129 @@
+/**
+ * DRep Dashboard Types
+ * Types for DRep listing and profile pages
+ */
+
+/**
+ * Pagination metadata for paginated responses
+ */
+export interface DRepPagination {
+  page: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
+}
+
+/**
+ * DRep summary for listing page
+ */
+export interface DRepSummary {
+  drepId: string;
+  name: string | null;
+  iconUrl: string | null;
+  /** Voting power in lovelace (as string for BigInt) */
+  votingPower: string;
+  /** Voting power in ADA */
+  votingPowerAda: number;
+  /** Total number of votes cast by this DRep */
+  totalVotesCast: number;
+  /** Number of wallets delegated to this DRep */
+  delegatorCount: number | null;
+}
+
+/**
+ * Aggregate DRep statistics for the overview
+ */
+export interface DRepStats {
+  /** Total number of DReps */
+  totalDReps: number;
+  /** Total delegated voting power in lovelace (as string) */
+  totalDelegatedLovelace: string;
+  /** Total delegated voting power in ADA */
+  totalDelegatedAda: number;
+  /** Total number of votes cast by all DReps */
+  totalVotesCast: number;
+  /** Number of DReps who have cast at least one vote */
+  activeDReps: number;
+}
+
+/**
+ * Vote breakdown counts
+ */
+export interface VoteBreakdown {
+  yes: number;
+  no: number;
+  abstain: number;
+}
+
+/**
+ * Detailed DRep profile
+ */
+export interface DRepDetail {
+  drepId: string;
+  name: string | null;
+  iconUrl: string | null;
+  paymentAddr: string | null;
+  /** Voting power in lovelace */
+  votingPower: string;
+  /** Voting power in ADA */
+  votingPowerAda: number;
+  /** Total number of votes cast */
+  totalVotesCast: number;
+  /** Breakdown of votes by type */
+  voteBreakdown: VoteBreakdown;
+  /** Number of votes with rationale provided */
+  rationalesProvided: number;
+  /** Percentage of proposals this DRep has voted on (0-100) */
+  proposalParticipationPercent: number;
+  /** Number of wallets delegated to this DRep */
+  delegatorCount: number | null;
+}
+
+/**
+ * Single vote record in DRep voting history
+ */
+export interface DRepVoteRecord {
+  /** Proposal ID */
+  proposalId: string;
+  /** Proposal title */
+  proposalTitle: string;
+  /** Governance action type */
+  proposalType: string | null;
+  /** Vote cast (Yes, No, Abstain) */
+  vote: "Yes" | "No" | "Abstain";
+  /** Voting power at time of vote (lovelace as string) */
+  votingPower: string | null;
+  /** Voting power in ADA */
+  votingPowerAda: number;
+  /** Vote rationale text */
+  rationale: string | null;
+  /** Anchor URL for rationale */
+  anchorUrl: string | null;
+  /** Timestamp when vote was cast */
+  votedAt: string | null;
+  /** Transaction hash */
+  txHash: string;
+}
+
+/**
+ * Response for DRep list endpoint
+ */
+export interface DRepListResponse {
+  dreps: DRepSummary[];
+  pagination: DRepPagination;
+}
+
+/**
+ * Response for DRep votes endpoint
+ */
+export interface DRepVotesResponse {
+  drepId: string;
+  votes: DRepVoteRecord[];
+  pagination: DRepPagination;
+}
+
+/**
+ * Sort options for DRep list
+ */
+export type DRepSortBy = "votingPower" | "name" | "totalVotes";
+export type SortOrder = "asc" | "desc";

@@ -1,10 +1,12 @@
 import { useMemo } from "react";
+import { useTranslations } from "next-intl";
 import { Progress } from "@/components/ui/progress";
 import { useAppSelector } from "@/store/hooks";
 import { useTheme } from "@/lib/theme";
 import type { NCLDisplayData } from "@/types/governance";
 
 export function GovernanceStats() {
+  const t = useTranslations("stats");
   const { actions, nclDataList } = useAppSelector((state) => state.governance);
   const { activeTheme } = useTheme();
   const isDarkTheme = activeTheme.isDark;
@@ -50,7 +52,7 @@ export function GovernanceStats() {
       <div className="rounded-2xl border border-white/8 bg-[#faf9f6] p-2.5 sm:p-3 md:p-4 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none game-stats-ncl">
         <div className="flex items-center justify-between mb-1.5 sm:mb-2">
           <span className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wide dark:text-[#0bd1a2]">
-            {ncl.year} NCL
+            {t("ncl", { year: ncl.year })}
           </span>
           <span className="text-xs sm:text-sm font-semibold dark:text-[#0bd1a2]">
             {progress.toFixed(1)}%
@@ -82,7 +84,7 @@ export function GovernanceStats() {
           <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-2">
             <span className="text-xl sm:text-2xl md:text-3xl font-bold dark:text-[#0bd1a2]">{stats.total}</span>
             <span className="text-[10px] sm:text-xs md:text-sm text-muted-foreground uppercase tracking-wide dark:text-[#0bd1a2]">
-              Total
+              {t("total")}
             </span>
           </div>
 
@@ -93,7 +95,7 @@ export function GovernanceStats() {
                 {stats.active}
               </span>
               <span className="text-[10px] sm:text-xs md:text-sm text-muted-foreground dark:text-[#0bd1a2]">
-                Active
+                {t("active")}
               </span>
             </div>
 
@@ -102,7 +104,7 @@ export function GovernanceStats() {
                 {stats.ratified}
               </span>
               <span className="text-[10px] sm:text-xs md:text-sm text-muted-foreground dark:text-[#0bd1a2]">
-                Ratified
+                {t("ratified")}
               </span>
             </div>
 
@@ -111,7 +113,7 @@ export function GovernanceStats() {
                 {stats.expired}
               </span>
               <span className="text-[10px] sm:text-xs md:text-sm text-muted-foreground dark:text-[#0bd1a2]">
-                Expired
+                {t("expired")}
               </span>
             </div>
           </div>

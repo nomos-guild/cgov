@@ -27,6 +27,7 @@ import type {
   NetworkGraphData,
   DevelopmentRecent,
 } from "@/types/development";
+import type { DRepStats } from "@/types/drep";
 
 /**
  * Generic fetch wrapper with error handling.
@@ -446,4 +447,34 @@ export async function fetchDevNetwork(): Promise<NetworkGraphData> {
 
 export async function fetchDevRecent(): Promise<DevelopmentRecent> {
   return fetchApi<DevelopmentRecent>(API_ENDPOINTS.devRecent);
+}
+
+// =============================================================================
+// DRep API Functions
+// =============================================================================
+
+/** Raw API response for DRep stats (before transformation) */
+interface DRepStatsApiResponse {
+  totalDReps: number;
+  totalDelegatedLovelace: string;
+  totalDelegatedAda: string;
+  totalVotesCast: number;
+  activeDReps: number;
+}
+
+/**
+ * Fetch aggregate DRep statistics
+ * Returns: Total DReps, delegated ADA, votes cast, active DReps
+ */
+export async function fetchDRepStats(): Promise<DRepStats> {
+  const data = await fetchApi<DRepStatsApiResponse>(API_ENDPOINTS.drepStats);
+
+  // Transform API response - convert string ADA to number
+  return {
+    totalDReps: data.totalDReps,
+    totalDelegatedLovelace: data.totalDelegatedLovelace,
+    totalDelegatedAda: parseFloat(data.totalDelegatedAda) || 0,
+    totalVotesCast: data.totalVotesCast,
+    activeDReps: data.activeDReps,
+  };
 }

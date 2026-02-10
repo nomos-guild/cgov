@@ -1,10 +1,6 @@
 ---
 name: add-dashboard
-version: 1.0.0
-created: 2026-02-02
-last-evolved: null
-evolution-count: 0
-feedback-count: 0
+updated: 2026-02-04
 description: Create a new customizable dashboard with its own chart registry, provider, and page. Use when adding dashboards like DRep or SPO dashboard.
 argument-hint: [DashboardName]
 allowed-tools: Read, Edit, Write, Glob, Grep, Bash
@@ -20,33 +16,46 @@ Create a complete new dashboard instance with its own charts, state management, 
 
 ## Architecture Overview
 
-Each dashboard is a self-contained module:
+Each dashboard is a self-contained module with these features:
+- **Charts**: Lazy-loaded chart components in a registry
+- **Side Panel**: Tabbed panel for Charts, Elements, Layout, Share
+- **Text Elements**: User-addable text labels
+- **Page Margins**: Draggable margin handles for width control
+- **Multi-Select**: Box selection and Ctrl+click for multiple elements
+- **localStorage**: All settings persist per-dashboard
 
 ```
 src/
 ├── components/dashboards/
 │   ├── shared/                    # Reused across all dashboards
 │   │   ├── DashboardProvider.tsx  # State + localStorage (COPY & MODIFY)
-│   │   ├── DashboardGrid.tsx      # Canvas (REUSE AS-IS or COPY)
+│   │   ├── DashboardGrid.tsx      # Canvas with selection (COPY & MODIFY)
 │   │   ├── DashboardChartCard.tsx # Chart wrapper (REUSE AS-IS)
+│   │   ├── DashboardTextElement.tsx # Text labels (REUSE AS-IS)
+│   │   ├── DashboardSidePanel.tsx # Customization panel (COPY & MODIFY)
+│   │   ├── DashboardMarginHandles.tsx # Margin controls (REUSE AS-IS)
 │   │   └── chartTheme.ts          # Theme colors (REUSE AS-IS)
 │   │
-│   ├── governance/                # Existing governance dashboard
+│   ├── governance/                # Reference implementation
 │   │   └── charts/
 │   │       ├── index.tsx          # CHART_REGISTRY
 │   │       └── *.tsx              # Chart components
 │   │
 │   └── ${lowercase}/              # YOUR NEW DASHBOARD
-│       └── charts/
-│           ├── index.tsx          # CHART_REGISTRY for this dashboard
-│           └── *.tsx              # Chart components
+│       ├── charts/
+│       │   ├── index.tsx          # CHART_REGISTRY for this dashboard
+│       │   └── *.tsx              # Chart components
+│       ├── ${$0}DashboardProvider.tsx
+│       ├── ${$0}DashboardGrid.tsx
+│       ├── ${$0}DashboardSidePanel.tsx
+│       └── index.ts               # Barrel export
 │
 ├── pages/
 │   ├── dashboard.tsx              # Governance dashboard page
 │   └── ${lowercase}-dashboard.tsx # YOUR NEW DASHBOARD PAGE
 │
 └── types/
-    └── dashboard.ts               # Shared types (may need dashboard-specific types)
+    └── ${lowercase}-dashboard.ts  # Dashboard-specific types
 ```
 
 ---
@@ -103,7 +112,8 @@ export { Example${$0}Chart };
 Create `src/types/${lowercase}-dashboard.ts`:
 
 ```typescript
-import type { ChartLayout } from "./dashboard";
+import type { ChartLayout, TextElement, PageMargins } from "./dashboard";
+import { PAGE_MARGIN_CONSTRAINTS, DEFAULT_PAGE_MARGINS } from "./dashboard";
 
 /**
  * Chart IDs for the ${$0} dashboard
@@ -129,6 +139,8 @@ export interface ${$0}DashboardConfig {
   visibleCharts: ${$0}ChartId[];
   chartOrder: ${$0}ChartId[];
   layouts: Record<${$0}ChartId, ChartLayout>;
+  textElements: TextElement[];
+  pageMargins: PageMargins;
   version: number;
 }
 
@@ -136,8 +148,13 @@ export const DEFAULT_${UPPERCASE}_DASHBOARD_CONFIG: ${$0}DashboardConfig = {
   visibleCharts: ALL_${UPPERCASE}_CHART_IDS,
   chartOrder: ALL_${UPPERCASE}_CHART_IDS,
   layouts: DEFAULT_${UPPERCASE}_CHART_LAYOUTS,
+  textElements: [],
+  pageMargins: DEFAULT_PAGE_MARGINS,
   version: 1,
 };
+
+// Re-export shared constraints
+export { PAGE_MARGIN_CONSTRAINTS };
 ```
 
 ---
@@ -150,11 +167,8 @@ Copy from `shared/DashboardProvider.tsx` and modify:
 
 1. Change `STORAGE_KEY` to `"${lowercase}-dashboard-config"`
 2. Update imports to use `${$0}ChartId`, `${$0}DashboardConfig`, etc.
-3. Update default config import
-4. Rename context and hook:
-   - `${$0}DashboardContext`
-   - `${$0}DashboardProvider`
-   - `use${$0}Dashboard`
+3. Update default config imports
+4. Rename context and hook
 
 Key changes:
 
@@ -170,7 +184,27 @@ import {
   DEFAULT_${UPPERCASE}_DASHBOARD_CONFIG,
   DEFAULT_${UPPERCASE}_CHART_LAYOUTS,
   ALL_${UPPERCASE}_CHART_IDS,
+  PAGE_MARGIN_CONSTRAINTS,
 } from "@/types/${lowercase}-dashboard";
+
+// Context value includes all these methods:
+interface ${$0}DashboardContextValue {
+  config: ${$0}DashboardConfig;
+  mounted: boolean;
+  isChartVisible: (chartId: ${$0}ChartId) => boolean;
+  toggleChartVisibility: (chartId: ${$0}ChartId) => void;
+  setVisibleCharts: (chartIds: ${$0}ChartId[]) => void;
+  getLayout: (chartId: ${$0}ChartId) => ChartLayout;
+  updateLayout: (chartId: ${$0}ChartId, layout: Partial<ChartLayout>) => void;
+  reorderCharts: (fromIndex: number, toIndex: number) => void;
+  resetToDefaults: () => void;
+  addTextElement: () => void;
+  updateTextElement: (id: string, updates: Partial<TextElement>) => void;
+  removeTextElement: (id: string) => void;
+  updatePageMargins: (margins: Partial<PageMargins>) => void;
+  exportConfig: () => string;
+  importConfig: (code: string) => { success: boolean; error?: string };
+}
 
 // Rename exports
 export function ${$0}DashboardProvider({ children }) { ... }
@@ -179,24 +213,87 @@ export function use${$0}Dashboard() { ... }
 
 ---
 
-## Step 5: Create Dashboard Grid (Optional)
+## Step 5: Create Dashboard Grid
 
-If using the same grid behavior, you can reuse `DashboardGrid` by making it generic.
-
-Or create `src/components/dashboards/${lowercase}/${$0}DashboardGrid.tsx`:
+Create `src/components/dashboards/${lowercase}/${$0}DashboardGrid.tsx`:
 
 Copy from `shared/DashboardGrid.tsx` and modify:
+
 1. Import from your chart registry: `${UPPERCASE}_CHART_REGISTRY, get${$0}ChartById`
 2. Use your dashboard hook: `use${$0}Dashboard`
 3. Update type references to `${$0}ChartId`
 
+### Key Features to Preserve
+
+**Data Attributes** (required for selection exclusion):
+```typescript
+// Charts use data-chart-card
+<DashboardChartCard data-chart-card ... />
+
+// Text elements use data-text-element
+<DashboardTextElement data-text-element ... />
+```
+
+**Document-Level Selection Handler**:
+```typescript
+useEffect(() => {
+  const handleMouseDown = (e: MouseEvent) => {
+    const target = e.target as HTMLElement;
+    // Exclude interactive elements from starting selection
+    if (target.closest("[data-chart-card], [data-text-element], [data-margin-handle], button, [role='button'], input, textarea, a")) {
+      return;
+    }
+    // Start selection box...
+  };
+  document.addEventListener("mousedown", handleMouseDown);
+  return () => document.removeEventListener("mousedown", handleMouseDown);
+}, []);
+```
+
+**Card Position Constraints** (when margins change):
+```typescript
+useEffect(() => {
+  if (!mounted || containerWidth < 400) return;
+  for (const chartId of config.visibleCharts) {
+    const layout = getLayout(chartId);
+    const maxX = Math.max(0, containerWidth - layout.width);
+    if (layout.x > maxX) {
+      updateLayout(chartId, { x: snapToGrid(maxX) });
+    }
+  }
+}, [containerWidth, mounted, ...]);
+```
+
 ---
 
-## Step 6: Create Dashboard Page
+## Step 6: Create Side Panel
+
+Create `src/components/dashboards/${lowercase}/${$0}DashboardSidePanel.tsx`:
+
+Copy from `shared/DashboardSidePanel.tsx` and modify:
+
+1. Import your chart registry: `get${$0}ChartById`
+2. Use your dashboard hook: `use${$0}Dashboard`
+
+### Side Panel Tabs
+
+The panel has 4 tabs:
+
+| Tab | Purpose |
+|-----|---------|
+| **Charts** | Toggle visibility, reorder via drag |
+| **Elements** | Add/manage text labels |
+| **Layout** | Page margin sliders |
+| **Share** | Export/import config as base64 |
+
+---
+
+## Step 7: Create Dashboard Page
 
 Create `src/pages/${lowercase}-dashboard.tsx`:
 
 ```typescript
+import { useRef } from "react";
 import Head from "next/head";
 import { Card } from "@/components/ui/card";
 import { GameLoader } from "@/components/ui/game-loader";
@@ -204,8 +301,10 @@ import { useTheme } from "@/lib/theme";
 import {
   ${$0}DashboardProvider,
   ${$0}DashboardGrid,
-  ${$0}ChartVisibilityDropdown,
+  ${$0}DashboardSidePanel,
+  use${$0}Dashboard,
 } from "@/components/dashboards/${lowercase}";
+import { DashboardMarginHandles } from "@/components/dashboards/shared";
 
 // Add your data loading hook
 // import { use${$0}DataLoader } from "@/hooks/use${$0}Data";
@@ -213,11 +312,18 @@ import {
 function ${$0}DashboardContent() {
   const { activeTheme } = useTheme();
   const isGame = activeTheme.id === "game";
+  const { config, mounted } = use${$0}Dashboard();
+  const gridAreaRef = useRef<HTMLDivElement>(null);
 
   // Replace with your data loader
   const isLoading = false;
   const error = null;
   const hasData = true;
+
+  // Calculate padding based on margins
+  const minPadding = 24;
+  const leftPadding = Math.max(minPadding, config.pageMargins.left);
+  const rightPadding = Math.max(minPadding, config.pageMargins.right);
 
   return (
     <>
@@ -226,7 +332,17 @@ function ${$0}DashboardContent() {
         <meta name="description" content="${$0} Dashboard" />
       </Head>
       <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 md:px-6 md:py-8">
+        {/* Margin handles - only show when mounted */}
+        {mounted && <DashboardMarginHandles containerRef={gridAreaRef} />}
+
+        {/* Full-width container with dynamic padding */}
+        <div
+          className="py-4 sm:py-6 md:py-8 transition-[padding] duration-75"
+          style={{
+            paddingLeft: leftPadding,
+            paddingRight: rightPadding,
+          }}
+        >
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 sm:mb-6 md:mb-8">
             <div className="text-left">
@@ -237,15 +353,8 @@ function ${$0}DashboardContent() {
                 Your customizable ${$0} overview
               </p>
             </div>
-            <${$0}ChartVisibilityDropdown />
+            <${$0}DashboardSidePanel />
           </div>
-
-          {/* Error state */}
-          {error && (
-            <Card className="p-4 sm:p-6 mb-4 sm:mb-6 border-destructive bg-destructive/10">
-              <p className="text-destructive font-medium text-center">{error}</p>
-            </Card>
-          )}
 
           {/* Loading state */}
           {isLoading && !hasData && (
@@ -263,8 +372,21 @@ function ${$0}DashboardContent() {
             )
           )}
 
-          {/* Dashboard Grid */}
-          {hasData && <${$0}DashboardGrid isLoading={isLoading} />}
+          {/* Error state - inline warning, doesn't block content */}
+          {error && (
+            <Card className="p-3 sm:p-4 mb-4 sm:mb-6 border-destructive/50 bg-destructive/5">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-destructive text-sm">{error}</p>
+              </div>
+            </Card>
+          )}
+
+          {/* Dashboard Grid - show even if some data fails */}
+          {(hasData || (!isLoading && error)) && (
+            <div ref={gridAreaRef}>
+              <${$0}DashboardGrid isLoading={isLoading} />
+            </div>
+          )}
         </div>
       </div>
     </>
@@ -282,7 +404,7 @@ export default function ${$0}Dashboard() {
 
 ---
 
-## Step 7: Create First Chart
+## Step 8: Create First Chart
 
 Create `src/components/dashboards/${lowercase}/charts/Example${$0}Chart.tsx`:
 
@@ -290,22 +412,36 @@ Use the `/add-chart` skill patterns but place in your dashboard's charts folder.
 
 ---
 
-## Step 8: Create Barrel Export
+## Step 9: Create Barrel Export
 
 Create `src/components/dashboards/${lowercase}/index.ts`:
 
 ```typescript
 export { ${$0}DashboardProvider, use${$0}Dashboard } from "./${$0}DashboardProvider";
 export { ${$0}DashboardGrid } from "./${$0}DashboardGrid";
-export { ${$0}ChartVisibilityDropdown } from "./${$0}ChartVisibilityDropdown";
+export { ${$0}DashboardSidePanel } from "./${$0}DashboardSidePanel";
 export { ${UPPERCASE}_CHART_REGISTRY, get${$0}ChartById } from "./charts";
 ```
 
 ---
 
-## Step 9: Add Navigation Link (Optional)
+## Step 10: Add Navigation Link (Optional)
 
 Update header navigation to include link to new dashboard.
+
+---
+
+## Data Attributes Reference
+
+These data attributes are used for selection box exclusion:
+
+| Attribute | Element | Purpose |
+|-----------|---------|---------|
+| `data-chart-card` | Chart wrapper | Exclude from selection start |
+| `data-text-element` | Text label | Exclude from selection start |
+| `data-margin-handle` | Margin lines | Exclude from selection start |
+
+When dragging starts on elements with these attributes, the selection box won't activate.
 
 ---
 
@@ -316,11 +452,39 @@ Update header navigation to include link to new dashboard.
 | `components/dashboards/${lowercase}/charts/index.tsx` | Chart registry |
 | `components/dashboards/${lowercase}/charts/Example${$0}Chart.tsx` | First chart |
 | `components/dashboards/${lowercase}/${$0}DashboardProvider.tsx` | State management |
-| `components/dashboards/${lowercase}/${$0}DashboardGrid.tsx` | Grid canvas |
-| `components/dashboards/${lowercase}/${$0}ChartVisibilityDropdown.tsx` | Visibility toggle |
+| `components/dashboards/${lowercase}/${$0}DashboardGrid.tsx` | Grid canvas with selection |
+| `components/dashboards/${lowercase}/${$0}DashboardSidePanel.tsx` | Customization panel |
 | `components/dashboards/${lowercase}/index.ts` | Barrel export |
 | `types/${lowercase}-dashboard.ts` | Dashboard-specific types |
 | `pages/${lowercase}-dashboard.tsx` | Dashboard page |
+
+---
+
+## Gotchas: Graceful Degradation
+
+**Never gate all page content behind a single data endpoint's success.** When a page uses multiple independent API endpoints, each section should handle errors independently:
+
+- Stats/summary cards: Show "--" when their endpoint fails
+- Lists/tables from separate endpoints: Render even if stats fail
+- Charts: Show empty state, not a full-page error
+- Use inline warnings instead of full-page blocking error cards
+
+**Anti-pattern:**
+```tsx
+{error && <FullPageError />}
+{data && !error && <AllContent />}
+```
+
+**Correct pattern:**
+```tsx
+{!isLoading && (
+  <>
+    {error && <InlineWarning />}
+    {data && <DataDependentSection />}
+    <IndependentSection /> {/* always renders */}
+  </>
+)}
+```
 
 ---
 
@@ -330,5 +494,10 @@ Update header navigation to include link to new dashboard.
 2. [ ] Charts display with correct theming (all 3 themes)
 3. [ ] Drag and resize work correctly
 4. [ ] Layout persists to localStorage (separate from governance)
-5. [ ] Chart visibility dropdown works
-6. [ ] Run `npm run build` - no TypeScript errors
+5. [ ] Side panel opens with all 4 tabs working
+6. [ ] Text elements can be added and edited
+7. [ ] Page margins can be adjusted via handles and sliders
+8. [ ] Box selection works for multi-select
+9. [ ] Export/import config works
+10. [ ] Page degrades gracefully when backend endpoints fail (no full-page errors)
+11. [ ] Run `npm run build` - no TypeScript errors

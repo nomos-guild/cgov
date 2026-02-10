@@ -1,185 +1,144 @@
 ---
 name: journey
-version: 1.0.0
-created: 2026-02-02
-last-evolved: null
-evolution-count: 0
-feedback-count: 0
-description: Save a session summary capturing what was done, learned, and discovered. Creates institutional memory for future sessions.
-argument-hint: [title] or [--list] or [--read filename]
-allowed-tools: Read, Write, Edit, Glob, Grep, AskUserQuestion
+updated: 2026-02-02
+description: Create session learning logs that persist institutional memory across Claude Code sessions.
 ---
 
-# Journey - Session Learning Log
+# Journey Skill
 
-Save a summary of what was accomplished and learned during a coding session. These journey files persist across sessions, allowing future AI sessions to learn from past work.
+Create or update session learning logs that persist institutional memory across Claude Code sessions.
 
-## Arguments
+## When to Use
 
-- `$0` - Journey title (e.g., "Theme Border Fixes", "API Refactoring")
-- Or special commands:
-  - `--list` - List all journey files
-  - `--read {filename}` - Read a specific journey
-  - `--recent` - Show most recent journeys
+Use `/journey` when:
+- After completing significant work in a session
+- After discovering important patterns or learnings
+- After making architectural decisions
+- After fixing non-trivial bugs
+- When the session contains knowledge worth preserving
 
----
+## Commands
 
-## Mode 1: Save a Journey
+### Create New Journey
+```
+/journey {title}
+```
+Creates a new journey file with a summary of the current session.
 
-### Step 1: Gather Information
+### List Journeys
+```
+/journey --list
+```
+Shows all existing journeys.
 
-Use `AskUserQuestion` to collect:
+### Read Journey
+```
+/journey --read {filename}
+```
+Reads a specific journey file.
 
-1. **What was accomplished?** - Main tasks completed
-2. **Key learnings?** - Patterns discovered, gotchas found
-3. **Any decisions made?** - Architectural choices, trade-offs
+### Show Recent
+```
+/journey --recent
+```
+Shows the 5 most recent journeys.
 
-Or infer from the conversation context if the information is clear.
+## Journey File Format
 
-### Step 2: Create Journey File
+Journeys are saved to `.claude/journeys/` with naming: `YYYY-MM-DD-{slug}.md`
 
-Create file at `.claude/journeys/{YYYY-MM-DD}-{kebab-case-title}.md`:
+### Template Structure
 
 ```markdown
 # Journey: {Title}
 
-**Date:** {YYYY-MM-DD}
-**Duration:** {approximate time if known}
-**Tags:** {relevant tags like #theming #bugfix #feature}
+**Date:** YYYY-MM-DD
+**Tags:** #tag1 #tag2 #tag3
 
 ## Summary
 
-{1-3 sentence overview of what was accomplished}
+1-3 sentences describing what was accomplished and why it matters.
 
 ## What Was Done
 
-- {Task 1}
-- {Task 2}
-- {Task 3}
+1. **First major item**
+   - Details
+   - More details
+
+2. **Second major item**
+   - Details
 
 ## Key Learnings
 
-- **{Learning 1 title}**: {explanation}
-- **{Learning 2 title}**: {explanation}
+- **Learning 1**: Explanation with context
+- **Learning 2**: Explanation with context
 
 ## Files Changed
 
 | File | Change |
 |------|--------|
-| `{path}` | {brief description} |
+| `path/to/file.ts` | Brief description |
 
 ## Patterns Discovered
 
-{Any reusable patterns or conventions discovered}
+### Pattern Name
+\`\`\`code
+// Example code showing the pattern
+\`\`\`
 
 ## Decisions Made
 
 | Decision | Rationale |
 |----------|-----------|
-| {Decision} | {Why} |
+| Choice made | Why it was made |
 
 ## Connected To
 
-- {Related skills, previous journeys, or documentation}
-
-## Open Questions / Next Steps
-
-- {Any unresolved items for future sessions}
+- Related skills, files, or future work
 ```
 
-### Step 3: Confirm
+## Writing Guidelines
 
-Tell the user:
-- Journey saved at `{path}`
-- Remind them it will be available for future sessions
+### Summary
+- Be concise but specific
+- Mention the "why" not just the "what"
+- Future Claude sessions should understand the context
 
----
+### Key Learnings
+- Focus on insights that prevent future mistakes
+- Include code patterns when relevant
+- Explain the "gotcha" moments
 
-## Mode 2: List Journeys
-
-### `--list`
-
-```bash
-# List all journey files
-ls -la .claude/journeys/*.md
-```
-
-Output format:
-```
-Available Journeys:
-  2026-02-02-skill-evolution-system.md - Skill Evolution System
-  2026-02-02-theme-border-fixes.md - Theme Border Fixes
-  ...
-```
-
----
-
-## Mode 3: Read Journey
-
-### `--read {filename}`
-
-1. Read the specified journey file
-2. Display formatted content to user
-3. Highlight key learnings and patterns
-
----
-
-## Mode 4: Recent Journeys
-
-### `--recent`
-
-1. List the 5 most recent journey files
-2. Show title, date, and summary for each
-3. Useful for quick context at session start
-
----
-
-## Journey File Guidelines
-
-### Good Journey Titles
-- Specific: "Theme Border System Fixes"
-- Action-oriented: "Implementing Skill Evolution"
-- Descriptive: "API Authentication Refactoring"
-
-### Bad Journey Titles
-- Vague: "Bug fixes"
-- Too broad: "Code changes"
-- Undescriptive: "Session 1"
-
-### Tags to Use
+### Tags
+Common tags:
 - `#bugfix` - Bug fixes
 - `#feature` - New features
-- `#refactor` - Code refactoring
+- `#refactor` - Code restructuring
 - `#theming` - Theme-related work
-- `#performance` - Performance improvements
-- `#tooling` - Developer tooling
-- `#documentation` - Documentation updates
+- `#tooling` - Build/dev tooling
+- `#performance` - Performance work
+- `#meta` - Claude Code/skills work
 
----
+## Example Usage
 
-## How Future Sessions Use Journeys
+After a session fixing theme issues:
 
-At the start of a new session, AI can:
-
-1. Read recent journeys to understand project context
-2. Search journeys for relevant patterns
-3. Avoid re-learning documented gotchas
-4. Build on previous decisions
-
-Example prompt for new session:
 ```
-"Check .claude/journeys/ for recent work on theming"
+/journey Dashboard Theming Fixes
 ```
 
----
+Claude will create `.claude/journeys/2026-02-02-dashboard-theming-fixes.md` with:
+- Summary of what was fixed
+- Key learnings about the three-theme system
+- Files that were changed
+- Patterns discovered (like the 3-way theme check)
 
-## Verification Checklist
+## Purpose
 
-After saving a journey:
+Journeys create **institutional memory** that:
+1. Helps future sessions avoid repeating mistakes
+2. Documents decisions and their rationale
+3. Preserves patterns and best practices
+4. Tracks the evolution of the codebase
 
-1. [ ] File created in `.claude/journeys/`
-2. [ ] Filename follows `{date}-{kebab-title}.md` format
-3. [ ] Summary is concise but complete
-4. [ ] Key learnings are actionable
-5. [ ] Files changed are listed
-6. [ ] Connected resources are linked
+Unlike git commits (which track *what* changed), journeys track *why* and *what was learned*.

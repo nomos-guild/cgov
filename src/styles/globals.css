@@ -163,6 +163,28 @@
   }
 }
 
+/* Scrollbar hidden until hover */
+@layer utilities {
+  .scrollbar-on-hover {
+    overflow-y: auto;
+    scrollbar-color: transparent transparent;
+  }
+  .scrollbar-on-hover:hover {
+    scrollbar-color: hsl(var(--muted-foreground)) transparent;
+  }
+  .scrollbar-on-hover::-webkit-scrollbar-thumb {
+    background-color: transparent;
+  }
+  .scrollbar-on-hover:hover::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--muted-foreground));
+  }
+  .scrollbar-on-hover::-webkit-scrollbar-track {
+    background: transparent;
+    box-shadow: none;
+    border: none;
+  }
+}
+
 /* Simple modern glass effect */
 @layer utilities {
   .glass {
@@ -264,6 +286,59 @@
   [data-chart-card] *:focus,
   [data-chart-card] *:focus-visible {
     outline: none !important;
+  }
+
+  /* Recharts tooltip - disable position animation, use opacity fade only */
+  .recharts-tooltip-wrapper {
+    transition: opacity 150ms ease-out !important;
+    /* Disable all transforms/translations that cause sliding */
+    transform: none !important;
+    animation: none !important;
+  }
+
+  /* Ensure tooltip content fades smoothly */
+  .recharts-tooltip-wrapper > div {
+    transition: opacity 150ms ease-out !important;
+  }
+
+  /* Color picker range slider styling */
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    margin-top: -2px;
+  }
+
+  input[type="range"]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+  }
+
+  input[type="range"]::-webkit-slider-runnable-track {
+    height: 12px;
+    border-radius: 6px;
+  }
+
+  input[type="range"]::-moz-range-track {
+    height: 12px;
+    border-radius: 6px;
   }
 
   .animate-fade-in {
