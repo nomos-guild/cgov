@@ -36,6 +36,7 @@ isGame ? "game-classes" : isDark ? "dark-classes" : "light-classes"
   2. Tailwind override: `[&_.recharts-wrapper]:!overflow-visible`
   3. PieChart SVG: `style={{ overflow: "visible" }}`
 - **Tick lines**: Always `tickLine={false}` for cleaner look
+- **Pie animation defaults**: Always set `animationDuration={500}` and `animationEasing="ease-in-out"` on `<Pie>` for consistent, smooth transitions
 - **Responsive sizing**: Chart container needs `flex-1 min-h-0`, then `<ResponsiveContainer width="100%" height="100%">`
 - **Pie exit animation**: Recharts instantly removes slices from DOM. For smooth removal, use the two-phase pattern: keep removed slices at `value: 0` during animation, clean up after `setTimeout(ANIM_MS + 50)`. See `add-chart` skill for full pattern.
 - **Table legends**: Use `table-fixed` with `<colgroup>` for stable column widths when data changes
@@ -166,6 +167,30 @@ When switching between chart types or metrics:
 
 ### React `key` Prop for Animation Reset
 If a component has CSS hover transitions (e.g., `transition: transform 0.3s`) and D3 recalculates positions on data change, add `key={dataKey}` to force full remount. This prevents all elements from animating between old→new positions.
+
+### Top-N Filter Pattern for Multi-Chart Views
+When multiple chart types share a top-N filter, pass `topN?: number | null` as a prop and let each chart handle emphasis differently:
+- **BubbleMap**: Enhanced shadow filters for top-N bubbles, labels only on top-N
+- **TreeMap**: Full opacity + border for top-N tiles, dimmed for rest
+- **Donut**: Top-N as individual slices, remainder aggregated into "Others"
+
+All charts receive the full dataset — each applies the filter internally for consistent layout.
+
+### D3 Donut Animation (without D3 transitions)
+For fine-grained animation control in React, use `requestAnimationFrame` with a custom easing function instead of D3's transition system:
+```tsx
+function animateIn(slices: Slice[]) {
+  const startTime = performance.now();
+  function tick() {
+    const t = easeInOutCubic(Math.min((performance.now() - startTime) / ANIM_MS, 1));
+    setAnimatedSlices(slices.map(s => ({
+      ...s, startAngle: s.startAngle * t, endAngle: s.endAngle * t,
+    })));
+    if (t < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+```
 
 ### SVG Shadow Filters (Three-Theme)
 ```tsx

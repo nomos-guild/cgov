@@ -96,6 +96,8 @@ export function ProposalTypeChart({ isLoading, className }: ChartProps) {
               innerRadius="35%"
               outerRadius="70%"
               paddingAngle={3}
+              animationDuration={500}
+              animationEasing="ease-in-out"
             >
               {data.map((entry, index) => (
                 <Cell

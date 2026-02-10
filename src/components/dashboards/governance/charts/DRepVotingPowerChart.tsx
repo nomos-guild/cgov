@@ -170,6 +170,8 @@ export function DRepVotingPowerChart({ isLoading, className }: ChartProps) {
               innerRadius="35%"
               outerRadius="70%"
               paddingAngle={2}
+              animationDuration={500}
+              animationEasing="ease-in-out"
             >
               {data.map((entry) => (
                 <Cell

@@ -333,6 +333,19 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
     useState<RoleFilter>("All");
   const [selectedTab, setSelectedTab] = useState<string>("live-voting");
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [submittedAt, setSubmittedAt] = useState<number | null>(null);
+
+  // Fetch precise submission timestamp from Koios via txHash
+  useEffect(() => {
+    if (!voteTxHash || voteTxHash.length !== 64) return;
+    setSubmittedAt(null);
+    fetch(`/api/tx-timestamp?txHash=${voteTxHash}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d?.timestamp) setSubmittedAt(d.timestamp * 1000); // unix s → ms
+      })
+      .catch(() => {/* fall back to epoch-derived date */});
+  }, [voteTxHash]);
 
   // Reset visibility on proposal change, fade in when data arrives
   const prevProposalId = useRef(proposalId);
@@ -1205,7 +1218,7 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
                             "py-2 font-semibold whitespace-nowrap",
                             isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
                           )}>
-                            {new Date(submissionTimestamp).toLocaleDateString("en-GB", {
+                            {new Date(submittedAt ?? submissionTimestamp).toLocaleDateString("en-GB", {
                               day: "2-digit",
                               month: "2-digit",
                               year: "numeric"

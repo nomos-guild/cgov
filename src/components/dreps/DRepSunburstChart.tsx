@@ -3,6 +3,8 @@ import Link from "next/link";
 import { useTheme } from "@/lib/theme";
 import { useAllDReps, useDRepStats, useDRepRationaleStats } from "@/hooks/useDRepData";
 import { DRepBubbleMap } from "@/components/dreps/DRepBubbleMap";
+import { DRepTreeMap } from "@/components/dreps/DRepTreeMap";
+import { DRepDonutChart } from "@/components/dreps/DRepDonutChart";
 
 // Color palette for DReps - generates distinct colors based on global index
 function generateColor(index: number, total: number): string {
@@ -35,16 +37,12 @@ export function DRepSunburstChart({ className }: DRepSunburstChartProps) {
   const isGame = activeTheme.id === "game";
   const isLight = activeTheme.id === "light";
   const [searchTerm, setSearchTerm] = useState("");
+  const [chartType, setChartType] = useState<"bubble" | "treemap" | "donut">("bubble");
   const [chartMetric, setChartMetric] = useState<"votingPower" | "delegators" | "votesCast">("votingPower");
   const [chartVisible, setChartVisible] = useState(true);
-  const [zoomEnabled, setZoomEnabled] = useState(false);
   const [topN, setTopN] = useState<number | null>(null); // null = all
-  const [bubbleSearch, setBubbleSearch] = useState("");
-  const [focusDRepId, setFocusDRepId] = useState<string | null>(null);
-  const [showSuggestions, setShowSuggestions] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const rowsContainerRef = useRef<HTMLDivElement>(null);
-  const bubbleSearchRef = useRef<HTMLDivElement>(null);
 
   // Fade out, switch metric, fade back in
   const switchMetric = useCallback((metric: typeof chartMetric) => {
@@ -89,31 +87,25 @@ export function DRepSunburstChart({ className }: DRepSunburstChartProps) {
 
   const totalDReps = filteredDreps.length;
 
-  // Apply top-N filter for the bubble chart
-  const chartDreps = useMemo(() => {
-    if (topN === null) return filteredDreps;
-    return filteredDreps.slice(0, topN);
-  }, [filteredDreps, topN]);
+  // Aggregated stats for the selection (top-N or all)
+  const selectionStats = useMemo(() => {
+    const selected = topN === null ? filteredDreps : filteredDreps.slice(0, topN);
+    const votingPower = selected.reduce((sum, d) => sum + d.votingPowerAda, 0);
+    const delegators = selected.reduce((sum, d) => sum + (d.delegatorCount ?? 0), 0);
+    const votes = selected.reduce((sum, d) => sum + d.totalVotesCast, 0);
 
-  // Bubble search suggestions (top 6 matches)
-  const bubbleSuggestions = useMemo(() => {
-    if (!bubbleSearch.trim()) return [];
-    const term = bubbleSearch.toLowerCase();
-    return filteredDreps
-      .filter((d) => (d.name?.toLowerCase().includes(term)) || d.drepId.toLowerCase().includes(term))
-      .slice(0, 6);
-  }, [bubbleSearch, filteredDreps]);
+    const totalDelegators = filteredDreps.reduce((sum, d) => sum + (d.delegatorCount ?? 0), 0);
+    const totalVotes = filteredDreps.reduce((sum, d) => sum + d.totalVotesCast, 0);
 
-  // Close suggestions on click outside
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (bubbleSearchRef.current && !bubbleSearchRef.current.contains(e.target as Node)) {
-        setShowSuggestions(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+    return {
+      votingPower,
+      votingPowerPct: totalVotingPower > 0 ? (votingPower / totalVotingPower) * 100 : 0,
+      delegators,
+      delegatorsPct: totalDelegators > 0 ? (delegators / totalDelegators) * 100 : 0,
+      votes,
+      votesPct: totalVotes > 0 ? (votes / totalVotes) * 100 : 0,
+    };
+  }, [filteredDreps, topN, totalVotingPower]);
 
   // Stable scroll handler (no-op now, kept for list ref)
   const handleScroll = useCallback(() => {}, []);
@@ -176,6 +168,28 @@ export function DRepSunburstChart({ className }: DRepSunburstChartProps) {
               {searchTerm && <span> matching &ldquo;{searchTerm}&rdquo;</span>}
             </p>
           </div>
+          {/* Chart type tabs */}
+          <div>
+            <p className={`text-[10px] font-semibold uppercase tracking-wide mb-1.5 ${isGame ? "text-white/50" : "text-muted-foreground"}`}>
+              Chart Type
+            </p>
+            <div className="flex sm:flex-col flex-wrap gap-1.5">
+              {([
+                { key: "bubble", label: "Bubble Map" },
+                { key: "treemap", label: "Tree Map" },
+                { key: "donut", label: "Donut" },
+              ] as const).map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => setChartType(key)}
+                  data-state={chartType === key ? "active" : "inactive"}
+                  className={tabBtnClass}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
           {/* Metric tabs */}
           <div>
             <p className={`text-[10px] font-semibold uppercase tracking-wide mb-1.5 ${isGame ? "text-white/50" : "text-muted-foreground"}`}>
@@ -221,75 +235,42 @@ export function DRepSunburstChart({ className }: DRepSunburstChartProps) {
               ))}
             </div>
           </div>
-          {/* Tools */}
+          {/* Selection summary stats */}
           <div>
             <p className={`text-[10px] font-semibold uppercase tracking-wide mb-1.5 ${isGame ? "text-white/50" : "text-muted-foreground"}`}>
-              Tools
+              {topN !== null ? `Top ${topN} Summary` : "Summary"}
             </p>
-            <div className="flex sm:flex-col flex-wrap gap-1.5 items-start">
-              <button
-                onClick={() => setZoomEnabled((v) => !v)}
-                data-state={zoomEnabled ? "active" : "inactive"}
-                className={`${tabBtnClass} !px-0 w-8 h-8 !rounded-none flex items-center justify-center`}
-                title={zoomEnabled ? "Disable zoom" : "Enable zoom"}
-              >
-                <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-                  <path d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z" />
-                  <path d="M9 5.75a.75.75 0 0 1 .75.75v1.75h1.75a.75.75 0 0 1 0 1.5h-1.75v1.75a.75.75 0 0 1-1.5 0v-1.75H6.5a.75.75 0 0 1 0-1.5h1.75V6.5A.75.75 0 0 1 9 5.75Z" />
-                </svg>
-              </button>
-            </div>
-            {/* Bubble search */}
-            <div ref={bubbleSearchRef} className="relative w-full mt-1">
-              <input
-                type="text"
-                placeholder="Find DRep..."
-                value={bubbleSearch}
-                onChange={(e) => {
-                  setBubbleSearch(e.target.value);
-                  setShowSuggestions(true);
-                  if (!e.target.value.trim()) setFocusDRepId(null);
-                }}
-                onFocus={() => { if (bubbleSearch.trim()) setShowSuggestions(true); }}
-                className={`w-full px-2 py-1.5 text-[11px] rounded-lg border transition-colors ${
-                  isLight
-                    ? "bg-white border-black/10 text-black placeholder:text-black/40 focus:border-black/30 focus:ring-1 focus:ring-black/10"
-                    : isGame
-                    ? "bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-[#0bd1a2] focus:ring-1 focus:ring-[#0bd1a2]/30"
-                    : "bg-white/5 border-white/10 text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary/30"
-                }`}
-              />
-              {showSuggestions && bubbleSuggestions.length > 0 && (
-                <div className={`absolute left-0 right-0 top-full mt-1 z-30 rounded-lg border overflow-hidden shadow-lg max-h-[200px] overflow-y-auto ${
-                  isLight
-                    ? "bg-white border-black/10"
-                    : isGame
-                    ? "bg-[#1a1a2e] border-[#0bd1a2]/40"
-                    : "bg-background border-white/10"
-                }`}>
-                  {bubbleSuggestions.map((drep) => (
-                    <button
-                      key={drep.drepId}
-                      className={`w-full text-left px-2 py-1.5 text-[11px] truncate transition-colors ${
-                        isLight
-                          ? "hover:bg-black/5 text-black"
-                          : isGame
-                          ? "hover:bg-[#0bd1a2]/20 text-white"
-                          : "hover:bg-white/10 text-foreground"
-                      }`}
-                      onClick={() => {
-                        setZoomEnabled(true);
-                        setFocusDRepId(drep.drepId);
-                        setBubbleSearch(drep.name || drep.drepId.slice(0, 12));
-                        setShowSuggestions(false);
-                      }}
-                    >
-                      {drep.name || `${drep.drepId.slice(0, 8)}...${drep.drepId.slice(-4)}`}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            <table className="w-full table-fixed">
+              <colgroup>
+                <col className="w-[45%]" />
+                <col className="w-[30%]" />
+                <col className="w-[25%]" />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th className={`text-left text-[10px] font-medium pb-1 ${isGame ? "text-white/40" : "text-muted-foreground"}`}>Metric</th>
+                  <th className={`text-right text-[10px] font-medium pb-1 ${isGame ? "text-white/40" : "text-muted-foreground"}`}>Value</th>
+                  <th className={`text-right text-[10px] font-medium pb-1 ${isGame ? "text-white/40" : "text-muted-foreground"}`}>%</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className={`text-xs py-0.5 ${isGame ? "text-white/70" : "text-muted-foreground"}`}>Voting Power</td>
+                  <td className={`text-xs font-semibold text-right py-0.5 ${isGame ? "text-white" : ""}`}>{formatVotingPower(selectionStats.votingPower)}</td>
+                  <td className={`text-xs font-semibold text-right py-0.5 ${isGame ? "text-white/60" : "text-muted-foreground"}`}>{selectionStats.votingPowerPct.toFixed(1)}%</td>
+                </tr>
+                <tr>
+                  <td className={`text-xs py-0.5 ${isGame ? "text-white/70" : "text-muted-foreground"}`}>Delegators</td>
+                  <td className={`text-xs font-semibold text-right py-0.5 ${isGame ? "text-white" : ""}`}>{selectionStats.delegators.toLocaleString()}</td>
+                  <td className={`text-xs font-semibold text-right py-0.5 ${isGame ? "text-white/60" : "text-muted-foreground"}`}>{selectionStats.delegatorsPct.toFixed(1)}%</td>
+                </tr>
+                <tr>
+                  <td className={`text-xs py-0.5 ${isGame ? "text-white/70" : "text-muted-foreground"}`}>Votes Cast</td>
+                  <td className={`text-xs font-semibold text-right py-0.5 ${isGame ? "text-white" : ""}`}>{selectionStats.votes.toLocaleString()}</td>
+                  <td className={`text-xs font-semibold text-right py-0.5 ${isGame ? "text-white/60" : "text-muted-foreground"}`}>{selectionStats.votesPct.toFixed(1)}%</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -299,14 +280,33 @@ export function DRepSunburstChart({ className }: DRepSunburstChartProps) {
             className="transition-opacity duration-300 ease-in-out"
             style={{ opacity: chartVisible ? 1 : 0 }}
           >
-            <DRepBubbleMap
-              key={`${chartMetric}-${topN}`}
-              dreps={chartDreps}
-              metric={chartMetric}
-              rationaleMap={rationaleMap}
-              zoomEnabled={zoomEnabled}
-              focusDRepId={focusDRepId}
-            />
+            {chartType === "bubble" && (
+              <DRepBubbleMap
+                key={chartMetric}
+                dreps={filteredDreps}
+                metric={chartMetric}
+                topN={topN}
+                rationaleMap={rationaleMap}
+              />
+            )}
+            {chartType === "treemap" && (
+              <DRepTreeMap
+                key={chartMetric}
+                dreps={filteredDreps}
+                metric={chartMetric}
+                topN={topN}
+                rationaleMap={rationaleMap}
+              />
+            )}
+            {chartType === "donut" && (
+              <DRepDonutChart
+                key={chartMetric}
+                dreps={filteredDreps}
+                metric={chartMetric}
+                topN={topN}
+                rationaleMap={rationaleMap}
+              />
+            )}
           </div>
         </div>
       </div>

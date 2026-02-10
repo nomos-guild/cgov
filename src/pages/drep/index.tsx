@@ -113,19 +113,19 @@ export default function DRepDashboard() {
                 </div>
               </div>
 
-              {/* Tabbed Content Section */}
+              {/* Tabbed Chart Section */}
               <Tabs
                 value={selectedTab}
                 onValueChange={setSelectedTab}
                 className="w-full"
               >
                 <div className={cn(
-                  "rounded-2xl border border-white/8 bg-[#faf9f6] px-4 sm:px-6 pt-2 pb-1 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none mb-4",
+                  "rounded-2xl border border-white/8 bg-[#faf9f6] px-4 sm:px-6 py-3 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none mb-4",
                   isGame && "game-drep-content"
                 )}>
-                  <TabsList className="flex-1 flex-wrap justify-start gap-1.5 sm:gap-2 bg-transparent p-0 py-2 overflow-x-auto overflow-visible">
+                  <TabsList className="flex-1 flex-wrap items-center justify-start gap-1.5 sm:gap-2 bg-transparent p-0 overflow-x-auto overflow-visible">
                     <TabsTrigger value="drep-list" className={tabButtonClass}>
-                      DRep List
+                      DRep
                     </TabsTrigger>
                     <TabsTrigger value="analytics" className={tabButtonClass}>
                       Analytics
