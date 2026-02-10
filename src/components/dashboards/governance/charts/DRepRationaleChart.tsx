@@ -152,6 +152,7 @@ export function DRepRationaleChart({ isLoading, className }: ChartProps) {
               outerRadius="70%"
               paddingAngle={3}
               animationDuration={500}
+              animationEasing="ease-in-out"
             >
               {data.map((entry) => (
                 <Cell

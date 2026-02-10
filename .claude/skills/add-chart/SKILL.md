@@ -1,6 +1,6 @@
 ---
 name: add-chart
-updated: 2026-02-05
+updated: 2026-02-10
 description: Scaffold a new dashboard chart component with registry, types, and proper theme integration. Use when adding charts to the governance dashboard.
 argument-hint: [ChartName] [chartType]
 allowed-tools: Read, Edit, Write, Glob, Grep
@@ -218,6 +218,8 @@ The `ChartTooltip` component provides:
   innerRadius="30%"  // Donut style
   outerRadius="55%"
   paddingAngle={2}
+  animationDuration={500}
+  animationEasing="ease-in-out"
 >
   {data.map((entry, index) => (
     <Cell

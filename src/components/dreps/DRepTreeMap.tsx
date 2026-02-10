@@ -5,21 +5,20 @@ import type { DRepSummary } from "@/types/drep";
 
 type ChartMetric = "votingPower" | "delegators" | "votesCast";
 
-interface DRepBubbleMapProps {
+interface DRepTreeMapProps {
   dreps: DRepSummary[];
   metric: ChartMetric;
   topN?: number | null;
   rationaleMap: Map<string, number>;
 }
 
-interface DRepBubble {
-  x: number;
-  y: number;
-  radius: number;
+interface DRepTile {
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
   drep: DRepSummary;
   rank: number;
-  fillColor: string;
-  borderColor: string;
 }
 
 type HierarchyDatum = {
@@ -58,18 +57,16 @@ function getMetricValue(drep: DRepSummary, metric: ChartMetric): number {
 const SVG_WIDTH = 800;
 const SVG_HEIGHT = 600;
 
-export function DRepBubbleMap({ dreps, metric, topN, rationaleMap }: DRepBubbleMapProps) {
+export function DRepTreeMap({ dreps, metric, topN, rationaleMap }: DRepTreeMapProps) {
   const { theme, activeTheme } = useTheme();
   const isDark = theme === "dark";
   const isGame = activeTheme.id === "game";
-  const isLight = activeTheme.id === "light";
   const containerRef = useRef<HTMLDivElement>(null);
-  const [hoveredBubble, setHoveredBubble] = useState<{ bubble: DRepBubble; x: number; y: number } | null>(null);
+  const [hoveredTile, setHoveredTile] = useState<{ tile: DRepTile; x: number; y: number } | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
-  // Always flat hierarchy — positions stay fixed regardless of topN
-  const bubbles = useMemo(() => {
-    if (!dreps.length) return [] as DRepBubble[];
+  const tiles = useMemo(() => {
+    if (!dreps.length) return [] as DRepTile[];
 
     const leafChildren = dreps.map((drep, index) => ({
       name: drep.name || "Anonymous",
@@ -85,45 +82,40 @@ export function DRepBubbleMap({ dreps, metric, topN, rationaleMap }: DRepBubbleM
 
     const hierarchy = d3
       .hierarchy<HierarchyDatum>(hierarchicalData)
-      .sum((d) => (d.value ? d.value : 0));
+      .sum((d) => (d.value ? d.value : 0))
+      .sort((a, b) => (b.value ?? 0) - (a.value ?? 0));
 
-    const packGenerator = d3
-      .pack<HierarchyDatum>()
+    const treemapGenerator = d3
+      .treemap<HierarchyDatum>()
       .size([SVG_WIDTH, SVG_HEIGHT])
-      .padding(1);
+      .tile(d3.treemapSquarify)
+      .padding(2)
+      .round(true);
 
-    const root = packGenerator(hierarchy as d3.HierarchyNode<HierarchyDatum>);
-    const total = dreps.length;
-    const resultBubbles: DRepBubble[] = [];
+    const root = treemapGenerator(hierarchy);
+    const resultTiles: DRepTile[] = [];
 
-    root.descendants().forEach((node) => {
-      if (node.depth === 0) return;
-
+    root.leaves().forEach((node) => {
       if (node.data.drep) {
-        const drep = node.data.drep;
-        const rank = node.data.rank ?? 0;
-        const color = generateColor(rank - 1, total);
-
-        resultBubbles.push({
-          x: node.x,
-          y: node.y,
-          radius: node.r,
-          drep,
-          rank,
-          fillColor: isLight ? "rgba(0,0,0,0.04)" : isDark ? "transparent" : color,
-          borderColor: isLight ? color : color,
+        resultTiles.push({
+          x0: node.x0,
+          y0: node.y0,
+          x1: node.x1,
+          y1: node.y1,
+          drep: node.data.drep,
+          rank: node.data.rank ?? 0,
         });
       }
     });
 
-    return resultBubbles;
-  }, [dreps, metric, isLight, isDark]);
+    return resultTiles;
+  }, [dreps, metric]);
 
-  const handleMouseEnter = (bubble: DRepBubble, event: React.MouseEvent<SVGCircleElement>) => {
+  const handleMouseEnter = (tile: DRepTile, event: React.MouseEvent<SVGRectElement>) => {
     if (containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
-      setHoveredBubble({
-        bubble,
+      setHoveredTile({
+        tile,
         x: event.clientX - rect.left,
         y: event.clientY - rect.top,
       });
@@ -131,7 +123,7 @@ export function DRepBubbleMap({ dreps, metric, topN, rationaleMap }: DRepBubbleM
   };
 
   const handleMouseLeave = () => {
-    setHoveredBubble(null);
+    setHoveredTile(null);
     setHoveredId(null);
   };
 
@@ -145,21 +137,41 @@ export function DRepBubbleMap({ dreps, metric, topN, rationaleMap }: DRepBubbleM
         preserveAspectRatio="xMidYMid meet"
       >
         <defs>
-          {/* Light theme shadows — matches card shadow-[0_12px_30px_rgba(15,23,42,0.25)] */}
-          <filter id="drep-bubble-shadow-light" x="-200%" y="-200%" width="500%" height="500%">
-            <feGaussianBlur in="SourceAlpha" stdDeviation="12" result="blur"/>
-            <feOffset dx="0" dy="8" in="blur" result="offsetblur"/>
-            <feFlood floodColor="rgba(15, 23, 42)" floodOpacity="0.25" result="shadowColor"/>
+          {/* Light theme shadows */}
+          <filter id="drep-tree-shadow-light" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur in="SourceAlpha" stdDeviation="4" result="blur"/>
+            <feOffset dx="0" dy="3" in="blur" result="offsetblur"/>
+            <feFlood floodColor="rgba(15, 23, 42)" floodOpacity="0.18" result="shadowColor"/>
             <feComposite in="shadowColor" in2="offsetblur" operator="in" result="shadow"/>
             <feMerge>
               <feMergeNode in="shadow"/>
               <feMergeNode in="SourceGraphic"/>
             </feMerge>
           </filter>
-          <filter id="drep-bubble-shadow-hover-light" x="-200%" y="-200%" width="500%" height="500%">
-            <feGaussianBlur in="SourceAlpha" stdDeviation="16" result="blur"/>
-            <feOffset dx="0" dy="12" in="blur" result="offsetblur"/>
-            <feFlood floodColor="rgba(15, 23, 42)" floodOpacity="0.32" result="shadowColor"/>
+          <filter id="drep-tree-shadow-hover-light" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur in="SourceAlpha" stdDeviation="6" result="blur"/>
+            <feOffset dx="0" dy="4" in="blur" result="offsetblur"/>
+            <feFlood floodColor="rgba(15, 23, 42)" floodOpacity="0.28" result="shadowColor"/>
+            <feComposite in="shadowColor" in2="offsetblur" operator="in" result="shadow"/>
+            <feMerge>
+              <feMergeNode in="shadow"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+          <filter id="drep-tree-shadow-topn-light" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur in="SourceAlpha" stdDeviation="6" result="blur"/>
+            <feOffset dx="0" dy="4" in="blur" result="offsetblur"/>
+            <feFlood floodColor="rgba(15, 23, 42)" floodOpacity="0.28" result="shadowColor"/>
+            <feComposite in="shadowColor" in2="offsetblur" operator="in" result="shadow"/>
+            <feMerge>
+              <feMergeNode in="shadow"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+          <filter id="drep-tree-shadow-topn-hover-light" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur in="SourceAlpha" stdDeviation="8" result="blur"/>
+            <feOffset dx="0" dy="5" in="blur" result="offsetblur"/>
+            <feFlood floodColor="rgba(15, 23, 42)" floodOpacity="0.35" result="shadowColor"/>
             <feComposite in="shadowColor" in2="offsetblur" operator="in" result="shadow"/>
             <feMerge>
               <feMergeNode in="shadow"/>
@@ -167,41 +179,20 @@ export function DRepBubbleMap({ dreps, metric, topN, rationaleMap }: DRepBubbleM
             </feMerge>
           </filter>
           {/* Dark theme shadows */}
-          <filter id="drep-bubble-shadow-dark" x="-200%" y="-200%" width="500%" height="500%">
-            <feGaussianBlur in="SourceAlpha" stdDeviation="15" result="blur"/>
-            <feOffset dx="0" dy="12" in="blur" result="offsetblur"/>
-            <feFlood floodColor="rgba(15, 23, 42)" floodOpacity="0.25" result="shadowColor"/>
+          <filter id="drep-tree-shadow-dark" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur in="SourceAlpha" stdDeviation="5" result="blur"/>
+            <feOffset dx="0" dy="4" in="blur" result="offsetblur"/>
+            <feFlood floodColor="rgba(15, 23, 42)" floodOpacity="0.2" result="shadowColor"/>
             <feComposite in="shadowColor" in2="offsetblur" operator="in" result="shadow"/>
             <feMerge>
               <feMergeNode in="shadow"/>
               <feMergeNode in="SourceGraphic"/>
             </feMerge>
           </filter>
-          <filter id="drep-bubble-shadow-hover-dark" x="-200%" y="-200%" width="500%" height="500%">
-            <feGaussianBlur in="SourceAlpha" stdDeviation="20" result="blur"/>
-            <feOffset dx="0" dy="16" in="blur" result="offsetblur"/>
-            <feFlood floodColor="rgba(15, 23, 42)" floodOpacity="0.35" result="shadowColor"/>
-            <feComposite in="shadowColor" in2="offsetblur" operator="in" result="shadow"/>
-            <feMerge>
-              <feMergeNode in="shadow"/>
-              <feMergeNode in="SourceGraphic"/>
-            </feMerge>
-          </filter>
-          {/* Light theme emphasized shadow for top-N bubbles */}
-          <filter id="drep-bubble-shadow-topn-light" x="-200%" y="-200%" width="500%" height="500%">
-            <feGaussianBlur in="SourceAlpha" stdDeviation="16" result="blur"/>
-            <feOffset dx="0" dy="10" in="blur" result="offsetblur"/>
-            <feFlood floodColor="rgba(15, 23, 42)" floodOpacity="0.35" result="shadowColor"/>
-            <feComposite in="shadowColor" in2="offsetblur" operator="in" result="shadow"/>
-            <feMerge>
-              <feMergeNode in="shadow"/>
-              <feMergeNode in="SourceGraphic"/>
-            </feMerge>
-          </filter>
-          <filter id="drep-bubble-shadow-topn-hover-light" x="-200%" y="-200%" width="500%" height="500%">
-            <feGaussianBlur in="SourceAlpha" stdDeviation="20" result="blur"/>
-            <feOffset dx="0" dy="14" in="blur" result="offsetblur"/>
-            <feFlood floodColor="rgba(15, 23, 42)" floodOpacity="0.42" result="shadowColor"/>
+          <filter id="drep-tree-shadow-hover-dark" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur in="SourceAlpha" stdDeviation="8" result="blur"/>
+            <feOffset dx="0" dy="6" in="blur" result="offsetblur"/>
+            <feFlood floodColor="rgba(15, 23, 42)" floodOpacity="0.3" result="shadowColor"/>
             <feComposite in="shadowColor" in2="offsetblur" operator="in" result="shadow"/>
             <feMerge>
               <feMergeNode in="shadow"/>
@@ -209,32 +200,44 @@ export function DRepBubbleMap({ dreps, metric, topN, rationaleMap }: DRepBubbleM
             </feMerge>
           </filter>
           {/* Game theme text gradient */}
-          <linearGradient id="drep-game-text-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+          <linearGradient id="drep-tree-game-text-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="rgba(255, 255, 255, 0.9)"/>
             <stop offset="90%" stopColor="rgba(215, 215, 215, 0.8)"/>
             <stop offset="99%" stopColor="rgba(120, 120, 120, 0.7)"/>
             <stop offset="100%" stopColor="rgba(35, 35, 35, 0.08)"/>
           </linearGradient>
-          <filter id="drep-game-text-shadow" x="-50%" y="-50%" width="200%" height="200%">
+          <filter id="drep-tree-game-text-shadow" x="-50%" y="-50%" width="200%" height="200%">
             <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="rgba(0,0,0,0.8)" floodOpacity="1"/>
           </filter>
+          {/* Clip paths for text inside tiles */}
+          {tiles.map((tile) => (
+            <clipPath key={`clip-${tile.drep.drepId}`} id={`clip-${tile.drep.drepId}`}>
+              <rect
+                x={tile.x0 + 2}
+                y={tile.y0 + 2}
+                width={Math.max(tile.x1 - tile.x0 - 4, 0)}
+                height={Math.max(tile.y1 - tile.y0 - 4, 0)}
+              />
+            </clipPath>
+          ))}
         </defs>
         <g>
-          {/* Render hovered bubble last so it paints on top */}
-          {(hoveredId ? [...bubbles].sort((a, b) => a.drep.drepId === hoveredId ? 1 : b.drep.drepId === hoveredId ? -1 : 0) : bubbles).map((bubble) => {
-            const isHovered = hoveredId === bubble.drep.drepId;
-            const scale = isHovered ? 1.08 : 1;
-            const color = generateColor(bubble.rank - 1, dreps.length);
+          {tiles.map((tile) => {
+            const isHovered = hoveredId === tile.drep.drepId;
+            const color = generateColor(tile.rank - 1, dreps.length);
+            const w = tile.x1 - tile.x0;
+            const h = tile.y1 - tile.y0;
 
             const hasTopNFilter = topN != null;
-            const isInTopN = !hasTopNFilter || bubble.rank <= topN;
+            const isInTopN = !hasTopNFilter || tile.rank <= topN;
+
             const getShadowFilter = () => {
               if (isGame) return "";
-              if (isDark) return isHovered ? "url(#drep-bubble-shadow-hover-dark)" : "url(#drep-bubble-shadow-dark)";
+              if (isDark) return isHovered ? "url(#drep-tree-shadow-hover-dark)" : "url(#drep-tree-shadow-dark)";
               if (hasTopNFilter && isInTopN) {
-                return isHovered ? "url(#drep-bubble-shadow-topn-hover-light)" : "url(#drep-bubble-shadow-topn-light)";
+                return isHovered ? "url(#drep-tree-shadow-topn-hover-light)" : "url(#drep-tree-shadow-topn-light)";
               }
-              return isHovered ? "url(#drep-bubble-shadow-hover-light)" : "url(#drep-bubble-shadow-light)";
+              return isHovered ? "url(#drep-tree-shadow-hover-light)" : "url(#drep-tree-shadow-light)";
             };
 
             const getFillColor = () => {
@@ -243,47 +246,43 @@ export function DRepBubbleMap({ dreps, metric, topN, rationaleMap }: DRepBubbleM
               return "#ffffff";
             };
 
-            const strokeWidth = isGame ? 0 : isDark ? 1.4 : 0;
-            const showLabel = bubble.radius > 12 && isInTopN;
-            const fontSize = Math.min(bubble.radius * 0.35, 14);
-            const availableWidth = bubble.radius * 1.6;
-            const charSlots = Math.max(Math.floor(availableWidth / (fontSize * 0.6)), 2);
+            const strokeWidth = isGame ? 0 : isDark ? 1.2 : 0;
+            const showLabel = w > 40 && h > 20 && isInTopN;
+            const fontSize = Math.min(h * 0.25, w * 0.08, 14);
 
             return (
-              <g
-                key={bubble.drep.drepId}
-                style={{
-                  transform: `translate(${bubble.x}px, ${bubble.y}px) scale(${scale}) translate(${-bubble.x}px, ${-bubble.y}px)`,
-                  transition: "transform 0.3s ease",
-                }}
-              >
-                <circle
-                  cx={bubble.x}
-                  cy={bubble.y}
-                  r={bubble.radius}
+              <g key={tile.drep.drepId}>
+                <rect
+                  x={tile.x0}
+                  y={tile.y0}
+                  width={w}
+                  height={h}
+                  rx={3}
                   fill={getFillColor()}
                   stroke={color}
                   strokeWidth={strokeWidth}
                   filter={getShadowFilter()}
-                  className="cursor-pointer"
+                  opacity={isHovered ? 1 : 0.9}
+                  className="cursor-pointer transition-opacity duration-150"
                   onMouseEnter={(e) => {
-                    setHoveredId(bubble.drep.drepId);
-                    handleMouseEnter(bubble, e);
+                    setHoveredId(tile.drep.drepId);
+                    handleMouseEnter(tile, e);
                   }}
                   onMouseLeave={handleMouseLeave}
                 />
                 {showLabel && (
                   <text
-                    x={bubble.x}
-                    y={bubble.y}
+                    x={tile.x0 + w / 2}
+                    y={tile.y0 + h / 2}
                     textAnchor="middle"
                     dominantBaseline="middle"
-                    fill={isGame ? "url(#drep-game-text-gradient)" : isDark ? color : "#0f172a"}
-                    filter={isGame ? "url(#drep-game-text-shadow)" : undefined}
+                    fill={isGame ? "url(#drep-tree-game-text-gradient)" : isDark ? color : "#0f172a"}
+                    filter={isGame ? "url(#drep-tree-game-text-shadow)" : undefined}
                     className="pointer-events-none font-semibold"
                     fontSize={fontSize}
+                    clipPath={`url(#clip-${tile.drep.drepId})`}
                   >
-                    {(bubble.drep.name || "Anonymous").slice(0, charSlots)}
+                    {tile.drep.name || "Anonymous"}
                   </text>
                 )}
               </g>
@@ -291,7 +290,7 @@ export function DRepBubbleMap({ dreps, metric, topN, rationaleMap }: DRepBubbleM
           })}
         </g>
       </svg>
-      {hoveredBubble && (
+      {hoveredTile && (
         <div
           className={
             isGame
@@ -299,30 +298,30 @@ export function DRepBubbleMap({ dreps, metric, topN, rationaleMap }: DRepBubbleM
               : "absolute z-50 rounded-2xl border border-white/8 bg-[#faf9f6] px-4 py-3 text-xs shadow-[0_12px_30px_rgba(15,23,42,0.25)] pointer-events-none dark:rounded-none dark:border-[#0bd1a2] dark:bg-background dark:shadow-none"
           }
           style={{
-            left: `${hoveredBubble.x + 15}px`,
-            top: `${Math.max(8, hoveredBubble.y - 14)}px`,
+            left: `${hoveredTile.x + 15}px`,
+            top: `${Math.max(8, hoveredTile.y - 14)}px`,
             transform: "translateY(-100%)",
           }}
         >
           <div className={isGame ? "font-semibold text-white" : "font-semibold text-foreground"}>
-            #{hoveredBubble.bubble.rank} {hoveredBubble.bubble.drep.name || "Anonymous"}
+            #{hoveredTile.tile.rank} {hoveredTile.tile.drep.name || "Anonymous"}
           </div>
           <div className={`mt-1.5 space-y-0.5 ${isGame ? "text-white/70" : "text-muted-foreground"}`}>
             <div>
               <span className="font-medium">Voting Power:</span>{" "}
-              {formatCompact(hoveredBubble.bubble.drep.votingPowerAda)} ADA
+              {formatCompact(hoveredTile.tile.drep.votingPowerAda)} ADA
             </div>
             <div>
               <span className="font-medium">Delegators:</span>{" "}
-              {hoveredBubble.bubble.drep.delegatorCount != null ? hoveredBubble.bubble.drep.delegatorCount.toLocaleString() : "--"}
+              {hoveredTile.tile.drep.delegatorCount != null ? hoveredTile.tile.drep.delegatorCount.toLocaleString() : "--"}
             </div>
             <div>
               <span className="font-medium">Votes Cast:</span>{" "}
-              {hoveredBubble.bubble.drep.totalVotesCast}
+              {hoveredTile.tile.drep.totalVotesCast}
             </div>
             <div>
               <span className="font-medium">Rationales:</span>{" "}
-              {rationaleMap.get(hoveredBubble.bubble.drep.drepId) ?? "--"}
+              {rationaleMap.get(hoveredTile.tile.drep.drepId) ?? "--"}
             </div>
           </div>
         </div>

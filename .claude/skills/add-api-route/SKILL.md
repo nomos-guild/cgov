@@ -1,6 +1,6 @@
 ---
 name: add-api-route
-updated: 2026-02-05
+updated: 2026-02-10
 description: Create Next.js API routes for backend proxies, server-side aggregation, or third-party API integrations with caching and error handling.
 argument-hint: [routePath] [backendEndpoint]
 allowed-tools: Read, Edit, Write, Glob
@@ -103,6 +103,7 @@ Adjust `s-maxage` based on data freshness needs:
 - **60s** - Standard for most governance data
 - **300s** - For slowly changing data (NCL, historical)
 - **10s** - For frequently updated data (live votes)
+- **3600s** - For immutable blockchain data (tx timestamps, block hashes) — add `stale-while-revalidate=86400`
 
 ## File Structure Examples
 
