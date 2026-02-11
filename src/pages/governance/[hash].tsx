@@ -2207,6 +2207,7 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
                             value: role,
                             label: role === "All" ? "All Roles" : role,
                           }))}
+                          size="sm"
                           className="w-[120px]"
                         />
                       ) : (

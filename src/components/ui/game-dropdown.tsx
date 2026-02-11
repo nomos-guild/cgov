@@ -14,6 +14,7 @@ interface GameDropdownProps {
   placeholder?: string;
   className?: string;
   onOpenChange?: (open: boolean) => void;
+  size?: "default" | "sm";
 }
 
 export function GameDropdown({
@@ -23,6 +24,7 @@ export function GameDropdown({
   placeholder = "Select...",
   className,
   onOpenChange,
+  size = "default",
 }: GameDropdownProps) {
   const [open, setOpen] = React.useState(false);
   const selectedOption = options.find((opt) => opt.value === value);
@@ -32,17 +34,23 @@ export function GameDropdown({
     onOpenChange?.(isOpen);
   };
 
+  const btnClass = size === "sm"
+    ? `game-nav-btn-sm flex items-center justify-between ${className || ""}`
+    : `game-nav-btn flex h-10 w-full items-center justify-between px-3 py-2 text-sm ${className || ""}`;
+
+  const chevronClass = size === "sm" ? "h-3 w-3 opacity-50 shrink-0" : "h-4 w-4 opacity-50 shrink-0";
+
   return (
     <Popover.Root open={open} onOpenChange={handleOpenChange}>
       <Popover.Trigger asChild>
         <button
-          className={`game-nav-btn-sm flex items-center justify-between ${className || ""}`}
+          className={btnClass}
           aria-expanded={open}
         >
           <span className={`truncate ${!selectedOption ? "text-white/50" : ""}`}>
             {selectedOption?.label || placeholder}
           </span>
-          <ChevronDown className="h-3 w-3 opacity-50 shrink-0" />
+          <ChevronDown className={chevronClass} />
         </button>
       </Popover.Trigger>
       <Popover.Portal>
@@ -67,4 +75,3 @@ export function GameDropdown({
     </Popover.Root>
   );
 }
-
