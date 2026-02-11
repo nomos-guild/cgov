@@ -368,6 +368,8 @@
     "columnPercent": "Power %",
     "columnDelegators": "Delegators",
     "columnVotes": "Votes",
+    "columnVoteChanges": "Changes",
+    "chartPlaceholder": "Chart",
     "anonymous": "Anonymous",
     "rationales": "Rationales",
     "share": "Share",

@@ -368,6 +368,8 @@
     "columnPercent": "権力 %",
     "columnDelegators": "委任者",
     "columnVotes": "投票",
+    "columnVoteChanges": "変更",
+    "chartPlaceholder": "チャート",
     "anonymous": "匿名",
     "rationales": "根拠",
     "share": "シェア",

@@ -205,13 +205,13 @@ export default function DRepDashboard({ initialData }: InferGetStaticPropsType<t
                   </TabsList>
                 </div>
 
-                {/* DRep Chart Tab */}
-                <TabsContent value="drep-list" className="mt-0">
+                {/* DRep Chart Tab — forceMount to keep hooks alive across tab switches */}
+                <TabsContent value="drep-list" className="mt-0 data-[state=inactive]:hidden" forceMount>
                   <DRepSunburstChart initialDreps={initialDreps} view="chart" />
                 </TabsContent>
 
-                {/* DRep List Tab */}
-                <TabsContent value="drep-table" className="mt-0">
+                {/* DRep List Tab — forceMount to keep hooks alive across tab switches */}
+                <TabsContent value="drep-table" className="mt-0 data-[state=inactive]:hidden" forceMount>
                   <DRepSunburstChart initialDreps={initialDreps} view="list" />
                 </TabsContent>
 

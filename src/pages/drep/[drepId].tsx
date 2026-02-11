@@ -669,6 +669,14 @@ export default function DRepProfile() {
   const { drep, isLoading: isLoadingDrep, error: drepError, refresh } = useDRepDetail(drepIdStr);
   const { votes: allVotes, isLoading: isLoadingAllVotes } = useAllDRepVotes(drepIdStr);
 
+  // Compute deduped vote stats from allVotes (already deduplicated by proposalId).
+  // These override backend values which may double-count vote changes.
+  const votesLoaded = !isLoadingAllVotes && allVotes.length > 0;
+  const dedupedVoteCount = votesLoaded ? allVotes.length : drep?.totalVotesCast ?? 0;
+  const dedupedRationalesProvided = votesLoaded
+    ? allVotes.filter((v) => v.rationale).length
+    : drep?.rationalesProvided ?? 0;
+
   const isLoading = isLoadingDrep && !drep;
 
   // Card styling — tri-state for light / game / dark
@@ -862,7 +870,7 @@ export default function DRepProfile() {
                           "py-2.5 text-right font-medium",
                           isGame ? "text-white" : isLight ? "text-foreground" : "text-[#0bd1a2]"
                         )}>
-                          {formatNumber(drep.totalVotesCast)}
+                          {formatNumber(dedupedVoteCount)}
                         </td>
                       </tr>
                       <tr>
@@ -902,7 +910,7 @@ export default function DRepProfile() {
                           "font-medium",
                           isGame ? "text-white" : isLight ? "text-foreground" : "text-[#0bd1a2]"
                         )}>
-                          {drep.rationalesProvided} / {drep.totalVotesCast}
+                          {dedupedRationalesProvided} / {dedupedVoteCount}
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
@@ -913,8 +921,8 @@ export default function DRepProfile() {
                           "font-medium",
                           isGame ? "text-white" : isLight ? "text-foreground" : "text-[#0bd1a2]"
                         )}>
-                          {drep.totalVotesCast > 0
-                            ? ((drep.rationalesProvided / drep.totalVotesCast) * 100).toFixed(1)
+                          {dedupedVoteCount > 0
+                            ? ((dedupedRationalesProvided / dedupedVoteCount) * 100).toFixed(1)
                             : 0}%
                         </span>
                       </div>
@@ -935,7 +943,7 @@ export default function DRepProfile() {
                         {t("engagement")}
                       </h3>
                       <EngagementChart
-                        totalVotesCast={drep.totalVotesCast}
+                        totalVotesCast={dedupedVoteCount}
                         participationPercent={drep.proposalParticipationPercent}
                         isGame={isGame}
                         isLight={isLight}
@@ -977,8 +985,8 @@ export default function DRepProfile() {
                         {t("rationales")}
                       </h3>
                       <RationaleChart
-                        rationalesProvided={drep.rationalesProvided}
-                        totalVotesCast={drep.totalVotesCast}
+                        rationalesProvided={dedupedRationalesProvided}
+                        totalVotesCast={dedupedVoteCount}
                         isGame={isGame}
                         isLight={isLight}
                         labels={{

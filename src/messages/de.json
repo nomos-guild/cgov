@@ -368,6 +368,8 @@
     "columnPercent": "Anteil %",
     "columnDelegators": "Delegatoren",
     "columnVotes": "Stimmen",
+    "columnVoteChanges": "Änderungen",
+    "chartPlaceholder": "Diagramm",
     "anonymous": "Anonym",
     "rationales": "Begründungen",
     "share": "Anteil",
