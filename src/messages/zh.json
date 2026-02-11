@@ -368,6 +368,8 @@
     "columnPercent": "权力 %",
     "columnDelegators": "委托人",
     "columnVotes": "投票",
+    "columnVoteChanges": "变更",
+    "chartPlaceholder": "图表",
     "anonymous": "匿名",
     "rationales": "理由",
     "share": "占比",

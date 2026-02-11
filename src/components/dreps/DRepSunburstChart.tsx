@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useTheme } from "@/lib/theme";
 import type { DRepSummary } from "@/types/drep";
-import { useAllDReps, useDRepStats, useDRepRationaleStats } from "@/hooks/useDRepData";
+import { useAllDReps, useDRepStats, useDRepRationaleStats, useDRepVoteChanges } from "@/hooks/useDRepData";
 import { DRepBubbleMap } from "@/components/dreps/DRepBubbleMap";
 import { DRepTreeMap } from "@/components/dreps/DRepTreeMap";
 import { DRepDonutChart } from "@/components/dreps/DRepDonutChart";
@@ -70,6 +70,16 @@ export function DRepSunburstChart({ className, initialDreps, view = "all" }: DRe
     }
     return map;
   }, [rationaleStats]);
+
+  // Vote change stats (keyed by drepId)
+  const { dreps: voteChangeStats } = useDRepVoteChanges();
+  const voteChangesMap = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const d of voteChangeStats) {
+      map.set(d.drepId, d.voteChanges);
+    }
+    return map;
+  }, [voteChangeStats]);
 
   // Filter dreps: exclude 0 voting power, apply search, then sort by active metric
   const filteredDreps = useMemo(() => {
@@ -319,8 +329,36 @@ export function DRepSunburstChart({ className, initialDreps, view = "all" }: DRe
         </div>
       </div>}
 
+      {/* Donut Chart Cards */}
+      {view !== "chart" && (
+        <div className={`grid grid-cols-1 sm:grid-cols-3 gap-4 ${view === "all" ? "mt-4" : ""}`}>
+          {[
+            { title: t("drep.columnPower"), key: "power" },
+            { title: t("drep.columnDelegators"), key: "delegators" },
+            { title: t("drep.columnVotes"), key: "votes" },
+          ].map(({ title, key }) => (
+            <div key={key} className={`${cardClass} flex flex-col items-center justify-center min-h-[220px]`}>
+              <h4 className={`text-xs font-semibold uppercase tracking-wide mb-4 ${
+                isGame ? "text-white/60" : "text-muted-foreground"
+              }`}>
+                {title}
+              </h4>
+              <div className={`w-[140px] h-[140px] rounded-full border-2 border-dashed flex items-center justify-center ${
+                isLight
+                  ? "border-black/10 text-black/30"
+                  : isGame
+                  ? "border-white/15 text-white/30"
+                  : "border-[#0bd1a2]/30 text-[#0bd1a2]/40"
+              }`}>
+                <span className="text-xs">{t("drep.chartPlaceholder")}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* DRep List Card */}
-      {view !== "chart" && <div className={`${cardClass} ${view === "all" ? "mt-4" : ""}`}>
+      {view !== "chart" && <div className={`${cardClass} mt-4`}>
         <div className="flex flex-col h-[820px]">
           {/* Search Input */}
           <div className="pb-3">
@@ -367,6 +405,7 @@ export function DRepSunburstChart({ className, initialDreps, view = "all" }: DRe
                 <span className="hidden sm:inline w-[65px] text-right">{t("drep.columnPercent")}</span>
                 <span className="hidden sm:inline w-[70px] text-right">{t("drep.columnDelegators")}</span>
                 <span className="hidden sm:inline w-[50px] text-right">{t("drep.columnVotes")}</span>
+                <span className="hidden sm:inline w-[60px] text-right">{t("drep.columnVoteChanges")}</span>
               </div>
               {/* Table Rows */}
               <div ref={rowsContainerRef} className="flex flex-col gap-1.5 mt-2">
@@ -426,6 +465,10 @@ export function DRepSunburstChart({ className, initialDreps, view = "all" }: DRe
                       {/* Votes Cast */}
                       <span className={`hidden sm:inline w-[50px] text-right tabular-nums flex-shrink-0 ${isGame ? "text-white/70" : "text-muted-foreground"}`}>
                         {drep.totalVotesCast}
+                      </span>
+                      {/* Vote Changes */}
+                      <span className={`hidden sm:inline w-[60px] text-right tabular-nums flex-shrink-0 ${isGame ? "text-white/70" : "text-muted-foreground"}`}>
+                        {voteChangesMap.has(drep.drepId) ? voteChangesMap.get(drep.drepId) : "--"}
                       </span>
                     </Link>
                   );

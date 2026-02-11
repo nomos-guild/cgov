@@ -498,7 +498,17 @@ export function useAllDRepVotes(drepId: string | null) {
         }
 
         if (!controller.signal.aborted) {
-          setAllVotes(accumulated);
+          // Deduplicate by proposalId — keep only the latest vote per proposal.
+          // DReps can change their vote, which creates multiple records for the
+          // same proposal. We want unique proposals, not total transactions.
+          const seen = new Map<string, DRepVoteRecord>();
+          for (const vote of accumulated) {
+            const existing = seen.get(vote.proposalId);
+            if (!existing || (vote.votedAt && (!existing.votedAt || vote.votedAt > existing.votedAt))) {
+              seen.set(vote.proposalId, vote);
+            }
+          }
+          setAllVotes(Array.from(seen.values()));
           setIsLoading(false);
         }
       } catch (err) {
@@ -538,6 +548,38 @@ export function useDRepRationaleStats() {
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
       dedupingInterval: 300000, // 5 minutes (server caches for 5 min too)
+    }
+  );
+
+  return {
+    dreps: data?.dreps || [],
+    isLoading,
+    error: error?.message || null,
+    refresh: () => mutate(),
+  };
+}
+
+/** Response from /api/dreps/vote-changes */
+interface DRepVoteChangesResponse {
+  dreps: Array<{
+    drepId: string;
+    uniqueProposals: number;
+    voteChanges: number;
+  }>;
+}
+
+/**
+ * Hook to fetch aggregated vote-change stats for ALL DReps.
+ * Returns how many times each DRep changed their vote on proposals.
+ */
+export function useDRepVoteChanges() {
+  const { data, error, isLoading, mutate } = useSWR<DRepVoteChangesResponse>(
+    API_ENDPOINTS.drepVoteChanges,
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      dedupingInterval: 300000, // 5 minutes
     }
   );
 

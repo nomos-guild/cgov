@@ -1,0 +1,87 @@
+   ▲ Next.js 15.0.5
+   - Environments: .env
+
+   Linting and checking validity of types ...
+
+./src/components/governance/VoteButtons.tsx
+182:6  Warning: React Hook useCallback has a missing dependency: 't'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./src/components/governance/VoteOnProposal.tsx
+325:6  Warning: React Hook useCallback has a missing dependency: 't'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./src/components/wallet/ConnectWalletModal.tsx
+81:5  Warning: React Hook useCallback has a missing dependency: 't'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./src/pages/drep/[drepId].tsx
+771:23  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/building-your-application/configuring/eslint#disabling-rules
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+   Collecting page data ...
+   Generating static pages (0/43) ...
+   Generating static pages (10/43) 
+   Generating static pages (21/43) 
+   Generating static pages (32/43) 
+ ✓ Generating static pages (43/43)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (pages)                               Size     First Load JS
+┌ ● /                                       7.49 kB         291 kB
+├   /_app                                   0 B             175 kB
+├ ○ /404                                    901 B           176 kB
+├ ● /analytics-test                         6.4 kB          181 kB
+├ ƒ /api/analytics/action-volume            0 B             175 kB
+├ ƒ /api/analytics/cc-abstain-rate          0 B             175 kB
+├ ƒ /api/analytics/cc-agreement-rate        0 B             175 kB
+├ ƒ /api/analytics/cc-participation         0 B             175 kB
+├ ƒ /api/analytics/cc-time-to-decision      0 B             175 kB
+├ ƒ /api/analytics/compliance-status        0 B             175 kB
+├ ƒ /api/analytics/contention-rate          0 B             175 kB
+├ ƒ /api/analytics/delegation-distribution  0 B             175 kB
+├ ƒ /api/analytics/delegation-rate          0 B             175 kB
+├ ƒ /api/analytics/drep-activity-rate       0 B             175 kB
+├ ƒ /api/analytics/drep-correlation         0 B             175 kB
+├ ƒ /api/analytics/drep-lifecycle-rate      0 B             175 kB
+├ ƒ /api/analytics/drep-rationale-rate      0 B             175 kB
+├ ƒ /api/analytics/entity-concentration     0 B             175 kB
+├ ƒ /api/analytics/gini-coefficient         0 B             175 kB
+├ ƒ /api/analytics/inactive-ada             0 B             175 kB
+├ ƒ /api/analytics/info-availability        0 B             175 kB
+├ ƒ /api/analytics/new-delegation-rate      0 B             175 kB
+├ ƒ /api/analytics/spo-default-stance       0 B             175 kB
+├ ƒ /api/analytics/spo-silent-stake         0 B             175 kB
+├ ƒ /api/analytics/stake-participation      0 B             175 kB
+├ ƒ /api/analytics/time-to-enactment        0 B             175 kB
+├ ƒ /api/analytics/treasury-rate            0 B             175 kB
+├ ƒ /api/analytics/vote-divergence          0 B             175 kB
+├ ƒ /api/analytics/voting-turnout           0 B             175 kB
+├ ƒ /api/dreps                              0 B             175 kB
+├ ƒ /api/dreps/[drepId]                     0 B             175 kB
+├ ƒ /api/dreps/[drepId]/votes               0 B             175 kB
+├ ƒ /api/dreps/rationale-stats              0 B             175 kB
+├ ƒ /api/dreps/stats                        0 B             175 kB
+├ ƒ /api/dreps/vote-changes                 0 B             175 kB
+├ ƒ /api/overview                           0 B             175 kB
+├ ƒ /api/overview/ncl                       0 B             175 kB
+├ ƒ /api/overview/ncl/[year]                0 B             175 kB
+├ ƒ /api/overview/proposals                 0 B             175 kB
+├ ƒ /api/proposal/[id]                      0 B             175 kB
+├ ƒ /api/translate                          0 B             175 kB
+├ ƒ /api/tx-timestamp                       0 B             175 kB
+├ ● /dashboard                              19 kB           202 kB
+├ ● /drep                                   12.4 kB         213 kB
+├ ƒ /drep/[drepId]                          8.59 kB         294 kB
+└ ● /governance/[hash]                      136 kB          445 kB
++ First Load JS shared by all               198 kB
+  ├ chunks/framework-c2373564c69ff406.js    44.8 kB
+  ├ chunks/main-ae49a7d4802b8832.js         33.9 kB
+  ├ chunks/pages/_app-0fb69d7a77f16c44.js   93.8 kB
+  ├ css/7d5abe5382a94b78.css                23.1 kB
+  └ other shared chunks (total)             2.48 kB
+
+○  (Static)   prerendered as static content
+●  (SSG)      prerendered as static HTML (uses getStaticProps)
+ƒ  (Dynamic)  server-rendered on demand
+
