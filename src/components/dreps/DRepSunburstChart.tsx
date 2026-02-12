@@ -84,9 +84,9 @@ export function DRepSunburstChart({ className, initialDreps, view = "all" }: DRe
     return map;
   }, [voteChangeStats]);
 
-  // Filter dreps: exclude 0 voting power, apply search, then sort by active metric
+  // Filter dreps: exclude 0 voting power or 0 votes cast, apply search, then sort by active metric
   const filteredDreps = useMemo(() => {
-    const nonZero = dreps.filter((drep) => drep.votingPowerAda > 0);
+    const nonZero = dreps.filter((drep) => drep.votingPowerAda > 0 && drep.totalVotesCast > 0);
     const searched = searchTerm.trim()
       ? nonZero.filter((drep) => {
           const term = searchTerm.toLowerCase();

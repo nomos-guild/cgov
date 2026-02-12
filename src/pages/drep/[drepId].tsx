@@ -699,7 +699,7 @@ export default function DRepProfile() {
         />
       </Head>
       <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-3 pt-8 pb-4 sm:px-4 sm:pt-10 sm:pb-6 md:px-6 md:pt-12 md:pb-8">
+        <div className="container mx-auto px-3 pt-8 pb-28 sm:px-4 sm:pt-10 sm:pb-36 md:px-6 md:pt-12 md:pb-44">
           {/* Back link */}
           <Link href="/drep">
             <Button

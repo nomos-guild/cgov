@@ -90,7 +90,7 @@ export default function DRepDashboard({ initialData }: InferGetStaticPropsType<t
   );
 
   const activeDRepCount = useMemo(
-    () => dreps.filter((d) => d.votingPowerAda > 0).length,
+    () => dreps.filter((d) => d.votingPowerAda > 0 && d.totalVotesCast > 0).length,
     [dreps]
   );
 
@@ -108,7 +108,7 @@ export default function DRepDashboard({ initialData }: InferGetStaticPropsType<t
         <meta name="description" content={t("pageDescription")} />
       </Head>
       <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-3 pt-8 pb-4 sm:px-4 sm:pt-10 sm:pb-6 md:px-6 md:pt-12 md:pb-8">
+        <div className="container mx-auto px-3 pt-8 pb-28 sm:px-4 sm:pt-10 sm:pb-36 md:px-6 md:pt-12 md:pb-44">
           {/* Header */}
           <div className="mb-6 sm:mb-8 md:mb-10 text-left">
             <h1 className="landing-title text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-black dark:text-foreground">
