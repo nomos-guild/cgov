@@ -26,26 +26,25 @@ This document provides a complete reference for how the cgov application handles
 │                                                                         │
 │  ┌──────────────┐    ┌──────────────────┐    ┌────────────────────┐    │
 │  │   Backend    │───▶│  Next.js API     │───▶│  Frontend Service  │    │
-│  │   (Cgov API) │    │  Routes          │    │  (api.ts)          │    │
-│  │              │    │  /api/*          │    │                    │    │
+│  │   (Cgov API) │    │  Routes (/api/*) │    │  (api.ts)          │    │
 │  └──────────────┘    └──────────────────┘    └─────────┬──────────┘    │
 │                                                        │               │
-│                                                        ▼               │
-│  ┌─────────────────────────────────────────────────────────────────┐  │
-│  │                      Redux Store                                 │  │
-│  │                   (governanceSlice.ts)                          │  │
-│  │                                                                  │  │
-│  │  • actions: GovernanceAction[]                                  │  │
-│  │  • selectedAction: GovernanceActionDetail                       │  │
-│  │  • overview: OverviewSummary                                    │  │
-│  │  • nclDataList: NCLDisplayData[]                                │  │
-│  └──────────────────────────────────────────────────────────────────┘  │
-│                                │                                       │
-│                                ▼                                       │
+│                              ┌──────────────────────────┤               │
+│                              │                          │               │
+│                              ▼                          ▼               │
+│  ┌───────────────────────────────┐  ┌──────────────────────────────┐  │
+│  │   ISR + SWR Hooks             │  │   Redux Store (backward compat)│ │
+│  │   useGovernanceData.ts        │  │   governanceSlice.ts          │  │
+│  │   useDRepData.ts              │──▶│   SWR hooks sync to Redux    │  │
+│  │   useContentTranslation.ts    │  │                               │  │
+│  └───────────────────┬───────────┘  └──────────────────────────────┘  │
+│                      │                                                  │
+│                      ▼                                                  │
 │  ┌──────────────────────────────────────────────────────────────────┐ │
 │  │                      UI Components                                │ │
-│  │  • GovernanceTable      • VoteProgress       • VotingRecords     │ │
-│  │  • GovernanceStats      • BubbleMap          • VotingSummary     │ │
+│  │  • GovernanceTable    • VoteProgress      • VotingRecords        │ │
+│  │  • GovernanceStats    • Dashboard charts   • DRep pages          │ │
+│  │  • D3 Visualizations  • LanguageSelector  • VoteOnProposal       │ │
 │  └──────────────────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -55,11 +54,11 @@ This document provides a complete reference for how the cgov application handles
 ## Data Flow
 
 ### Request Flow
-1. **Frontend** calls local Next.js API route (e.g., `/api/overview/proposals`)
-2. **API Route** (`src/pages/api/*`) uses `apiHelper.ts` to add API key and call backend
-3. **Backend Response** is proxied back to frontend
+1. **ISR** (`getStaticProps`, `revalidate: 60`) pre-renders pages with server-side data
+2. **SWR Hooks** (`useGovernanceData.ts`, `useDRepData.ts`) revalidate client-side with `fallbackData` from ISR
+3. **API Routes** (`src/pages/api/*`) use `apiHelper.ts` to add API key and proxy to backend
 4. **Frontend Service** (`src/services/api.ts`) transforms data (lovelace → ADA)
-5. **Redux Store** (`governanceSlice.ts`) manages state
+5. **SWR hooks sync to Redux** for backward compatibility with components using selectors
 6. **Components** render data with vote calculations from `voteBreakdownCalculator.ts`
 
 ### Data Transformations
@@ -85,19 +84,55 @@ This document provides a complete reference for how the cgov application handles
 
 ```typescript
 export const API_ENDPOINTS = {
+  // Overview
   overview: "/api/overview",
   proposals: "/api/overview/proposals",
   ncl: "/api/overview/ncl",
   nclByYear: (year: number) => `/api/overview/ncl/${year}`,
   proposalDetail: (proposalId: string) => `/api/proposal/${encodeURIComponent(proposalId)}`,
+
+  // DReps
+  drepStats: "/api/dreps/stats",
+  dreps: "/api/dreps",
+  drepDetail: (drepId: string) => `/api/dreps/${encodeURIComponent(drepId)}`,
+  drepVotes: (drepId: string) => `/api/dreps/${encodeURIComponent(drepId)}/votes`,
+  drepRationaleStats: "/api/dreps/rationale-stats",
+  drepVoteChanges: "/api/dreps/vote-changes",
+
+  // Analytics (25+ endpoints across 6 categories)
+  // See src/config/api.ts for full list
 }
+```
+
+### SWR Data Hooks
+
+```typescript
+// src/hooks/useGovernanceData.ts — governance data with Redux sync
+useGovernanceActions()          // All governance actions
+useOverviewSummary()            // Dashboard statistics
+useNCLData()                    // NCL (Net Change Limit) data
+useGovernanceActionDetail(id)   // Single proposal detail
+
+// src/hooks/useDRepData.ts — DRep data (no Redux, module-level cache)
+useDRepStats()                  // Aggregate DRep statistics
+useDRepList(params)             // Paginated DRep listing
+useDRepDetail(drepId)           // Individual DRep profile
+useAllDReps()                   // All DReps (60s TTL module cache)
+useDRepRationaleStats()         // Rationale statistics (server-side aggregation)
+```
+
+### Server-Side Fetching (`src/lib/serverFetch.ts`)
+
+```typescript
+fetchDRepStatsServer()          // DRep stats for ISR
+fetchAllDRepsServer()           // All DReps for ISR
 ```
 
 ### Environment Variables
 
 ```
-BACKEND_API_URL=http://localhost:3001  # Backend base URL
-BACKEND_API_KEY=<secret>               # API authentication key
+BACKEND_API_URL=<backend-url>   # Backend base URL
+BACKEND_API_KEY=<secret>        # API authentication key (server-side only)
 ```
 
 ---
@@ -378,7 +413,7 @@ Determines which voter types can vote on each proposal type.
 | No Confidence | ✓ | ✓ | ✗ |
 | Update Committee | ✓ | ✓ | ✗ |
 | New Constitution | ✓ | ✗ | ✓ |
-| Hard Fork Initiation | ✗ | ✓ | ✓ |
+| Hard Fork Initiation | ✓ (60%) | ✓ | ✓ |
 | Protocol Parameter Change | ✓ | ✗ | ✓ |
 | Treasury Withdrawals | ✓ | ✗ | ✓ |
 | Info Action | ✓ | ✓ | ✓ |
@@ -586,6 +621,15 @@ const STATUS_OPTIONS: ProposalStatus[] = [
 | `src/pages/api/overview/ncl/index.ts` | `/api/overview/ncl` |
 | `src/pages/api/overview/ncl/[year].ts` | `/api/overview/ncl/:year` |
 | `src/pages/api/proposal/[id].ts` | `/api/proposal/:id` |
+| `src/pages/api/dreps/index.ts` | `/api/dreps` |
+| `src/pages/api/dreps/stats.ts` | `/api/dreps/stats` |
+| `src/pages/api/dreps/rationale-stats.ts` | `/api/dreps/rationale-stats` |
+| `src/pages/api/dreps/vote-changes.ts` | `/api/dreps/vote-changes` |
+| `src/pages/api/dreps/[drepId]/index.ts` | `/api/dreps/:drepId` |
+| `src/pages/api/dreps/[drepId]/votes.ts` | `/api/dreps/:drepId/votes` |
+| `src/pages/api/analytics/*` | 25+ analytics endpoints (see `src/config/api.ts`) |
+| `src/pages/api/translate.ts` | `/api/translate` (DeepL proxy) |
+| `src/pages/api/tx-timestamp.ts` | `/api/tx-timestamp` |
 
 ### UI Components
 
@@ -596,7 +640,21 @@ const STATUS_OPTIONS: ProposalStatus[] = [
 | `src/components/ui/vote-progress.tsx` | Donut chart voting visualization |
 | `src/components/VotingRecords.tsx` | Detailed voting records table |
 | `src/components/VotingSummary.tsx` | Vote count statistics grid |
-| `src/components/BubbleMap.tsx` | D3.js force-directed voter visualization |
+| `src/components/BubbleMap.tsx` | D3.js force-directed voter visualization (legacy) |
+| `src/components/dreps/DRepBubbleMap.tsx` | D3 circle-packing DRep visualization |
+| `src/components/dreps/DRepTreeMap.tsx` | D3 treemap DRep visualization |
+| `src/components/dreps/DRepDonutChart.tsx` | D3 animated donut chart |
+| `src/components/dreps/DRepSunburstChart.tsx` | Chart type switcher with crossfade |
+| `src/components/governance/VoteOnProposal.tsx` | On-chain vote submission |
+| `src/components/LanguageSelector.tsx` | Language picker dropdown |
+
+### Hooks
+
+| File | Purpose |
+|------|---------|
+| `src/hooks/useGovernanceData.ts` | SWR hooks for governance data + Redux sync |
+| `src/hooks/useDRepData.ts` | SWR hooks for DRep data + normalization |
+| `src/hooks/useContentTranslation.ts` | i18n content translation hook |
 
 ### Utility Files
 
@@ -604,35 +662,30 @@ const STATUS_OPTIONS: ProposalStatus[] = [
 |------|---------|
 | `src/lib/voteMath.ts` | Numeric utilities for vote calculations |
 | `src/lib/exportRationales.ts` | Vote export (JSON/MD/CSV) and rationale parsing |
+| `src/lib/serverFetch.ts` | Server-side data fetching for ISR |
+| `src/lib/gini.ts` | Gini coefficient calculation |
+| `src/lib/i18n.ts` | i18n configuration |
+| `src/services/analyticsApi.ts` | Analytics-specific API calls |
 
 ---
 
-## MCP Server Recommendations
+## MCP Servers (Implemented)
 
-When building an MCP server for AI-assisted development on this codebase:
+Two MCP servers provide AI-assisted knowledge for coding agents:
 
-### Key Data to Expose
+### `mcp__cardano-governance__*` (`.claude/mcp/cardano-governance/`)
+CIP-1694 governance rules extracted from the Conway Ledger formal specification.
+- `get_governance_action_info`, `get_voter_eligibility`, `get_voting_thresholds`
+- `get_vote_calculation_formula`, `get_ratification_rules`, `get_cc_rules`
+- `search_governance_rules`, `get_protocol_parameter_groups`
+- Reference: `sources/conway-ledger.pdf`
 
-1. **Type Definitions**: Full governance types for code generation
-2. **Eligibility Matrix**: Voter eligibility rules for validation
-3. **Vote Calculation Formulas**: Epoch-dependent calculation logic
-4. **API Endpoints**: Available data fetching routes
-5. **Constants**: Epoch thresholds, colors, status values
-
-### Useful MCP Resources
-
-- `governance-types`: Return full type definitions
-- `eligibility-matrix`: Return voter eligibility rules
-- `vote-calculations`: Explain vote calculation logic for a given action type
-- `api-schema`: Return API endpoint documentation
-- `component-map`: Return which components handle what data
-
-### Sample MCP Tools
-
-- `get_voter_eligibility(proposal_type, voter_type)`: Check if voter can vote
-- `calculate_vote_totals(breakdown, action_type, epoch)`: Compute legend totals
-- `get_action_type_code(type_string)`: Normalize type string to code
-- `lovelace_to_ada(lovelace)`: Convert currency units
+### `mcp__cgov-project__*` (`.claude/mcp/cgov-project/`)
+Project-specific knowledge for the cgov codebase.
+- `get_project_overview`, `get_file_structure`, `get_type_info`
+- `get_voter_eligibility`, `check_can_vote`, `get_vote_calculation_rules`
+- `get_api_architecture`, `get_component_info`, `get_coding_conventions`
+- `get_dashboard_info`, `get_theming_info`, `search_project_knowledge`
 
 ---
 

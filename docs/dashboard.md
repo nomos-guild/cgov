@@ -2,30 +2,46 @@
 
 ## Overview
 
-The Dashboard page (`/dashboard`) provides a fully customizable overview of Cardano governance data through interactive charts. Users can freely position, resize, show/hide charts, with all settings persisted to localStorage.
+The Dashboard page (`/dashboard`) provides a fully customizable overview of Cardano governance data through interactive charts. Users can freely position, resize, show/hide charts, customize colors, add text elements, and share dashboard configurations. All settings persist to localStorage.
 
 ## File Structure
 
 ```
 src/
 ├── pages/
-│   └── dashboard.tsx                    # Dashboard page component
-├── components/dashboard/
-│   ├── index.ts                         # Barrel exports
-│   ├── DashboardProvider.tsx            # Context + localStorage persistence
-│   ├── DashboardGrid.tsx                # Free-form canvas container
-│   ├── DashboardChartCard.tsx           # Draggable/resizable card wrapper
-│   ├── ChartVisibilityDropdown.tsx      # Show/hide chart selector
-│   └── charts/
-│       ├── index.ts                     # Chart registry
-│       ├── ChartSkeleton.tsx            # Loading placeholder
-│       ├── ProposalStatusChart.tsx      # Active/Ratified/Enacted counts
-│       ├── ProposalTypeChart.tsx        # Pie chart by action type
-│       ├── NCLProgressChart.tsx         # Treasury NCL gauges
-│       ├── VotingPowerChart.tsx         # DRep/SPO voting breakdown
-│       └── ParticipationChart.tsx       # Vote participation rates
+│   └── dashboard.tsx                           # Dashboard page component
+├── components/dashboards/
+│   ├── index.ts                                # Dashboard barrel exports
+│   ├── shared/                                 # Shared dashboard infrastructure
+│   │   ├── index.ts                            # Barrel exports
+│   │   ├── DashboardProvider.tsx               # Context + localStorage persistence
+│   │   ├── DashboardGrid.tsx                   # Free-form canvas container
+│   │   ├── DashboardChartCard.tsx              # Draggable/resizable card wrapper
+│   │   ├── DashboardSidePanel.tsx              # Chart settings side panel
+│   │   ├── DashboardTextElement.tsx            # Custom text items on canvas
+│   │   ├── DashboardMarginHandles.tsx          # Page margin adjusters
+│   │   ├── ChartCard.tsx                       # Card styling wrapper
+│   │   ├── ChartVisibilityDropdown.tsx         # Show/hide chart selector
+│   │   ├── ChartColorPicker.tsx                # Chart color customization
+│   │   ├── SidePanelColorPicker.tsx            # Side panel color picker UI
+│   │   ├── ChartColorsContext.tsx              # Color customization context
+│   │   └── chartTheme.tsx                      # Chart theme utilities
+│   ├── governance/                             # Governance dashboard
+│   │   ├── index.ts                            # Barrel exports
+│   │   └── charts/
+│   │       ├── index.tsx                       # CHART_REGISTRY (7 charts)
+│   │       ├── ChartSkeleton.tsx               # Loading placeholder
+│   │       ├── ProposalStatusChart.tsx          # Active/Ratified/Enacted counts
+│   │       ├── ProposalTypeChart.tsx            # Pie chart by action type
+│   │       ├── NCLProgressChart.tsx             # Treasury NCL gauges
+│   │       ├── ProposalSubmissionChart.tsx      # Proposals submitted per month
+│   │       ├── DRepVotingPowerChart.tsx         # Top DRep voting power distribution
+│   │       ├── DRepRationaleChart.tsx           # Votes with/without rationale
+│   │       └── DRepMetricsCard.tsx              # Key DRep statistics card
+│   ├── drep/charts/index.ts                    # DRep dashboard (placeholder)
+│   └── phil/charts/index.ts                    # Phil's dashboard (placeholder)
 └── types/
-    └── dashboard.ts                     # TypeScript types + constants
+    └── dashboard.ts                            # TypeScript types + constants
 ```
 
 ## Key Types
@@ -36,8 +52,10 @@ type ChartId =
   | "proposal-status"
   | "proposal-type"
   | "ncl-progress"
-  | "voting-power"
-  | "participation";
+  | "proposal-submission"
+  | "drep-voting-power"
+  | "drep-rationale"
+  | "drep-metrics";
 ```
 
 ### ChartLayout (Pixel-based positioning)
@@ -54,101 +72,80 @@ interface ChartLayout {
 ```typescript
 interface DashboardConfig {
   visibleCharts: ChartId[];              // Which charts are shown
+  chartOrder: ChartId[];                 // Order in customize menu
   layouts: Record<ChartId, ChartLayout>; // Position/size of each chart
+  textElements: TextElement[];           // Custom text items
+  pageMargins: PageMargins;             // Page margin settings
   version: number;                       // Schema version for migrations
 }
 ```
 
 ## Architecture
 
+### Multi-Dashboard System
+
+The dashboard uses a shared infrastructure that supports multiple dashboard types:
+
+- **`dashboards/shared/`** — DashboardProvider, DashboardGrid, DashboardChartCard, etc.
+- **`dashboards/governance/`** — Governance dashboard with 7 charts
+- **`dashboards/drep/`** — DRep dashboard (placeholder for future)
+- **`dashboards/phil/`** — Phil's dashboard (placeholder for future)
+
+Each dashboard has its own `CHART_REGISTRY` in `charts/index.ts`.
+
 ### State Management
 
-**DashboardProvider** (`src/components/dashboard/DashboardProvider.tsx`)
+**DashboardProvider** (`src/components/dashboards/shared/DashboardProvider.tsx`)
 - React Context for dashboard state
-- Persists to localStorage under key `"dashboard-config"`
-- Handles schema migrations from older versions
+- Persists to localStorage
+- Handles schema migrations from older config versions
 - SSR-safe with `mounted` state pattern
 
 Key context values:
-- `config` - Current dashboard configuration
-- `mounted` - Whether client-side hydration is complete
-- `getLayout(chartId)` - Get layout for a chart
-- `updateLayout(chartId, partial)` - Update chart position/size
-- `toggleChartVisibility(chartId)` - Show/hide a chart
-- `resetToDefaults()` - Reset all settings
+- `config` — Current dashboard configuration
+- `mounted` — Whether client-side hydration is complete
+- `getLayout(chartId)` — Get layout for a chart
+- `updateLayout(chartId, partial)` — Update chart position/size
+- `toggleChartVisibility(chartId)` — Show/hide a chart
+- `reorderCharts(from, to)` — Reorder charts in menu
+- `addTextElement()` / `updateTextElement()` / `removeTextElement()` — Manage text items
+- `updatePageMargins(margins)` — Adjust page margins
+- `exportConfig()` / `importConfig(code)` — Share dashboard configurations
+- `resetToDefaults()` — Reset all settings
 
 ### Layout System
 
-**DashboardGrid** (`src/components/dashboard/DashboardGrid.tsx`)
-- Free-form canvas using CSS `position: relative` container
-- Cards use `position: absolute` with pixel coordinates
-- No grid snapping - cards can be placed anywhere
-- Overlapping is allowed for flexible repositioning
-- Container height auto-expands based on card positions
+**DashboardGrid** — Free-form canvas using `position: relative` container with absolute-positioned cards. No grid snapping. Overlapping is allowed.
 
-**DashboardChartCard** (`src/components/dashboard/DashboardChartCard.tsx`)
-- Handles drag-to-move via grip handle icon
-- Handles resize from all 8 directions (4 edges + 4 corners)
-- Click/drag/resize brings card to front (z-index management)
-- Resize handles appear on hover
+**DashboardChartCard** — Handles drag-to-move via grip handle, resize from all 8 directions, click-to-front z-index management.
 
 ### Z-Index Layers
-- `z-index: 1` - Inactive cards
-- `z-index: 50` - Active/clicked card
-- `z-index: 100` - Customize dropdown menu
-
-## Layout Constraints
-
-Defined in `src/types/dashboard.ts`:
-```typescript
-const LAYOUT_CONSTRAINTS = {
-  minWidth: 280,
-  minHeight: 200,
-  maxWidth: 1200,
-  maxHeight: 800,
-  gap: 16,  // Reference only, not enforced
-};
-```
-
-## Default Chart Layouts
-
-```typescript
-const DEFAULT_CHART_LAYOUTS = {
-  "proposal-status": { x: 0, y: 0, width: 380, height: 320 },
-  "proposal-type": { x: 396, y: 0, width: 380, height: 320 },
-  "ncl-progress": { x: 792, y: 0, width: 380, height: 320 },
-  "voting-power": { x: 0, y: 336, width: 580, height: 320 },
-  "participation": { x: 596, y: 336, width: 580, height: 320 },
-};
-```
+- `z-index: 1` — Inactive cards
+- `z-index: 50` — Active/clicked card
+- `z-index: 100` — Customize dropdown menu
 
 ## Chart Registry
 
-Charts are registered in `src/components/dashboard/charts/index.ts`:
+Charts are registered in `src/components/dashboards/governance/charts/index.tsx`. All chart components are lazy-loaded with `dynamic()` and `ssr: false` to reduce initial bundle size.
 
-```typescript
-interface ChartDefinition {
-  id: ChartId;
-  title: string;
-  description: string;
-  component: ComponentType<ChartProps>;
-  defaultVisible: boolean;
-  defaultLayout: ChartLayout;
-  icon?: ComponentType<{ className?: string }>;
-}
-```
+| Chart | ID | Default Visible | Data Source |
+|-------|----|:---:|-------------|
+| Proposal Status | `proposal-status` | yes | Redux (governance actions) |
+| Proposal Types | `proposal-type` | yes | Redux (governance actions) |
+| NCL Progress | `ncl-progress` | yes | Redux (NCL data) |
+| Proposal Submission | `proposal-submission` | yes | Redux (governance actions) |
+| DRep Voting Power | `drep-voting-power` | no | SWR (useDRepData hooks) |
+| DRep Rationales | `drep-rationale` | no | SWR (useDRepRationaleStats) |
+| DRep Metrics | `drep-metrics` | no | SWR (useDRepStats) |
+
+DRep charts use `defaultVisible: false` to avoid overwhelming existing users and because they require separate DRep API calls.
 
 ## Adding a New Chart
 
-1. Create chart component in `src/components/dashboard/charts/`:
+1. Create chart component in `src/components/dashboards/governance/charts/`:
 ```typescript
 import type { ChartProps } from "@/types/dashboard";
-
-export function MyNewChart({ isLoading, className }: ChartProps) {
-  // Use Redux selectors for data
-  // Use useTheme() for dark/light styling
-  // Return chart wrapped in card styling
-}
+export function MyNewChart({ isLoading, className }: ChartProps) { ... }
 ```
 
 2. Add ChartId to `src/types/dashboard.ts`:
@@ -156,86 +153,42 @@ export function MyNewChart({ isLoading, className }: ChartProps) {
 export type ChartId = ... | "my-new-chart";
 ```
 
-3. Add default layout to `DEFAULT_CHART_LAYOUTS`:
+3. Add default layout to `DEFAULT_CHART_LAYOUTS` in `types/dashboard.ts`.
+
+4. Add to `ALL_CHART_IDS` array in `types/dashboard.ts`.
+
+5. Lazy-load and register in `src/components/dashboards/governance/charts/index.tsx`:
 ```typescript
-"my-new-chart": { x: 0, y: 672, width: 380, height: 320 },
+const MyNewChart = dynamic(
+  () => import("./MyNewChart").then((mod) => mod.MyNewChart),
+  { loading: () => <ChartSkeleton />, ssr: false }
+);
+
+// Add to CHART_REGISTRY array
+{ id: "my-new-chart", title: "My Chart", ..., defaultVisible: false }
 ```
 
-4. Register in `src/components/dashboard/charts/index.ts`:
-```typescript
-import { MyNewChart } from "./MyNewChart";
-
-export const CHART_REGISTRY: ChartDefinition[] = [
-  // ... existing charts
-  {
-    id: "my-new-chart",
-    title: "My New Chart",
-    description: "Description shown in customize dropdown",
-    component: MyNewChart,
-    defaultVisible: true,
-    defaultLayout: DEFAULT_CHART_LAYOUTS["my-new-chart"],
-    icon: SomeIcon,
-  },
-];
-```
-
-5. Export from `src/components/dashboard/charts/index.ts`:
-```typescript
-export { MyNewChart } from "./MyNewChart";
-```
-
-## Chart Component Pattern
-
-All charts follow this pattern:
-```typescript
-export function ExampleChart({ isLoading, className }: ChartProps) {
-  const { activeTheme } = useTheme();
-  const isDark = activeTheme.isDark;
-
-  // Get data from Redux
-  const data = useSelector(selectSomeData);
-
-  if (isLoading || !data) {
-    return <ChartSkeleton className={className} />;
-  }
-
-  return (
-    <div className={cn(
-      "rounded-2xl p-4 h-full",
-      isDark ? "bg-[#1a1a2e] border border-[#0bd1a2]" : "bg-white border shadow-sm",
-      className
-    )}>
-      <h3 className={cn("text-lg font-semibold mb-4", isDark ? "text-[#0bd1a2]" : "text-gray-900")}>
-        Chart Title
-      </h3>
-      {/* Chart content using Recharts */}
-    </div>
-  );
-}
-```
+6. Bump config `version` in `types/dashboard.ts` to trigger migration for existing users.
 
 ## User Interactions
 
 ### Moving a Card
-1. Hover over card to reveal grip handle (top-right)
-2. Click and drag the grip handle
-3. Card moves freely to any position
-4. Release to place
+Hover → grip handle appears (top-right) → drag to any position → release
 
 ### Resizing a Card
-1. Hover over card edges/corners to reveal resize handles
-2. Drag any edge or corner
-3. Card resizes within min/max constraints
-4. Release to confirm size
+Hover over edges/corners → resize handles appear → drag → release
 
 ### Showing/Hiding Charts
-1. Click "Customize" button
-2. Toggle checkboxes for each chart
-3. Click "Reset" to restore defaults
+Click "Customize" → toggle checkboxes → "Reset" restores defaults
 
-### Bringing Card to Front
-- Click anywhere on a card to bring it to front
-- Dragging or resizing also brings card to front
+### Text Elements
+Add custom text labels anywhere on the dashboard canvas
+
+### Sharing
+Export → generates shareable config code → Import on another browser
+
+### Color Customization
+Click chart settings → color picker → customize per-chart colors via side panel
 
 ## localStorage Schema
 
@@ -244,24 +197,15 @@ Key: `"dashboard-config"`
 ```json
 {
   "visibleCharts": ["proposal-status", "proposal-type", ...],
+  "chartOrder": ["proposal-status", "proposal-type", ...],
   "layouts": {
     "proposal-status": { "x": 0, "y": 0, "width": 380, "height": 320 },
     ...
   },
-  "version": 6
+  "textElements": [],
+  "pageMargins": { "top": 0, "right": 0, "bottom": 0, "left": 0 },
+  "version": 10
 }
 ```
 
-## SSR Safety
-
-The dashboard uses the mounted state pattern for SSR compatibility:
-```typescript
-const [mounted, setMounted] = useState(false);
-useEffect(() => { setMounted(true); }, []);
-
-if (!mounted) {
-  return <LoadingSkeleton />;
-}
-```
-
-This prevents hydration mismatches when localStorage values differ from server-rendered defaults.
+Config version bumps trigger migration logic in DashboardProvider, preserving user customizations while adding new chart defaults.

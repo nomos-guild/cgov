@@ -2,7 +2,7 @@
  * Cardano Conway-era Governance Rules
  * Extracted from: "Formal Specification of the Cardano Ledger for the Conway era"
  * Authors: Andre Knispel, William DeMeo, Joosep Jääger, Carlos Tomé Cortiñas (IOHK)
- * Reference: docs/conway-ledger.pdf
+ * Reference: sources/conway-ledger.pdf
  */
 
 // =============================================================================
