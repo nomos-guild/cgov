@@ -7,6 +7,9 @@ import { useAllDReps, useDRepStats, useDRepRationaleStats, useDRepVoteChanges } 
 import { DRepBubbleMap } from "@/components/dreps/DRepBubbleMap";
 import { DRepTreeMap } from "@/components/dreps/DRepTreeMap";
 import { DRepDonutChart } from "@/components/dreps/DRepDonutChart";
+import { DRepActivityDonut } from "@/components/dreps/DRepActivityDonut";
+import { DRepDelegatorsDonut } from "@/components/dreps/DRepDelegatorsDonut";
+import { DRepDelegatedAdaDonut } from "@/components/dreps/DRepDelegatedAdaDonut";
 
 // Format voting power for display
 function formatVotingPower(value: number, decimals: number = 1): string {
@@ -332,28 +335,18 @@ export function DRepSunburstChart({ className, initialDreps, view = "all" }: DRe
       {/* Donut Chart Cards */}
       {view !== "chart" && (
         <div className={`grid grid-cols-1 sm:grid-cols-3 gap-4 ${view === "all" ? "mt-4" : ""}`}>
-          {[
-            { title: t("drep.columnPower"), key: "power" },
-            { title: t("drep.columnDelegators"), key: "delegators" },
-            { title: t("drep.columnVotes"), key: "votes" },
-          ].map(({ title, key }) => (
-            <div key={key} className={`${cardClass} flex flex-col items-center justify-center min-h-[220px]`}>
-              <h4 className={`text-xs font-semibold uppercase tracking-wide mb-4 ${
-                isGame ? "text-white/60" : "text-muted-foreground"
-              }`}>
-                {title}
-              </h4>
-              <div className={`w-[140px] h-[140px] rounded-full border-2 border-dashed flex items-center justify-center ${
-                isLight
-                  ? "border-black/10 text-black/30"
-                  : isGame
-                  ? "border-white/15 text-white/30"
-                  : "border-[#0bd1a2]/30 text-[#0bd1a2]/40"
-              }`}>
-                <span className="text-xs">{t("drep.chartPlaceholder")}</span>
-              </div>
-            </div>
-          ))}
+          {/* DRep Activity Donut */}
+          <div className={`${cardClass} flex flex-col items-center justify-center min-h-[220px]`}>
+            <DRepActivityDonut dreps={dreps} />
+          </div>
+          {/* DRep Delegators Donut */}
+          <div className={`${cardClass} flex flex-col min-h-[220px]`}>
+            <DRepDelegatorsDonut dreps={dreps} />
+          </div>
+          {/* DRep Delegated ADA Donut */}
+          <div className={`${cardClass} flex flex-col min-h-[220px]`}>
+            <DRepDelegatedAdaDonut dreps={dreps} />
+          </div>
         </div>
       )}
 
