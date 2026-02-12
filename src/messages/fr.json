@@ -331,7 +331,7 @@
     "failedToLoad": "Échec du chargement des données DRep",
     "noDataAvailable": "Aucune donnée DRep disponible",
     "totalDReps": "Total DReps",
-    "activeDRepsTooltip": "Exclut les DReps avec 0 ADA de pouvoir de vote",
+    "activeDRepsTooltip": "Exclut les DReps avec 0 votes effectués et les DReps avec 0 ADA de pouvoir de vote",
     "totalDelegators": "Total Délégateurs",
     "totalDelegatedAda": "Total ADA Délégué",
     "totalVotesCast": "Total Votes Exprimés",

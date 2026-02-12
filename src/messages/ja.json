@@ -331,7 +331,7 @@
     "failedToLoad": "DRepデータの読み込みに失敗しました",
     "noDataAvailable": "DRepデータがありません",
     "totalDReps": "DRep総数",
-    "activeDRepsTooltip": "投票力0 ADAのDRepを除外",
+    "activeDRepsTooltip": "投票数0のDRepと投票力0 ADAのDRepを除外",
     "totalDelegators": "委任者総数",
     "totalDelegatedAda": "委任ADA総額",
     "totalVotesCast": "投票総数",
