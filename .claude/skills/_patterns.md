@@ -18,7 +18,10 @@ Three distinct themes — never treat dark and game as the same.
 - `isDark` is true for BOTH dark AND game — always check `isGame` first
 - Light theme cards: pure white, NO borders, shadow only
 - Game theme cards: NO colored borders, NO colored elements
+- Game theme donut strokes: `rgba(255,255,255,${0.6 + index * 0.1})` — high base opacity needed for visible white borders even with few slices
+- Game theme rank-based fills: `rgba(shade,shade,shade,0.7)` where shade = `20 + ratio * 35` (20→55 range, darker for higher rank)
 - Dark theme: cyan for almost everything
+- Dark theme rank-based fills: `rgba(11,209,162, 0.6 - ratio * 0.5)` (brighter for higher rank, fading to 0.10)
 - **CSS specificity vs Tailwind**: Game theme CSS classes like `game-nav-btn` use `[data-theme="game"]` selectors with higher specificity than Tailwind utilities. You cannot override `height: 40px` from `game-nav-btn` with Tailwind `h-8`. Create a variant class (e.g., `game-nav-btn-sm`) instead.
 
 **3-way theme check (always use this order):**
@@ -36,7 +39,7 @@ isGame ? "game-classes" : isDark ? "dark-classes" : "light-classes"
   2. Tailwind override: `[&_.recharts-wrapper]:!overflow-visible`
   3. PieChart SVG: `style={{ overflow: "visible" }}`
 - **Tick lines**: Always `tickLine={false}` for cleaner look
-- **Pie animation defaults**: Always set `animationDuration={500}` and `animationEasing="ease-in-out"` on `<Pie>` for consistent, smooth transitions
+- **Pie animation defaults**: For dashboard charts, set `animationDuration={500}` and `animationEasing="ease-in-out"` on `<Pie>`. For standalone page donuts, use `isAnimationActive={false}` on both `<Pie>` and `<Tooltip>` to disable all animation
 - **Responsive sizing**: Chart container needs `flex-1 min-h-0`, then `<ResponsiveContainer width="100%" height="100%">`
 - **Pie exit animation**: Recharts instantly removes slices from DOM. For smooth removal, use the two-phase pattern: keep removed slices at `value: 0` during animation, clean up after `setTimeout(ANIM_MS + 50)`. See `add-chart` skill for full pattern.
 - **Table legends**: Use `table-fixed` with `<colgroup>` for stable column widths when data changes

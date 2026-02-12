@@ -163,6 +163,7 @@ function VoteBreakdownChart({ yes, no, abstain, isGame, isLight, labels }: VoteB
               </defs>
             )}
             <Pie
+              isAnimationActive={false}
               data={data}
               cx="50%"
               cy="50%"
@@ -179,7 +180,7 @@ function VoteBreakdownChart({ yes, no, abstain, isGame, isLight, labels }: VoteB
                   key={`cell-${index}`}
                   fill={entry.color}
                   fillOpacity={isGame ? 0.85 : 1}
-                  stroke={isLight ? "rgba(15, 23, 42, 0.15)" : isGame ? `rgba(255,255,255,${0.4 + index * 0.08})` : "rgba(11, 209, 162, 0.5)"}
+                  stroke={isLight ? "rgba(15, 23, 42, 0.15)" : isGame ? `rgba(255,255,255,${0.6 + index * 0.1})` : "rgba(11, 209, 162, 0.5)"}
                   strokeWidth={isLight ? 2 : 2}
                 />
               ))}
@@ -295,6 +296,7 @@ function EngagementChart({ totalVotesCast, participationPercent, isGame, isLight
               </defs>
             )}
             <Pie
+              isAnimationActive={false}
               data={data}
               cx="50%"
               cy="50%"
@@ -311,7 +313,7 @@ function EngagementChart({ totalVotesCast, participationPercent, isGame, isLight
                   key={`cell-${index}`}
                   fill={entry.color}
                   fillOpacity={isGame ? 0.85 : 1}
-                  stroke={isLight ? "rgba(15, 23, 42, 0.15)" : isGame ? `rgba(255,255,255,${0.4 + index * 0.08})` : "rgba(11, 209, 162, 0.5)"}
+                  stroke={isLight ? "rgba(15, 23, 42, 0.15)" : isGame ? `rgba(255,255,255,${0.6 + index * 0.1})` : "rgba(11, 209, 162, 0.5)"}
                   strokeWidth={isLight ? 2 : 2}
                 />
               ))}
@@ -423,6 +425,7 @@ function RationaleChart({ rationalesProvided, totalVotesCast, isGame, isLight, l
               </defs>
             )}
             <Pie
+              isAnimationActive={false}
               data={data}
               cx="50%"
               cy="50%"
@@ -439,7 +442,7 @@ function RationaleChart({ rationalesProvided, totalVotesCast, isGame, isLight, l
                   key={`cell-${index}`}
                   fill={entry.color}
                   fillOpacity={isGame ? 0.85 : 1}
-                  stroke={isLight ? "rgba(15, 23, 42, 0.15)" : isGame ? `rgba(255,255,255,${0.4 + index * 0.08})` : "rgba(11, 209, 162, 0.5)"}
+                  stroke={isLight ? "rgba(15, 23, 42, 0.15)" : isGame ? `rgba(255,255,255,${0.6 + index * 0.1})` : "rgba(11, 209, 162, 0.5)"}
                   strokeWidth={isLight ? 2 : 2}
                 />
               ))}
