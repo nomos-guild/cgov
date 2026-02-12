@@ -11,7 +11,7 @@ This MCP server exposes comprehensive knowledge about Cardano's on-chain governa
 All governance rules are extracted from:
 - **Document:** "Formal Specification of the Cardano Ledger for the Conway era"
 - **Authors:** Andre Knispel, William DeMeo, Joosep Jääger, Carlos Tomé Cortiñas (IOHK)
-- **Reference:** `docs/conway-ledger.pdf`
+- **Reference:** `sources/conway-ledger.pdf`
 
 ## Available Tools
 

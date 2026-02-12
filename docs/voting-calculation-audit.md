@@ -37,30 +37,31 @@ This document compares the cgov frontend implementation against official Cardano
 **File:** `src/lib/governanceVotingEligibility.ts:6-14`
 
 ```typescript
+// NOTE: HardForkInitiation DRep was corrected to `true` after this audit (see section 7)
 const ELIGIBILITY: Record<ProposalType, RoleEligibility> = {
   NoConfidence: { SPO: true, DRep: true, CC: false },
   UpdateCommittee: { SPO: true, DRep: true, CC: false },
   NewConstitution: { SPO: false, DRep: true, CC: true },
-  HardForkInitiation: { SPO: true, DRep: false, CC: true },
+  HardForkInitiation: { SPO: true, DRep: true, CC: true },  // DRep: corrected from false → true
   ParameterChange: { SPO: false, DRep: true, CC: true },
   Treasury: { SPO: false, DRep: true, CC: true },
   InfoAction: { SPO: true, DRep: true, CC: true },
 };
 ```
 
-**CIP-1694 Reference:**
+**Conway Ledger Formal Specification (Fig. 42) — corrected reference:**
 
 | Action Type | DRep | SPO | CC |
 |-------------|:----:|:---:|:---:|
 | No Confidence | ✓ | ✓ | ✗ |
 | Update Committee | ✓ | ✓ | ✗ |
 | New Constitution | ✓ | ✗ | ✓ |
-| Hard Fork Initiation | ✗ | ✓ | ✓ |
+| Hard Fork Initiation | ✓ (60%) | ✓ | ✓ |
 | Protocol Parameter Change | ✓ | ✗ | ✓ |
 | Treasury Withdrawals | ✓ | ✗ | ✓ |
 | Info Action | ✓ | ✓ | ✓ |
 
-**Result:** ✅ **MATCHES EXACTLY**
+**Result:** ✅ **MATCHES** (after HardFork DRep correction)
 
 ---
 

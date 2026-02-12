@@ -1,5 +1,7 @@
 # Plugin/Modding Ecosystem Implementation Plan
 
+**Status: NOT YET IMPLEMENTED** — Design document only (PR #47, Feb 2026)
+
 ## Overview
 
 Build a community plugin/modding system for cgov that allows developers to create and share:

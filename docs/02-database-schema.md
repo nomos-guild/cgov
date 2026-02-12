@@ -452,4 +452,4 @@ ORDER BY year DESC;
 ## Related Documentation
 
 - [voting-stuff.md](voting-stuff.md) - TypeScript type definitions
-- [cardano-governance-reference.md](cardano-governance-reference.md) - CIP-1694 governance rules
+- [../sources/cardano-governance-reference.md](../sources/cardano-governance-reference.md) - CIP-1694 governance rules

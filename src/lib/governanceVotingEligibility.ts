@@ -18,7 +18,7 @@ type VoteDataPresence = {
 };
 
 // Voter eligibility matrix per Conway Ledger formal specification (Fig. 42)
-// See: docs/conway-ledger.pdf
+// See: sources/conway-ledger.pdf
 const ELIGIBILITY: Record<ProposalType, RoleEligibility> = {
   NoConfidence: { SPO: true, DRep: true, CC: false },
   UpdateCommittee: { SPO: true, DRep: true, CC: false }, // DRep threshold: 67% (normal) or 60% (CC no-confidence state)

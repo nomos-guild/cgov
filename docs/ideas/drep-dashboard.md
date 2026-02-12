@@ -1,6 +1,11 @@
 # DRep Dashboard Implementation Plan
 
-## Overview
+**Status: IMPLEMENTED** (PRs #49-#52, #62, #68, #71-#75, Feb 2026)
+
+The DRep dashboard is live at `/drep` with overview page, individual profile pages at `/drep/[drepId]`, D3 visualizations (bubble map, treemap, donut chart), voting history, and rationale analysis. Uses SWR hooks (`useDRepData.ts`) with ISR + server-side fetching (`serverFetch.ts`).
+
+## Original Plan
+
 Add a DRep Dashboard to the cgov app with:
 1. **DRep Overview Page** - Aggregate metrics and searchable DRep listing
 2. **Individual DRep Profile Pages** - Detailed view for each DRep with full voting history

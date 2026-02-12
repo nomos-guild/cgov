@@ -1,15 +1,17 @@
-# DRep Vote Submission & Sync — Frontend Integration Plan
+# DRep Vote Submission & Sync — Frontend Integration
+
+**Status: IMPLEMENTED** (PRs #64, #66, Feb 2026)
 
 ## Context
 
-The DRep on-chain voting feature has all components already built on the `add-ga-voting` branch:
-- `VoteOnProposal` (full voting UI + post-submission polling for the detail page)
-- `VoteButtons` (compact voting for the governance table)
-- Backend sync-on-read is fully implemented in cgov-api (no backend changes needed)
+The DRep on-chain voting feature was built on the `add-ga-voting` branch and integrated into the main frontend:
+- `VoteOnProposal` — full voting UI + post-submission polling on the detail page
+- `VoteButtons` — compact voting for the governance table
+- Backend sync-on-read is fully implemented in cgov-api
 
-The components are **not yet wired into the UI**. This document covers the two integration changes needed to activate DRep voting in the frontend.
+**Important implementation note:** Mesh SDK requires runtime `import()` gated by `window.crypto?.subtle` check. `next/dynamic` with `ssr: false` alone is NOT sufficient — the chunk still crashes client-side on HTTP (non-localhost). See `LazyVoteOnProposal` in `[hash].tsx` and `LazyWalletButton` in `Header.tsx`. This reduced `_app.js` bundle from 2.72 MB to 84 KB.
 
-Refer to the backend plan at `cgov-api/docs/vote-submission-and-sync-flow.md` for the full end-to-end flow diagram and backend implementation details.
+Refer to the backend plan at `cgov-api/docs/vote-submission-and-sync-flow.md` for the full end-to-end flow diagram.
 
 ---
 

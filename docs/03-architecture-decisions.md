@@ -6,15 +6,15 @@ Documentation of architectural decisions and implementation patterns in the cgov
 
 | Category | Technology | Status |
 |----------|------------|--------|
-| Framework | Next.js 15.0.3 + React 18 + TypeScript 5 | ✅ Implemented |
-| Routing | Next.js Pages Router | ✅ Implemented |
-| State Management | Redux Toolkit | ✅ Implemented |
-| UI Components | Radix UI + Tailwind CSS (shadcn/ui) | ✅ Implemented |
-| Charts | Recharts (pie/line), D3.js (bubble map) | ✅ Implemented |
-| Date Handling | date-fns | ✅ Implemented |
-| Icons | lucide-react | ✅ Implemented |
-| Blockchain | Mesh SDK (wallet connection) | ✅ Implemented |
-| Markdown | react-markdown + remark-gfm + DOMPurify | ✅ Implemented |
+| Framework | Next.js 15 + React 18 + TypeScript 5 (strict) | Implemented |
+| Routing | Next.js Pages Router | Implemented |
+| State Management | Redux Toolkit + SWR | Implemented |
+| Data Fetching | ISR (`getStaticProps`) + SWR (client-side) | Implemented |
+| UI Components | Radix UI + Tailwind CSS (shadcn/ui) | Implemented |
+| Charts | Recharts (bar/line/pie) + D3.js (bubble map, treemap, donut) | Implemented |
+| Internationalization | NextJS i18n + DeepL API (7 languages) | Implemented |
+| Blockchain | Mesh SDK (wallet connection + vote submission) | Implemented |
+| Markdown | react-markdown + remark-gfm + DOMPurify | Implemented |
 
 ## Architecture Overview
 
@@ -30,52 +30,37 @@ Documentation of architectural decisions and implementation patterns in the cgov
                                  ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                    NEXT.JS API ROUTES                                   │
-│                      (Server-side)                                      │
+│                      (Server-side proxy)                                │
 ├─────────────────────────────────────────────────────────────────────────┤
 │  src/pages/api/                                                         │
-│  ├── overview/index.ts        → GET /api/overview                       │
-│  ├── overview/proposals.ts    → GET /api/overview/proposals             │
-│  ├── overview/ncl/index.ts    → GET /api/overview/ncl                   │
-│  ├── overview/ncl/[year].ts   → GET /api/overview/ncl/:year             │
-│  └── proposal/[id].ts         → GET /api/proposal/:id                   │
+│  ├── overview/               → /api/overview, /proposals, /ncl          │
+│  ├── proposal/[id].ts        → /api/proposal/:id                        │
+│  ├── dreps/                  → /api/dreps, /stats, /:id, /:id/votes    │
+│  ├── analytics/              → 25+ analytics endpoints                  │
+│  ├── translate.ts            → DeepL translation proxy                  │
+│  └── tx-timestamp.ts         → Transaction timestamp lookup             │
 │                                                                         │
 │  Uses: src/utils/apiHelper.ts (adds X-API-Key header)                   │
 └────────────────────────────────┬────────────────────────────────────────┘
                                  │
-                                 ▼
+                    ┌────────────┼──────────────┐
+                    │            │              │
+                    ▼            ▼              ▼
+┌──────────────────────┐ ┌─────────────┐ ┌─────────────────────┐
+│   ISR (SSG)          │ │ SWR Hooks   │ │ Server-side Fetch   │
+│   getStaticProps     │ │ (client)    │ │ (lib/serverFetch.ts)│
+│   revalidate: 60     │ │ fallbackData│ │ DRep data seeding   │
+└──────────┬───────────┘ └──────┬──────┘ └──────────┬──────────┘
+           │                    │                    │
+           └────────────────────┼────────────────────┘
+                                │
+                                ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                    FRONTEND API SERVICE                                 │
-│                   src/services/api.ts                                   │
-├─────────────────────────────────────────────────────────────────────────┤
-│  • fetchOverviewSummary()                                               │
-│  • fetchGovernanceActions()                                             │
-│  • fetchGovernanceActionDetail(id)                                      │
-│  • fetchNCLData()                                                       │
-│                                                                         │
-│  Transformations:                                                       │
-│  • Lovelace → ADA conversion                                            │
-│  • Reference normalization (CIP-100/CIP-136)                            │
-│  • Vote record mapping                                                  │
-└────────────────────────────────┬────────────────────────────────────────┘
-                                 │
-                                 ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                      REDUX STORE                                        │
+│                      REDUX STORE (backward compat)                      │
 │                src/store/governanceSlice.ts                             │
 ├─────────────────────────────────────────────────────────────────────────┤
-│  State:                                                                 │
-│  • actions: GovernanceAction[]                                          │
-│  • selectedAction: GovernanceActionDetail | null                        │
-│  • overview: OverviewSummary | null                                     │
-│  • nclDataList: NCLDisplayData[]                                        │
-│  • filters: { selectedTypes, selectedStatuses, searchQuery, ... }       │
-│  • loading/error states                                                 │
-│                                                                         │
-│  Async Thunks:                                                          │
-│  • loadGovernanceActions()                                              │
-│  • loadGovernanceActionDetail(id)                                       │
-│  • loadOverviewSummary()                                                │
-│  • loadNCLData()                                                        │
+│  SWR hooks sync data to Redux for components that still use selectors   │
+│  State: actions, selectedAction, overview, nclDataList, filters         │
 └────────────────────────────────┬────────────────────────────────────────┘
                                  │
                                  ▼
@@ -86,32 +71,43 @@ Documentation of architectural decisions and implementation patterns in the cgov
 
 ## Key Implementation Patterns
 
-### 1. API Authentication (Server-side)
+### 1. ISR + SWR Hybrid Rendering
+
+All main pages use Incremental Static Regeneration with SWR client-side revalidation:
+
+```typescript
+// src/pages/index.tsx (and /governance/[hash], /drep, /drep/[drepId])
+export async function getStaticProps() {
+  const data = await fetchFromBackend();
+  return { props: { fallbackData: data }, revalidate: 60 };
+}
+
+// In component:
+const { data } = useSWR(key, fetcher, { fallbackData: props.fallbackData });
+```
+
+- `getStaticProps` with `revalidate: 60` provides fast initial render
+- SWR hooks use `fallbackData` from ISR for seamless hydration
+- For dynamic routes: `getStaticPaths` with `paths: []`, `fallback: 'blocking'`
+- Module-level caches (e.g., `useAllDReps`) need ISR data seeded into the module cache, not just SWR fallback
+
+### 2. API Authentication (Server-side)
 
 API keys are kept server-side only, never exposed to the browser.
 
 ```typescript
 // src/utils/apiHelper.ts
 export async function callApi(args: CallApiArgs) {
-  const backendApiUrl = process.env.BACKEND_API_URL || "http://localhost:3001";
-  const backendApiKey = process.env.BACKEND_API_KEY || "";
-
   const res = await fetch(backendApiUrl + args.endpoint, {
-    method: args.method || "GET",
     headers: {
       "Content-Type": "application/json",
       ...(backendApiKey && { "X-API-Key": backendApiKey }),
-      ...args.headers,
     },
-    body: args.body,
-    cache: "no-cache",
   });
-
-  // ...
 }
 ```
 
-### 2. Data Transformations
+### 3. Data Transformations
 
 Lovelace to ADA conversion happens in the frontend service layer.
 
@@ -119,57 +115,22 @@ Lovelace to ADA conversion happens in the frontend service layer.
 // src/services/api.ts
 function lovelaceToAdaNumber(lovelace: string | undefined): number {
   if (!lovelace) return 0;
-  const adaValue = Number(lovelace) / 1_000_000;
-  return Number.isFinite(adaValue) ? adaValue : 0;
-}
-
-function transformGovernanceAction(action: GovernanceAction): GovernanceAction {
-  // Convert lovelace to ADA for DRep
-  const drepYesAda = lovelaceToAdaNumber(action.drep?.yesLovelace);
-  const drepNoAda = lovelaceToAdaNumber(action.drep?.noLovelace);
-  // ...
+  return Number(lovelace) / 1_000_000;
 }
 ```
 
-### 3. Vote Calculation Logic
+### 4. Vote Calculation Logic
 
 Vote calculations vary by action type and epoch. Logic is centralized in `voteBreakdownCalculator.ts`.
 
-```typescript
-// src/lib/voteBreakdownCalculator.ts
-const EPOCH_534_THRESHOLD = 534;
+- Epoch 534 threshold: different SPO formulas before/after
+- NO_CONFIDENCE: `alwaysNoConfidence` counts as Yes
+- HARD_FORK_INITIATION: `alwaysAbstain + notVoted` count as No
+- All other actions: `alwaysNoConfidence + notVoted` count as No
 
-export function calculateDrepLegendTotals(
-  breakdown: VoteBreakdown,
-  actionType: GovernanceActionTypeCode
-): CalculatedVoteTotals {
-  if (actionType === "NO_CONFIDENCE") {
-    return {
-      yes: activeYes + alwaysNoConfidence,
-      no: activeNo + notVoted,
-      abstain: activeAbstain + alwaysAbstain,
-      inactive: inactive,
-    };
-  }
-  // Other actions...
-}
+See [voting-calculation-audit.md](voting-calculation-audit.md) for the full audit.
 
-export function calculateSpoLegendTotals(
-  breakdown: VoteBreakdown,
-  actionType: GovernanceActionTypeCode,
-  submissionEpoch: number
-): CalculatedVoteTotals {
-  // Different formulas for pre/post epoch 534
-  if (submissionEpoch < EPOCH_534_THRESHOLD) {
-    // Old formula
-  }
-  // New formula with action type variations
-}
-```
-
-### 4. Voter Eligibility
-
-Eligibility matrix determines which voter types can vote on each action type.
+### 5. Voter Eligibility
 
 ```typescript
 // src/lib/governanceVotingEligibility.ts
@@ -177,164 +138,90 @@ const ELIGIBILITY: Record<ProposalType, RoleEligibility> = {
   NoConfidence: { SPO: true, DRep: true, CC: false },
   UpdateCommittee: { SPO: true, DRep: true, CC: false },
   NewConstitution: { SPO: false, DRep: true, CC: true },
-  HardForkInitiation: { SPO: true, DRep: true, CC: true },  // DRep votes with 60% threshold
+  HardForkInitiation: { SPO: true, DRep: true, CC: true },
   ParameterChange: { SPO: false, DRep: true, CC: true },
   Treasury: { SPO: false, DRep: true, CC: true },
   InfoAction: { SPO: true, DRep: true, CC: true },
 };
-
-export function canRoleVoteOnAction(type: ProposalType | string, role: VoterType): boolean {
-  const matrix = getRoleMatrixForType(type);
-  return matrix[role];
-}
 ```
 
-> **Note:** Per Conway Ledger formal specification (Fig. 42):
-> - Hard Fork Initiation requires ALL THREE bodies: CC (2/3), DRep (60%), SPO (51%)
-> - UpdateCommittee DRep threshold varies: 67% (normal state) vs 60% (CC no-confidence state)
+### 6. Wallet Integration (Mesh SDK)
 
-### 5. Epoch Calculations
-
-Cardano epoch timing for date displays.
+Mesh SDK crashes at module eval if Web Crypto is unavailable (HTTP, not localhost). Solution:
 
 ```typescript
-// src/pages/governance/[hash].tsx
-const SHELLEY_START_EPOCH = 208;
-const SHELLEY_START_TIME = new Date("2020-07-29T21:44:51Z").getTime();
-const EPOCH_DURATION_MS = 5 * 24 * 60 * 60 * 1000; // 5 days
-
-function getCurrentEpoch(): number {
-  const now = Date.now();
-  const epochsSinceShelley = Math.floor((now - SHELLEY_START_TIME) / EPOCH_DURATION_MS);
-  return SHELLEY_START_EPOCH + epochsSinceShelley;
-}
-
-function epochToTimestamp(epoch: number): number {
-  const epochsSinceShelley = epoch - SHELLEY_START_EPOCH;
-  return SHELLEY_START_TIME + (epochsSinceShelley * EPOCH_DURATION_MS);
-}
-```
-
-### 6. IPFS Gateway Conversion
-
-```typescript
-// src/pages/governance/[hash].tsx
-function convertIpfsToGateway(uri: string): string {
-  if (!uri) return uri;
-
-  // Check if it's an IPFS URI
-  const ipfsMatch = uri.match(/^(?:ipfs:\/\/|ipfs:)(.+)$/i);
-  if (ipfsMatch) {
-    const cid = ipfsMatch[1];
-    return `https://ipfs.io/ipfs/${cid}`;
+// Runtime import() gated by Web Crypto availability
+useEffect(() => {
+  if (window.crypto?.subtle) {
+    import("@meshsdk/web3-sdk").then(setMeshModule);
   }
-
-  // Check if it's a raw CID
-  if (/^(Qm[a-zA-Z0-9]{44}|b[a-z2-7]{58})/.test(uri)) {
-    return `https://ipfs.io/ipfs/${uri}`;
-  }
-
-  return uri;
-}
+}, []);
 ```
 
-### 7. Rationale Parsing
+Components using Mesh SDK (`LazyWalletButton`, `LazyVoteOnProposal`) use this pattern. This reduced `_app.js` bundle from 2.72 MB to 84 KB.
 
-Vote rationales can be plain text or CIP-100/CIP-136 JSON.
+### 7. Theme System
+
+Three themes with CSS custom properties:
 
 ```typescript
-// src/lib/exportRationales.ts
-function getRationale(raw: string | undefined): string {
-  if (!raw || raw.trim().length === 0) return "No rationale data provided.";
-
-  try {
-    const parsed = JSON.parse(raw);
-    if (parsed && typeof parsed === "object") {
-      // CIP-100: { body: { comment } }
-      if (parsed.body?.comment) return parsed.body.comment;
-
-      // CIP-136: { body: { rationaleStatement, conclusion } }
-      if (parsed.body?.rationaleStatement) {
-        const statement = parsed.body.rationaleStatement;
-        const conclusion = parsed.body.conclusion ? `\n\n${parsed.body.conclusion}` : "";
-        return `${statement}${conclusion}`.trim();
-      }
-
-      // Legacy: { comment }
-      if (parsed.comment) return parsed.comment;
-    }
-  } catch {
-    // Not JSON, return as-is
-  }
-
-  return raw;
-}
+// src/lib/theme.tsx — sets data-theme on <html>, toggles .dark class
+// Themes: light, dark, game
+// Tokens: src/themes/*/tokens.css
+// Per-theme React overrides via useTheme().components
 ```
 
-### 8. Markdown Rendering with Sanitization
+See [theming-guide.md](theming-guide.md) for full details.
 
-```typescript
-// src/components/ProposalContent.tsx
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import DOMPurify from "dompurify";
+### 8. Multi-Dashboard Architecture
 
-export const ProposalContent = ({ content }: { content: string }) => {
-  const sanitizedContent = DOMPurify.sanitize(content);
-
-  return (
-    <ReactMarkdown
-      remarkPlugins={[remarkGfm]}
-      components={{
-        // Custom component mappings...
-      }}
-    >
-      {sanitizedContent}
-    </ReactMarkdown>
-  );
-};
+```
+src/components/dashboards/
+├── shared/              # DashboardProvider, DashboardGrid, ChartCard, etc.
+├── governance/charts/   # 7 governance charts + CHART_REGISTRY
+├── drep/charts/         # DRep dashboard (placeholder)
+└── phil/charts/         # Phil's dashboard (placeholder)
 ```
 
-### 9. Theme System
+Each dashboard has its own chart registry. Shared infrastructure handles drag/resize/persist via DashboardProvider + localStorage.
 
-Multi-theme support with CSS custom properties.
+### 9. DRep Data Layer
+
+DRep data uses SWR hooks (not Redux) with module-level caching:
 
 ```typescript
-// src/lib/theme.tsx
-export function ThemeProvider({ children }: { children: ReactNode }) {
-  // Sets data-theme attribute on document.documentElement
-  // Toggles .dark class for dark themes
-  // Writes color-scheme meta
-}
-
-// Themes defined in src/themes/index.ts
-// Token CSS in src/themes/*/tokens.css
+// src/hooks/useDRepData.ts
+useDRepStats()          // Aggregate DRep statistics
+useDRepList()           // Paginated DRep listing
+useDRepDetail(drepId)   // Individual DRep profile
+useAllDReps()           // All DReps (module-level 60s TTL cache)
+useDRepRationaleStats() // Rationale statistics (server-side aggregation)
 ```
 
-### 10. Export Functionality
+Server-side fetching for ISR: `fetchDRepStatsServer()`, `fetchAllDRepsServer()` in `src/lib/serverFetch.ts`.
 
-Vote data can be exported in multiple formats.
+Backend data normalization:
+- Votes come as uppercase (`"YES"`) → normalized to `"Yes"` via `normalizeVote()`
+- Proposal types come as SCREAMING_SNAKE_CASE → formatted via `formatProposalType()`
 
-```typescript
-// src/lib/exportRationales.ts
-export function exportToJSON(votes: Vote[], proposalTitle: string): string;
-export function exportToMarkdown(votes: Vote[], proposalTitle: string): string;
-export function exportToCSV(votes: Vote[], proposalTitle: string): string;
-export function downloadFile(content: string, filename: string, mimeType: string);
+### 10. Internationalization
+
+7 languages via NextJS i18n + DeepL API:
+
+```
+src/messages/{en,de,es,fr,ja,pt,zh}.json  # Translation files
+src/lib/i18n.ts                            # i18n configuration
+src/hooks/useContentTranslation.ts         # Content translation hook
+src/components/TranslatedText.tsx          # i18n text wrapper
+src/pages/api/translate.ts                 # DeepL proxy
 ```
 
 ## Environment Configuration
 
 ```bash
 # .env.local
-
-# Backend API (required)
-BACKEND_API_URL=http://localhost:3001
-BACKEND_API_KEY=your_api_key_here
-
-# Optional: Blockfrost for additional chain queries
-NEXT_PUBLIC_BLOCKFROST_API_KEY=your_blockfrost_key
-NEXT_PUBLIC_NETWORK=mainnet
+BACKEND_API_URL=<backend-url>
+BACKEND_API_KEY=<api-key>              # Server-side only
 ```
 
 ## File Organization
@@ -344,56 +231,48 @@ src/
 ├── components/
 │   ├── ui/                     # Reusable UI components (shadcn/ui style)
 │   ├── layout/                 # Layout components (Header, Footer)
-│   ├── governance/             # Governance-specific components
-│   └── *.tsx                   # Feature components
+│   ├── governance/             # Vote submission (VoteOnProposal, VoteButtons)
+│   ├── wallet/                 # Wallet connection (ConnectWalletButton, Modal)
+│   ├── dreps/                  # D3 visualizations (BubbleMap, TreeMap, Donut, Sunburst)
+│   ├── dashboards/             # Multi-dashboard system (shared infra + per-dashboard charts)
+│   ├── analytics/              # Analytics test panel
+│   └── *.tsx                   # Feature components (GovernanceTable, VotingRecords, etc.)
 ├── pages/
-│   ├── api/                    # Next.js API routes (server-side)
-│   ├── governance/             # Governance detail pages
-│   └── *.tsx                   # Page components
+│   ├── api/                    # Next.js API routes (server-side proxy)
+│   ├── governance/             # Proposal detail pages
+│   ├── drep/                   # DRep listing and profile pages
+│   └── *.tsx                   # Page components (landing, dashboard, 404)
+├── hooks/                      # SWR data hooks (governance, DRep, i18n)
 ├── store/                      # Redux store and slices
-├── services/                   # API service layer
+├── services/                   # API service layer (api.ts, analyticsApi.ts)
 ├── lib/                        # Core utilities and business logic
-├── utils/                      # Helper utilities
-├── types/                      # TypeScript type definitions
-├── config/                     # Configuration files
-└── themes/                     # Theme definitions
+├── utils/                      # Helper utilities (apiHelper)
+├── types/                      # TypeScript types (governance, drep, dashboard, analytics)
+├── config/                     # API endpoint configuration
+├── messages/                   # i18n translation files (7 languages)
+└── themes/                     # Theme CSS tokens (light, dark, game)
 ```
-
-## Testing Considerations
-
-### Unit Testing Candidates
-
-- `src/lib/voteBreakdownCalculator.ts` - Vote calculation functions
-- `src/lib/governanceVotingEligibility.ts` - Eligibility matrix
-- `src/lib/exportRationales.ts` - Export and parsing functions
-- `src/services/api.ts` - Data transformation functions
-
-### Integration Testing Candidates
-
-- API routes (`src/pages/api/*`)
-- Redux thunks and state updates
-- Component rendering with mock data
 
 ## Known Issues & Considerations
 
-See [voting-calculation-audit.md](voting-calculation-audit.md) for detailed analysis.
+### Resolved
 
-### Resolved Issues
-
-1. **HardFork DRep Eligibility** - ✅ RESOLVED: DReps DO vote on Hard Forks with 60% threshold per Conway Ledger spec (Fig. 42). Code updated.
-
-2. **UpdateCommittee CC State** - ✅ DOCUMENTED: Threshold varies based on CC state (67% normal, 60% no-confidence). Backend should provide CC confidence state.
+1. **HardFork DRep Eligibility** — Fixed: DReps DO vote on Hard Forks with 60% threshold per Conway Ledger spec (Fig. 42)
+2. **UpdateCommittee CC State** — Documented: Threshold varies based on CC state (67% normal, 60% no-confidence). Backend provides CC confidence state
+3. **SPO Percentage Bug** — Backend bug confirmed (see [spo-percentage-bug-investigation.md](spo-percentage-bug-investigation.md))
+4. **Mesh SDK Bundle Crash** — Fixed: Runtime `import()` gated by Web Crypto availability
 
 ### Low Priority
 
-1. **Threshold Validation** - Frontend trusts backend thresholds without validation
-2. **Protocol Parameter Subgroups** - No distinction between governance group (75%) and other groups (67%)
+1. **Threshold Validation** — Frontend trusts backend thresholds without validation
+2. **Protocol Parameter Subgroups** — No distinction between governance group (75%) and other groups (67%)
 
 ## Related Documentation
 
-- [01-project-description.md](01-project-description.md) - Project overview
+- [01-project-description.md](01-project-description.md) - Project overview and features
 - [02-database-schema.md](02-database-schema.md) - Data models
 - [voting-stuff.md](voting-stuff.md) - Complete API and type reference
-- [cardano-governance-reference.md](cardano-governance-reference.md) - CIP-1694 governance rules
 - [voting-calculation-audit.md](voting-calculation-audit.md) - Implementation audit
 - [theming-guide.md](theming-guide.md) - Theme system documentation
+- [dashboard.md](dashboard.md) - Dashboard feature documentation
+- [project-evolution.md](project-evolution.md) - Platform evolution history
