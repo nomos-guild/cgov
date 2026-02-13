@@ -1,0 +1,657 @@
+@font-face {
+  font-family: "Space Mono";
+  src: url("/fonts/SpaceMono-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Space Mono";
+  src: url("/fonts/SpaceMono-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+[data-theme="neural"] {
+  color-scheme: light;
+
+  --font-sans: "Space Mono", "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+  --font-heading: "Space Mono", "JetBrains Mono", "SF Mono", monospace;
+
+  --radius: 0px;
+
+  --shadow-soft: none;
+  --shadow-strong: none;
+  --shadow-card: none;
+  --shadow-popover: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+  --motion-fast: 80ms;
+  --motion-normal: 150ms;
+  --motion-slow: 240ms;
+
+  --background: 40 6% 95%;
+  --surface: 40 4% 93%;
+  --foreground: 0 0% 0%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 0%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 0%;
+
+  --primary: 0 0% 0%;
+  --primary-foreground: 0 0% 100%;
+
+  --secondary: 0 0% 93%;
+  --secondary-foreground: 0 0% 0%;
+
+  --muted: 0 0% 90%;
+  --muted-foreground: 0 0% 38%;
+
+  --accent: 0 0% 0%;
+  --accent-foreground: 0 0% 100%;
+
+  --destructive: 0 72% 44%;
+  --destructive-foreground: 0 0% 100%;
+
+  --success: 0 0% 0%;
+  --success-foreground: 0 0% 100%;
+
+  --border: 0 0% 78%;
+  --input: 0 0% 78%;
+  --ring: 0 0% 0%;
+}
+
+/* ═══════════════════════════════════════════════════
+   NEURAL SPIKE THEME
+   Inspired by neural42.io — B/W, monospace, sharp,
+   architectural, high-contrast, zero ornamentation
+   ═══════════════════════════════════════════════════ */
+
+/* ─── Recharts focus suppression (neural only) ─── */
+[data-theme="neural"] .recharts-wrapper:focus,
+[data-theme="neural"] .recharts-wrapper:focus-visible,
+[data-theme="neural"] .recharts-surface:focus,
+[data-theme="neural"] .recharts-surface:focus-visible,
+[data-theme="neural"] .recharts-wrapper svg:focus,
+[data-theme="neural"] .recharts-wrapper svg:focus-visible,
+[data-theme="neural"] .recharts-bar-rectangle:focus,
+[data-theme="neural"] .recharts-bar-rectangle:focus-visible,
+[data-theme="neural"] .recharts-bar-rectangle rect:focus,
+[data-theme="neural"] .recharts-bar-rectangle rect:focus-visible,
+[data-theme="neural"] .recharts-wrapper *:focus,
+[data-theme="neural"] .recharts-wrapper *:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* ─── Body: flat white, no gradients, no texture ─── */
+[data-theme="neural"] body {
+  background: hsl(var(--background)) !important;
+  background-image: none !important;
+  background-attachment: initial;
+  overflow-x: hidden;
+}
+
+[data-theme="neural"] body::before,
+[data-theme="neural"] body::after {
+  display: none !important;
+}
+
+/* ─── Global radius kill ─── */
+[data-theme="neural"] .rounded-lg,
+[data-theme="neural"] .rounded-xl,
+[data-theme="neural"] .rounded-2xl,
+[data-theme="neural"] .rounded-md,
+[data-theme="neural"] .rounded-sm,
+[data-theme="neural"] .rounded-full,
+[data-theme="neural"] .rounded-\[6px\],
+[data-theme="neural"] [class*="rounded"] {
+  border-radius: 0 !important;
+}
+
+/* ─── Global shadow kill ─── */
+[data-theme="neural"] .shadow-soft,
+[data-theme="neural"] .shadow-lg,
+[data-theme="neural"] .shadow-md,
+[data-theme="neural"] .shadow-sm,
+[data-theme="neural"] .shadow-card,
+[data-theme="neural"] [class*="shadow-\["] {
+  box-shadow: none !important;
+}
+
+/* ─── Header: BLACK bar, white text ─── */
+[data-theme="neural"] header {
+  background-color: #000 !important;
+  background: #000 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
+[data-theme="neural"] header * {
+  color: #fff !important;
+}
+
+[data-theme="neural"] header .text-black {
+  color: #fff !important;
+}
+
+[data-theme="neural"] header .btn-neon {
+  background-color: #fff !important;
+  color: #000 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  transition: background-color 150ms ease;
+}
+
+[data-theme="neural"] header .btn-neon:hover {
+  background-color: #ccc !important;
+  color: #000 !important;
+}
+
+[data-theme="neural"] header .btn-neon * {
+  color: #000 !important;
+}
+
+/* Theme toggle in header */
+[data-theme="neural"] header button {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+[data-theme="neural"] header [data-radix-select-trigger] {
+  background-color: transparent !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  color: #fff !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+[data-theme="neural"] header [data-radix-select-trigger]:hover,
+[data-theme="neural"] header [data-radix-select-trigger][data-state="open"] {
+  border-color: #fff !important;
+}
+
+/* ─── Footer ─── */
+[data-theme="neural"] footer {
+  background-color: #000 !important;
+  background: #000 !important;
+  box-shadow: none !important;
+  border-top: none !important;
+  border-radius: 0 !important;
+}
+
+[data-theme="neural"] footer * {
+  color: #fff !important;
+}
+
+/* ─── Landing title: uppercase monospace ─── */
+[data-theme="neural"] .landing-title {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-family: var(--font-heading);
+  color: #000 !important;
+}
+
+[data-theme="neural"] .landing-subtitle {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.75rem !important;
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+/* ─── Cards: white, 1px border, zero shadow ─── */
+[data-theme="neural"] .rounded-lg.border.bg-card,
+[data-theme="neural"] .rounded-xl.border.bg-card {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  border: 1px solid hsl(var(--border)) !important;
+  background-color: hsl(var(--card)) !important;
+}
+
+[data-theme="neural"] .bg-\[\#faf9f6\] {
+  background-color: hsl(var(--card)) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+[data-theme="neural"] .rounded-2xl.border.bg-\[\#faf9f6\] {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  border: 1px solid hsl(var(--border)) !important;
+  background-color: hsl(var(--card)) !important;
+}
+
+/* ─── Glass effects: flat ─── */
+[data-theme="neural"] .glass,
+[data-theme="neural"] .glass-card,
+[data-theme="neural"] .glass-button,
+[data-theme="neural"] .glass-progress {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: hsl(var(--card)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* ─── Stats boxes: white cards, precise borders ─── */
+[data-theme="neural"] .game-stats > div,
+[data-theme="neural"] .game-stats-ncl {
+  background-color: hsl(var(--card)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Uppercase labels in stats */
+[data-theme="neural"] .game-stats .text-muted-foreground,
+[data-theme="neural"] .game-stats-ncl .text-muted-foreground {
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.65rem !important;
+}
+
+/* ─── Buttons: solid black, white text, sharp ─── */
+[data-theme="neural"] .btn-neon {
+  background-color: #000 !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  transition: background-color 150ms ease;
+}
+
+[data-theme="neural"] .btn-neon:hover {
+  background-color: #333 !important;
+  color: #fff !important;
+}
+
+[data-theme="neural"] .btn-neon * {
+  color: #fff !important;
+}
+
+[data-theme="neural"] .bg-primary {
+  border-radius: 0 !important;
+}
+
+/* ─── Filter input ─── */
+[data-theme="neural"] .filter-input {
+  background-color: hsl(var(--card)) !important;
+  color: #000 !important;
+  border: 1px solid hsl(var(--border)) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+[data-theme="neural"] .filter-input::placeholder {
+  color: hsl(var(--muted-foreground)) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ─── All inputs/selects: sharp ─── */
+[data-theme="neural"] input,
+[data-theme="neural"] select,
+[data-theme="neural"] textarea,
+[data-theme="neural"] button {
+  border-radius: 0 !important;
+}
+
+/* ─── Proposal rows ─── */
+[data-theme="neural"] .proposal-row h3 {
+  font-family: var(--font-heading);
+}
+
+[data-theme="neural"] .proposal-header-row {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.7rem;
+  border-color: #000 !important;
+}
+
+[data-theme="neural"] .proposal-header-row * {
+  color: #000 !important;
+  font-weight: 700;
+}
+
+[data-theme="neural"] .proposal-row.first-row,
+[data-theme="neural"] .proposal-row.first-row * {
+  color: #000 !important;
+  font-weight: 700;
+}
+
+/* ─── Proposal detail ─── */
+[data-theme="neural"] .proposal-detail-title {
+  font-family: var(--font-heading);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #000 !important;
+}
+
+[data-theme="neural"] .proposal-detail-content a {
+  color: #000 !important;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+[data-theme="neural"] .proposal-detail-content a:hover {
+  color: #555 !important;
+}
+
+/* ─── Voting records ─── */
+[data-theme="neural"] .voting-records-header,
+[data-theme="neural"] .voting-records-header * {
+  color: #000 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.7rem;
+  border-color: #000 !important;
+}
+
+[data-theme="neural"] .voting-record-row {
+  border-color: hsl(var(--border)) !important;
+}
+
+[data-theme="neural"] .voting-record-row.first-row,
+[data-theme="neural"] .voting-record-row.first-row * {
+  color: #000 !important;
+  font-weight: 700;
+}
+
+[data-theme="neural"] .voting-record-row.vote-no-row,
+[data-theme="neural"] .voting-record-row.vote-no-row * {
+  color: hsl(var(--destructive)) !important;
+}
+
+[data-theme="neural"] .no-vote,
+[data-theme="neural"] .no-vote * {
+  color: hsl(var(--destructive)) !important;
+  border-color: hsl(var(--destructive)) !important;
+}
+
+/* ─── Vote cards ─── */
+[data-theme="neural"] .vote-on-proposal-card {
+  border: 1px solid hsl(var(--border)) !important;
+  background-color: hsl(var(--card)) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* ─── Role filter buttons ─── */
+[data-theme="neural"] .role-filter-button {
+  color: #000 !important;
+  border: 1px solid #000 !important;
+  border-radius: 0 !important;
+  background-color: transparent !important;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+[data-theme="neural"] .role-filter-button:hover {
+  background-color: #000 !important;
+  color: #fff !important;
+}
+
+[data-theme="neural"] .role-filter-button.active {
+  background-color: #000 !important;
+  color: #fff !important;
+}
+
+/* ─── Progress bars ─── */
+[data-theme="neural"] .progress-yes {
+  background: #000 !important;
+}
+
+[data-theme="neural"] .progress-yes::after {
+  display: none;
+}
+
+[data-theme="neural"] .progress-no {
+  background: hsl(var(--muted)) !important;
+}
+
+[data-theme="neural"] .progress-no::after {
+  display: none;
+}
+
+[data-theme="neural"] [role="progressbar"] {
+  border-radius: 0 !important;
+}
+
+/* ─── Dropdowns/popovers: sharp, white, thin border ─── */
+[data-theme="neural"] [data-radix-popper-content-wrapper] [role="listbox"],
+[data-theme="neural"] [data-radix-select-content],
+[data-theme="neural"] [data-radix-popover-content] {
+  border-radius: 0 !important;
+  border: 1px solid hsl(var(--border)) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+  background: hsl(var(--card)) !important;
+}
+
+[data-theme="neural"] [data-radix-select-item] {
+  border-radius: 0 !important;
+}
+
+[data-theme="neural"] [data-radix-select-item][data-highlighted] {
+  background-color: #000 !important;
+  color: #fff !important;
+}
+
+[data-theme="neural"] [data-radix-select-item][data-state="checked"] {
+  background-color: #000 !important;
+  color: #fff !important;
+}
+
+/* ─── Chart cards: add border to border-none cards ─── */
+[data-theme="neural"] .border-none.bg-white {
+  border: 1px solid #c8c8c8 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+[data-theme="neural"] .dashboard-chart-card {
+  background-color: hsl(var(--card)) !important;
+  border: 1px solid #c8c8c8 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Chart headings: uppercase monospace */
+[data-theme="neural"] .border-none.bg-white h3,
+[data-theme="neural"] .dashboard-chart-card h3 {
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.65rem !important;
+  font-weight: 700;
+  font-family: var(--font-heading);
+  color: #000 !important;
+}
+
+/* ─── Recharts: full monochrome override ─── */
+
+/* Axis lines: solid black */
+[data-theme="neural"] .recharts-cartesian-axis-line,
+[data-theme="neural"] .recharts-cartesian-axis-tick-line {
+  stroke: #000 !important;
+}
+
+/* Axis text: dark gray, monospace */
+[data-theme="neural"] .recharts-text,
+[data-theme="neural"] .recharts-cartesian-axis-tick text {
+  fill: #555 !important;
+  font-family: var(--font-sans) !important;
+  font-size: 9px !important;
+}
+
+/* Grid lines: very light gray */
+[data-theme="neural"] .recharts-cartesian-grid line {
+  stroke: #e0e0e0 !important;
+}
+
+/* Tooltip: white, black border, sharp */
+[data-theme="neural"] .recharts-tooltip-wrapper .recharts-default-tooltip {
+  background: #fff !important;
+  border: 1px solid #000 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  color: #000 !important;
+  font-family: var(--font-sans) !important;
+  font-size: 11px !important;
+}
+
+[data-theme="neural"] .recharts-default-tooltip .recharts-tooltip-label {
+  color: #000 !important;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 10px !important;
+}
+
+/* Legend: monospace, uppercase */
+[data-theme="neural"] .recharts-legend-item-text {
+  color: #000 !important;
+  font-family: var(--font-sans) !important;
+  font-size: 10px !important;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Pie chart labels */
+[data-theme="neural"] .recharts-pie-label-text {
+  fill: #000 !important;
+  font-family: var(--font-sans) !important;
+  font-size: 10px !important;
+}
+
+/* Active dot: black fill */
+[data-theme="neural"] .recharts-active-dot circle {
+  fill: #000 !important;
+  stroke: #fff !important;
+  stroke-width: 2 !important;
+}
+
+/* Reference lines */
+[data-theme="neural"] .recharts-reference-line line {
+  stroke: #000 !important;
+  stroke-dasharray: 3 3;
+}
+
+/* Brush (if used) */
+[data-theme="neural"] .recharts-brush rect {
+  fill: #f0f0f0 !important;
+  stroke: #c8c8c8 !important;
+}
+
+/* Custom tooltip wrappers used in components */
+[data-theme="neural"] [style*="backgroundColor"] {
+  border-radius: 0 !important;
+}
+
+/* ─── Tables ─── */
+[data-theme="neural"] table {
+  border-collapse: collapse;
+}
+
+[data-theme="neural"] th {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.65rem !important;
+  font-weight: 700;
+  border-bottom: 2px solid #000 !important;
+}
+
+[data-theme="neural"] td {
+  border-bottom: 1px solid hsl(var(--border)) !important;
+}
+
+/* ─── Badges / tags: uppercase, bordered ─── */
+[data-theme="neural"] .uppercase {
+  letter-spacing: 0.1em;
+}
+
+/* ─── Modal/dialog ─── */
+[data-theme="neural"] [data-radix-dialog-content],
+[data-theme="neural"] [role="dialog"] {
+  border-radius: 0 !important;
+  border: 1px solid hsl(var(--border)) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* ─── Scrollbar: narrow, flat ─── */
+[data-theme="neural"] ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+[data-theme="neural"] ::-webkit-scrollbar-track {
+  background: hsl(var(--background));
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+[data-theme="neural"] ::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+[data-theme="neural"] ::-webkit-scrollbar-thumb:hover {
+  background: #999;
+  box-shadow: none;
+}
+
+[data-theme="neural"] * {
+  scrollbar-width: thin;
+  scrollbar-color: #ccc hsl(var(--background));
+}
+
+/* ─── Dim-responsive: disable for neural (flat = flat) ─── */
+[data-theme="neural"] .rounded-lg.border.bg-card,
+[data-theme="neural"] .glass-card,
+[data-theme="neural"] header,
+[data-theme="neural"] footer,
+[data-theme="neural"] .shadow-soft {
+  filter: none !important;
+}
+
+/* ─── Tabs / inline buttons ─── */
+[data-theme="neural"] [role="tablist"] {
+  border-radius: 0 !important;
+}
+
+[data-theme="neural"] [role="tab"] {
+  border-radius: 0 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+[data-theme="neural"] [role="tab"][data-state="active"] {
+  background-color: #000 !important;
+  color: #fff !important;
+  border-color: #000 !important;
+}
+
+/* ─── Spinner: black border ─── */
+[data-theme="neural"] .animate-spin {
+  border-color: hsl(var(--muted)) !important;
+  border-bottom-color: #000 !important;
+}
+
+/* ─── Selection highlight ─── */
+[data-theme="neural"] ::selection {
+  background: #000;
+  color: #fff;
+}

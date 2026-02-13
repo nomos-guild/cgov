@@ -1,9 +1,11 @@
 import { configureStore } from "@reduxjs/toolkit";
 import governanceReducer from "./governanceSlice";
+import developmentReducer from "./developmentSlice";
 
 export const store = configureStore({
   reducer: {
     governance: governanceReducer,
+    development: developmentReducer,
   },
 });
 

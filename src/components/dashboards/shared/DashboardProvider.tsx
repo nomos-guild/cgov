@@ -1,8 +1,10 @@
-import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, useMemo } from "react";
 import type { ReactNode } from "react";
 import type {
   ChartId,
   ChartLayout,
+  ChartDefinition,
+  ChartLayoutMap,
   DashboardConfig,
   DashboardContextValue,
   TextElement,
@@ -13,20 +15,22 @@ import {
   DEFAULT_DASHBOARD_CONFIG,
   DEFAULT_CHART_LAYOUTS,
   DEFAULT_PAGE_MARGINS,
-  ALL_CHART_IDS,
   LAYOUT_CONSTRAINTS,
   TEXT_ELEMENT_CONSTRAINTS,
   PAGE_MARGIN_CONSTRAINTS,
   snapToGrid,
 } from "@/types/dashboard";
 
-const STORAGE_KEY = "dashboard-config";
-
 const DashboardContext = createContext<DashboardContextValue | undefined>(
   undefined
 );
 
-function parseStoredConfig(stored: string | null): DashboardConfig | null {
+function parseStoredConfig(
+  stored: string | null,
+  validChartIds: ChartId[],
+  defaultConfig: DashboardConfig,
+  defaultLayouts: ChartLayoutMap,
+): DashboardConfig | null {
   if (!stored) return null;
   try {
     const parsed = JSON.parse(stored);
@@ -35,28 +39,24 @@ function parseStoredConfig(stored: string | null): DashboardConfig | null {
       Array.isArray(parsed.visibleCharts) &&
       typeof parsed.version === "number"
     ) {
-      // Filter to only valid chart IDs
       const validVisible = parsed.visibleCharts.filter((id: string) =>
-        ALL_CHART_IDS.includes(id as ChartId)
+        validChartIds.includes(id as ChartId)
       ) as ChartId[];
 
-      // Migration: Add any new charts that were added since user's last save
-      // New charts should be visible by default
       const storedVersion = parsed.version || 0;
-      if (storedVersion < DEFAULT_DASHBOARD_CONFIG.version) {
-        for (const chartId of ALL_CHART_IDS) {
+      const isOutdated = storedVersion < defaultConfig.version;
+      if (isOutdated) {
+        for (const chartId of validChartIds) {
           if (!validVisible.includes(chartId)) {
             validVisible.push(chartId);
           }
         }
       }
 
-      // Build layouts from saved data or defaults
-      // Snap all values to grid for consistency
-      const layouts = { ...DEFAULT_CHART_LAYOUTS };
+      const layouts: ChartLayoutMap = { ...defaultLayouts };
 
-      if (parsed.layouts) {
-        for (const id of ALL_CHART_IDS) {
+      if (parsed.layouts && !isOutdated) {
+        for (const id of validChartIds) {
           const saved = parsed.layouts[id];
           if (saved && typeof saved.x === "number" && typeof saved.y === "number") {
             layouts[id] = {
@@ -69,21 +69,18 @@ function parseStoredConfig(stored: string | null): DashboardConfig | null {
         }
       }
 
-      // Parse chart order, ensuring all charts are included
       let chartOrder: ChartId[] = [];
       if (Array.isArray(parsed.chartOrder)) {
         chartOrder = parsed.chartOrder.filter((id: string) =>
-          ALL_CHART_IDS.includes(id as ChartId)
+          validChartIds.includes(id as ChartId)
         ) as ChartId[];
       }
-      // Add any missing charts to the end of the order
-      for (const chartId of ALL_CHART_IDS) {
+      for (const chartId of validChartIds) {
         if (!chartOrder.includes(chartId)) {
           chartOrder.push(chartId);
         }
       }
 
-      // Parse text elements
       let textElements: TextElement[] = [];
       if (Array.isArray(parsed.textElements)) {
         textElements = parsed.textElements.filter(
@@ -107,7 +104,7 @@ function parseStoredConfig(stored: string | null): DashboardConfig | null {
         layouts,
         textElements,
         pageMargins,
-        version: DEFAULT_DASHBOARD_CONFIG.version,
+        version: defaultConfig.version,
       };
     }
   } catch {
@@ -116,8 +113,41 @@ function parseStoredConfig(stored: string | null): DashboardConfig | null {
   return null;
 }
 
-export function DashboardProvider({ children }: { children: ReactNode }) {
-  const [config, setConfig] = useState<DashboardConfig>(DEFAULT_DASHBOARD_CONFIG);
+interface DashboardProviderProps {
+  dashboardId: string;
+  chartRegistry: ChartDefinition[];
+  defaultLayouts: ChartLayoutMap;
+  children: ReactNode;
+}
+
+const FALLBACK_LAYOUT: ChartLayout = { x: 0, y: 0, width: 380, height: 320 };
+
+export function DashboardProvider({
+  dashboardId,
+  chartRegistry,
+  defaultLayouts,
+  children,
+}: DashboardProviderProps) {
+  const validChartIds = useMemo(
+    () => chartRegistry.map((c) => c.id),
+    [chartRegistry]
+  );
+
+  const defaultConfig = useMemo<DashboardConfig>(
+    () => ({
+      visibleCharts: validChartIds,
+      chartOrder: validChartIds,
+      layouts: defaultLayouts,
+      textElements: [],
+      pageMargins: { ...DEFAULT_PAGE_MARGINS },
+      version: DEFAULT_DASHBOARD_CONFIG.version,
+    }),
+    [validChartIds, defaultLayouts]
+  );
+
+  const storageKey = `${dashboardId}-dashboard-config`;
+
+  const [config, setConfig] = useState<DashboardConfig>(defaultConfig);
   const [mounted, setMounted] = useState(false);
 
   // Side panel state
@@ -144,24 +174,37 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
 
   // Load from localStorage on mount
   useEffect(() => {
+    const LEGACY_KEY = "dashboard-config";
+    if (typeof localStorage !== "undefined" && dashboardId === "governance") {
+      const legacy = localStorage.getItem(LEGACY_KEY);
+      if (legacy && !localStorage.getItem(storageKey)) {
+        localStorage.setItem(storageKey, legacy);
+        localStorage.removeItem(LEGACY_KEY);
+      }
+    }
     const stored =
       typeof localStorage !== "undefined"
-        ? localStorage.getItem(STORAGE_KEY)
+        ? localStorage.getItem(storageKey)
         : null;
-    const parsed = parseStoredConfig(stored);
+    const parsed = parseStoredConfig(stored, validChartIds, defaultConfig, defaultLayouts);
     if (parsed) {
       setConfig(parsed);
     }
     setMounted(true);
-  }, []);
+  }, [dashboardId, storageKey, validChartIds, defaultConfig, defaultLayouts]);
 
-  // Save to localStorage on config change
   useEffect(() => {
     if (!mounted) return;
     if (typeof localStorage !== "undefined") {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+      localStorage.setItem(storageKey, JSON.stringify(config));
     }
-  }, [config, mounted]);
+  }, [config, mounted, storageKey]);
+
+  const getChartById = useCallback(
+    (id: string): ChartDefinition | undefined =>
+      chartRegistry.find((chart) => chart.id === id),
+    [chartRegistry]
+  );
 
   const isChartVisible = useCallback(
     (chartId: ChartId) => config.visibleCharts.includes(chartId),
@@ -194,8 +237,8 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
 
   const getLayout = useCallback(
     (chartId: ChartId): ChartLayout =>
-      config.layouts[chartId] || DEFAULT_CHART_LAYOUTS[chartId],
-    [config.layouts]
+      config.layouts[chartId] || defaultLayouts[chartId] || FALLBACK_LAYOUT,
+    [config.layouts, defaultLayouts]
   );
 
   const updateLayout = useCallback((chartId: ChartId, layout: Partial<ChartLayout>) => {
@@ -204,7 +247,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       layouts: {
         ...prev.layouts,
         [chartId]: {
-          ...prev.layouts[chartId],
+          ...(prev.layouts[chartId] || FALLBACK_LAYOUT),
           ...layout,
         },
       },
@@ -224,8 +267,8 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const resetToDefaults = useCallback(() => {
-    setConfig(DEFAULT_DASHBOARD_CONFIG);
-  }, []);
+    setConfig(defaultConfig);
+  }, [defaultConfig]);
 
   const addTextElement = useCallback(() => {
     const newElement: TextElement = {
@@ -276,7 +319,6 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
         exportedAt: Date.now(),
       };
       const jsonString = JSON.stringify(exportData);
-      // Encode to base64 for easy sharing
       return btoa(jsonString);
     } catch {
       return "";
@@ -286,9 +328,8 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   const importConfig = useCallback(
     (code: string): { success: boolean; error?: string } => {
       try {
-        // Decode from base64
         const jsonString = atob(code.trim());
-        const parsed = parseStoredConfig(jsonString);
+        const parsed = parseStoredConfig(jsonString, validChartIds, defaultConfig, defaultLayouts);
         if (parsed) {
           setConfig(parsed);
           return { success: true };
@@ -298,7 +339,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
         return { success: false, error: "Invalid share code format" };
       }
     },
-    []
+    [validChartIds, defaultConfig, defaultLayouts]
   );
 
   return (
@@ -306,6 +347,8 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       value={{
         config,
         mounted,
+        chartRegistry,
+        getChartById,
         isChartVisible,
         toggleChartVisibility,
         setVisibleCharts,
@@ -338,10 +381,12 @@ export function useDashboard(): DashboardContextValue {
     return {
       config: DEFAULT_DASHBOARD_CONFIG,
       mounted: false,
+      chartRegistry: [],
+      getChartById: () => undefined,
       isChartVisible: () => true,
       toggleChartVisibility: () => {},
       setVisibleCharts: () => {},
-      getLayout: (chartId) => DEFAULT_CHART_LAYOUTS[chartId],
+      getLayout: (chartId) => DEFAULT_CHART_LAYOUTS[chartId] || FALLBACK_LAYOUT,
       updateLayout: () => {},
       reorderCharts: () => {},
       resetToDefaults: () => {},

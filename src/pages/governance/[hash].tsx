@@ -250,6 +250,13 @@ const VOTE_COLORS_DARK = {
   pending: "#94A3B8",
 };
 
+const VOTE_COLORS_NEURAL = {
+  yes: "#000000",
+  no: "#aaaaaa",
+  abstain: "#dddddd",
+  pending: "#cccccc",
+};
+
 type TimelinePoint = {
   label: string; // Unique identifier (includes index for duplicate dates)
   displayLabel: string; // Clean label for display (just the date)
@@ -301,9 +308,10 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
   const tExport = useTranslations("export");
   const isDark = theme === "dark";
   const isGame = activeTheme.id === "game";
+  const isNeural = activeTheme.id === "neural";
   const voteColors = useMemo(
-    () => (isDark || isGame ? VOTE_COLORS_DARK : VOTE_COLORS_LIGHT),
-    [isDark, isGame]
+    () => isNeural ? VOTE_COLORS_NEURAL : (isDark || isGame ? VOTE_COLORS_DARK : VOTE_COLORS_LIGHT),
+    [isDark, isGame, isNeural]
   );
   const proposalId = typeof hash === "string" ? hash : null;
 

@@ -16,6 +16,17 @@ import type {
   NCLDisplayData,
   ProposalReferenceObject,
 } from "@/types/governance";
+import type {
+  DevelopmentOverview,
+  DevelopmentActivity,
+  DevelopmentRepos,
+  DevelopmentContributors,
+  DevelopmentHealth,
+  DevelopmentStars,
+  DevelopmentLanguages,
+  NetworkGraphData,
+  DevelopmentRecent,
+} from "@/types/development";
 import type { DRepStats } from "@/types/drep";
 
 /**
@@ -398,6 +409,44 @@ function transformVoteRecord(vote: VoteRecord): VoteRecord {
     votedAt: vote.votedAt,
     txHash: vote.txHash,
   };
+}
+
+// ─── Development Activity API ──────────────────────────────────────────────
+
+export async function fetchDevOverview(range: string): Promise<DevelopmentOverview> {
+  return fetchApi<DevelopmentOverview>(API_ENDPOINTS.devOverview(range));
+}
+
+export async function fetchDevActivity(range: string): Promise<DevelopmentActivity> {
+  return fetchApi<DevelopmentActivity>(API_ENDPOINTS.devActivity(range));
+}
+
+export async function fetchDevRepos(range: string): Promise<DevelopmentRepos> {
+  return fetchApi<DevelopmentRepos>(API_ENDPOINTS.devRepos(range));
+}
+
+export async function fetchDevContributors(range: string): Promise<DevelopmentContributors> {
+  return fetchApi<DevelopmentContributors>(API_ENDPOINTS.devContributors(range));
+}
+
+export async function fetchDevHealth(range: string): Promise<DevelopmentHealth> {
+  return fetchApi<DevelopmentHealth>(API_ENDPOINTS.devHealth(range));
+}
+
+export async function fetchDevStars(range: string): Promise<DevelopmentStars> {
+  return fetchApi<DevelopmentStars>(API_ENDPOINTS.devStars(range));
+}
+
+export async function fetchDevLanguages(): Promise<DevelopmentLanguages> {
+  return fetchApi<DevelopmentLanguages>(API_ENDPOINTS.devLanguages);
+}
+
+export async function fetchDevNetwork(): Promise<NetworkGraphData> {
+  return fetchApi<NetworkGraphData>(API_ENDPOINTS.devNetwork);
+}
+
+export async function fetchDevRecent(): Promise<DevelopmentRecent> {
+  return fetchApi<DevelopmentRecent>(API_ENDPOINTS.devRecent);
 }
 
 // =============================================================================

@@ -48,7 +48,7 @@ export const CHART_REGISTRY: ChartDefinition[] = [
     description: "Overview of active, ratified, enacted, and expired proposals",
     component: ProposalStatusChart,
     defaultVisible: true,
-    defaultLayout: DEFAULT_CHART_LAYOUTS["proposal-status"],
+    defaultLayout: DEFAULT_CHART_LAYOUTS["proposal-status"]!,
     icon: BarChart3,
   },
   {
@@ -57,7 +57,7 @@ export const CHART_REGISTRY: ChartDefinition[] = [
     description: "Distribution of proposals by governance action type",
     component: ProposalTypeChart,
     defaultVisible: true,
-    defaultLayout: DEFAULT_CHART_LAYOUTS["proposal-type"],
+    defaultLayout: DEFAULT_CHART_LAYOUTS["proposal-type"]!,
     icon: PieChart,
   },
   {
@@ -66,7 +66,7 @@ export const CHART_REGISTRY: ChartDefinition[] = [
     description: "Net Change Limit tracking for treasury withdrawals",
     component: NCLProgressChart,
     defaultVisible: true,
-    defaultLayout: DEFAULT_CHART_LAYOUTS["ncl-progress"],
+    defaultLayout: DEFAULT_CHART_LAYOUTS["ncl-progress"]!,
     icon: Gauge,
   },
   {
@@ -75,7 +75,7 @@ export const CHART_REGISTRY: ChartDefinition[] = [
     description: "Number of proposals submitted per month over time",
     component: ProposalSubmissionChart,
     defaultVisible: true,
-    defaultLayout: DEFAULT_CHART_LAYOUTS["proposal-submission"],
+    defaultLayout: DEFAULT_CHART_LAYOUTS["proposal-submission"]!,
     icon: TrendingUp,
   },
   {
@@ -84,7 +84,7 @@ export const CHART_REGISTRY: ChartDefinition[] = [
     description: "Voting power distribution among top DReps",
     component: DRepVotingPowerChart,
     defaultVisible: false,
-    defaultLayout: DEFAULT_CHART_LAYOUTS["drep-voting-power"],
+    defaultLayout: DEFAULT_CHART_LAYOUTS["drep-voting-power"]!,
     icon: Users,
   },
   {
@@ -93,7 +93,7 @@ export const CHART_REGISTRY: ChartDefinition[] = [
     description: "DRep votes with vs without rationale provided",
     component: DRepRationaleChart,
     defaultVisible: false,
-    defaultLayout: DEFAULT_CHART_LAYOUTS["drep-rationale"],
+    defaultLayout: DEFAULT_CHART_LAYOUTS["drep-rationale"]!,
     icon: FileText,
   },
   {
@@ -102,7 +102,7 @@ export const CHART_REGISTRY: ChartDefinition[] = [
     description: "Key DRep statistics: total DReps and votes cast",
     component: DRepMetricsCard,
     defaultVisible: false,
-    defaultLayout: DEFAULT_CHART_LAYOUTS["drep-metrics"],
+    defaultLayout: DEFAULT_CHART_LAYOUTS["drep-metrics"]!,
     icon: Activity,
   },
 ];
