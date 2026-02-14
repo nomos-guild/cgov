@@ -5,8 +5,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Copy, Check } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useState } from "react";
+import { useRouter } from "next/router";
 import type { VoteRecord } from "@/types/governance";
 import { useTheme } from "@/lib/theme";
 import { useContentTranslation } from "@/hooks/useContentTranslation";
@@ -98,8 +100,31 @@ export function VotingRationaleModal({
     originalText: rationaleText,
   });
 
+  const router = useRouter();
+  const locale = (router.locale || "en") as string;
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
   if (!vote) return null;
   const isNoVote = vote.vote === "No";
+
+  const voterId = vote.voterId || vote.drepId || null;
+
+  const formattedDate = vote.votedAt
+    ? new Date(vote.votedAt).toLocaleString(locale, {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZoneName: "short",
+      })
+    : null;
+
+  const handleCopy = (text: string, field: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(null), 2000);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -130,9 +155,36 @@ export function VotingRationaleModal({
                     <span className="text-xs text-white/70">{vote.votingPowerAda.toLocaleString()} ADA</span>
                   )}
                 </div>
-                <div className="text-[10px] sm:text-xs font-mono break-all text-white/50 hidden sm:block">
-                  {vote.voterId || vote.drepId || "—"}
-                </div>
+                {voterId && (
+                  <div className="flex items-center gap-1.5 text-[10px] sm:text-xs font-mono break-all text-white/50 hidden sm:block">
+                    <span className="flex-1">{voterId}</span>
+                    <button onClick={() => handleCopy(voterId, "id")} className="hover:text-white/80 transition-colors shrink-0" title="Copy">
+                      {copiedField === "id" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                    </button>
+                  </div>
+                )}
+                {vote.txHash && (
+                  <div className="flex items-center gap-1.5 text-[10px] sm:text-xs text-white/50">
+                    <span className="text-white/40 shrink-0">{t("txHash")}:</span>
+                    <a
+                      href={`https://adastat.net/transactions/${vote.txHash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-mono hover:text-white/80 transition-colors break-all"
+                    >
+                      {vote.txHash}
+                    </a>
+                    <button onClick={() => handleCopy(vote.txHash!, "tx")} className="hover:text-white/80 transition-colors shrink-0" title="Copy">
+                      {copiedField === "tx" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                    </button>
+                  </div>
+                )}
+                {formattedDate && (
+                  <div className="text-[10px] sm:text-xs text-white/50">
+                    <span className="text-white/40">{t("votedOn")}:</span>{" "}
+                    {formattedDate}
+                  </div>
+                )}
               </div>
 
               <div className="flex-1 flex flex-col min-h-0">
@@ -183,9 +235,36 @@ export function VotingRationaleModal({
                     <span className="text-xs text-muted-foreground dark:text-[#0bd1a2]">{vote.votingPowerAda.toLocaleString()} ADA</span>
                   )}
                 </div>
-                <div className="text-[10px] sm:text-xs text-muted-foreground font-mono break-all dark:text-[#0bd1a2] hidden sm:block">
-                  {vote.voterId || vote.drepId || "—"}
-                </div>
+                {voterId && (
+                  <div className="flex items-center gap-1.5 text-[10px] sm:text-xs text-muted-foreground font-mono break-all dark:text-[#0bd1a2] hidden sm:block">
+                    <span className="flex-1">{voterId}</span>
+                    <button onClick={() => handleCopy(voterId, "id")} className="hover:opacity-80 transition-opacity shrink-0" title="Copy">
+                      {copiedField === "id" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                    </button>
+                  </div>
+                )}
+                {vote.txHash && (
+                  <div className="flex items-center gap-1.5 text-[10px] sm:text-xs text-muted-foreground dark:text-[#0bd1a2]/60">
+                    <span className="opacity-70 shrink-0">{t("txHash")}:</span>
+                    <a
+                      href={`https://adastat.net/transactions/${vote.txHash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-mono hover:opacity-80 transition-opacity break-all"
+                    >
+                      {vote.txHash}
+                    </a>
+                    <button onClick={() => handleCopy(vote.txHash!, "tx")} className="hover:opacity-80 transition-opacity shrink-0" title="Copy">
+                      {copiedField === "tx" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                    </button>
+                  </div>
+                )}
+                {formattedDate && (
+                  <div className="text-[10px] sm:text-xs text-muted-foreground dark:text-[#0bd1a2]/60">
+                    <span className="opacity-70">{t("votedOn")}:</span>{" "}
+                    {formattedDate}
+                  </div>
+                )}
               </div>
 
               <div className="flex-1 flex flex-col min-h-0">

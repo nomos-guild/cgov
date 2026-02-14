@@ -10,6 +10,7 @@ import { useTheme } from "@/lib/theme";
 import { useDRepStats, useAllDReps } from "@/hooks/useDRepData";
 import type { DRepStatsApiResponse } from "@/hooks/useDRepData";
 import { DRepSunburstChart } from "@/components/dreps/DRepSunburstChart";
+import DRepPicker from "@/components/dreps/DRepPicker";
 import { cn } from "@/lib/utils";
 import {
   fetchDRepStatsServer,
@@ -199,8 +200,8 @@ export default function DRepDashboard({ initialData }: InferGetStaticPropsType<t
                     <TabsTrigger value="drep-list" className={tabButtonClass}>
                       {t("tabDRep")}
                     </TabsTrigger>
-                    <TabsTrigger value="analytics" className={tabButtonClass}>
-                      {t("tabAnalytics")}
+                    <TabsTrigger value="drep-picker" className={tabButtonClass}>
+                      {t("tabDRepPicker")}
                     </TabsTrigger>
                   </TabsList>
                 </div>
@@ -215,19 +216,9 @@ export default function DRepDashboard({ initialData }: InferGetStaticPropsType<t
                   <DRepSunburstChart initialDreps={initialDreps} view="list" />
                 </TabsContent>
 
-                {/* Analytics Tab */}
-                <TabsContent value="analytics" className="mt-0">
-                  <div className={
-                    isLight
-                      ? "rounded-2xl border border-white/8 bg-[#faf9f6] p-4 sm:p-6 shadow-[0_12px_30px_rgba(15,23,42,0.25)]"
-                      : isGame
-                      ? "game-drep-content rounded-[2px] border-none bg-[rgba(12,12,12,0.5)] p-4 sm:p-6 shadow-[0_18px_36px_rgba(0,0,0,0.55),0_6px_18px_rgba(0,0,0,0.4)]"
-                      : "rounded-none border border-[#0bd1a2] bg-transparent p-4 sm:p-6 shadow-none"
-                  }>
-                    <div className={`text-center py-12 ${isGame ? "text-white/60" : "text-muted-foreground"}`}>
-                      {t("analyticsSoon")}
-                    </div>
-                  </div>
+                {/* DRep Picker Tab — no forceMount to avoid mounting 3 heavy components at once */}
+                <TabsContent value="drep-picker" className="mt-0">
+                  <DRepPicker initialDreps={initialDreps} />
                 </TabsContent>
               </Tabs>
             </>

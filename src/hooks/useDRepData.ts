@@ -171,8 +171,9 @@ export function useAllDReps(options: Omit<UseDRepListOptions, "page"> = {}, init
   const cached = allDrepsCache.get(cacheKey);
   const isCacheValid = cached && Date.now() - cached.timestamp < ALL_DREPS_CACHE_TTL;
 
-  // Seed module cache from ISR data if no cache exists yet
-  if (!isCacheValid && initialData?.length && !allDrepsCache.has(cacheKey)) {
+  // Seed (or re-seed) module cache from ISR data when cache is missing or expired.
+  // Without this, navigating back after cache expiry forces unnecessary network fetches.
+  if (!isCacheValid && initialData?.length) {
     allDrepsCache.set(cacheKey, { data: initialData, timestamp: Date.now() });
   }
 
@@ -203,10 +204,23 @@ export function useAllDReps(options: Omit<UseDRepListOptions, "page"> = {}, init
     abortRef.current = controller;
 
     async function fetchAllPages() {
-      setIsLoading(true);
+      // Only show loading spinner when we have no data to display.
+      // When data exists (from ISR seed or previous fetch), refresh silently in the background.
+      const hasCachedData = (allDrepsCache.get(cacheKey)?.data?.length ?? 0) > 0;
+      if (!hasCachedData) {
+        setIsLoading(true);
+      }
       setError(null);
 
       try {
+        // Another hook instance may have just refreshed the cache — check before fetching
+        const freshEntry = allDrepsCache.get(cacheKey);
+        if (freshEntry && Date.now() - freshEntry.timestamp < ALL_DREPS_CACHE_TTL) {
+          setAllDreps(freshEntry.data);
+          setIsLoading(false);
+          return;
+        }
+
         // Fetch page 1 to learn totalPages
         const firstParams = new URLSearchParams();
         firstParams.set("page", "1");
@@ -256,8 +270,11 @@ export function useAllDReps(options: Omit<UseDRepListOptions, "page"> = {}, init
           setAllDreps(accumulated);
           setIsLoading(false);
         }
-      } catch (err) {
-        if (!controller.signal.aborted) {
+      } catch (err: unknown) {
+        // Ignore abort errors (navigation away, effect cleanup)
+        if (controller.signal.aborted) return;
+        const isAbort = err instanceof DOMException && err.name === "AbortError";
+        if (!isAbort) {
           setError(err instanceof Error ? err.message : "Failed to fetch DReps");
           setIsLoading(false);
         }
@@ -511,8 +528,11 @@ export function useAllDRepVotes(drepId: string | null) {
           setAllVotes(Array.from(seen.values()));
           setIsLoading(false);
         }
-      } catch (err) {
-        if (!controller.signal.aborted) {
+      } catch (err: unknown) {
+        // Ignore abort errors (navigation away, effect cleanup)
+        if (controller.signal.aborted) return;
+        const isAbort = err instanceof DOMException && err.name === "AbortError";
+        if (!isAbort) {
           setError(err instanceof Error ? err.message : "Failed to fetch votes");
           setIsLoading(false);
         }
@@ -532,6 +552,7 @@ interface DRepRationaleStatsResponse {
     drepId: string;
     totalVotesCast: number;
     rationalesProvided: number;
+    proposalParticipationPercent: number;
   }>;
 }
 

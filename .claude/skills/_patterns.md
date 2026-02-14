@@ -23,6 +23,8 @@ Three distinct themes — never treat dark and game as the same.
 - Dark theme: cyan for almost everything
 - Dark theme rank-based fills: `rgba(11,209,162, 0.6 - ratio * 0.5)` (brighter for higher rank, fading to 0.10)
 - **CSS specificity vs Tailwind**: Game theme CSS classes like `game-nav-btn` use `[data-theme="game"]` selectors with higher specificity than Tailwind utilities. You cannot override `height: 40px` from `game-nav-btn` with Tailwind `h-8`. Create a variant class (e.g., `game-nav-btn-sm`) instead.
+- **Radix sub-element CSS targeting**: Radix UI does NOT emit `data-radix-*` attributes on sub-elements (Track, Range, Thumb, etc.). Selectors like `[data-radix-slider-track]` match nothing. Add custom `data-part="track|range|thumb"` attributes to sub-elements and target those in theme CSS.
+- **Game theme slider palette**: Use the standard grey palette for game sliders — track `#1b1c1c` with `#292929` border, range `#292929→#3a3a3a` gradient, thumbs `#2c2c2c→#3a3a3a` with `#4a4a4a` border. No green/teal accents.
 
 **3-way theme check (always use this order):**
 ```tsx
@@ -41,6 +43,7 @@ isGame ? "game-classes" : isDark ? "dark-classes" : "light-classes"
 - **Tick lines**: Always `tickLine={false}` for cleaner look
 - **Pie animation defaults**: For dashboard charts, set `animationDuration={500}` and `animationEasing="ease-in-out"` on `<Pie>`. For standalone page donuts, use `isAnimationActive={false}` on both `<Pie>` and `<Tooltip>` to disable all animation
 - **Responsive sizing**: Chart container needs `flex-1 min-h-0`, then `<ResponsiveContainer width="100%" height="100%">`
+- **Height-constrained flex child**: When one flex column should define the row height and another should fill it (scrollable content), use `position: relative` on the filler wrapper + `position: absolute; inset: 0` on the content. The absolute child doesn't contribute to cross-axis height, so the defining column wins. Inner content uses `h-full overflow-hidden`.
 - **Pie exit animation**: Recharts instantly removes slices from DOM. For smooth removal, use the two-phase pattern: keep removed slices at `value: 0` during animation, clean up after `setTimeout(ANIM_MS + 50)`. See `add-chart` skill for full pattern.
 - **Table legends**: Use `table-fixed` with `<colgroup>` for stable column widths when data changes
 
@@ -82,6 +85,7 @@ import { cn } from "@/lib/utils";
 - **SWR for chart data**: DRep/non-Redux data uses SWR hooks in `src/hooks/useDRepData.ts`. Match `dedupingInterval` to server cache duration.
 - **SWR fallbackData on key change**: `fallbackData` only seeds data for the initial SWR key. When the key changes (e.g., navigating between proposals), use `useRef` + `mutate(newFallback, false)` to seed the cache for the new key.
 - **Module-level cache for paginated hooks**: `useAllDReps` uses raw `fetch` (not SWR) for multi-page accumulation. Radix TabsContent unmounts children on tab switch, causing remount and re-fetch. Fix: module-level `Map<string, { data, timestamp }>` with TTL, checked in state initializer and effect.
+- **`forceMount` with heavy tabs**: Using `forceMount` on multiple Radix TabsContent instances that each run expensive hooks (1500+ DRep processing) can crash the browser with `STATUS_ACCESS_VIOLATION`. Only `forceMount` tabs that truly need state preservation; accept remount for others.
 - **Mesh SDK lazy import**: `@meshsdk/web3-sdk` throws at module evaluation time if Web Crypto API is unavailable (HTTP, not localhost). `next/dynamic` with `ssr: false` only prevents SSR — the chunk still crashes client-side. Use runtime conditional `import()` inside `useEffect` gated by `window.crypto?.subtle`:
   ```tsx
   function LazyComponent() {

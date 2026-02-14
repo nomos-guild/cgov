@@ -724,6 +724,37 @@
   border-radius: 2px !important;
 }
 
+/* DRep Picker slider overrides */
+[data-theme="game"] .game-picker-slider [data-part="track"] {
+  background: #1b1c1c;
+  border: 1px solid #292929;
+  border-radius: 2px;
+  height: 6px;
+}
+
+[data-theme="game"] .game-picker-slider [data-part="range"] {
+  background: linear-gradient(90deg, #292929, #3a3a3a);
+  border-radius: 2px;
+}
+
+[data-theme="game"] .game-picker-slider [data-part="thumb"] {
+  background: linear-gradient(to bottom, #2c2c2c, #3a3a3a);
+  border: 1px solid #4a4a4a;
+  border-radius: 2px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 1), 0 10px 20px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="game"] .game-picker-slider [data-part="thumb"]:hover {
+  background: linear-gradient(to bottom, #3a3a3a, #484848);
+  border-color: #5a5a5a;
+}
+
+[data-theme="game"] .game-picker-slider [data-part="thumb"]:focus-visible {
+  background: linear-gradient(to bottom, #3a3a3a, #484848);
+  border-color: #5a5a5a;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 1), 0 10px 20px rgba(0, 0, 0, 0.4);
+}
+
 /* Vote buttons — pill-shaped gradient buttons with glow effects */
 [data-theme="game"] .vote-btn-yes,
 [data-theme="game"] .vote-btn-no,

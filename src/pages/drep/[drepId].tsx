@@ -94,11 +94,11 @@ function getVoteBadgeClass(vote: "Yes" | "No" | "Abstain", isGame: boolean, isLi
   }
   switch (vote) {
     case "Yes":
-      return "bg-green-100 text-green-700";
+      return "text-foreground border border-foreground/40 bg-foreground/5";
     case "No":
-      return "bg-red-100 text-red-700";
+      return "text-foreground border border-foreground/40 bg-destructive/10";
     case "Abstain":
-      return "bg-yellow-100 text-yellow-700";
+      return "text-foreground/60 border border-foreground/20 bg-transparent";
   }
 }
 
@@ -612,7 +612,7 @@ function VotingHistoryTable({ votes, drepId, drepName, isGame, isLight, isLoadin
                   <td className="py-3 px-2">
                     <span className={cn(
                       "text-xs px-2 py-1 font-medium",
-                      isLight ? "rounded-full" : "rounded-none",
+                      isGame ? "rounded-full" : isLight ? "rounded-full" : "rounded-none",
                       getVoteBadgeClass(vote.vote, isGame, isLight)
                     )}>
                       {vote.vote === "Yes" ? labels.yes : vote.vote === "No" ? labels.no : labels.abstain}
