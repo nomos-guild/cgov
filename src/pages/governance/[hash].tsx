@@ -36,6 +36,7 @@ import {
   CartesianGrid,
   Tooltip as RechartsTooltip,
   Legend,
+  ReferenceLine,
 } from "recharts";
 import type { TooltipProps } from "recharts";
 import {
@@ -251,8 +252,8 @@ const VOTE_COLORS_DARK = {
 };
 
 type TimelinePoint = {
-  label: string; // Unique identifier (includes index for duplicate dates)
-  displayLabel: string; // Clean label for display (just the date)
+  label: string; // Clean label for display (just the date)
+  timestamp: number; // Numeric ms timestamp for time-based axis
   yesCount: number;
   noCount: number;
   abstainCount: number;
@@ -262,6 +263,7 @@ type TimelinePoint = {
 };
 
 type RoleFilter = "All" | VoterType;
+type ChartMode = "live" | "projected";
 
 interface VoteOnProposalProps {
   txHash: string;
@@ -331,6 +333,7 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
   const [isCcExcludedExpanded, setIsCcExcludedExpanded] = useState<boolean>(false);
   const [curveRoleFilter, setCurveRoleFilter] =
     useState<RoleFilter>("All");
+  const [chartMode, setChartMode] = useState<ChartMode>("live");
   const [selectedTab, setSelectedTab] = useState<string>("live-voting");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [submittedAt, setSubmittedAt] = useState<number | null>(null);
@@ -544,16 +547,15 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
 
     // Start with a zero point so lines begin at 0 ADA
     const firstVote = votesWithDates[0];
-    const firstLabel = firstVote?.date && !Number.isNaN(firstVote.date.getTime())
-      ? firstVote.date.toLocaleString(undefined, {
-          month: "short",
-          day: "numeric",
-        })
-      : "Start";
+    const firstTs = firstVote?.date?.getTime();
+    const startTs = firstTs && !Number.isNaN(firstTs) ? firstTs - 1 : 0;
+
+    const formatDate = (d: Date) =>
+      d.toLocaleString(undefined, { month: "short", day: "numeric" });
 
     const timelinePoints: TimelinePoint[] = [{
-      label: `${firstLabel}#start`,
-      displayLabel: firstLabel,
+      label: firstVote?.date ? formatDate(firstVote.date) : "Start",
+      timestamp: startTs,
       yesCount: 0,
       noCount: 0,
       abstainCount: 0,
@@ -580,17 +582,12 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
           break;
       }
 
-      const label =
-        vote.date && !Number.isNaN(vote.date.getTime())
-          ? vote.date.toLocaleString(undefined, {
-              month: "short",
-              day: "numeric",
-            })
-          : `Vote ${index + 1}`;
+      const ts = vote.date?.getTime();
+      const validTs = ts && !Number.isNaN(ts);
 
       timelinePoints.push({
-        label: `${label}#${index}`, // Add unique index to ensure each point is distinct
-        displayLabel: label, // Keep clean label for display
+        label: validTs ? formatDate(vote.date!) : `Vote ${index + 1}`,
+        timestamp: validTs ? ts : startTs + index + 1,
         yesCount,
         noCount,
         abstainCount,
@@ -602,6 +599,43 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
 
     return timelinePoints;
   }, [allVotes, curveRoleFilter]);
+
+  // Projected mode: expiry timestamp from epoch
+  const expiryTimestamp = useMemo<number | null>(() => {
+    if (!selectedAction?.expiryEpoch || selectedAction.expiryEpoch <= 0) return null;
+    return epochToTimestamp(selectedAction.expiryEpoch);
+  }, [selectedAction?.expiryEpoch]);
+
+  // Compute one tick per calendar day for even spacing on the time axis
+  const dailyTicks = useMemo(() => {
+    if (voteTimelineData.length < 2) return [];
+    const timestamps = voteTimelineData.map((d) => d.timestamp).filter(Boolean);
+    const minTs = Math.min(...timestamps);
+    const maxTs = Math.max(...timestamps);
+    // Start at midnight of the first day
+    const startDay = new Date(minTs);
+    startDay.setHours(0, 0, 0, 0);
+    const ticks: number[] = [];
+    const d = new Date(startDay);
+    // In projected mode, extend to expiry; in live mode, cap at now
+    const endTs = chartMode === "projected" && expiryTimestamp
+      ? expiryTimestamp
+      : Math.min(maxTs, Date.now());
+    while (d.getTime() <= endTs) {
+      ticks.push(d.getTime());
+      d.setDate(d.getDate() + 1);
+    }
+    return ticks;
+  }, [voteTimelineData, chartMode, expiryTimestamp]);
+
+  const formatTickDate = useCallback(
+    (ts: number) =>
+      new Date(ts).toLocaleString(undefined, {
+        month: "short",
+        day: "numeric",
+      }),
+    []
+  );
 
   // Show ADA amounts for DRep/SPO (and "All" which includes them)
   // Show vote counts for CC only
@@ -621,6 +655,62 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
 
   const useDashedPowerLines =
     shouldShowPower && curveRoleFilter === "All";
+
+  // Chart x-axis domain: extend to expiry in projected mode
+  const chartDomain = useMemo<[number | string, number | string]>(() => {
+    if (chartMode === "projected" && expiryTimestamp) {
+      return ["dataMin", expiryTimestamp];
+    }
+    return ["dataMin", "dataMax"];
+  }, [chartMode, expiryTimestamp]);
+
+  // Projected mode: threshold reference line value (ADA or count for CC)
+  const thresholdReferenceValue = useMemo<number | null>(() => {
+    if (chartMode !== "projected" || !selectedAction) return null;
+
+    if (curveRoleFilter === "CC") {
+      const t = selectedAction.threshold?.ccThreshold;
+      if (t == null) return null;
+      const cc = selectedAction.cc;
+      const total = (cc?.yesCount ?? 0) + (cc?.noCount ?? 0) + (cc?.notVotedCount ?? 0) || 7;
+      return Math.ceil(t * total);
+    }
+
+    if (curveRoleFilter === "SPO") {
+      const t = selectedAction.threshold?.spoThreshold;
+      if (t == null) return null;
+      const totalPower = Number(selectedAction.rawVotingPowerValues?.spo_total_vote_power ?? "0");
+      const abstainPower = Number(selectedAction.rawVotingPowerValues?.spo_always_abstain_vote_power ?? "0");
+      return (t * (totalPower - abstainPower)) / 1_000_000;
+    }
+
+    // DRep or "All" — use DRep threshold (primary stake-weighted metric)
+    const t = selectedAction.threshold?.drepThreshold;
+    if (t == null) return null;
+    const totalPower = Number(selectedAction.rawVotingPowerValues?.drep_total_vote_power ?? "0");
+    const abstainPower = Number(selectedAction.rawVotingPowerValues?.drep_always_abstain_vote_power ?? "0");
+    return (t * (totalPower - abstainPower)) / 1_000_000;
+  }, [chartMode, selectedAction, curveRoleFilter]);
+
+  // Label for the threshold reference line
+  const thresholdLabel = useMemo<string>(() => {
+    if (!selectedAction?.threshold || chartMode !== "projected") return "";
+    const role = curveRoleFilter === "CC" ? "CC" : curveRoleFilter === "SPO" ? "SPO" : "DRep";
+    const pct = curveRoleFilter === "CC"
+      ? selectedAction.threshold.ccThreshold
+      : curveRoleFilter === "SPO"
+        ? selectedAction.threshold.spoThreshold
+        : selectedAction.threshold.drepThreshold;
+    if (pct == null) return "";
+    return tProposal("thresholdLabel", { role, pct: (pct * 100).toFixed(0) });
+  }, [chartMode, curveRoleFilter, selectedAction?.threshold, tProposal]);
+
+  // Y-axis domain: extend to include threshold in projected mode
+  const yAxisDomain = useMemo<[number, number] | undefined>(() => {
+    if (chartMode !== "projected" || thresholdReferenceValue == null) return undefined;
+    // Add 10% headroom above the threshold so the line isn't flush with the top
+    return [0, Math.ceil(thresholdReferenceValue * 1.1)];
+  }, [chartMode, thresholdReferenceValue]);
 
   const ccAbstainStats = useMemo(() => {
     // For CC, always rely on the summary tallies rather than ccVotes,
@@ -1525,7 +1615,7 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
                             "p-4 sm:p-6 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none dark:rounded-none",
                             isGame && "game-detail-card"
                           )}>
-                            <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                               <div className="space-y-1">
                                 <h3 className={cn("text-lg font-semibold", isGame && "text-white")}>{tProposal("votingTrend")}</h3>
                                 <p className={cn("text-sm", isGame ? "text-white/70" : "text-muted-foreground")}>
@@ -1563,6 +1653,37 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
                                   })}
                                 </div>
                               </div>
+                              <div className="shrink-0">
+                                {isGame ? (
+                                  <GameDropdown
+                                    value={chartMode}
+                                    onValueChange={(value) => setChartMode(value as ChartMode)}
+                                    options={[
+                                      { value: "live", label: tProposal("liveMode") },
+                                      { value: "projected", label: tProposal("projectedMode") },
+                                    ]}
+                                    size="sm"
+                                    className="w-[120px]"
+                                  />
+                                ) : (
+                                  <Select
+                                    value={chartMode}
+                                    onValueChange={(value: string) => setChartMode(value as ChartMode)}
+                                  >
+                                    <SelectTrigger className="w-[120px] h-8 text-xs btn-neon ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:ring-offset-0 focus:border-black data-[state=open]:ring-0 data-[state=open]:ring-transparent data-[state=open]:ring-offset-0 data-[state=open]:border-black dark:focus:border-[#0bd1a2] dark:data-[state=open]:border-[#0bd1a2]">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent className="rounded-none dark:border dark:border-[#0bd1a2] dark:bg-black dark:text-[#0bd1a2] dark:rounded-none">
+                                      <SelectItem value="live" className="text-xs cursor-pointer dark:focus:bg-[#0bd1a2]/20 dark:focus:text-[#0bd1a2]">
+                                        {tProposal("liveMode")}
+                                      </SelectItem>
+                                      <SelectItem value="projected" className="text-xs cursor-pointer dark:focus:bg-[#0bd1a2]/20 dark:focus:text-[#0bd1a2]">
+                                        {tProposal("projectedMode")}
+                                      </SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                )}
+                              </div>
                             </div>
                             {voteTimelineData.length > 0 ? (
                               <div className="h-[320px] w-full min-w-0">
@@ -1586,19 +1707,19 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
                                       className="stroke-border/60"
                                     />
                                     <XAxis
-                                      dataKey="label"
+                                      dataKey="timestamp"
+                                      type="number"
+                                      domain={chartDomain}
+                                      ticks={dailyTicks}
                                       tick={{ fontSize: 12 }}
                                       minTickGap={24}
-                                      tickFormatter={(value) => {
-                                        // Extract displayLabel from the data point
-                                        const dataPoint = voteTimelineData.find(d => d.label === value);
-                                        return dataPoint?.displayLabel || value;
-                                      }}
+                                      tickFormatter={formatTickDate}
                                     />
                                     <YAxis
                                       yAxisId="primary"
                                       allowDecimals={false}
                                       tick={{ fontSize: 12 }}
+                                      domain={yAxisDomain}
                                       tickFormatter={
                                         shouldShowPower
                                           ? (value) =>
@@ -1615,6 +1736,22 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
                                     <Legend
                                       iconType="square"
                                     />
+                                    {chartMode === "projected" && thresholdReferenceValue != null && (
+                                      <ReferenceLine
+                                        y={thresholdReferenceValue}
+                                        yAxisId="primary"
+                                        stroke={isGame ? "#FFD700" : isDark ? "#0bd1a2" : "#000000"}
+                                        strokeDasharray="6 4"
+                                        strokeWidth={1}
+                                        label={{
+                                          value: thresholdLabel,
+                                          position: "insideTopRight",
+                                          fill: isGame ? "#FFD700" : isDark ? "#0bd1a2" : "#000000",
+                                          fontSize: 10,
+                                          fontWeight: 500,
+                                        }}
+                                      />
+                                    )}
                                     {shouldShowPower ? (
                                       <>
                                         <Line
@@ -2198,40 +2335,71 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
                 <Card className={cn("p-6", isGame && "game-detail-card")}>
                   <div className="flex items-center justify-between mb-4">
                     <h3 className={cn("text-sm font-semibold", isGame && "text-white")}>{tProposal("votingTrend")}</h3>
-                    {curveRoleOptions.length > 1 && (
-                      isGame ? (
+                    <div className="flex items-center gap-1.5">
+                      {isGame ? (
                         <GameDropdown
-                          value={curveRoleFilter}
-                          onValueChange={(value) => setCurveRoleFilter(value as RoleFilter)}
-                          options={curveRoleOptions.map((role) => ({
-                            value: role,
-                            label: role === "All" ? "All Roles" : role,
-                          }))}
+                          value={chartMode}
+                          onValueChange={(value) => setChartMode(value as ChartMode)}
+                          options={[
+                            { value: "live", label: tProposal("liveMode") },
+                            { value: "projected", label: tProposal("projectedMode") },
+                          ]}
                           size="sm"
-                          className="w-[120px]"
+                          className="w-[100px]"
                         />
                       ) : (
                         <Select
-                          value={curveRoleFilter}
-                          onValueChange={(value: string) => setCurveRoleFilter(value as RoleFilter)}
+                          value={chartMode}
+                          onValueChange={(value: string) => setChartMode(value as ChartMode)}
                         >
-                          <SelectTrigger className="w-[120px] h-8 text-xs btn-neon ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:ring-offset-0 focus:border-black data-[state=open]:ring-0 data-[state=open]:ring-transparent data-[state=open]:ring-offset-0 data-[state=open]:border-black dark:focus:border-[#0bd1a2] dark:data-[state=open]:border-[#0bd1a2]">
+                          <SelectTrigger className="w-[100px] h-7 text-[10px] btn-neon ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:ring-offset-0 focus:border-black data-[state=open]:ring-0 data-[state=open]:ring-transparent data-[state=open]:ring-offset-0 data-[state=open]:border-black dark:focus:border-[#0bd1a2] dark:data-[state=open]:border-[#0bd1a2]">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="rounded-none dark:border dark:border-[#0bd1a2] dark:bg-black dark:text-[#0bd1a2] dark:rounded-none">
-                            {curveRoleOptions.map((role) => (
-                              <SelectItem
-                                key={role}
-                                value={role}
-                                className="text-xs cursor-pointer dark:focus:bg-[#0bd1a2]/20 dark:focus:text-[#0bd1a2]"
-                              >
-                                {role === "All" ? tVoting("allRoles") : role}
-                              </SelectItem>
-                            ))}
+                            <SelectItem value="live" className="text-[10px] cursor-pointer dark:focus:bg-[#0bd1a2]/20 dark:focus:text-[#0bd1a2]">
+                              {tProposal("liveMode")}
+                            </SelectItem>
+                            <SelectItem value="projected" className="text-[10px] cursor-pointer dark:focus:bg-[#0bd1a2]/20 dark:focus:text-[#0bd1a2]">
+                              {tProposal("projectedMode")}
+                            </SelectItem>
                           </SelectContent>
                         </Select>
-                      )
-                    )}
+                      )}
+                      {curveRoleOptions.length > 1 && (
+                        isGame ? (
+                          <GameDropdown
+                            value={curveRoleFilter}
+                            onValueChange={(value) => setCurveRoleFilter(value as RoleFilter)}
+                            options={curveRoleOptions.map((role) => ({
+                              value: role,
+                              label: role === "All" ? "All Roles" : role,
+                            }))}
+                            size="sm"
+                            className="w-[100px]"
+                          />
+                        ) : (
+                          <Select
+                            value={curveRoleFilter}
+                            onValueChange={(value: string) => setCurveRoleFilter(value as RoleFilter)}
+                          >
+                            <SelectTrigger className="w-[100px] h-7 text-[10px] btn-neon ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:ring-offset-0 focus:border-black data-[state=open]:ring-0 data-[state=open]:ring-transparent data-[state=open]:ring-offset-0 data-[state=open]:border-black dark:focus:border-[#0bd1a2] dark:data-[state=open]:border-[#0bd1a2]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-none dark:border dark:border-[#0bd1a2] dark:bg-black dark:text-[#0bd1a2] dark:rounded-none">
+                              {curveRoleOptions.map((role) => (
+                                <SelectItem
+                                  key={role}
+                                  value={role}
+                                  className="text-[10px] cursor-pointer dark:focus:bg-[#0bd1a2]/20 dark:focus:text-[#0bd1a2]"
+                                >
+                                  {role === "All" ? tVoting("allRoles") : role}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )
+                      )}
+                    </div>
                   </div>
                   {voteTimelineData.length > 0 ? (
                   <div className="h-[200px] w-full min-w-0">
@@ -2242,19 +2410,19 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
                       >
                         <CartesianGrid strokeDasharray="3 3" className="stroke-border/60" />
                         <XAxis
-                          dataKey="label"
+                          dataKey="timestamp"
+                          type="number"
+                          domain={chartDomain}
+                          ticks={dailyTicks}
                           tick={{ fontSize: 10 }}
                           minTickGap={30}
-                          tickFormatter={(value) => {
-                            // Extract displayLabel from the data point
-                            const dataPoint = voteTimelineData.find(d => d.label === value);
-                            return dataPoint?.displayLabel || value;
-                          }}
+                          tickFormatter={formatTickDate}
                         />
                         <YAxis
                           yAxisId="primary"
                           allowDecimals={false}
                           tick={{ fontSize: 10 }}
+                          domain={yAxisDomain}
                           tickFormatter={
                             shouldShowPower
                               ? (value) => formatAdaValue(value).replace(" ₳", "")
@@ -2262,6 +2430,22 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
                           }
                         />
                         <RechartsTooltip content={renderVoteTrendTooltip} />
+                        {chartMode === "projected" && thresholdReferenceValue != null && (
+                          <ReferenceLine
+                            y={thresholdReferenceValue}
+                            yAxisId="primary"
+                            stroke={isGame ? "#FFD700" : isDark ? "#0bd1a2" : "#000000"}
+                            strokeDasharray="6 4"
+                            strokeWidth={1}
+                            label={{
+                              value: thresholdLabel,
+                              position: "insideTopRight",
+                              fill: isGame ? "#FFD700" : isDark ? "#0bd1a2" : "#000000",
+                              fontSize: 8,
+                              fontWeight: 500,
+                            }}
+                          />
+                        )}
                         {shouldShowPower ? (
                           <>
                             <Line
@@ -2424,7 +2608,7 @@ function VoteTrendTooltip({
       !isGame && "border"
     )}>
       <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-        {point.displayLabel}
+        {point.label}
       </div>
       <div className="mt-2 space-y-1.5">
         {rows.map((row) => (
