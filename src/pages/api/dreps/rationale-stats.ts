@@ -53,6 +53,7 @@ export default async function handler(
       drepId: string;
       totalVotesCast: number;
       rationalesProvided: number;
+      proposalParticipationPercent: number;
     }[] = [];
 
     for (let i = 0; i < allDreps.length; i += batchSize) {
@@ -69,12 +70,14 @@ export default async function handler(
               drepId: drep.drepId,
               totalVotesCast: d.totalVotesCast ?? 0,
               rationalesProvided: d.rationalesProvided ?? 0,
+              proposalParticipationPercent: d.proposalParticipationPercent ?? 0,
             };
           } catch {
             return {
               drepId: drep.drepId,
               totalVotesCast: 0,
               rationalesProvided: 0,
+              proposalParticipationPercent: 0,
             };
           }
         })

@@ -1,8 +1,12 @@
 import { useMemo, useState, useRef, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { Search } from "lucide-react";
 import { useTheme } from "@/lib/theme";
 import type { DRepSummary } from "@/types/drep";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { GameDropdown } from "@/components/ui/game-dropdown";
 import { useAllDReps, useDRepStats, useDRepRationaleStats, useDRepVoteChanges } from "@/hooks/useDRepData";
 import { DRepBubbleMap } from "@/components/dreps/DRepBubbleMap";
 import { DRepTreeMap } from "@/components/dreps/DRepTreeMap";
@@ -10,6 +14,7 @@ import { DRepDonutChart } from "@/components/dreps/DRepDonutChart";
 import { DRepActivityDonut } from "@/components/dreps/DRepActivityDonut";
 import { DRepDelegatorsDonut } from "@/components/dreps/DRepDelegatorsDonut";
 import { DRepDelegatedAdaDonut } from "@/components/dreps/DRepDelegatedAdaDonut";
+import { cn } from "@/lib/utils";
 
 // Format voting power for display
 function formatVotingPower(value: number, decimals: number = 1): string {
@@ -42,8 +47,17 @@ export function DRepSunburstChart({ className, initialDreps, view = "all" }: DRe
   const [chartMetric, setChartMetric] = useState<"votingPower" | "delegators">("votingPower");
   const [chartVisible, setChartVisible] = useState(true);
   const [topN, setTopN] = useState<number | null>(null); // null = all
+  const [powerSort, setPowerSort] = useState<string>("none");
+  const [delegatorSort, setDelegatorSort] = useState<string>("none");
+  const [votesSort, setVotesSort] = useState<string>("none");
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const rowsContainerRef = useRef<HTMLDivElement>(null);
+
+  const tCommon = useTranslations("common");
+  const tSort = useTranslations("sort");
+
+  const selectItemClass =
+    "rounded-none data-[highlighted]:bg-black/10 data-[highlighted]:text-foreground data-[state=checked]:bg-black data-[state=checked]:text-white dark:data-[highlighted]:bg-[#0bd1a2]/15 dark:data-[highlighted]:text-[#0bd1a2] dark:data-[state=checked]:bg-[#0bd1a2] dark:data-[state=checked]:text-black";
 
   // Fade out, switch metric, fade back in
   const switchMetric = useCallback((metric: typeof chartMetric) => {
@@ -84,7 +98,7 @@ export function DRepSunburstChart({ className, initialDreps, view = "all" }: DRe
     return map;
   }, [voteChangeStats]);
 
-  // Filter dreps: exclude 0 voting power or 0 votes cast, apply search, then sort by active metric
+  // Filter dreps: exclude 0 voting power or 0 votes cast, apply search, then sort
   const filteredDreps = useMemo(() => {
     const nonZero = dreps.filter((drep) => drep.votingPowerAda > 0 && drep.totalVotesCast > 0);
     const searched = searchTerm.trim()
@@ -93,12 +107,33 @@ export function DRepSunburstChart({ className, initialDreps, view = "all" }: DRe
           return (drep.name?.toLowerCase().includes(term)) || drep.drepId.toLowerCase().includes(term);
         })
       : nonZero;
-    // Sort by the active chart metric so charts reflect correct ranking
+
+    // Apply explicit sort from dropdowns (first non-default wins)
+    if (powerSort === "high") {
+      return [...searched].sort((a, b) => b.votingPowerAda - a.votingPowerAda);
+    }
+    if (powerSort === "low") {
+      return [...searched].sort((a, b) => a.votingPowerAda - b.votingPowerAda);
+    }
+    if (delegatorSort === "most") {
+      return [...searched].sort((a, b) => (b.delegatorCount ?? 0) - (a.delegatorCount ?? 0));
+    }
+    if (delegatorSort === "fewest") {
+      return [...searched].sort((a, b) => (a.delegatorCount ?? 0) - (b.delegatorCount ?? 0));
+    }
+    if (votesSort === "most") {
+      return [...searched].sort((a, b) => b.totalVotesCast - a.totalVotesCast);
+    }
+    if (votesSort === "fewest") {
+      return [...searched].sort((a, b) => a.totalVotesCast - b.totalVotesCast);
+    }
+
+    // Fallback: sort by chart metric so charts reflect correct ranking
     if (chartMetric === "delegators") {
       return [...searched].sort((a, b) => (b.delegatorCount ?? 0) - (a.delegatorCount ?? 0));
     }
     return searched; // already sorted by votingPower from the hook
-  }, [dreps, searchTerm, chartMetric]);
+  }, [dreps, searchTerm, chartMetric, powerSort, delegatorSort, votesSort]);
 
   // Aggregated stats for the selection (top-N or all)
   const selectionStats = useMemo(() => {
@@ -140,7 +175,7 @@ export function DRepSunburstChart({ className, initialDreps, view = "all" }: DRe
     );
   }
 
-  if (error) {
+  if (error && !dreps.length) {
     return (
       <div className={className}>
         <div className="h-[500px] flex items-center justify-center text-muted-foreground">
@@ -150,7 +185,7 @@ export function DRepSunburstChart({ className, initialDreps, view = "all" }: DRe
     );
   }
 
-  if (!dreps.length) {
+  if (!dreps.length && !error) {
     return (
       <div className={className}>
         <div className="h-[500px] flex items-center justify-center text-muted-foreground">
@@ -351,31 +386,126 @@ export function DRepSunburstChart({ className, initialDreps, view = "all" }: DRe
       )}
 
       {/* DRep List Card */}
-      {view !== "chart" && <div className={`${cardClass} mt-4`}>
-        <div className="flex flex-col h-[820px]">
-          {/* Search Input */}
-          <div className="pb-3">
-            <input
-              type="text"
-              placeholder={t("drep.searchPlaceholder")}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className={`w-full px-3 py-2 text-sm transition-colors ${
-                isLight
-                  ? "rounded-lg border bg-white border-black/10 text-black placeholder:text-black/40 focus:border-black/30 focus:ring-1 focus:ring-black/10"
-                  : isGame
-                  ? "game-nav-input"
-                  : "rounded-none border bg-transparent border-[#0bd1a2] text-foreground placeholder:text-muted-foreground focus:border-[#0bd1a2] focus:ring-1 focus:ring-[#0bd1a2]/30"
-              }`}
-            />
+      {view !== "chart" && <div className="mt-4 space-y-3 sm:space-y-4">
+        {/* Filter Section */}
+        <div className="flex flex-wrap gap-2 sm:gap-3 md:gap-4">
+          {/* Search Card */}
+          <div className={cn(
+            "w-full sm:flex-1 sm:min-w-[300px] p-2.5 sm:p-3 md:p-4",
+            isGame
+              ? "game-detail-card"
+              : "rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+          )}>
+            <div className="relative">
+              <Search className={cn("absolute left-2.5 sm:left-3 top-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 -translate-y-1/2 transform", isGame ? "text-white/50" : "text-muted-foreground")} />
+              <Input
+                placeholder={tCommon("search")}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className={cn("pl-8 sm:pl-10 h-8 sm:h-9 md:h-10 text-xs sm:text-sm", isGame ? "game-nav-input" : "filter-input")}
+              />
+            </div>
             {searchTerm && (
-              <div className={`mt-1.5 text-xs ${isGame ? "text-white/60" : "text-muted-foreground"}`}>
+              <div className={cn("mt-1.5 text-xs", isGame ? "text-white/60" : "text-muted-foreground")}>
                 {filteredDreps.length === 1
                   ? t("drep.found", { count: filteredDreps.length })
                   : t("drep.foundPlural", { count: filteredDreps.length })}
               </div>
             )}
           </div>
+
+          {/* Sort Dropdowns Card */}
+          <div className={cn(
+            "flex-1 min-w-0 p-2.5 sm:p-3 md:p-4",
+            isGame
+              ? "game-detail-card"
+              : "rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+          )}>
+            <div className="flex flex-wrap gap-2 sm:gap-3 md:gap-4">
+              {/* Sort by Voting Power */}
+              <div className="flex-1 min-w-[140px]">
+                {isGame ? (
+                  <GameDropdown
+                    value={powerSort}
+                    onValueChange={(v) => { setPowerSort(v); if (v !== "none") { setDelegatorSort("none"); setVotesSort("none"); } }}
+                    placeholder={tSort("sortByVotingPower")}                    options={[
+                      { value: "none", label: tSort("votingPower") },
+                      { value: "high", label: tSort("highestPower") },
+                      { value: "low", label: tSort("lowestPower") },
+                    ]}
+                  />
+                ) : (
+                  <Select value={powerSort} onValueChange={(v) => { setPowerSort(v); if (v !== "none") { setDelegatorSort("none"); setVotesSort("none"); } }}>
+                    <SelectTrigger className="btn-neon ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:ring-offset-0 focus:border-black data-[state=open]:ring-0 data-[state=open]:ring-transparent data-[state=open]:ring-offset-0 data-[state=open]:border-black dark:focus:border-[#0bd1a2] dark:data-[state=open]:border-[#0bd1a2] [&>span]:truncate">
+                      <SelectValue placeholder={tSort("sortByVotingPower")} />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-none dark:border dark:border-[#0bd1a2] dark:bg-black dark:text-[#0bd1a2] dark:rounded-none">
+                      <SelectItem className={selectItemClass} value="none">{tSort("votingPower")}</SelectItem>
+                      <SelectItem className={selectItemClass} value="high">{tSort("highestPower")}</SelectItem>
+                      <SelectItem className={selectItemClass} value="low">{tSort("lowestPower")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+
+              {/* Sort by Delegators */}
+              <div className="flex-1 min-w-[140px]">
+                {isGame ? (
+                  <GameDropdown
+                    value={delegatorSort}
+                    onValueChange={(v) => { setDelegatorSort(v); if (v !== "none") { setPowerSort("none"); setVotesSort("none"); } }}
+                    placeholder={tSort("sortByDelegators")}                    options={[
+                      { value: "none", label: tSort("sortByDelegators") },
+                      { value: "most", label: tSort("mostDelegators") },
+                      { value: "fewest", label: tSort("fewestDelegators") },
+                    ]}
+                  />
+                ) : (
+                  <Select value={delegatorSort} onValueChange={(v) => { setDelegatorSort(v); if (v !== "none") { setPowerSort("none"); setVotesSort("none"); } }}>
+                    <SelectTrigger className="btn-neon ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:ring-offset-0 focus:border-black data-[state=open]:ring-0 data-[state=open]:ring-transparent data-[state=open]:ring-offset-0 data-[state=open]:border-black dark:focus:border-[#0bd1a2] dark:data-[state=open]:border-[#0bd1a2] [&>span]:truncate">
+                      <SelectValue placeholder={tSort("sortByDelegators")} />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-none dark:border dark:border-[#0bd1a2] dark:bg-black dark:text-[#0bd1a2] dark:rounded-none">
+                      <SelectItem className={selectItemClass} value="none">{tSort("sortByDelegators")}</SelectItem>
+                      <SelectItem className={selectItemClass} value="most">{tSort("mostDelegators")}</SelectItem>
+                      <SelectItem className={selectItemClass} value="fewest">{tSort("fewestDelegators")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+
+              {/* Sort by Votes Cast */}
+              <div className="flex-1 min-w-[140px]">
+                {isGame ? (
+                  <GameDropdown
+                    value={votesSort}
+                    onValueChange={(v) => { setVotesSort(v); if (v !== "none") { setPowerSort("none"); setDelegatorSort("none"); } }}
+                    placeholder={tSort("sortByVotesCast")}                    options={[
+                      { value: "none", label: tSort("sortByVotesCast") },
+                      { value: "most", label: tSort("mostVotes") },
+                      { value: "fewest", label: tSort("fewestVotes") },
+                    ]}
+                  />
+                ) : (
+                  <Select value={votesSort} onValueChange={(v) => { setVotesSort(v); if (v !== "none") { setPowerSort("none"); setDelegatorSort("none"); } }}>
+                    <SelectTrigger className="btn-neon ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:ring-offset-0 focus:border-black data-[state=open]:ring-0 data-[state=open]:ring-transparent data-[state=open]:ring-offset-0 data-[state=open]:border-black dark:focus:border-[#0bd1a2] dark:data-[state=open]:border-[#0bd1a2] [&>span]:truncate">
+                      <SelectValue placeholder={tSort("sortByVotesCast")} />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-none dark:border dark:border-[#0bd1a2] dark:bg-black dark:text-[#0bd1a2] dark:rounded-none">
+                      <SelectItem className={selectItemClass} value="none">{tSort("sortByVotesCast")}</SelectItem>
+                      <SelectItem className={selectItemClass} value="most">{tSort("mostVotes")}</SelectItem>
+                      <SelectItem className={selectItemClass} value="fewest">{tSort("fewestVotes")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Table Card */}
+        <div className={cardClass}>
+        <div className="flex flex-col h-[820px]">
           {/* Scrollable table area */}
           <div
             ref={scrollContainerRef}
@@ -469,6 +599,7 @@ export function DRepSunburstChart({ className, initialDreps, view = "all" }: DRe
               </div>
             </div>
           </div>
+        </div>
         </div>
       </div>}
     </div>
