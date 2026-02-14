@@ -15,7 +15,11 @@ import { cn } from "@/lib/utils";
 import {
   fetchDRepStatsServer,
   fetchAllDRepsServer,
+  fetchDRepRationaleStatsServer,
+  fetchDRepVoteChangesServer,
   type DRepServerItem,
+  type DRepRationaleStatItem,
+  type DRepVoteChangeItem,
 } from "@/lib/serverFetch";
 import type { DRepSummary } from "@/types/drep";
 
@@ -24,6 +28,8 @@ type IntlMessages = typeof import("@/messages/en.json");
 interface InitialDRepData {
   drepStats: DRepStatsApiResponse | null;
   allDreps: DRepServerItem[];
+  rationaleStats: DRepRationaleStatItem[];
+  voteChanges: DRepVoteChangeItem[];
 }
 
 interface DRepDashboardPageProps {
@@ -73,7 +79,7 @@ export default function DRepDashboard({ initialData }: InferGetStaticPropsType<t
   const t = useTranslations("drep");
   const { activeTheme } = useTheme();
   const isGame = activeTheme.id === "game";
-  const isLight = activeTheme.id === "light";
+  const isLight = activeTheme.id === "light" || activeTheme.id === "neural";
   const [selectedTab, setSelectedTab] = useState("drep-table");
 
   // Transform ISR DRep data once for hooks
@@ -218,7 +224,11 @@ export default function DRepDashboard({ initialData }: InferGetStaticPropsType<t
 
                 {/* DRep Picker Tab — no forceMount to avoid mounting 3 heavy components at once */}
                 <TabsContent value="drep-picker" className="mt-0">
-                  <DRepPicker initialDreps={initialDreps} />
+                  <DRepPicker
+                    initialDreps={initialDreps}
+                    initialRationaleStats={initialData?.rationaleStats}
+                    initialVoteChanges={initialData?.voteChanges}
+                  />
                 </TabsContent>
               </Tabs>
             </>
@@ -238,15 +248,17 @@ export const getStaticProps: GetStaticProps<DRepDashboardPageProps> = async ({ l
   const messages = (await import(`@/messages/${locale ?? "en"}.json`)).default;
 
   try {
-    const [drepStats, allDreps] = await Promise.all([
+    const [drepStats, allDreps, rationaleStats, voteChanges] = await Promise.all([
       fetchDRepStatsServer(),
       fetchAllDRepsServer(),
+      fetchDRepRationaleStatsServer(),
+      fetchDRepVoteChangesServer(),
     ]);
 
     return {
       props: {
         messages,
-        initialData: { drepStats, allDreps },
+        initialData: { drepStats, allDreps, rationaleStats, voteChanges },
       },
       revalidate: 60,
     };
@@ -255,7 +267,7 @@ export const getStaticProps: GetStaticProps<DRepDashboardPageProps> = async ({ l
     return {
       props: {
         messages,
-        initialData: { drepStats: null, allDreps: [] },
+        initialData: { drepStats: null, allDreps: [], rationaleStats: [], voteChanges: [] },
       },
       revalidate: 30,
     };

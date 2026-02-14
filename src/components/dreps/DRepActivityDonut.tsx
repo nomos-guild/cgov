@@ -20,7 +20,7 @@ export function DRepActivityDonut({ dreps, className }: DRepActivityDonutProps) 
   const t = useTranslations();
   const { activeTheme } = useTheme();
   const isGame = activeTheme.id === "game";
-  const isLight = activeTheme.id === "light";
+  const isLight = activeTheme.id === "light" || activeTheme.id === "neural";
 
   const { zeroPower, zeroVotes, active } = useMemo(() => {
     let zeroPower = 0;

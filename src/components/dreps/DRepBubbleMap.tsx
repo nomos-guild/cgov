@@ -62,7 +62,7 @@ export function DRepBubbleMap({ dreps, metric, topN, rationaleMap }: DRepBubbleM
   const { theme, activeTheme } = useTheme();
   const isDark = theme === "dark";
   const isGame = activeTheme.id === "game";
-  const isLight = activeTheme.id === "light";
+  const isLight = activeTheme.id === "light" || activeTheme.id === "neural";
   const containerRef = useRef<HTMLDivElement>(null);
   const [hoveredBubble, setHoveredBubble] = useState<{ bubble: DRepBubble; x: number; y: number } | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);

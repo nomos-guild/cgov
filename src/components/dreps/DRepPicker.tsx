@@ -10,6 +10,17 @@ import type { EnrichedDRep } from "@/components/dreps/DRepPickerResults";
 
 interface DRepPickerProps {
   initialDreps?: DRepSummary[];
+  initialRationaleStats?: Array<{
+    drepId: string;
+    totalVotesCast: number;
+    rationalesProvided: number;
+    proposalParticipationPercent: number;
+  }>;
+  initialVoteChanges?: Array<{
+    drepId: string;
+    uniqueProposals: number;
+    voteChanges: number;
+  }>;
 }
 
 function formatVotingPower(value: number, decimals: number = 1): string {
@@ -33,16 +44,16 @@ function toPos(fraction: number): number {
 }
 
 
-export default function DRepPicker({ initialDreps }: DRepPickerProps) {
+export default function DRepPicker({ initialDreps, initialRationaleStats, initialVoteChanges }: DRepPickerProps) {
   const t = useTranslations("drep");
   const { activeTheme } = useTheme();
   const isGame = activeTheme.id === "game";
-  const isLight = activeTheme.id === "light";
+  const isLight = activeTheme.id === "light" || activeTheme.id === "neural";
 
   // Data hooks
   const { dreps: allDreps, isLoading: loadingDreps } = useAllDReps({}, initialDreps);
-  const { dreps: rationaleStats, isLoading: loadingRationale } = useDRepRationaleStats();
-  const { dreps: voteChangeStats, isLoading: loadingChanges } = useDRepVoteChanges();
+  const { dreps: rationaleStats, isLoading: loadingRationale } = useDRepRationaleStats(initialRationaleStats);
+  const { dreps: voteChangeStats, isLoading: loadingChanges } = useDRepVoteChanges(initialVoteChanges);
 
   const isLoading = loadingDreps || loadingRationale || loadingChanges;
 

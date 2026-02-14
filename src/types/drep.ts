@@ -77,6 +77,10 @@ export interface DRepDetail {
   proposalParticipationPercent: number;
   /** Number of wallets delegated to this DRep */
   delegatorCount: number | null;
+  /** Epoch when DRep registered */
+  registeredEpoch: number | null;
+  /** ISO date string of registration epoch start */
+  registeredDate: string | null;
 }
 
 /**
@@ -103,6 +107,25 @@ export interface DRepVoteRecord {
   votedAt: string | null;
   /** Transaction hash */
   txHash: string;
+}
+
+/**
+ * Single data point in DRep delegation history time series
+ */
+export interface DRepHistoryDataPoint {
+  epoch: number;
+  date: string | null;
+  delegatorCount: number;
+  votingPower: string;
+  votingPowerAda: number;
+}
+
+/**
+ * Response for DRep history endpoint
+ */
+export interface DRepHistoryResponse {
+  drepId: string;
+  history: DRepHistoryDataPoint[];
 }
 
 /**

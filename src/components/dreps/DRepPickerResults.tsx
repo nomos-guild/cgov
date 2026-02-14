@@ -31,7 +31,7 @@ export default function DRepPickerResults({ dreps }: DRepPickerResultsProps) {
   const t = useTranslations("drep");
   const { activeTheme } = useTheme();
   const isGame = activeTheme.id === "game";
-  const isLight = activeTheme.id === "light";
+  const isLight = activeTheme.id === "light" || activeTheme.id === "neural";
 
   const cardClass = isLight
     ? "rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)]"

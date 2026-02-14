@@ -14,6 +14,7 @@ import type {
   DRepSortBy,
   SortOrder,
   VoteBreakdown,
+  DRepHistoryDataPoint,
 } from "@/types/drep";
 
 /**
@@ -289,7 +290,7 @@ export function useAllDReps(options: Omit<UseDRepListOptions, "page"> = {}, init
 }
 
 /** Raw API response for DRep detail */
-interface DRepDetailApiResponse {
+export interface DRepDetailApiResponse {
   drepId: string;
   name: string | null;
   iconUrl: string | null;
@@ -301,6 +302,8 @@ interface DRepDetailApiResponse {
   rationalesProvided: number;
   proposalParticipationPercent: number;
   delegatorCount: number | null;
+  registeredEpoch: number | null;
+  registeredDate: string | null;
 }
 
 /**
@@ -319,19 +322,25 @@ function transformDRepDetail(data: DRepDetailApiResponse): DRepDetail {
     rationalesProvided: data.rationalesProvided,
     proposalParticipationPercent: data.proposalParticipationPercent,
     delegatorCount: data.delegatorCount ?? null,
+    registeredEpoch: data.registeredEpoch ?? null,
+    registeredDate: data.registeredDate ?? null,
   };
 }
 
 /**
  * Hook to fetch DRep detail by ID
  */
-export function useDRepDetail(drepId: string | null) {
+export function useDRepDetail(
+  drepId: string | null,
+  fallback?: DRepDetailApiResponse | null
+) {
   const url = drepId ? API_ENDPOINTS.drepDetail(drepId) : null;
 
   const { data, error, isLoading, mutate } = useSWR<DRepDetailApiResponse>(
     url,
     fetcher,
     {
+      fallbackData: fallback ?? undefined,
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
       dedupingInterval: 60000,
@@ -340,10 +349,54 @@ export function useDRepDetail(drepId: string | null) {
 
   return {
     drep: data ? transformDRepDetail(data) : null,
-    isLoading,
+    isLoading: !fallback && isLoading,
     error: error?.message || null,
     refresh: () => mutate(),
   };
+}
+
+/** Raw API response for DRep history */
+export interface DRepHistoryApiResponse {
+  drepId: string;
+  history: Array<{
+    epoch: number;
+    date: string | null;
+    delegatorCount: number;
+    votingPower: string;
+    votingPowerAda: string;
+  }>;
+}
+
+/**
+ * Hook: fetch per-epoch delegation history for a single DRep.
+ */
+export function useDRepHistory(
+  drepId: string | null,
+  fallback?: DRepHistoryApiResponse | null
+) {
+  const url = drepId ? API_ENDPOINTS.drepHistory(drepId) : null;
+
+  const { data, error, isLoading } = useSWR<DRepHistoryApiResponse>(
+    url,
+    fetcher,
+    {
+      fallbackData: fallback ?? undefined,
+      revalidateOnFocus: false,
+      dedupingInterval: 60000,
+    }
+  );
+
+  const history: DRepHistoryDataPoint[] = data
+    ? data.history.map((h) => ({
+        epoch: h.epoch,
+        date: h.date,
+        delegatorCount: h.delegatorCount,
+        votingPower: h.votingPower,
+        votingPowerAda: Number(h.votingPowerAda),
+      }))
+    : [];
+
+  return { history, isLoading: !fallback && isLoading, error: error?.message || null };
 }
 
 /** Raw API response for DRep votes */
@@ -455,16 +508,28 @@ export function useDRepVotes(drepId: string | null, options: UseDRepVotesOptions
  * Hook to fetch ALL votes for a DRep across all pages.
  * Useful for building aggregate charts (e.g. monthly activity).
  */
-export function useAllDRepVotes(drepId: string | null) {
-  const [allVotes, setAllVotes] = useState<DRepVoteRecord[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+export function useAllDRepVotes(
+  drepId: string | null,
+  initialVotes?: DRepVoteRecord[]
+) {
+  const [allVotes, setAllVotes] = useState<DRepVoteRecord[]>(initialVotes ?? []);
+  const [isLoading, setIsLoading] = useState(!initialVotes);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  // Track whether we've already seeded from ISR so we don't re-fetch on mount
+  const seededRef = useRef(!!initialVotes?.length);
 
   useEffect(() => {
     if (!drepId) {
       setAllVotes([]);
       setIsLoading(false);
+      return;
+    }
+
+    // Skip first client-side fetch when ISR already provided data.
+    // SWR will revalidate in the background on subsequent navigations.
+    if (seededRef.current) {
+      seededRef.current = false;
       return;
     }
 
@@ -516,8 +581,6 @@ export function useAllDRepVotes(drepId: string | null) {
 
         if (!controller.signal.aborted) {
           // Deduplicate by proposalId — keep only the latest vote per proposal.
-          // DReps can change their vote, which creates multiple records for the
-          // same proposal. We want unique proposals, not total transactions.
           const seen = new Map<string, DRepVoteRecord>();
           for (const vote of accumulated) {
             const existing = seen.get(vote.proposalId);
@@ -529,7 +592,6 @@ export function useAllDRepVotes(drepId: string | null) {
           setIsLoading(false);
         }
       } catch (err: unknown) {
-        // Ignore abort errors (navigation away, effect cleanup)
         if (controller.signal.aborted) return;
         const isAbort = err instanceof DOMException && err.name === "AbortError";
         if (!isAbort) {
@@ -561,11 +623,13 @@ interface DRepRationaleStatsResponse {
  * Single API call — the server does the heavy lifting.
  * Results are sorted by voting power (desc) to match the DRep list.
  */
-export function useDRepRationaleStats() {
+export function useDRepRationaleStats(initialData?: DRepRationaleStatsResponse["dreps"]) {
+  const fallback = initialData?.length ? { dreps: initialData } : undefined;
   const { data, error, isLoading, mutate } = useSWR<DRepRationaleStatsResponse>(
     API_ENDPOINTS.drepRationaleStats,
     fetcher,
     {
+      fallbackData: fallback,
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
       dedupingInterval: 300000, // 5 minutes (server caches for 5 min too)
@@ -574,7 +638,7 @@ export function useDRepRationaleStats() {
 
   return {
     dreps: data?.dreps || [],
-    isLoading,
+    isLoading: !fallback && isLoading,
     error: error?.message || null,
     refresh: () => mutate(),
   };
@@ -593,11 +657,13 @@ interface DRepVoteChangesResponse {
  * Hook to fetch aggregated vote-change stats for ALL DReps.
  * Returns how many times each DRep changed their vote on proposals.
  */
-export function useDRepVoteChanges() {
+export function useDRepVoteChanges(initialData?: DRepVoteChangesResponse["dreps"]) {
+  const fallback = initialData?.length ? { dreps: initialData } : undefined;
   const { data, error, isLoading, mutate } = useSWR<DRepVoteChangesResponse>(
     API_ENDPOINTS.drepVoteChanges,
     fetcher,
     {
+      fallbackData: fallback,
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
       dedupingInterval: 300000, // 5 minutes
@@ -606,7 +672,7 @@ export function useDRepVoteChanges() {
 
   return {
     dreps: data?.dreps || [],
-    isLoading,
+    isLoading: !fallback && isLoading,
     error: error?.message || null,
     refresh: () => mutate(),
   };

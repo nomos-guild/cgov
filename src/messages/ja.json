@@ -143,9 +143,23 @@
   },
   "download": {
     "downloadRationales": "ダウンロード",
+    "downloadDRepList": "Download",
     "json": "JSON",
     "markdown": "マークダウン",
     "csv": "シーエスブイ"
+  },
+  "drepExport": {
+    "title": "DRepリスト",
+    "exported": "エクスポート日時",
+    "totalDReps": "DRep総数",
+    "headerRank": "順位",
+    "headerName": "名前",
+    "headerDRepId": "DRep ID",
+    "headerVotingPower": "投票力 (ADA)",
+    "headerPercentOfTotal": "全体の%",
+    "headerDelegators": "委任者数",
+    "headerVotesCast": "投票数",
+    "headerVoteChanges": "投票変更"
   },
   "rationaleFilter": {
     "allRecords": "全記録",
@@ -379,6 +393,7 @@
     "bubbleMap": "バブルマップ",
     "treeMap": "ツリーマップ",
     "donut": "ドーナツ",
+    "scatter": "散布図",
     "metric": "指標",
     "votingPower": "投票力",
     "delegators": "委任者",

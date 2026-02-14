@@ -143,9 +143,23 @@
   },
   "download": {
     "downloadRationales": "Descarregar os fundamentos",
+    "downloadDRepList": "Download",
     "json": "JSON",
     "markdown": "Marcação",
     "csv": "CSV"
+  },
+  "drepExport": {
+    "title": "Lista de DReps",
+    "exported": "Exportado",
+    "totalDReps": "Total de DReps",
+    "headerRank": "Classificação",
+    "headerName": "Nome",
+    "headerDRepId": "ID do DRep",
+    "headerVotingPower": "Poder de voto (ADA)",
+    "headerPercentOfTotal": "% do total",
+    "headerDelegators": "Delegadores",
+    "headerVotesCast": "Votos emitidos",
+    "headerVoteChanges": "Alterações de voto"
   },
   "rationaleFilter": {
     "allRecords": "Todos os registos",
@@ -379,6 +393,7 @@
     "bubbleMap": "Mapa de bolhas",
     "treeMap": "Mapa em árvore",
     "donut": "Anel",
+    "scatter": "Dispersão",
     "metric": "Métrica",
     "votingPower": "Poder de Voto",
     "delegators": "Delegadores",

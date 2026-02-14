@@ -143,9 +143,23 @@
   },
   "download": {
     "downloadRationales": "Download rationales",
+    "downloadDRepList": "Download",
     "json": "JSON",
     "markdown": "Markdown",
     "csv": "CSV"
+  },
+  "drepExport": {
+    "title": "DRep List",
+    "exported": "Exported",
+    "totalDReps": "Total DReps",
+    "headerRank": "Rank",
+    "headerName": "Name",
+    "headerDRepId": "DRep ID",
+    "headerVotingPower": "Voting Power (ADA)",
+    "headerPercentOfTotal": "% of Total",
+    "headerDelegators": "Delegators",
+    "headerVotesCast": "Votes Cast",
+    "headerVoteChanges": "Vote Changes"
   },
   "rationaleFilter": {
     "allRecords": "All records",
@@ -379,6 +393,7 @@
     "bubbleMap": "Bubble Map",
     "treeMap": "Tree Map",
     "donut": "Donut",
+    "scatter": "Scatter",
     "metric": "Metric",
     "votingPower": "Voting Power",
     "delegators": "Delegators",
