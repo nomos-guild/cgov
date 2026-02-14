@@ -167,10 +167,10 @@ export function DashboardTextElement({
       ref={elementRef}
       className="absolute group rounded-lg"
       style={{
-        left: `${element.x}px`,
-        top: `${element.y}px`,
         width: `${element.width}px`,
         height: `${element.height}px`,
+        transform: `translate(${element.x}px, ${element.y}px)`,
+        willChange: isDragging || isResizing ? "transform" : "auto",
         zIndex: isActive ? 50 : isSelected ? 10 : 1,
         transition: isDragging || isResizing ? "none" : "box-shadow 0.2s",
         ...(isSelected && {

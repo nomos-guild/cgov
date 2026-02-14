@@ -1,6 +1,6 @@
 /**
  * Chart theme colors configuration
- * Provides consistent colors across all themes (light, dark, game)
+ * Provides consistent colors across all themes (light, dark, neural, game)
  */
 
 export interface ChartThemeColors {
@@ -39,46 +39,46 @@ export interface ChartThemeColors {
 }
 
 export const lightChartColors: ChartThemeColors = {
-  // Status - monochromatic grayscale
-  active: "#1a1a1a", // near black
-  ratified: "#404040", // dark gray
-  enacted: "#666666", // medium gray
-  expired: "#999999", // light gray
-  closed: "#b3b3b3", // lighter gray
+  // Status - warm, muted tones matching beige aesthetic
+  active: "#2d8a6e", // muted teal-green
+  ratified: "#3d7ea6", // muted blue
+  enacted: "#7c5aa3", // muted purple
+  expired: "#c2793d", // warm amber/orange
+  closed: "#8b7e74", // warm gray
 
-  // Votes - black/gray spectrum
-  yes: "#1a1a1a", // near black
-  no: "#808080", // medium gray
-  abstain: "#c0c0c0", // light gray
+  // Votes - semantic colors, slightly muted
+  yes: "#2d8a6e", // muted green
+  no: "#c04c4c", // muted red
+  abstain: "#a39890", // warm gray
 
-  // Participation levels - grayscale gradient
-  participationLow: "#d0d0d0", // lightest
-  participationMedLow: "#999999", // light gray
-  participationMedHigh: "#666666", // medium gray
-  participationHigh: "#1a1a1a", // near black (highest)
+  // Participation levels - warm gradient
+  participationLow: "#c04c4c", // muted red
+  participationMedLow: "#c2793d", // warm amber
+  participationMedHigh: "#b5963c", // warm gold
+  participationHigh: "#2d8a6e", // muted green
 
-  // Palette for categorical data - grayscale spectrum
+  // Palette for categorical data - harmonious warm tones
   palette: [
-    "#1a1a1a", // near black
-    "#404040", // dark gray
-    "#666666", // medium gray
-    "#808080", // gray
-    "#999999", // light gray
-    "#b3b3b3", // lighter gray
-    "#cccccc", // very light gray
+    "#3d7ea6", // muted blue
+    "#2d8a6e", // muted teal-green
+    "#c2793d", // warm amber
+    "#7c5aa3", // muted purple
+    "#b56576", // dusty rose
+    "#4a8f8f", // teal
+    "#9c7a3c", // warm gold
   ],
 
-  // Chart chrome - clean grays
-  axisLine: "#d4d4d4", // light gray
-  axisText: "#525252", // dark gray
-  gridLine: "#e5e5e5", // very light gray
-  tooltipBg: "#ffffff", // white
-  tooltipBorder: "#d4d4d4", // light gray border
-  tooltipText: "#1a1a1a", // near black
+  // Chart chrome - warm grays matching beige theme
+  axisLine: "#d4cdc4", // warm light gray
+  axisText: "#6b6259", // warm dark gray
+  gridLine: "#e8e2da", // warm very light gray
+  tooltipBg: "#faf9f6", // matches light theme background
+  tooltipBorder: "#d4cdc4", // warm border
+  tooltipText: "#2d2926", // warm near-black
 
   // Primary
-  primary: "#1a1a1a", // near black
-  primaryMuted: "#999999", // medium gray
+  primary: "#2d2926", // warm black (matches foreground)
+  primaryMuted: "#8b7e74", // warm gray
 };
 
 export const darkChartColors: ChartThemeColors = {
@@ -122,6 +122,49 @@ export const darkChartColors: ChartThemeColors = {
   // Primary
   primary: "#0bd1a2",
   primaryMuted: "rgba(11, 209, 162, 0.5)",
+};
+
+export const neuralChartColors: ChartThemeColors = {
+  // Status - subtly saturated, architectural ink tones
+  active: "#2a3f4a", // deep steel blue
+  ratified: "#4a6b5a", // muted sage
+  enacted: "#7a8b8f", // cool slate
+  expired: "#b5a89a", // warm taupe
+  closed: "#c8c2bc", // light warm grey
+
+  // Votes - barely tinted for clarity
+  yes: "#2a5a4a", // dark teal
+  no: "#8a4a52", // muted rose
+  abstain: "#b0a89e", // warm grey
+
+  // Participation levels - cool-to-warm gradient
+  participationLow: "#c8c0b8",
+  participationMedLow: "#8a8e92",
+  participationMedHigh: "#4a6068",
+  participationHigh: "#1e3a42",
+
+  // Palette - low-saturation ink tones, each distinguishable
+  palette: [
+    "#2a3f4a", // steel blue
+    "#6b5a50", // umber
+    "#4a6b5a", // sage
+    "#5a4a62", // dusty violet
+    "#8a7a6a", // khaki
+    "#3a5a6a", // slate teal
+    "#7a6a5a", // sandstone
+  ],
+
+  // Chart chrome - precise, architectural
+  axisLine: "#1a1a1a",
+  axisText: "#4a4a4a",
+  gridLine: "#e0dcd8",
+  tooltipBg: "#faf8f6",
+  tooltipBorder: "#2a3f4a",
+  tooltipText: "#1a1a1a",
+
+  // Primary
+  primary: "#2a3f4a",
+  primaryMuted: "#b8c4ca",
 };
 
 export const gameChartColors: ChartThemeColors = {
@@ -176,23 +219,21 @@ export function getChartColors(themeId: string): ChartThemeColors {
       return darkChartColors;
     case "game":
       return gameChartColors;
+    case "neural":
+      return neuralChartColors;
     default:
       return lightChartColors;
   }
 }
 
-/**
- * Common card className for dashboard charts
- * Includes all theme variations
- */
 export const chartCardClassName =
   "rounded-xl border-none bg-white p-4 shadow-[0_8px_24px_rgba(45,41,38,0.12)] " +
   "dark:rounded-none dark:border dark:border-[rgba(11,209,162,0.4)] dark:bg-[rgba(19,19,32,0.6)] dark:shadow-[0_4px_20px_rgba(11,209,162,0.1)] " +
   "h-full flex flex-col";
 
-/**
- * Game theme class name for dashboard chart cards
- */
+export const chartCardNeuralClassName =
+  "!rounded-none !border !border-[#c8c8c8] !bg-white !shadow-none !p-4";
+
 export const chartCardGameClassName = "dashboard-chart-card";
 
 /**
@@ -200,69 +241,29 @@ export const chartCardGameClassName = "dashboard-chart-card";
  * Returns both contentStyle and wrapperStyle for Recharts Tooltip
  */
 export function getTooltipStyles(themeId: string) {
-  switch (themeId) {
-    case "dark":
-      return {
-        contentStyle: {
-          backgroundColor: darkChartColors.tooltipBg,
-          border: `1px solid ${darkChartColors.tooltipBorder}`,
-          borderRadius: "0",
-          padding: "8px 12px",
-        },
-        wrapperStyle: {
-          outline: "none",
-        },
-        itemStyle: {
-          color: darkChartColors.tooltipText,
-        },
-        labelStyle: {
-          color: darkChartColors.tooltipText,
-          fontWeight: 600,
-          marginBottom: "4px",
-        },
-      };
-    case "game":
-      return {
-        contentStyle: {
-          backgroundColor: gameChartColors.tooltipBg,
-          border: `1px solid ${gameChartColors.tooltipBorder}`,
-          borderRadius: "0",
-          padding: "8px 12px",
-        },
-        wrapperStyle: {
-          outline: "none",
-        },
-        itemStyle: {
-          color: gameChartColors.tooltipText,
-        },
-        labelStyle: {
-          color: gameChartColors.tooltipText,
-          fontWeight: 600,
-          marginBottom: "4px",
-        },
-      };
-    default:
-      return {
-        contentStyle: {
-          backgroundColor: "#ffffff",
-          border: "1px solid #e5e5e5",
-          borderRadius: "12px",
-          boxShadow: "0 8px 24px rgba(0, 0, 0, 0.12)",
-          padding: "8px 12px",
-        },
-        wrapperStyle: {
-          outline: "none",
-        },
-        itemStyle: {
-          color: lightChartColors.tooltipText,
-        },
-        labelStyle: {
-          color: lightChartColors.tooltipText,
-          fontWeight: 600,
-          marginBottom: "4px",
-        },
-      };
-  }
+  const colors = getChartColors(themeId);
+  const isLight = themeId !== "dark" && themeId !== "game";
+
+  return {
+    contentStyle: {
+      backgroundColor: colors.tooltipBg,
+      border: `1px solid ${colors.tooltipBorder}`,
+      borderRadius: isLight ? "12px" : "0",
+      boxShadow: isLight ? "0 8px 24px rgba(0, 0, 0, 0.12)" : undefined,
+      padding: "8px 12px",
+    },
+    wrapperStyle: {
+      outline: "none",
+    },
+    itemStyle: {
+      color: colors.tooltipText,
+    },
+    labelStyle: {
+      color: colors.tooltipText,
+      fontWeight: 600,
+      marginBottom: "4px",
+    },
+  };
 }
 
 /**
@@ -272,10 +273,6 @@ export function getTooltipStyle(themeId: string) {
   return getTooltipStyles(themeId).contentStyle;
 }
 
-/**
- * Custom tooltip content component for Recharts
- * Use with <Tooltip content={<ChartTooltip themeId={activeTheme.id} />} />
- */
 interface ChartTooltipProps {
   active?: boolean;
   payload?: Array<{ name: string; value: number; color: string }>;
@@ -293,35 +290,18 @@ export function ChartTooltip({
   labelFormatter,
 }: ChartTooltipProps) {
   const hasData = payload && payload.length > 0;
-  const isGame = themeId === "game";
-  const isDark = themeId === "dark";
+  const colors = getChartColors(themeId);
+  const isLight = themeId !== "dark" && themeId !== "game";
 
-  const themeStyle: React.CSSProperties = isGame
-    ? {
-        backgroundColor: "#080808",
-        border: "1px solid rgba(255, 255, 255, 0.15)",
-        borderRadius: "0",
-        padding: "8px 12px",
-        color: "#ffffff",
-      }
-    : isDark
-      ? {
-          backgroundColor: "#131320",
-          border: "1px solid #0bd1a2",
-          borderRadius: "0",
-          padding: "8px 12px",
-          color: "#0bd1a2",
-        }
-      : {
-          backgroundColor: "#ffffff",
-          border: "1px solid #e5e5e5",
-          borderRadius: "12px",
-          boxShadow: "0 8px 24px rgba(0, 0, 0, 0.12)",
-          padding: "8px 12px",
-          color: "#1a1a1a",
-        };
+  const themeStyle: React.CSSProperties = {
+    backgroundColor: colors.tooltipBg,
+    border: `1px solid ${colors.tooltipBorder}`,
+    borderRadius: isLight ? "12px" : "0",
+    boxShadow: isLight ? "0 8px 24px rgba(0, 0, 0, 0.12)" : undefined,
+    padding: "8px 12px",
+    color: colors.tooltipText,
+  };
 
-  // Don't render if no data
   if (!hasData) {
     return null;
   }
