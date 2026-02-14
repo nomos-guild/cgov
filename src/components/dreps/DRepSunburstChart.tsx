@@ -1,6 +1,6 @@
 import { useMemo, useState, useRef, useCallback, useEffect } from "react";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { Search } from "lucide-react";
 import { useTheme } from "@/lib/theme";
 import type { DRepSummary } from "@/types/drep";
@@ -11,9 +11,12 @@ import { useAllDReps, useDRepStats, useDRepRationaleStats, useDRepVoteChanges } 
 import { DRepBubbleMap } from "@/components/dreps/DRepBubbleMap";
 import { DRepTreeMap } from "@/components/dreps/DRepTreeMap";
 import { DRepDonutChart } from "@/components/dreps/DRepDonutChart";
+import { DRepScatterPlot } from "@/components/dreps/DRepScatterPlot";
 import { DRepActivityDonut } from "@/components/dreps/DRepActivityDonut";
 import { DRepDelegatorsDonut } from "@/components/dreps/DRepDelegatorsDonut";
 import { DRepDelegatedAdaDonut } from "@/components/dreps/DRepDelegatedAdaDonut";
+import { handleDRepExport } from "@/lib/exportDReps";
+import type { DRepExportLabels } from "@/lib/exportDReps";
 import { cn } from "@/lib/utils";
 
 // Format voting power for display
@@ -41,9 +44,9 @@ export function DRepSunburstChart({ className, initialDreps, view = "all" }: DRe
   const t = useTranslations();
   const { activeTheme } = useTheme();
   const isGame = activeTheme.id === "game";
-  const isLight = activeTheme.id === "light";
+  const isLight = activeTheme.id === "light" || activeTheme.id === "neural";
   const [searchTerm, setSearchTerm] = useState("");
-  const [chartType, setChartType] = useState<"bubble" | "treemap" | "donut">("bubble");
+  const [chartType, setChartType] = useState<"bubble" | "treemap" | "donut" | "scatter">("bubble");
   const [chartMetric, setChartMetric] = useState<"votingPower" | "delegators">("votingPower");
   const [chartVisible, setChartVisible] = useState(true);
   const [topN, setTopN] = useState<number | null>(null); // null = all
@@ -53,8 +56,11 @@ export function DRepSunburstChart({ className, initialDreps, view = "all" }: DRe
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const rowsContainerRef = useRef<HTMLDivElement>(null);
 
+  const locale = useLocale();
   const tCommon = useTranslations("common");
   const tSort = useTranslations("sort");
+  const tDownload = useTranslations("download");
+  const tDRepExport = useTranslations("drepExport");
 
   const selectItemClass =
     "rounded-none data-[highlighted]:bg-black/10 data-[highlighted]:text-foreground data-[state=checked]:bg-black data-[state=checked]:text-white dark:data-[highlighted]:bg-[#0bd1a2]/15 dark:data-[highlighted]:text-[#0bd1a2] dark:data-[state=checked]:bg-[#0bd1a2] dark:data-[state=checked]:text-black";
@@ -155,6 +161,33 @@ export function DRepSunburstChart({ className, initialDreps, view = "all" }: DRe
     };
   }, [filteredDreps, topN, totalVotingPower]);
 
+  // Export labels for DRep list download
+  const exportLabels = useMemo<DRepExportLabels>(() => ({
+    headerRank: tDRepExport("headerRank"),
+    headerName: tDRepExport("headerName"),
+    headerDRepId: tDRepExport("headerDRepId"),
+    headerVotingPower: tDRepExport("headerVotingPower"),
+    headerPercentOfTotal: tDRepExport("headerPercentOfTotal"),
+    headerDelegators: tDRepExport("headerDelegators"),
+    headerVotesCast: tDRepExport("headerVotesCast"),
+    headerVoteChanges: tDRepExport("headerVoteChanges"),
+    anonymous: t("drep.anonymous"),
+    title: tDRepExport("title"),
+    exported: tDRepExport("exported"),
+    totalDReps: tDRepExport("totalDReps"),
+  }), [tDRepExport, t]);
+
+  const onExportFormat = useCallback((format: string) => {
+    handleDRepExport(
+      format as "json" | "markdown" | "csv",
+      filteredDreps,
+      totalVotingPower,
+      voteChangesMap,
+      exportLabels,
+      locale,
+    );
+  }, [filteredDreps, totalVotingPower, voteChangesMap, exportLabels, locale]);
+
   // Stable scroll handler (no-op now, kept for list ref)
   const handleScroll = useCallback(() => {}, []);
 
@@ -233,6 +266,7 @@ export function DRepSunburstChart({ className, initialDreps, view = "all" }: DRe
                 { key: "bubble", label: t("drep.bubbleMap") },
                 { key: "treemap", label: t("drep.treeMap") },
                 { key: "donut", label: t("drep.donut") },
+                { key: "scatter", label: t("drep.scatter") },
               ] as const).map(({ key, label }) => (
                 <button
                   key={key}
@@ -356,6 +390,15 @@ export function DRepSunburstChart({ className, initialDreps, view = "all" }: DRe
             )}
             {chartType === "donut" && (
               <DRepDonutChart
+                key={chartMetric}
+                dreps={filteredDreps}
+                metric={chartMetric}
+                topN={topN}
+                rationaleMap={rationaleMap}
+              />
+            )}
+            {chartType === "scatter" && (
+              <DRepScatterPlot
                 key={chartMetric}
                 dreps={filteredDreps}
                 metric={chartMetric}
@@ -495,6 +538,33 @@ export function DRepSunburstChart({ className, initialDreps, view = "all" }: DRe
                       <SelectItem className={selectItemClass} value="none">{tSort("sortByVotesCast")}</SelectItem>
                       <SelectItem className={selectItemClass} value="most">{tSort("mostVotes")}</SelectItem>
                       <SelectItem className={selectItemClass} value="fewest">{tSort("fewestVotes")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+
+              {/* Download DRep List */}
+              <div className="flex-1 min-w-[140px]">
+                {isGame ? (
+                  <GameDropdown
+                    value=""
+                    onValueChange={onExportFormat}
+                    placeholder={tDownload("downloadDRepList")}
+                    options={[
+                      { value: "json", label: tDownload("json") },
+                      { value: "markdown", label: tDownload("markdown") },
+                      { value: "csv", label: tDownload("csv") },
+                    ]}
+                  />
+                ) : (
+                  <Select value="" onValueChange={onExportFormat}>
+                    <SelectTrigger className="btn-neon ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:ring-offset-0 focus:border-black data-[state=open]:ring-0 data-[state=open]:ring-transparent data-[state=open]:ring-offset-0 data-[state=open]:border-black dark:focus:border-[#0bd1a2] dark:data-[state=open]:border-[#0bd1a2] [&>span]:truncate">
+                      <SelectValue placeholder={tDownload("downloadDRepList")} />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-none dark:border dark:border-[#0bd1a2] dark:bg-black dark:text-[#0bd1a2] dark:rounded-none">
+                      <SelectItem className={selectItemClass} value="json">{tDownload("json")}</SelectItem>
+                      <SelectItem className={selectItemClass} value="markdown">{tDownload("markdown")}</SelectItem>
+                      <SelectItem className={selectItemClass} value="csv">{tDownload("csv")}</SelectItem>
                     </SelectContent>
                   </Select>
                 )}

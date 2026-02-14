@@ -30,7 +30,7 @@ export function DRepDelegatedAdaDonut({ dreps, className }: DRepDelegatedAdaDonu
   const t = useTranslations();
   const { activeTheme } = useTheme();
   const isGame = activeTheme.id === "game";
-  const isLight = activeTheme.id === "light";
+  const isLight = activeTheme.id === "light" || activeTheme.id === "neural";
   const isDark = !isLight && !isGame;
   const [topN, setTopN] = useState<TopN>(10);
 

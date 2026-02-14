@@ -143,9 +143,23 @@
   },
   "download": {
     "downloadRationales": "下载理由",
+    "downloadDRepList": "Download",
     "json": "JSON",
     "markdown": "Markdown",
     "csv": "CSV"
+  },
+  "drepExport": {
+    "title": "DRep列表",
+    "exported": "导出时间",
+    "totalDReps": "DRep总数",
+    "headerRank": "排名",
+    "headerName": "名称",
+    "headerDRepId": "DRep ID",
+    "headerVotingPower": "投票权 (ADA)",
+    "headerPercentOfTotal": "占总量%",
+    "headerDelegators": "委托人",
+    "headerVotesCast": "投票次数",
+    "headerVoteChanges": "投票变更"
   },
   "rationaleFilter": {
     "allRecords": "所有记录",
@@ -379,6 +393,7 @@
     "bubbleMap": "气泡图",
     "treeMap": "树状图",
     "donut": "环形图",
+    "scatter": "散点图",
     "metric": "指标",
     "votingPower": "投票权",
     "delegators": "委托人",

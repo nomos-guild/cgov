@@ -143,9 +143,23 @@
   },
   "download": {
     "downloadRationales": "Descargar justificaciones",
+    "downloadDRepList": "Download",
     "json": "JSON",
     "markdown": "Markdown",
     "csv": "CSV"
+  },
+  "drepExport": {
+    "title": "Lista de DReps",
+    "exported": "Exportado",
+    "totalDReps": "Total de DReps",
+    "headerRank": "Rango",
+    "headerName": "Nombre",
+    "headerDRepId": "ID de DRep",
+    "headerVotingPower": "Poder de voto (ADA)",
+    "headerPercentOfTotal": "% del total",
+    "headerDelegators": "Delegadores",
+    "headerVotesCast": "Votos emitidos",
+    "headerVoteChanges": "Cambios de voto"
   },
   "rationaleFilter": {
     "allRecords": "Todos los registros",
@@ -379,6 +393,7 @@
     "bubbleMap": "Mapa de burbujas",
     "treeMap": "Mapa de árbol",
     "donut": "Anillo",
+    "scatter": "Dispersión",
     "metric": "Métrica",
     "votingPower": "Poder de Voto",
     "delegators": "Delegadores",

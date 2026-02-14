@@ -1,26 +1,40 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
-import type { GetServerSideProps } from "next";
+import type { GetStaticProps, GetStaticPaths } from "next";
 import Head from "next/head";
 import Link from "next/link";
 import { useTranslations, useLocale } from "next-intl";
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
 } from "recharts";
+import { Info } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Tooltip as UITooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { GameLoader } from "@/components/ui/game-loader";
 import { useTheme } from "@/lib/theme";
-import { useDRepDetail, useAllDRepVotes } from "@/hooks/useDRepData";
+import {
+  useDRepDetail, useAllDRepVotes, useDRepHistory,
+  type DRepDetailApiResponse, type DRepHistoryApiResponse,
+} from "@/hooks/useDRepData";
+import { DRepDelegationChart } from "@/components/dreps/DRepDelegationChart";
 import { cn } from "@/lib/utils";
 import { VotingRationaleModal } from "@/components/VotingRationaleModal";
 import type { VoteRecord } from "@/types/governance";
 import type { DRepVoteRecord } from "@/types/drep";
+import {
+  fetchDRepDetailServer,
+  fetchDRepAllVotesServer,
+  fetchDRepHistoryServer,
+} from "@/lib/serverFetch";
 
 type IntlMessages = typeof import("@/messages/en.json");
 
 interface DRepProfilePageProps {
   messages: IntlMessages;
+  initialDrep: DRepDetailApiResponse | null;
+  initialVotes: DRepVoteRecord[];
+  initialHistory: DRepHistoryApiResponse | null;
 }
 
 /**
@@ -658,7 +672,11 @@ function VotingHistoryTable({ votes, drepId, drepName, isGame, isLight, isLoadin
   );
 }
 
-export default function DRepProfile() {
+export default function DRepProfile({
+  initialDrep,
+  initialVotes,
+  initialHistory,
+}: DRepProfilePageProps) {
   const router = useRouter();
   const { drepId } = router.query;
   const { activeTheme } = useTheme();
@@ -666,11 +684,12 @@ export default function DRepProfile() {
   const tCommon = useTranslations("common");
   const locale = useLocale();
   const isGame = activeTheme.id === "game";
-  const isLight = activeTheme.id === "light";
+  const isLight = activeTheme.id === "light" || activeTheme.id === "neural";
   const drepIdStr = typeof drepId === "string" ? drepId : null;
 
-  const { drep, isLoading: isLoadingDrep, error: drepError, refresh } = useDRepDetail(drepIdStr);
-  const { votes: allVotes, isLoading: isLoadingAllVotes } = useAllDRepVotes(drepIdStr);
+  const { drep, isLoading: isLoadingDrep, error: drepError, refresh } = useDRepDetail(drepIdStr, initialDrep);
+  const { votes: allVotes, isLoading: isLoadingAllVotes } = useAllDRepVotes(drepIdStr, initialVotes);
+  const { history: delegationHistory } = useDRepHistory(drepIdStr, initialHistory);
 
   // Compute deduped vote stats from allVotes (already deduplicated by proposalId).
   // These override backend values which may double-count vote changes.
@@ -890,6 +909,32 @@ export default function DRepProfile() {
                           {drep.proposalParticipationPercent.toFixed(1)}%
                         </td>
                       </tr>
+                      <tr>
+                        <td className={cn(
+                          "py-2.5",
+                          isGame ? "text-white/60" : isLight ? "text-muted-foreground" : "text-[#0bd1a2]/60"
+                        )}>
+                          <span className="flex items-center gap-1">
+                            Registered
+                            <UITooltip>
+                              <TooltipTrigger asChild>
+                                <Info className="h-3 w-3 opacity-50 cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-[200px]">
+                                Start of the epoch in which the DRep registered on-chain
+                              </TooltipContent>
+                            </UITooltip>
+                          </span>
+                        </td>
+                        <td className={cn(
+                          "py-2.5 text-right font-medium",
+                          isGame ? "text-white" : isLight ? "text-foreground" : "text-[#0bd1a2]"
+                        )}>
+                          {drep.registeredDate
+                            ? new Date(drep.registeredDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
+                            : "—"}
+                        </td>
+                      </tr>
                     </tbody>
                   </table>
 
@@ -1001,6 +1046,21 @@ export default function DRepProfile() {
                     </div>
                   </div>
 
+                  {/* Delegation History Line Chart */}
+                  <div className="mt-4 pt-4 border-t border-border/30">
+                    <h3 className={cn(
+                      "text-sm font-medium mb-2",
+                      isGame ? "text-white/70" : isLight ? "text-muted-foreground" : "text-[#0bd1a2]/70"
+                    )}>
+                      Delegation History
+                    </h3>
+                    <DRepDelegationChart
+                      history={delegationHistory}
+                      isGame={isGame}
+                      isLight={isLight}
+                    />
+                  </div>
+
                 </div>
               </div>
               )}
@@ -1047,12 +1107,53 @@ export default function DRepProfile() {
   );
 }
 
-export const getServerSideProps: GetServerSideProps<DRepProfilePageProps> = async ({ locale }) => {
-  const messages = (await import(`@/messages/${locale ?? "en"}.json`)).default;
+export const getStaticPaths: GetStaticPaths = () => ({
+  paths: [],
+  fallback: "blocking",
+});
 
-  return {
-    props: {
-      messages,
-    },
-  };
+export const getStaticProps: GetStaticProps<DRepProfilePageProps> = async ({
+  params,
+  locale,
+}) => {
+  const messages = (await import(`@/messages/${locale ?? "en"}.json`)).default;
+  const drepId = params?.drepId as string;
+
+  if (!drepId) {
+    return { notFound: true };
+  }
+
+  try {
+    const [initialDrep, initialVotes, initialHistory] = await Promise.all([
+      fetchDRepDetailServer(drepId),
+      fetchDRepAllVotesServer(drepId),
+      fetchDRepHistoryServer(drepId),
+    ]);
+
+    // If the DRep doesn't exist at all, 404
+    if (!initialDrep) {
+      return { notFound: true };
+    }
+
+    return {
+      props: {
+        messages,
+        initialDrep,
+        initialVotes,
+        initialHistory,
+      },
+      revalidate: 60,
+    };
+  } catch (error) {
+    console.error("Failed to fetch DRep profile data for ISR:", error);
+    return {
+      props: {
+        messages,
+        initialDrep: null,
+        initialVotes: [],
+        initialHistory: null,
+      },
+      revalidate: 30,
+    };
+  }
 };

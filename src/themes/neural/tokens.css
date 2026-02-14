@@ -650,6 +650,48 @@
   border-bottom-color: #000 !important;
 }
 
+/* ─── DRep Dashboard: btn-neon tab/button state differentiation ─── */
+[data-theme="neural"] button[data-state="inactive"].btn-neon,
+[data-theme="neural"] [role="tab"][data-state="inactive"].btn-neon {
+  background-color: hsl(var(--card)) !important;
+  color: #000 !important;
+  border: 1px solid hsl(var(--border)) !important;
+}
+
+[data-theme="neural"] button[data-state="inactive"].btn-neon:hover,
+[data-theme="neural"] [role="tab"][data-state="inactive"].btn-neon:hover {
+  background-color: hsl(var(--muted)) !important;
+}
+
+/* ─── Recharts: suppress light-mode pie shadow filters ─── */
+[data-theme="neural"] .recharts-pie {
+  filter: none !important;
+}
+
+/* ─── DRep slider: monochrome ─── */
+[data-theme="neural"] [data-part="track"] {
+  background-color: hsl(var(--muted)) !important;
+}
+
+[data-theme="neural"] [data-part="range"] {
+  background-color: #000 !important;
+}
+
+[data-theme="neural"] [data-part="thumb"] {
+  background-color: #000 !important;
+  border-color: #000 !important;
+}
+
+/* ─── DRep table: stronger header borders ─── */
+[data-theme="neural"] .border-black\/10 {
+  border-color: #000 !important;
+}
+
+/* ─── DRep card border override (border-white/8 is invisible on white) ─── */
+[data-theme="neural"] .border-white\/8 {
+  border-color: hsl(var(--border)) !important;
+}
+
 /* ─── Selection highlight ─── */
 [data-theme="neural"] ::selection {
   background: #000;
