@@ -15,11 +15,7 @@ import { cn } from "@/lib/utils";
 import {
   fetchDRepStatsServer,
   fetchAllDRepsServer,
-  fetchDRepRationaleStatsServer,
-  fetchDRepVoteChangesServer,
   type DRepServerItem,
-  type DRepRationaleStatItem,
-  type DRepVoteChangeItem,
 } from "@/lib/serverFetch";
 import type { DRepSummary } from "@/types/drep";
 
@@ -28,8 +24,6 @@ type IntlMessages = typeof import("@/messages/en.json");
 interface InitialDRepData {
   drepStats: DRepStatsApiResponse | null;
   allDreps: DRepServerItem[];
-  rationaleStats: DRepRationaleStatItem[];
-  voteChanges: DRepVoteChangeItem[];
 }
 
 interface DRepDashboardPageProps {
@@ -226,8 +220,6 @@ export default function DRepDashboard({ initialData }: InferGetStaticPropsType<t
                 <TabsContent value="drep-picker" className="mt-0">
                   <DRepPicker
                     initialDreps={initialDreps}
-                    initialRationaleStats={initialData?.rationaleStats}
-                    initialVoteChanges={initialData?.voteChanges}
                   />
                 </TabsContent>
               </Tabs>
@@ -248,17 +240,15 @@ export const getStaticProps: GetStaticProps<DRepDashboardPageProps> = async ({ l
   const messages = (await import(`@/messages/${locale ?? "en"}.json`)).default;
 
   try {
-    const [drepStats, allDreps, rationaleStats, voteChanges] = await Promise.all([
+    const [drepStats, allDreps] = await Promise.all([
       fetchDRepStatsServer(),
       fetchAllDRepsServer(),
-      fetchDRepRationaleStatsServer(),
-      fetchDRepVoteChangesServer(),
     ]);
 
     return {
       props: {
         messages,
-        initialData: { drepStats, allDreps, rationaleStats, voteChanges },
+        initialData: { drepStats, allDreps },
       },
       revalidate: 60,
     };
@@ -267,7 +257,7 @@ export const getStaticProps: GetStaticProps<DRepDashboardPageProps> = async ({ l
     return {
       props: {
         messages,
-        initialData: { drepStats: null, allDreps: [], rationaleStats: [], voteChanges: [] },
+        initialData: { drepStats: null, allDreps: [] },
       },
       revalidate: 30,
     };
