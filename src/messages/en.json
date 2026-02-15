@@ -16,7 +16,9 @@
     "homeTitle": "CGOV - Cardano Governance Platform",
     "homeDescription": "Integrated Cardano on-chain platform",
     "dashboardTitle": "Dashboard - CGOV",
-    "dashboardDescription": "CGOV Dashboard - Governance Overview",
+    "dashboardDescription": "CGOV Dashboard - Development Activity Overview",
+    "governanceDashboardTitle": "Governance Dashboard - CGOV",
+    "governanceDashboardDescription": "CGOV Governance Dashboard - Governance Analytics Overview",
     "notFoundTitle": "404 - Page Not Found",
     "notFoundDescription": "The page you're looking for doesn't exist"
   },
@@ -26,7 +28,9 @@
   },
   "dashboard": {
     "title": "Dashboard",
-    "subtitle": "Your customizable governance overview",
+    "subtitle": "Your customizable development activity overview",
+    "governanceTitle": "Governance Dashboard",
+    "governanceSubtitle": "Your customizable governance overview",
     "loadingData": "Loading dashboard data..."
   },
   "notFound": {
@@ -65,7 +69,9 @@
     "filterByRationale": "Filter by rationale",
     "actionTypes": "Action Types",
     "types": "Types",
-    "status": "Status"
+    "status": "Status",
+    "voted": "Voted",
+    "notVoted": "Not Voted"
   },
   "table": {
     "proposalTitle": "Proposal Title",
@@ -144,10 +150,12 @@
   },
   "download": {
     "downloadRationales": "Download rationales",
+    "downloadMetrics": "Download metrics",
     "downloadDRepList": "Download",
     "json": "JSON",
     "markdown": "Markdown",
-    "csv": "CSV"
+    "csv": "CSV",
+    "downloadAllMetrics": "Download all metrics"
   },
   "drepExport": {
     "title": "DRep List",
@@ -161,6 +169,21 @@
     "headerDelegators": "Delegators",
     "headerVotesCast": "Votes Cast",
     "headerVoteChanges": "Vote Changes"
+  },
+  "metricsExport": {
+    "title": "GovAction Title",
+    "type": "Gov Action Type",
+    "ccVotes": "CC Votes Count",
+    "drepVotes": "DRep Votes Count",
+    "spoVotes": "SPO Votes Count",
+    "totalVotes": "Total Votes",
+    "yesAda": "Yes ADA",
+    "noAda": "No ADA",
+    "abstainAda": "Abstain ADA",
+    "totalAdaVoted": "Total ADA Voted",
+    "alwaysNoConfidence": "Always No Confidence ADA",
+    "notVotedAda": "Registered But Not Voted ADA",
+    "status": "Status"
   },
   "rationaleFilter": {
     "allRecords": "All records",

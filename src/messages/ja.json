@@ -16,7 +16,9 @@
     "homeTitle": "CGOV - カルダノ・ガバナンス・プラットフォーム",
     "homeDescription": "統合されたカルダノ・オンチェーン・プラットフォーム",
     "dashboardTitle": "ダッシュボード - CGOV",
-    "dashboardDescription": "CGOVダッシュボード - ガバナンスの概要",
+    "dashboardDescription": "CGOVダッシュボード - 開発活動の概要",
+    "governanceDashboardTitle": "ガバナンスダッシュボード - CGOV",
+    "governanceDashboardDescription": "CGOVガバナンスダッシュボード - ガバナンス分析",
     "notFoundTitle": "404 - ページが見つかりません",
     "notFoundDescription": "お探しのページは存在しません。"
   },
@@ -26,7 +28,9 @@
   },
   "dashboard": {
     "title": "ダッシュボード",
-    "subtitle": "カスタマイズ可能なガバナンスの概要",
+    "subtitle": "カスタマイズ可能な開発活動の概要",
+    "governanceTitle": "ガバナンスダッシュボード",
+    "governanceSubtitle": "カスタマイズ可能なガバナンスの概要",
     "loadingData": "ダッシュボードのデータをロード中..."
   },
   "notFound": {
@@ -65,7 +69,9 @@
     "filterByRationale": "根拠で絞り込む",
     "actionTypes": "アクションの種類",
     "types": "種類",
-    "status": "ステータス"
+    "status": "ステータス",
+    "voted": "投票済み",
+    "notVoted": "未投票"
   },
   "table": {
     "proposalTitle": "提案タイトル",
@@ -144,10 +150,12 @@
   },
   "download": {
     "downloadRationales": "ダウンロード",
+    "downloadMetrics": "メトリクスをダウンロード",
     "downloadDRepList": "Download",
     "json": "JSON",
     "markdown": "マークダウン",
-    "csv": "シーエスブイ"
+    "csv": "シーエスブイ",
+    "downloadAllMetrics": "全メトリクスをダウンロード"
   },
   "drepExport": {
     "title": "DRepリスト",
@@ -161,6 +169,21 @@
     "headerDelegators": "委任者数",
     "headerVotesCast": "投票数",
     "headerVoteChanges": "投票変更"
+  },
+  "metricsExport": {
+    "title": "GovAction Title",
+    "type": "Gov Action Type",
+    "ccVotes": "CC Votes Count",
+    "drepVotes": "DRep Votes Count",
+    "spoVotes": "SPO Votes Count",
+    "totalVotes": "Total Votes",
+    "yesAda": "Yes ADA",
+    "noAda": "No ADA",
+    "abstainAda": "Abstain ADA",
+    "totalAdaVoted": "Total ADA Voted",
+    "alwaysNoConfidence": "Always No Confidence ADA",
+    "notVotedAda": "Registered But Not Voted ADA",
+    "status": "ステータス"
   },
   "rationaleFilter": {
     "allRecords": "全記録",
