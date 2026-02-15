@@ -934,6 +934,13 @@ export function GovernanceTable() {
                           })()}
                         </div>
                       )}
+                      {(action.totalYes + action.totalNo + action.totalAbstain) > 0 && (
+                        <div className="mt-1">
+                          <span className={cn("text-[10px]", isGame ? "text-white/60" : "text-muted-foreground")}>
+                            {(action.totalYes + action.totalNo + action.totalAbstain).toLocaleString()} {t("table.votes").toLowerCase()}
+                          </span>
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell className="hidden sm:table-cell py-1 sm:py-1.5">
                       <span className="text-[10px] sm:text-xs uppercase tracking-wide font-semibold text-foreground dark:text-[#0bd1a2]">
@@ -994,6 +1001,7 @@ export function GovernanceTable() {
                 <TableHead className="w-[100px] h-8 sm:h-10 py-1 sm:py-2 text-xs sm:text-sm text-center">DRep</TableHead>
                 <TableHead className="w-[100px] h-8 sm:h-10 py-1 sm:py-2 text-xs sm:text-sm text-center">SPO</TableHead>
                 <TableHead className="w-[100px] h-8 sm:h-10 py-1 sm:py-2 text-xs sm:text-sm text-center">CC</TableHead>
+                <TableHead className="w-[70px] h-8 sm:h-10 py-1 sm:py-2 text-xs sm:text-sm text-center">{t("table.votes")}</TableHead>
                 <TableHead className="w-[80px] h-8 sm:h-10 py-1 sm:py-2 text-xs sm:text-sm">{t("filters.status")}</TableHead>
               </TableRow>
             </TableHeader>
@@ -1085,6 +1093,11 @@ export function GovernanceTable() {
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>
                       )}
+                    </TableCell>
+                    <TableCell className="py-2 text-center whitespace-nowrap">
+                      <span className="text-xs font-medium text-foreground dark:text-[#0bd1a2]">
+                        {(action.totalYes + action.totalNo + action.totalAbstain).toLocaleString()}
+                      </span>
                     </TableCell>
                     <TableCell className="py-2 whitespace-nowrap">
                       <div className="flex items-center gap-1.5 text-[10px] sm:text-xs uppercase tracking-wide dark:text-[#0bd1a2]">

@@ -75,6 +75,7 @@
     "voter": "Votante",
     "transaction": "Transacción",
     "vote": "Vote",
+    "votes": "Votos",
     "votingPower": "Poder de voto",
     "votedAt": "Votado en",
     "rationale": "Justificación"

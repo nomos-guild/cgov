@@ -75,6 +75,7 @@
     "voter": "投票者",
     "transaction": "トランザクション",
     "vote": "投票",
+    "votes": "投票数",
     "votingPower": "投票権",
     "votedAt": "投票日",
     "rationale": "根拠"

@@ -75,6 +75,7 @@
     "voter": "Voter",
     "transaction": "Transaction",
     "vote": "Vote",
+    "votes": "Votes",
     "votingPower": "Voting Power",
     "votedAt": "Voted At",
     "rationale": "Rationale"
