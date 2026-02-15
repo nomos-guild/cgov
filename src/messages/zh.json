@@ -75,6 +75,7 @@
     "voter": "选民",
     "transaction": "交易",
     "vote": "投票",
+    "votes": "投票数",
     "votingPower": "投票权",
     "votedAt": "投票数",
     "rationale": "理由"

@@ -75,6 +75,7 @@
     "voter": "Électeur",
     "transaction": "Transaction",
     "vote": "Vote",
+    "votes": "Votes",
     "votingPower": "Pouvoir de vote",
     "votedAt": "Voté à",
     "rationale": "Raison d'être"
