@@ -13,15 +13,22 @@ cgov is an open-source Cardano governance platform for monitoring, tracking, and
 
 ## Features
 
+### Proposal dashboard & detail pages
 - **Dashboard Overview** - Track total, active, ratified, enacted, expired, and closed governance proposals
 - **Net Change Limit (NCL)** - Monitor treasury spending limits by year with progress visualization
 - **Live Voting Data** - Real-time vote percentages with donut chart visualizations
 - **Vote Analysis** - Detailed breakdown of active, abstain, always-abstain, inactive, and pending votes
 - **Bubble Map Visualization** - Interactive bubble visualization of voting distribution
 - **Voting Trends** - Line charts showing cumulative voting power over time
-- **Searchable Voting Records** - Filter and search all votes with export to JSON/CSV/Markdown
+- **Searc & download Voting Records** - Filter and search all votes with export to JSON/CSV/Markdown
 - **Theme System** - Light (Fancy), Dark (Nerd), and Game themes
 
+### DRep dashboard & detail pages
+- **DRep Dashboard Overview** - track overall metrics of DReps, engagements, activity
+- **DRep Charts** - Multiple chart views to visualise DRep by voting power & delegator counts
+- **DRep Profile pages** - dedicated profile pages for all active DReps, including DRep info, evolution, metric tracker and voting history
+
+  
 ## Getting Started
 
 ### Prerequisites
