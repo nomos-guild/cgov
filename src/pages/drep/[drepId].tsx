@@ -24,7 +24,6 @@ import type { VoteRecord } from "@/types/governance";
 import type { DRepVoteRecord } from "@/types/drep";
 import {
   fetchDRepDetailServer,
-  fetchDRepAllVotesServer,
   fetchDRepHistoryServer,
 } from "@/lib/serverFetch";
 
@@ -1124,9 +1123,11 @@ export const getStaticProps: GetStaticProps<DRepProfilePageProps> = async ({
   }
 
   try {
-    const [initialDrep, initialVotes, initialHistory] = await Promise.all([
+    // Only fetch lightweight data server-side to avoid Vercel timeout.
+    // fetchDRepAllVotesServer does N+1 paginated calls that can exceed
+    // the serverless function timeout — let the client handle it via SWR.
+    const [initialDrep, initialHistory] = await Promise.all([
       fetchDRepDetailServer(drepId),
-      fetchDRepAllVotesServer(drepId),
       fetchDRepHistoryServer(drepId),
     ]);
 
@@ -1139,7 +1140,7 @@ export const getStaticProps: GetStaticProps<DRepProfilePageProps> = async ({
       props: {
         messages,
         initialDrep,
-        initialVotes,
+        initialVotes: [],
         initialHistory,
       },
       revalidate: 60,
