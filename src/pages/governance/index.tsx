@@ -1,7 +1,7 @@
 import type { GetStaticProps } from "next";
 import Head from "next/head";
 import { useTranslations } from "next-intl";
-import { useDevelopmentDataLoader } from "@/hooks/useDevelopmentData";
+import { useGovernanceDataLoader } from "@/hooks/useGovernanceData";
 import { Card } from "@/components/ui/card";
 import { GameLoader } from "@/components/ui/game-loader";
 import { useTheme } from "@/lib/theme";
@@ -11,18 +11,17 @@ import {
   DashboardSidePanel,
 } from "@/components/dashboards/shared";
 import { ChartColorsProvider } from "@/components/dashboards/shared/ChartColorsContext";
-import { CHART_REGISTRY } from "@/components/dashboards/development_activity/charts";
-import { DevelopmentRangeSelector } from "@/components/dashboards/development_activity/DevelopmentRangeSelector";
+import { CHART_REGISTRY } from "@/components/dashboards/governance/charts";
 import { DEFAULT_CHART_LAYOUTS } from "@/types/dashboard";
 
 type IntlMessages = typeof import("@/messages/en.json");
 
-interface DashboardPageProps {
+interface GovernanceDashboardPageProps {
   messages: IntlMessages;
 }
 
-function DevelopmentDashboardContent() {
-  const { isLoading, error, hasData, refresh } = useDevelopmentDataLoader();
+function GovernanceDashboardContent() {
+  const { isLoading, error, hasData, refresh } = useGovernanceDataLoader();
   const { activeTheme } = useTheme();
   const isGame = activeTheme.id === "game";
   const showLoadingSpinner = isLoading && !hasData && !error;
@@ -69,19 +68,22 @@ function DevelopmentDashboardContent() {
   );
 }
 
-function DashboardPage() {
+function GovernanceDashboardPage() {
   const t = useTranslations();
 
   return (
     <>
       <Head>
-        <title>{t("meta.dashboardTitle")}</title>
-        <meta name="description" content={t("meta.dashboardDescription")} />
+        <title>{t("meta.governanceDashboardTitle")}</title>
+        <meta
+          name="description"
+          content={t("meta.governanceDashboardDescription")}
+        />
       </Head>
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 md:px-6 md:py-8">
           <DashboardProvider
-            dashboardId="development_activity"
+            dashboardId="governance"
             chartRegistry={CHART_REGISTRY}
             defaultLayouts={DEFAULT_CHART_LAYOUTS}
           >
@@ -89,19 +91,16 @@ function DashboardPage() {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 sm:mb-6 md:mb-8">
                 <div className="text-left">
                   <h1 className="landing-title text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-2 sm:mb-3 md:mb-4 text-black dark:text-foreground">
-                    {t("dashboard.title")}
+                    {t("dashboard.governanceTitle")}
                   </h1>
                   <p className="landing-subtitle text-muted-foreground text-sm sm:text-base md:text-lg">
-                    {t("dashboard.subtitle")}
+                    {t("dashboard.governanceSubtitle")}
                   </p>
                 </div>
-                <div className="flex items-center gap-3">
-                  <DevelopmentRangeSelector />
-                  <DashboardSidePanel />
-                </div>
+                <DashboardSidePanel />
               </div>
 
-              <DevelopmentDashboardContent />
+              <GovernanceDashboardContent />
             </ChartColorsProvider>
           </DashboardProvider>
         </div>
@@ -110,18 +109,18 @@ function DashboardPage() {
   );
 }
 
-export default function Dashboard() {
-  return <DashboardPage />;
+export default function GovernanceDashboard() {
+  return <GovernanceDashboardPage />;
 }
 
-export const getStaticProps: GetStaticProps<DashboardPageProps> = async ({
-  locale,
-}) => {
-  const messages = (await import(`@/messages/${locale ?? "en"}.json`)).default;
+export const getStaticProps: GetStaticProps<GovernanceDashboardPageProps> =
+  async ({ locale }) => {
+    const messages = (await import(`@/messages/${locale ?? "en"}.json`))
+      .default;
 
-  return {
-    props: {
-      messages,
-    },
+    return {
+      props: {
+        messages,
+      },
+    };
   };
-};

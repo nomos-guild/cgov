@@ -47,6 +47,7 @@ import {
   translateVotesForExport,
   type ExportLabels,
 } from "@/lib/exportRationales";
+import { downloadMetrics, type MetricsExportLabels } from "@/lib/exportMetrics";
 import {
   canRoleVoteOnAction,
   getEligibleRoles,
@@ -308,6 +309,7 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
   const tVoting = useTranslations("voting");
   const tProposal = useTranslations("proposal");
   const tExport = useTranslations("export");
+  const tMetricsExport = useTranslations("metricsExport");
   const isDark = theme === "dark";
   const isGame = activeTheme.id === "game";
   const isNeural = activeTheme.id === "neural";
@@ -332,7 +334,6 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
   const isLoadingDetail = swrLoading;
   const detailError = swrError;
 
-  const [downloadFormat, setDownloadFormat] = useState<string>("");
   const [isExporting, setIsExporting] = useState(false);
   const [contentVisible, setContentVisible] = useState(!!initialDetail);
   const [isContentExpanded, setIsContentExpanded] = useState<boolean>(false);
@@ -420,6 +421,29 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
     }),
     [tExport],
   );
+
+  const metricsLabels: MetricsExportLabels = useMemo(
+    () => ({
+      title: tMetricsExport("title"),
+      type: tMetricsExport("type"),
+      ccVotes: tMetricsExport("ccVotes"),
+      drepVotes: tMetricsExport("drepVotes"),
+      spoVotes: tMetricsExport("spoVotes"),
+      totalVotes: tMetricsExport("totalVotes"),
+      yesAda: tMetricsExport("yesAda"),
+      noAda: tMetricsExport("noAda"),
+      abstainAda: tMetricsExport("abstainAda"),
+      totalAdaVoted: tMetricsExport("totalAdaVoted"),
+      alwaysNoConfidence: tMetricsExport("alwaysNoConfidence"),
+      notVotedAda: tMetricsExport("notVotedAda"),
+    }),
+    [tMetricsExport],
+  );
+
+  const handleMetricsExport = (format: "csv" | "json" | "markdown") => {
+    if (!selectedAction) return;
+    downloadMetrics(selectedAction, format, metricsLabels);
+  };
 
   const contentPreview = useMemo(() => {
     if (!selectedAction) return null;
@@ -1000,7 +1024,6 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
       downloadFile(content, filename, mimeType);
     } finally {
       setIsExporting(false);
-      setTimeout(() => setDownloadFormat(""), 100);
     }
   };
 
@@ -2543,9 +2566,9 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
                 votes={allVotes}
                 proposalId={selectedAction.proposalId || selectedAction.hash}
                 showDownload={allVotes.length > 0}
-                downloadFormat={downloadFormat}
                 isExporting={isExporting}
                 onDownloadFormatChange={(value) => handleExport(value)}
+                onMetricsExport={handleMetricsExport}
               />
             </div>
           )}

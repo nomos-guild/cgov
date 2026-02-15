@@ -28,7 +28,12 @@ import type {
   ProposalStatus,
 } from "@/types/governance";
 import { PROPOSAL_TYPES } from "@/types/governance";
-import { ChevronDown, Search, LayoutList, LayoutGrid } from "lucide-react";
+import { ChevronDown, Search, LayoutList, LayoutGrid, Download } from "lucide-react";
+import {
+  downloadBulkMetrics,
+  type BulkMetricsExportLabels,
+  type ProposalVoteCounts,
+} from "@/lib/exportMetrics";
 import { deriveCcAbstainCount } from "@/lib/voteMath";
 import { useTheme } from "@/lib/theme";
 import {
@@ -148,16 +153,41 @@ export function GovernanceTable() {
   const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
   const [showAllProposals, setShowAllProposals] = useState(false);
   const [viewMode, setViewMode] = useState<"default" | "compact">("default");
+  const [downloadMenuOpen, setDownloadMenuOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const filterMenuRef = useRef<HTMLDivElement | null>(null);
   const statusMenuRef = useRef<HTMLDivElement | null>(null);
+  const downloadMenuRef = useRef<HTMLDivElement | null>(null);
   const isAllSelected = selectedTypes.length === PROPOSAL_TYPES.length;
   
   const INITIAL_PROPOSALS_LIMIT = 20;
   const isAllStatusesSelected =
     selectedStatuses.length === STATUS_OPTIONS.length;
 
+  const tDownload = useTranslations("download");
+  const tMetrics = useTranslations("metricsExport");
+
+  const metricsLabels: BulkMetricsExportLabels = useMemo(
+    () => ({
+      title: tMetrics("title"),
+      type: tMetrics("type"),
+      status: tMetrics("status"),
+      ccVotes: tMetrics("ccVotes"),
+      drepVotes: tMetrics("drepVotes"),
+      spoVotes: tMetrics("spoVotes"),
+      totalVotes: tMetrics("totalVotes"),
+      yesAda: tMetrics("yesAda"),
+      noAda: tMetrics("noAda"),
+      abstainAda: tMetrics("abstainAda"),
+      totalAdaVoted: tMetrics("totalAdaVoted"),
+      alwaysNoConfidence: tMetrics("alwaysNoConfidence"),
+      notVotedAda: tMetrics("notVotedAda"),
+    }),
+    [tMetrics],
+  );
+
   useEffect(() => {
-    if (!isFilterMenuOpen && !isStatusMenuOpen) return;
+    if (!isFilterMenuOpen && !isStatusMenuOpen && !downloadMenuOpen) return;
 
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -172,11 +202,17 @@ export function GovernanceTable() {
       ) {
         setIsStatusMenuOpen(false);
       }
+      if (
+        downloadMenuRef.current &&
+        !downloadMenuRef.current.contains(event.target as Node)
+      ) {
+        setDownloadMenuOpen(false);
+      }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isFilterMenuOpen, isStatusMenuOpen]);
+  }, [isFilterMenuOpen, isStatusMenuOpen, downloadMenuOpen]);
 
   const handleToggleFilterMenu = useCallback(() => {
     setIsFilterMenuOpen((prev) => !prev);
@@ -334,7 +370,83 @@ export function GovernanceTable() {
 
   return (
     <div className="space-y-3 sm:space-y-4 md:space-y-6">
-      <div className="relative overflow-visible border-white/8 rounded-2xl border bg-[#faf9f6] p-2.5 sm:p-3 md:p-4 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none game-filters-card">
+      <div className="flex flex-wrap gap-2 sm:gap-3 md:gap-4">
+        {/* Download metrics button — own card */}
+        <div ref={downloadMenuRef} className={cn(
+          "relative w-full sm:w-auto p-2.5 sm:p-3 md:p-4",
+          isGame
+            ? "game-filters-card"
+            : "rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+        )}>
+          <button
+            type="button"
+            disabled={isExporting}
+            onClick={() => setDownloadMenuOpen((prev) => !prev)}
+            className={cn(
+              "flex items-center justify-center w-9 h-9 rounded-full border transition-colors",
+              isExporting && "opacity-50 cursor-not-allowed",
+              isGame
+                ? "border-white/20 bg-black/50 text-white/80 hover:bg-white/10"
+                : "border-gray-300 bg-white text-gray-600 hover:bg-gray-100 dark:border-[#0bd1a2]/40 dark:bg-transparent dark:text-[#0bd1a2] dark:hover:bg-[#0bd1a2]/10"
+            )}
+            title={tDownload("downloadAllMetrics")}
+          >
+            {isExporting ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
+            ) : (
+              <Download className="w-4 h-4" />
+            )}
+          </button>
+
+          {downloadMenuOpen && (
+            <div className={cn(
+              "absolute top-full left-0 mt-2 z-50 min-w-[180px] py-1 shadow-lg",
+              isGame
+                ? "bg-black/90 border border-white/20 text-white"
+                : "bg-white border border-gray-200 dark:bg-black dark:border-[#0bd1a2] dark:text-[#0bd1a2]"
+            )}>
+              <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground dark:text-[#0bd1a2]/70">
+                {tDownload("downloadAllMetrics")}
+              </div>
+              {(["csv", "json", "markdown"] as const).map((fmt) => (
+                <button
+                  key={fmt}
+                  type="button"
+                  className={cn(
+                    "w-full px-3 py-1.5 text-sm text-left transition-colors",
+                    isGame
+                      ? "hover:bg-white/10"
+                      : "hover:bg-gray-100 dark:hover:bg-[#0bd1a2]/10"
+                  )}
+                  disabled={isExporting}
+                  onClick={async () => {
+                    setDownloadMenuOpen(false);
+                    setIsExporting(true);
+                    try {
+                      let voteCountsMap: Record<string, ProposalVoteCounts> | undefined;
+                      try {
+                        const res = await fetch("/api/analytics/vote-counts");
+                        if (res.ok) {
+                          voteCountsMap = await res.json();
+                        }
+                      } catch {
+                        // Backend endpoint not available — export without per-type counts
+                      }
+                      downloadBulkMetrics(filteredActions, fmt, metricsLabels, voteCountsMap);
+                    } finally {
+                      setIsExporting(false);
+                    }
+                  }}
+                >
+                  {tDownload(fmt)}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Filter bar */}
+        <div className="relative overflow-visible flex-1 min-w-0 border-white/8 rounded-2xl border bg-[#faf9f6] p-2.5 sm:p-3 md:p-4 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none game-filters-card">
         <div className="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-3 items-stretch sm:items-center">
           <div className="relative flex-1 min-w-0 sm:min-w-[200px] sm:max-w-md">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-muted-foreground z-10" />
@@ -518,6 +630,7 @@ export function GovernanceTable() {
             </Button>
           </div>
         </div>
+      </div>
       </div>
 
       {filteredActions.length === 0 ? (

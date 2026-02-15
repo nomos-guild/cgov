@@ -8,7 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { GameDropdown } from "@/components/ui/game-dropdown";
 import { VotingRationaleModal } from "@/components/VotingRationaleModal";
 import type { VoteRecord } from "@/types/governance";
-import { Search, ChevronDown, Copy, Check } from "lucide-react";
+import { useAllDReps } from "@/hooks/useDRepData";
+import useSWR from "swr";
+import { Search, ChevronDown, ChevronRight, Copy, Check, Download } from "lucide-react";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
@@ -16,9 +18,9 @@ interface VotingRecordsProps {
   votes: VoteRecord[];
   proposalId?: string;
   showDownload?: boolean;
-  downloadFormat?: string;
   isExporting?: boolean;
   onDownloadFormatChange?: (format: "json" | "markdown" | "csv") => void;
+  onMetricsExport?: (format: "csv" | "json" | "markdown") => void;
 }
 
 function formatAda(ada: number): string {
@@ -47,10 +49,26 @@ function getGameVoteBadgeClasses(vote: VoteRecord["vote"]): string {
   return "text-white/70 border-white/30 bg-transparent";
 }
 
+/** Fallback names for CC members whose names are missing in the backend DB */
+const CC_MEMBER_NAMES: Record<string, string> = {
+  "cc_hot1qdc65ke6jfq2q25fcn3g89tea30tvrzpptc2tw6g8cdc7pqtmus0y": "Ace Alliance",
+  "cc_hot1qdjx6xe6e9zk3fpzk6rakmz84n0cf8ckwjvz4e8e5j2tuscr7ckq4": "Tingvard",
+  "cc_hot1qf5tkz6zwcpplq3kgpt2486d8za943vmymqkdjl249qgw3s2y5r9y": "Phil_uplc",
+  "cc_hot1qwz0aw5583t56fvcg96ulqjhjk0xkwsuvs2rmp0xflhkh4g5e22ce": "Cardano Curia",
+};
+
+function resolveCCName(id: string, name?: string | null): string {
+  if (name && name.trim().length > 0) return name;
+  return CC_MEMBER_NAMES[id] || id;
+}
+
 function formatVoterDisplayName(vote: VoteRecord): string {
   const name = vote.voterName?.trim();
   const id = vote.voterId || vote.drepId;
-  return name && name.length > 0 ? name : id || "Unknown voter";
+  if (name && name.length > 0) return name;
+  // Try CC fallback for CC voters
+  if (id && CC_MEMBER_NAMES[id]) return CC_MEMBER_NAMES[id];
+  return id || "Unknown voter";
 }
 
 const selectItemClass =
@@ -224,9 +242,9 @@ function MultiSelectDropdown({
 export function VotingRecords({
   votes,
   showDownload,
-  downloadFormat,
   isExporting,
   onDownloadFormatChange,
+  onMetricsExport,
 }: VotingRecordsProps) {
   const { activeTheme } = useTheme();
   const isGame = activeTheme.id === "game";
@@ -236,12 +254,14 @@ export function VotingRecords({
   const tVoting = useTranslations("voting");
   const tSort = useTranslations("sort");
   const tDownload = useTranslations("download");
-  const tTranslation = useTranslations("translation");
   const tRationale = useTranslations("rationaleFilter");
   const translateVote = (vote: string) => {
     const map: Record<string, string> = { Yes: tVoting("yes"), No: tVoting("no"), Abstain: tVoting("abstain") };
     return map[vote] ?? vote;
   };
+  const [downloadMenuOpen, setDownloadMenuOpen] = useState(false);
+  const [downloadSubMenu, setDownloadSubMenu] = useState<"rationales" | "metrics" | null>(null);
+  const downloadMenuRef = useRef<HTMLDivElement>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedVotes, setSelectedVotes] = useState<string[]>([...VOTE_OPTIONS]);
   const [selectedRoles, setSelectedRoles] = useState<string[]>([...ROLE_OPTIONS]);
@@ -252,6 +272,7 @@ export function VotingRecords({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [showAllVotes, setShowAllVotes] = useState(false);
+  const [participationMode, setParticipationMode] = useState<"voted" | "not-voted">("voted");
   const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   const INITIAL_VOTES_LIMIT = 20;
@@ -267,6 +288,24 @@ export function VotingRecords({
       setOpenDropdownId(null);
     }
   }, []);
+
+  const handleParticipationChange = useCallback((mode: "voted" | "not-voted") => {
+    setParticipationMode(mode);
+    setShowAllVotes(false);
+  }, []);
+
+  // Close download menu on outside click
+  useEffect(() => {
+    if (!downloadMenuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (downloadMenuRef.current && !downloadMenuRef.current.contains(e.target as Node)) {
+        setDownloadMenuOpen(false);
+        setDownloadSubMenu(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [downloadMenuOpen]);
 
   const voteIdMap = useMemo(() => {
     const map = new Map<VoteRecord, number>();
@@ -363,65 +402,222 @@ export function VotingRecords({
   const hasMoreVotes = filteredVotes.length > INITIAL_VOTES_LIMIT;
   const remainingVotes = filteredVotes.length - INITIAL_VOTES_LIMIT;
 
+  // Not-voted: DReps + CC members
+  const { dreps: allDreps, isLoading: drepsLoading } = useAllDReps();
+  const { data: ccData, isLoading: ccLoading } = useSWR<{
+    members: { ccId: string; memberName: string | null; isEligible: boolean | null }[];
+    eligibleCcIds: string[] | null;
+  }>(
+    "/api/analytics/cc-participation",
+    (url: string) => fetch(url).then((r) => r.json())
+  );
+
+  const votedIds = useMemo(() => {
+    return new Set(
+      votes.map((v) => v.voterId || v.drepId).filter(Boolean)
+    );
+  }, [votes]);
+
+  interface NotVotedItem {
+    id: string;
+    name: string | null;
+    role: "DRep" | "CC";
+    votingPowerAda?: number;
+  }
+
+  const notVotedItems = useMemo(() => {
+    if (participationMode !== "not-voted") return [];
+
+    const items: NotVotedItem[] = [];
+
+    // DReps that haven't voted
+    if (selectedRoles.includes("DRep") && allDreps.length > 0) {
+      for (const d of allDreps) {
+        if (!votedIds.has(d.drepId)) {
+          items.push({ id: d.drepId, name: d.name, role: "DRep", votingPowerAda: d.votingPowerAda });
+        }
+      }
+    }
+
+    // CC members that haven't voted (only eligible members)
+    if (selectedRoles.includes("CC") && ccData?.members) {
+      const eligibleSet = ccData.eligibleCcIds ? new Set(ccData.eligibleCcIds) : null;
+      for (const m of ccData.members) {
+        // Filter to eligible members: use eligibleCcIds list if available, else fall back to isEligible flag
+        const isEligible = eligibleSet ? eligibleSet.has(m.ccId) : m.isEligible !== false;
+        if (isEligible && !votedIds.has(m.ccId)) {
+          items.push({ id: m.ccId, name: resolveCCName(m.ccId, m.memberName), role: "CC" });
+        }
+      }
+    }
+
+    // Search filter
+    let result = items;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter((item) =>
+        (item.name || "").toLowerCase().includes(q) || item.id.toLowerCase().includes(q)
+      );
+    }
+
+    // Sort: CC members first (no voting power), then DReps by power
+    if (powerSort === "high" || powerSort === "low") {
+      result = [...result].sort((a, b) => {
+        // CC always grouped separately (no voting power to sort)
+        if (a.role === "CC" && b.role !== "CC") return 1;
+        if (a.role !== "CC" && b.role === "CC") return -1;
+        const pa = a.votingPowerAda || 0;
+        const pb = b.votingPowerAda || 0;
+        return powerSort === "high" ? pb - pa : pa - pb;
+      });
+    }
+
+    return result;
+  }, [participationMode, allDreps, ccData, votedIds, searchQuery, powerSort, selectedRoles]);
+
+  const notVotedLoading = drepsLoading || ccLoading;
+
+  const displayedNotVoted = useMemo(() => {
+    if (showAllVotes) return notVotedItems;
+    return notVotedItems.slice(0, INITIAL_VOTES_LIMIT);
+  }, [notVotedItems, showAllVotes, INITIAL_VOTES_LIMIT]);
+
+  const hasMoreNotVoted = notVotedItems.length > INITIAL_VOTES_LIMIT;
+  const remainingNotVoted = notVotedItems.length - INITIAL_VOTES_LIMIT;
+
   return (
     <div className="space-y-3 sm:space-y-4 md:space-y-6">
       <div className="flex flex-wrap gap-2 sm:gap-3 md:gap-4">
         {showDownload && (
-          <div className={cn(
-            "w-full sm:w-auto sm:min-w-[220px] p-2.5 sm:p-3 md:p-4",
+          <div ref={downloadMenuRef} className={cn(
+            "relative w-full sm:w-auto p-2.5 sm:p-3 md:p-4",
             isGame
               ? "game-detail-card"
               : "rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
           )}>
-            {isGame ? (
-              <GameDropdown
-                value={downloadFormat || ""}
-                onValueChange={(value) => onDownloadFormatChange?.(value as "json" | "markdown" | "csv")}
-                placeholder={isExporting ? tTranslation("translating") : tDownload("downloadRationales")}
-                onOpenChange={(open) => handleDropdownOpenChange("download", open)}
-                options={[
-                  { value: "json", label: tDownload("json") },
-                  { value: "markdown", label: tDownload("markdown") },
-                  { value: "csv", label: tDownload("csv") },
-                ]}
-              />
-            ) : (
-              <Select
-                value={downloadFormat || ""}
-                disabled={isExporting}
-                onValueChange={(value: string) =>
-                  onDownloadFormatChange?.(value as "json" | "markdown" | "csv")
-                }
-                onOpenChange={(open) => handleDropdownOpenChange("download", open)}>
-                <SelectTrigger className="btn-neon ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:ring-offset-0 focus:border-black data-[state=open]:ring-0 data-[state=open]:ring-transparent data-[state=open]:ring-offset-0 data-[state=open]:border-black dark:focus:border-[#0bd1a2] dark:data-[state=open]:border-[#0bd1a2] [&>span]:truncate">
-                  <SelectValue placeholder={isExporting ? tTranslation("translating") : tDownload("downloadRationales")} />
-                </SelectTrigger>
-                <SelectContent className="rounded-none dark:border dark:border-[#0bd1a2] dark:bg-black dark:text-[#0bd1a2] dark:rounded-none">
-                  <SelectItem className={selectItemClass} value="json">{tDownload("json")}</SelectItem>
-                  <SelectItem className={selectItemClass} value="markdown">{tDownload("markdown")}</SelectItem>
-                  <SelectItem className={selectItemClass} value="csv">{tDownload("csv")}</SelectItem>
-                </SelectContent>
-              </Select>
+            <button
+              type="button"
+              disabled={isExporting}
+              onClick={() => {
+                setDownloadMenuOpen((prev) => !prev);
+                setDownloadSubMenu(null);
+              }}
+              className={cn(
+                "flex items-center justify-center w-9 h-9 rounded-full border transition-colors",
+                isExporting && "opacity-50 cursor-not-allowed",
+                isGame
+                  ? "border-white/20 bg-black/50 text-white/80 hover:bg-white/10"
+                  : "border-gray-300 bg-white text-gray-600 hover:bg-gray-100 dark:border-[#0bd1a2]/40 dark:bg-transparent dark:text-[#0bd1a2] dark:hover:bg-[#0bd1a2]/10"
+              )}
+              title={tDownload("downloadRationales")}
+            >
+              {isExporting ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+            </button>
+
+            {downloadMenuOpen && (
+              <div className={cn(
+                "absolute top-full left-0 mt-2 z-50 min-w-[200px] py-1 shadow-lg",
+                isGame
+                  ? "bg-black/90 border border-white/20 text-white"
+                  : "bg-white border border-gray-200 dark:bg-black dark:border-[#0bd1a2] dark:text-[#0bd1a2]"
+              )}>
+                {/* Rationales option */}
+                <button
+                  type="button"
+                  className={cn(
+                    "w-full flex items-center justify-between px-3 py-2 text-sm text-left transition-colors",
+                    isGame
+                      ? "hover:bg-white/10"
+                      : "hover:bg-gray-100 dark:hover:bg-[#0bd1a2]/10",
+                    downloadSubMenu === "rationales" && (isGame ? "bg-white/10" : "bg-gray-100 dark:bg-[#0bd1a2]/10")
+                  )}
+                  onClick={() => setDownloadSubMenu(downloadSubMenu === "rationales" ? null : "rationales")}
+                >
+                  <span>{tDownload("downloadRationales")}</span>
+                  <ChevronRight className="w-3.5 h-3.5 ml-2 flex-shrink-0" />
+                </button>
+
+                {downloadSubMenu === "rationales" && (
+                  <div className={cn(
+                    "ml-2 border-l",
+                    isGame ? "border-white/20" : "border-gray-200 dark:border-[#0bd1a2]/30"
+                  )}>
+                    {(["json", "markdown", "csv"] as const).map((fmt) => (
+                      <button
+                        key={fmt}
+                        type="button"
+                        className={cn(
+                          "w-full px-4 py-1.5 text-sm text-left transition-colors",
+                          isGame
+                            ? "hover:bg-white/10"
+                            : "hover:bg-gray-100 dark:hover:bg-[#0bd1a2]/10"
+                        )}
+                        onClick={() => {
+                          onDownloadFormatChange?.(fmt);
+                          setDownloadMenuOpen(false);
+                          setDownloadSubMenu(null);
+                        }}
+                      >
+                        {tDownload(fmt)}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Metrics option */}
+                {onMetricsExport && (
+                  <>
+                    <button
+                      type="button"
+                      className={cn(
+                        "w-full flex items-center justify-between px-3 py-2 text-sm text-left transition-colors",
+                        isGame
+                          ? "hover:bg-white/10"
+                          : "hover:bg-gray-100 dark:hover:bg-[#0bd1a2]/10",
+                        downloadSubMenu === "metrics" && (isGame ? "bg-white/10" : "bg-gray-100 dark:bg-[#0bd1a2]/10")
+                      )}
+                      onClick={() => setDownloadSubMenu(downloadSubMenu === "metrics" ? null : "metrics")}
+                    >
+                      <span>{tDownload("downloadMetrics")}</span>
+                      <ChevronRight className="w-3.5 h-3.5 ml-2 flex-shrink-0" />
+                    </button>
+
+                    {downloadSubMenu === "metrics" && (
+                      <div className={cn(
+                        "ml-2 border-l",
+                        isGame ? "border-white/20" : "border-gray-200 dark:border-[#0bd1a2]/30"
+                      )}>
+                        {(["json", "markdown", "csv"] as const).map((fmt) => (
+                          <button
+                            key={fmt}
+                            type="button"
+                            className={cn(
+                              "w-full px-4 py-1.5 text-sm text-left transition-colors",
+                              isGame
+                                ? "hover:bg-white/10"
+                                : "hover:bg-gray-100 dark:hover:bg-[#0bd1a2]/10"
+                            )}
+                            onClick={() => {
+                              onMetricsExport(fmt);
+                              setDownloadMenuOpen(false);
+                              setDownloadSubMenu(null);
+                            }}
+                          >
+                            {tDownload(fmt)}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
             )}
           </div>
         )}
-
-        <div className={cn(
-          "w-full sm:w-auto sm:w-[160px] p-2.5 sm:p-3 md:p-4",
-          isGame
-            ? "game-detail-card"
-            : "rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
-        )}>
-          <div className="relative">
-            <Search className={cn("absolute left-2.5 sm:left-3 top-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 -translate-y-1/2 transform", isGame ? "text-white/50" : "text-muted-foreground")} />
-            <Input
-              placeholder={tCommon("search")}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className={cn("pl-8 sm:pl-10 h-8 sm:h-9 md:h-10 text-xs sm:text-sm", isGame ? "game-nav-input" : "filter-input")}
-            />
-          </div>
-        </div>
 
         <div className={cn(
           "flex-1 min-w-0 p-2.5 sm:p-3 md:p-4",
@@ -431,18 +627,28 @@ export function VotingRecords({
         )}>
           <div className="flex flex-wrap gap-2 sm:gap-3 md:gap-4">
             <div className="flex-1 min-w-[120px]">
-              <MultiSelectDropdown
-                label={tFilters("filterByVote")}
-                options={VOTE_OPTIONS}
-                selected={selectedVotes}
-                onSelectionChange={setSelectedVotes}
-                isOpen={openDropdownId === "vote"}
-                onOpenChange={(open) => handleDropdownOpenChange("vote", open)}
-                isGame={isGame}
-                formatLabel={(v) => tVoting(v as "yes" | "no" | "abstain")}
-                allLabel={tCommon("all")}
-                selectedLabel={(count) => tCommon("selected", { count })}
-              />
+              {isGame ? (
+                <GameDropdown
+                  value={participationMode}
+                  onValueChange={(v) => handleParticipationChange(v as "voted" | "not-voted")}
+                  placeholder={tFilters("voted")}
+                  onOpenChange={(open) => handleDropdownOpenChange("participation", open)}
+                  options={[
+                    { value: "voted", label: tFilters("voted") },
+                    { value: "not-voted", label: tFilters("notVoted") },
+                  ]}
+                />
+              ) : (
+                <Select value={participationMode} onValueChange={(v) => handleParticipationChange(v as "voted" | "not-voted")} onOpenChange={(open) => handleDropdownOpenChange("participation", open)}>
+                  <SelectTrigger className="btn-neon ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:ring-offset-0 focus:border-black data-[state=open]:ring-0 data-[state=open]:ring-transparent data-[state=open]:ring-offset-0 data-[state=open]:border-black dark:focus:border-[#0bd1a2] dark:data-[state=open]:border-[#0bd1a2] [&>span]:truncate">
+                    <SelectValue placeholder={tFilters("voted")} />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-none dark:border dark:border-[#0bd1a2] dark:bg-black dark:text-[#0bd1a2] dark:rounded-none">
+                    <SelectItem className={selectItemClass} value="voted">{tFilters("voted")}</SelectItem>
+                    <SelectItem className={selectItemClass} value="not-voted">{tFilters("notVoted")}</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
             </div>
             <div className="flex-1 min-w-[120px]">
               <MultiSelectDropdown
@@ -457,6 +663,22 @@ export function VotingRecords({
                 selectedLabel={(count) => tCommon("selected", { count })}
               />
             </div>
+            {participationMode === "voted" && (
+              <>
+                <div className="flex-1 min-w-[120px]">
+                  <MultiSelectDropdown
+                    label={tFilters("filterByVote")}
+                    options={VOTE_OPTIONS}
+                    selected={selectedVotes}
+                    onSelectionChange={setSelectedVotes}
+                    isOpen={openDropdownId === "vote"}
+                    onOpenChange={(open) => handleDropdownOpenChange("vote", open)}
+                    isGame={isGame}
+                    formatLabel={(v) => tVoting(v as "yes" | "no" | "abstain")}
+                    allLabel={tCommon("all")}
+                    selectedLabel={(count) => tCommon("selected", { count })}
+                  />
+                </div>
             <div className="flex-1 min-w-[120px]">
               {isGame ? (
                 <GameDropdown
@@ -505,6 +727,8 @@ export function VotingRecords({
                 </Select>
               )}
             </div>
+              </>
+            )}
             <div className="flex-1 min-w-[150px]">
               {isGame ? (
                 <GameDropdown
@@ -535,6 +759,26 @@ export function VotingRecords({
         </div>
       </div>
 
+      {/* Search row */}
+      <div className={cn(
+        "p-2.5 sm:p-3 md:p-4",
+        isGame
+          ? "game-detail-card"
+          : "rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+      )}>
+        <div className="relative">
+          <Search className={cn("absolute left-2.5 sm:left-3 top-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 -translate-y-1/2 transform", isGame ? "text-white/50" : "text-muted-foreground")} />
+          <Input
+            placeholder={tCommon("search")}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className={cn("pl-8 sm:pl-10 h-8 sm:h-9 md:h-10 text-xs sm:text-sm", isGame ? "game-nav-input" : "filter-input")}
+          />
+        </div>
+      </div>
+
+      {participationMode === "voted" ? (
+      <>
       {/* Mobile card layout */}
       <div
         className={cn(
@@ -769,9 +1013,166 @@ export function VotingRecords({
           </div>
         )}
       </div>
-      <VotingRationaleModal 
-        vote={selectedVoteRecord} 
-        open={isModalOpen} 
+      </>
+      ) : (
+      <>
+      {/* Not-voted mobile card layout */}
+      <div className={cn("sm:hidden space-y-2 min-h-[400px]")}>
+        {notVotedLoading ? (
+          <div className={cn(
+            "py-12 text-center text-muted-foreground",
+            isGame ? "game-detail-card" : "rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+          )}>
+            {tCommon("loading")}
+          </div>
+        ) : notVotedItems.length === 0 ? (
+          <div className={cn(
+            "py-12 text-center text-muted-foreground",
+            isGame ? "game-detail-card" : "rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+          )}>
+            {tVoting("noVotingRecordsFound")}
+          </div>
+        ) : (
+          displayedNotVoted.map((item) => (
+            <div
+              key={item.id}
+              className={cn(
+                "p-3 transition-transform duration-300 ease-out transform-gpu active:scale-[0.99]",
+                isGame
+                  ? "game-detail-card"
+                  : "rounded-xl border border-white/8 bg-[#faf9f6] shadow-[0_8px_20px_rgba(15,23,42,0.15)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+              )}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Badge variant="outline" className={cn("px-1.5 py-0 text-[10px] shrink-0", isGame ? "border-white/30 bg-transparent text-white/70" : "border-foreground/20 bg-transparent dark:text-[#0bd1a2] dark:border-[#0bd1a2] dark:bg-transparent")}>
+                      {item.role}
+                    </Badge>
+                    {item.role !== "CC" && (
+                      <span className={cn("text-[10px] font-medium shrink-0", isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]")}>
+                        {formatAda(item.votingPowerAda || 0)} ADA
+                      </span>
+                    )}
+                  </div>
+                  <div className={cn("font-semibold text-xs truncate", isGame ? "text-white" : "dark:text-[#0bd1a2]")}>
+                    {item.name || item.id}
+                  </div>
+                  <div className={cn("font-mono text-[9px] truncate", isGame ? "text-white/40" : "text-muted-foreground/70 dark:text-[#0bd1a2]/70")}>
+                    {item.id}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+        {hasMoreNotVoted && !showAllVotes && notVotedItems.length > 0 && (
+          <Button
+            variant="outline"
+            onClick={() => setShowAllVotes(true)}
+            className={cn(
+              "w-full mt-3",
+              isGame
+                ? "game-nav-btn"
+                : "bg-white text-black hover:bg-black hover:text-white transition-colors shadow-[0_8px_16px_rgba(15,23,42,0.2)] btn-neon"
+            )}
+          >
+            {tCommon("showMoreVotes", { count: remainingNotVoted })}
+          </Button>
+        )}
+      </div>
+
+      {/* Not-voted desktop table layout */}
+      <div
+        className={cn(
+          "hidden sm:block rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none voting-records-container min-h-[400px]",
+          isGame && "game-detail-card"
+        )}
+      >
+        <div className="voting-records-container">
+          <div className={cn("inline-block min-w-full px-2 sm:px-4 md:px-6 lg:px-0 align-middle", isGame ? "text-white" : "dark:text-[#0bd1a2]")}>
+            <Table className={isGame ? "game-voting-table" : ""}>
+              <TableHeader>
+                <TableRow className={cn("voting-records-header", isGame && "border-b border-white/10")}>
+                  <TableHead className={cn("text-xs sm:text-sm", isGame ? "text-white/70" : "")}>{tTable("voter")}</TableHead>
+                  <TableHead className={cn("text-xs sm:text-sm", isGame ? "text-white/70" : "")}>{tTable("votingPower")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {notVotedLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={2} className="py-12 text-center text-muted-foreground">
+                      {tCommon("loading")}
+                    </TableCell>
+                  </TableRow>
+                ) : notVotedItems.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={2} className="py-12 text-center text-muted-foreground">
+                      {tVoting("noVotingRecordsFound")}
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  displayedNotVoted.map((item) => (
+                    <TableRow
+                      key={item.id}
+                      className={cn(
+                        "voting-record-row hover:bg-transparent transition-transform duration-300 ease-out transform-gpu hover:scale-[1.01]",
+                        isGame && "border-b border-white/10"
+                      )}
+                    >
+                      <TableCell className="py-2 sm:py-3">
+                        <div>
+                          <div className="mb-0.5 sm:mb-1 flex flex-wrap items-center gap-1 sm:gap-2">
+                            <span className={cn("font-semibold text-xs sm:text-sm", isGame ? "text-white" : "dark:text-[#0bd1a2]")}>
+                              {item.name || item.id}
+                            </span>
+                            <Badge variant="outline" className={cn("px-1 sm:px-1.5 py-0 text-[10px] sm:text-xs", isGame ? "border-white/30 bg-transparent text-white/70" : "border-foreground/20 bg-transparent dark:text-[#0bd1a2] dark:border-[#0bd1a2] dark:bg-transparent")}>
+                              {item.role}
+                            </Badge>
+                          </div>
+                          <div className={cn("font-mono text-[10px] sm:text-xs break-all line-clamp-1", isGame ? "text-white/50" : "text-muted-foreground dark:text-[#0bd1a2]")}>
+                            {item.id}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-2 sm:py-3">
+                        {item.role !== "CC" ? (
+                          <div className={cn("font-semibold text-xs sm:text-sm", isGame && "text-white")}>
+                            {formatAda(item.votingPowerAda || 0)} ADA
+                          </div>
+                        ) : (
+                          <div className={cn("text-[10px] sm:text-xs", isGame ? "text-white/50" : "text-muted-foreground dark:text-[#0bd1a2]")}>{tVoting("oneMemberOneVote")}</div>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+        {hasMoreNotVoted && !showAllVotes && notVotedItems.length > 0 && (
+          <div className="p-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowAllVotes(true)}
+              className={cn(
+                "w-full",
+                isGame
+                  ? "game-nav-btn"
+                  : "bg-white text-black hover:bg-black hover:text-white transition-colors shadow-[0_8px_16px_rgba(15,23,42,0.2)] btn-neon"
+              )}
+            >
+              {tCommon("showMoreVotes", { count: remainingNotVoted })}
+            </Button>
+          </div>
+        )}
+      </div>
+      </>
+      )}
+      <VotingRationaleModal
+        vote={selectedVoteRecord}
+        open={isModalOpen}
         onOpenChange={setIsModalOpen}
       />
     </div>

@@ -16,7 +16,9 @@
     "homeTitle": "CGOV - Plate-forme de gouvernance Cardano",
     "homeDescription": "Plateforme Cardano on-chain intégrée",
     "dashboardTitle": "Tableau de bord - CGOV",
-    "dashboardDescription": "Tableau de bord du CGOV - Aperçu de la gouvernance",
+    "dashboardDescription": "Tableau de bord CGOV - Aperçu de l'activité de développement",
+    "governanceDashboardTitle": "Tableau de bord de gouvernance - CGOV",
+    "governanceDashboardDescription": "Tableau de bord CGOV - Analyses de gouvernance",
     "notFoundTitle": "404 - Page non trouvée",
     "notFoundDescription": "La page que vous recherchez n'existe pas"
   },
@@ -26,7 +28,9 @@
   },
   "dashboard": {
     "title": "Tableau de bord",
-    "subtitle": "Votre aperçu de la gouvernance personnalisable",
+    "subtitle": "Votre aperçu personnalisable de l'activité de développement",
+    "governanceTitle": "Tableau de bord de gouvernance",
+    "governanceSubtitle": "Votre aperçu de la gouvernance personnalisable",
     "loadingData": "Chargement des données du tableau de bord..."
   },
   "notFound": {
@@ -65,7 +69,9 @@
     "filterByRationale": "Filtrer par justification",
     "actionTypes": "Types d'actions",
     "types": "Les types",
-    "status": "Statut"
+    "status": "Statut",
+    "voted": "Voté",
+    "notVoted": "Non voté"
   },
   "table": {
     "proposalTitle": "Titre de la proposition",
@@ -144,10 +150,12 @@
   },
   "download": {
     "downloadRationales": "Télécharger les justifications",
+    "downloadMetrics": "Télécharger les métriques",
     "downloadDRepList": "Download",
     "json": "JSON",
     "markdown": "Markdown",
-    "csv": "CSV"
+    "csv": "CSV",
+    "downloadAllMetrics": "Télécharger toutes les métriques"
   },
   "drepExport": {
     "title": "Liste des DReps",
@@ -161,6 +169,21 @@
     "headerDelegators": "Délégateurs",
     "headerVotesCast": "Votes émis",
     "headerVoteChanges": "Changements de vote"
+  },
+  "metricsExport": {
+    "title": "GovAction Title",
+    "type": "Gov Action Type",
+    "ccVotes": "CC Votes Count",
+    "drepVotes": "DRep Votes Count",
+    "spoVotes": "SPO Votes Count",
+    "totalVotes": "Total Votes",
+    "yesAda": "Yes ADA",
+    "noAda": "No ADA",
+    "abstainAda": "Abstain ADA",
+    "totalAdaVoted": "Total ADA Voted",
+    "alwaysNoConfidence": "Always No Confidence ADA",
+    "notVotedAda": "Registered But Not Voted ADA",
+    "status": "Statut"
   },
   "rationaleFilter": {
     "allRecords": "Tous les dossiers",

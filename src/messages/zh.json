@@ -16,7 +16,9 @@
     "homeTitle": "CGOV - 卡达诺治理平台",
     "homeDescription": "集成卡达诺链上平台",
     "dashboardTitle": "仪表板 - CGOV",
-    "dashboardDescription": "CGOV 控制面板 - 管理概览",
+    "dashboardDescription": "CGOV控制面板 - 开发活动概览",
+    "governanceDashboardTitle": "治理仪表板 - CGOV",
+    "governanceDashboardDescription": "CGOV治理仪表板 - 治理分析概览",
     "notFoundTitle": "404 - 找不到页面",
     "notFoundDescription": "您要查找的页面不存在"
   },
@@ -26,7 +28,9 @@
   },
   "dashboard": {
     "title": "仪表板",
-    "subtitle": "可定制的管理概览",
+    "subtitle": "可定制的开发活动概览",
+    "governanceTitle": "治理仪表板",
+    "governanceSubtitle": "可定制的治理概览",
     "loadingData": "加载仪表板数据..."
   },
   "notFound": {
@@ -65,7 +69,9 @@
     "filterByRationale": "按理由筛选",
     "actionTypes": "行动类型",
     "types": "类型",
-    "status": "现状"
+    "status": "现状",
+    "voted": "已投票",
+    "notVoted": "未投票"
   },
   "table": {
     "proposalTitle": "提案标题",
@@ -144,10 +150,12 @@
   },
   "download": {
     "downloadRationales": "下载理由",
+    "downloadMetrics": "下载指标",
     "downloadDRepList": "Download",
     "json": "JSON",
     "markdown": "Markdown",
-    "csv": "CSV"
+    "csv": "CSV",
+    "downloadAllMetrics": "下载全部指标"
   },
   "drepExport": {
     "title": "DRep列表",
@@ -161,6 +169,21 @@
     "headerDelegators": "委托人",
     "headerVotesCast": "投票次数",
     "headerVoteChanges": "投票变更"
+  },
+  "metricsExport": {
+    "title": "GovAction Title",
+    "type": "Gov Action Type",
+    "ccVotes": "CC Votes Count",
+    "drepVotes": "DRep Votes Count",
+    "spoVotes": "SPO Votes Count",
+    "totalVotes": "Total Votes",
+    "yesAda": "Yes ADA",
+    "noAda": "No ADA",
+    "abstainAda": "Abstain ADA",
+    "totalAdaVoted": "Total ADA Voted",
+    "alwaysNoConfidence": "Always No Confidence ADA",
+    "notVotedAda": "Registered But Not Voted ADA",
+    "status": "状态"
   },
   "rationaleFilter": {
     "allRecords": "所有记录",
