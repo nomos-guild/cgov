@@ -31,6 +31,7 @@
     "subtitle": "Ihre anpassbare Entwicklungsaktivitätsübersicht",
     "governanceTitle": "Governance-Dashboard",
     "governanceSubtitle": "Ihre anpassbare Governance-Übersicht",
+    "devActivityTitle": "Entwicklungsaktivität",
     "loadingData": "Laden von Dashboard-Daten..."
   },
   "notFound": {

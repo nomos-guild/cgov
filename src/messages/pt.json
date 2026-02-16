@@ -31,6 +31,7 @@
     "subtitle": "A sua visão geral personalizável da atividade de desenvolvimento",
     "governanceTitle": "Painel de governação",
     "governanceSubtitle": "A sua visão geral personalizável da governação",
+    "devActivityTitle": "Atividade de desenvolvimento",
     "loadingData": "A carregar os dados do painel de controlo..."
   },
   "notFound": {

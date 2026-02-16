@@ -31,6 +31,7 @@
     "subtitle": "Your customizable development activity overview",
     "governanceTitle": "Governance Dashboard",
     "governanceSubtitle": "Your customizable governance overview",
+    "devActivityTitle": "Development Activity",
     "loadingData": "Loading dashboard data..."
   },
   "notFound": {

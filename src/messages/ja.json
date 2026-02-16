@@ -31,6 +31,7 @@
     "subtitle": "カスタマイズ可能な開発活動の概要",
     "governanceTitle": "ガバナンスダッシュボード",
     "governanceSubtitle": "カスタマイズ可能なガバナンスの概要",
+    "devActivityTitle": "開発アクティビティ",
     "loadingData": "ダッシュボードのデータをロード中..."
   },
   "notFound": {
