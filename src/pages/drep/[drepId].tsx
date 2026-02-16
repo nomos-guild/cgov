@@ -1047,12 +1047,6 @@ export default function DRepProfile({
 
                   {/* Delegation History Line Chart */}
                   <div className="mt-4 pt-4 border-t border-border/30">
-                    <h3 className={cn(
-                      "text-sm font-medium mb-2",
-                      isGame ? "text-white/70" : isLight ? "text-muted-foreground" : "text-[#0bd1a2]/70"
-                    )}>
-                      Delegation History
-                    </h3>
                     <DRepDelegationChart
                       history={delegationHistory}
                       isGame={isGame}

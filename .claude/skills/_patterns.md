@@ -11,7 +11,7 @@ Three distinct themes — never treat dark and game as the same.
 | Theme | Background | Accent | Borders | Corners |
 |-------|-----------|--------|---------|---------|
 | **Light** | `bg-white` / `#faf9f6` | Black | None on cards (shadow only) | Rounded |
-| **Dark** | `#1a1a2e` / `#131320` | Cyan `#0bd1a2` | Cyan borders | Rounded |
+| **Dark** | `#1a1a2e` / `#131320` | Cyan `#0bd1a2` | Cyan borders | Sharp on nav/buttons, rounded on cards |
 | **Game** | `bg-black` / `#080808` | Neon green `#00ff66` | None on cards (subtle white borders on charts) | Sharp (`rounded-none` / `rounded-[2px]`) |
 
 **Critical rules:**
@@ -25,6 +25,8 @@ Three distinct themes — never treat dark and game as the same.
 - **CSS specificity vs Tailwind**: Game theme CSS classes like `game-nav-btn` use `[data-theme="game"]` selectors with higher specificity than Tailwind utilities. You cannot override `height: 40px` from `game-nav-btn` with Tailwind `h-8`. Create a variant class (e.g., `game-nav-btn-sm`) instead.
 - **Radix sub-element CSS targeting**: Radix UI does NOT emit `data-radix-*` attributes on sub-elements (Track, Range, Thumb, etc.). Selectors like `[data-radix-slider-track]` match nothing. Add custom `data-part="track|range|thumb"` attributes to sub-elements and target those in theme CSS.
 - **Game theme slider palette**: Use the standard grey palette for game sliders — track `#1b1c1c` with `#292929` border, range `#292929→#3a3a3a` gradient, thumbs `#2c2c2c→#3a3a3a` with `#4a4a4a` border. No green/teal accents.
+- **`game-detail-card` on structural elements**: Reuse the card class on headers/non-card elements with `game-detail-card !rounded-none` for consistent semi-transparent bg (`rgba(12,12,12,0.5)`) + box-shadow.
+- **Dark/nerd theme corners**: Cards stay rounded, but nav buttons and small UI controls use `rounded-none` (sharp squares) to match the nerd aesthetic. Light theme uses `rounded-full` for pills.
 
 **3-way theme check (always use this order):**
 ```tsx

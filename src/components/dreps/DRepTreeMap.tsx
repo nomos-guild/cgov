@@ -3,6 +3,8 @@ import * as d3 from "d3";
 import { useTranslations } from "next-intl";
 import { useTheme } from "@/lib/theme";
 import type { DRepSummary } from "@/types/drep";
+import { ZoomLens, LENS_W, LENS_CHART_H } from "@/components/dreps/ZoomLens";
+import type { ZoomLensTarget } from "@/components/dreps/ZoomLens";
 
 type ChartMetric = "votingPower" | "delegators";
 
@@ -11,6 +13,7 @@ interface DRepTreeMapProps {
   metric: ChartMetric;
   topN?: number | null;
   rationaleMap: Map<string, number>;
+  highlightedIds?: Set<string>;
 }
 
 interface DRepTile {
@@ -56,14 +59,16 @@ function getMetricValue(drep: DRepSummary, metric: ChartMetric): number {
 const SVG_WIDTH = 800;
 const SVG_HEIGHT = 600;
 
-export function DRepTreeMap({ dreps, metric, topN, rationaleMap }: DRepTreeMapProps) {
+export function DRepTreeMap({ dreps, metric, topN, rationaleMap, highlightedIds }: DRepTreeMapProps) {
   const t = useTranslations("drep");
   const { theme, activeTheme } = useTheme();
   const isDark = theme === "dark";
   const isGame = activeTheme.id === "game";
+  const isLight = !isDark && !isGame;
   const containerRef = useRef<HTMLDivElement>(null);
   const [hoveredTile, setHoveredTile] = useState<{ tile: DRepTile; x: number; y: number } | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const hasHighlight = highlightedIds != null && highlightedIds.size > 0;
 
   const tiles = useMemo(() => {
     if (!dreps.length) return [] as DRepTile[];
@@ -110,6 +115,14 @@ export function DRepTreeMap({ dreps, metric, topN, rationaleMap }: DRepTreeMapPr
 
     return resultTiles;
   }, [dreps, metric]);
+
+  // Zoom lens target: first highlighted tile
+  const lensTarget = useMemo((): ZoomLensTarget | null => {
+    if (!hasHighlight || !tiles.length) return null;
+    const tile = tiles.find((t) => highlightedIds!.has(t.drep.drepId));
+    if (!tile) return null;
+    return { x: (tile.x0 + tile.x1) / 2, y: (tile.y0 + tile.y1) / 2, drep: tile.drep, rank: tile.rank };
+  }, [tiles, highlightedIds, hasHighlight]);
 
   const handleMouseEnter = (tile: DRepTile, event: React.MouseEvent<SVGRectElement>) => {
     if (containerRef.current) {
@@ -234,6 +247,8 @@ export function DRepTreeMap({ dreps, metric, topN, rationaleMap }: DRepTreeMapPr
         <g>
           {tiles.map((tile) => {
             const isHovered = hoveredId === tile.drep.drepId;
+            const isHighlighted = hasHighlight && highlightedIds!.has(tile.drep.drepId);
+            const isDimmedBySearch = hasHighlight && !isHighlighted;
             const color = generateColor(tile.rank - 1, dreps.length);
             const w = tile.x1 - tile.x0;
             const h = tile.y1 - tile.y0;
@@ -276,7 +291,7 @@ export function DRepTreeMap({ dreps, metric, topN, rationaleMap }: DRepTreeMapPr
                   stroke={isGame ? `rgba(255,255,255,${gameStrokeOpacity})` : isDark ? "#0bd1a2" : color}
                   strokeWidth={strokeWidth}
                   filter={isGame && isHovered ? "url(#drep-tree-game-glow)" : getShadowFilter()}
-                  opacity={isHovered ? 1 : 0.9}
+                  opacity={isDimmedBySearch ? 0.12 : isHovered ? 1 : 0.9}
                   className="cursor-pointer transition-opacity duration-150"
                   onMouseEnter={(e) => {
                     setHoveredId(tile.drep.drepId);
@@ -284,6 +299,21 @@ export function DRepTreeMap({ dreps, metric, topN, rationaleMap }: DRepTreeMapPr
                   }}
                   onMouseLeave={handleMouseLeave}
                 />
+                {isHighlighted && (
+                  <rect
+                    x={tile.x0 - 1}
+                    y={tile.y0 - 1}
+                    width={w + 2}
+                    height={h + 2}
+                    rx={4}
+                    fill="none"
+                    stroke={isGame ? "#ffd700" : isDark ? "#0bd1a2" : color}
+                    strokeWidth={2.5}
+                    className="pointer-events-none"
+                  >
+                    <animate attributeName="opacity" values="0.9;0.3;0.9" dur="1.5s" repeatCount="indefinite" />
+                  </rect>
+                )}
                 {showLabel && (
                   <text
                     x={tile.x0 + w / 2}
@@ -303,6 +333,83 @@ export function DRepTreeMap({ dreps, metric, topN, rationaleMap }: DRepTreeMapPr
             );
           })}
         </g>
+
+        {/* Zoom lens */}
+        {lensTarget && (
+          <ZoomLens
+            target={lensTarget}
+            svgWidth={SVG_WIDTH}
+            svgHeight={SVG_HEIGHT}
+            isGame={isGame}
+            isDark={isDark}
+            isLight={isLight}
+            rationaleMap={rationaleMap}
+            idPrefix="treemap"
+          >
+            {(() => {
+              const scale = 2.8;
+              const lensX = lensTarget.x < SVG_WIDTH / 2 ? SVG_WIDTH - LENS_W - 16 : 16;
+              const lensY = lensTarget.y < SVG_HEIGHT / 2 ? SVG_HEIGHT - (LENS_CHART_H + 135) - 16 : 16;
+              return (
+                <g transform={`translate(${lensX + LENS_W / 2 - lensTarget.x * scale}, ${lensY + LENS_CHART_H / 2 - lensTarget.y * scale}) scale(${scale})`}>
+                  {tiles.map((tile) => {
+                    const isMatch = highlightedIds!.has(tile.drep.drepId);
+                    const lensColor = generateColor(tile.rank - 1, dreps.length);
+                    const w = tile.x1 - tile.x0;
+                    const h = tile.y1 - tile.y0;
+                    const hasAvatar = isMatch && tile.drep.iconUrl;
+                    const avatarR = 18;
+                    return (
+                      <g key={`lens-${tile.drep.drepId}`}>
+                        <rect
+                          x={tile.x0}
+                          y={tile.y0}
+                          width={w}
+                          height={h}
+                          rx={2}
+                          fill={isMatch
+                            ? (isGame ? "rgba(40,40,40,0.9)" : isDark ? "rgba(11,209,162,0.15)" : "#ffffff")
+                            : (isGame ? "rgba(20,20,20,0.4)" : isDark ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.5)")}
+                          stroke={isMatch
+                            ? (isGame ? "#ffd700" : isDark ? "#0bd1a2" : lensColor)
+                            : (isGame ? "rgba(255,255,255,0.06)" : isDark ? "rgba(11,209,162,0.2)" : `${lensColor}40`)}
+                          strokeWidth={isMatch ? 1 : 0.3}
+                          opacity={isMatch ? 1 : 0.3}
+                        />
+                        {hasAvatar && (
+                          <>
+                            <defs>
+                              <clipPath id={`lens-tree-avatar-${tile.drep.drepId}`}>
+                                <circle cx={(tile.x0 + tile.x1) / 2} cy={(tile.y0 + tile.y1) / 2} r={avatarR} />
+                              </clipPath>
+                            </defs>
+                            <image
+                              href={tile.drep.iconUrl!}
+                              x={(tile.x0 + tile.x1) / 2 - avatarR}
+                              y={(tile.y0 + tile.y1) / 2 - avatarR}
+                              width={avatarR * 2}
+                              height={avatarR * 2}
+                              clipPath={`url(#lens-tree-avatar-${tile.drep.drepId})`}
+                              preserveAspectRatio="xMidYMid slice"
+                            />
+                            <circle
+                              cx={(tile.x0 + tile.x1) / 2}
+                              cy={(tile.y0 + tile.y1) / 2}
+                              r={avatarR}
+                              fill="none"
+                              stroke={isGame ? "#ffd700" : isDark ? "#0bd1a2" : lensColor}
+                              strokeWidth={1.5}
+                            />
+                          </>
+                        )}
+                      </g>
+                    );
+                  })}
+                </g>
+              );
+            })()}
+          </ZoomLens>
+        )}
       </svg>
       {hoveredTile && (
         <div

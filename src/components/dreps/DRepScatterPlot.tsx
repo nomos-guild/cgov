@@ -3,6 +3,8 @@ import * as d3 from "d3";
 import { useTranslations } from "next-intl";
 import { useTheme } from "@/lib/theme";
 import type { DRepSummary } from "@/types/drep";
+import { ZoomLens, LENS_W, LENS_CHART_H } from "@/components/dreps/ZoomLens";
+import type { ZoomLensTarget } from "@/components/dreps/ZoomLens";
 
 type ChartMetric = "votingPower" | "delegators";
 
@@ -11,6 +13,7 @@ interface DRepScatterPlotProps {
   metric: ChartMetric;
   topN?: number | null;
   rationaleMap: Map<string, number>;
+  highlightedIds?: Set<string>;
 }
 
 interface DRepPoint {
@@ -42,7 +45,7 @@ const MARGIN = { top: 30, right: 30, bottom: 50, left: 70 };
 const PLOT_W = SVG_WIDTH - MARGIN.left - MARGIN.right;
 const PLOT_H = SVG_HEIGHT - MARGIN.top - MARGIN.bottom;
 
-export function DRepScatterPlot({ dreps, metric, topN, rationaleMap }: DRepScatterPlotProps) {
+export function DRepScatterPlot({ dreps, metric, topN, rationaleMap, highlightedIds }: DRepScatterPlotProps) {
   const t = useTranslations("drep");
   const { theme, activeTheme } = useTheme();
   const isLight = activeTheme.id === "light" || activeTheme.id === "neural";
@@ -51,6 +54,7 @@ export function DRepScatterPlot({ dreps, metric, topN, rationaleMap }: DRepScatt
   const containerRef = useRef<HTMLDivElement>(null);
   const [hoveredPoint, setHoveredPoint] = useState<{ point: DRepPoint; x: number; y: number } | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const hasHighlight = highlightedIds != null && highlightedIds.size > 0;
 
   // X = voting power, Y = delegator count (or flipped depending on metric emphasis)
   const { points, xScale, yScale, xTicks, yTicks, xLabel, yLabel } = useMemo(() => {
@@ -131,6 +135,14 @@ export function DRepScatterPlot({ dreps, metric, topN, rationaleMap }: DRepScatt
   }, [points, hoveredId]);
 
   const isTopN = (rank: number) => topN != null && rank <= topN;
+
+  // Zoom lens target: first highlighted point (in SVG-absolute coordinates)
+  const lensTarget = useMemo((): ZoomLensTarget | null => {
+    if (!hasHighlight || !points.length) return null;
+    const pt = points.find((p) => highlightedIds!.has(p.drep.drepId));
+    if (!pt) return null;
+    return { x: pt.cx + MARGIN.left, y: pt.cy + MARGIN.top, drep: pt.drep, rank: pt.rank };
+  }, [points, highlightedIds, hasHighlight]);
 
   const axisColor = isGame ? "rgba(255,255,255,0.3)" : isDark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.15)";
   const labelColor = isGame ? "rgba(255,255,255,0.6)" : isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.5)";
@@ -221,8 +233,10 @@ export function DRepScatterPlot({ dreps, metric, topN, rationaleMap }: DRepScatt
           {/* Data points */}
           {sortedPoints.map((point) => {
             const isHovered = hoveredId === point.drep.drepId;
+            const isHighlighted = hasHighlight && highlightedIds!.has(point.drep.drepId);
+            const isDimmedBySearch = hasHighlight && !isHighlighted;
             const isTop = isTopN(point.rank);
-            const baseOpacity = topN != null ? (isTop ? 0.85 : 0.25) : 0.75;
+            const baseOpacity = isDimmedBySearch ? 0.1 : topN != null ? (isTop ? 0.85 : 0.25) : 0.75;
 
             return (
               <circle
@@ -232,10 +246,11 @@ export function DRepScatterPlot({ dreps, metric, topN, rationaleMap }: DRepScatt
                 r={isHovered ? point.r + 3 : point.r}
                 fill={point.fillColor}
                 fillOpacity={isHovered ? 1 : baseOpacity}
-                stroke={isHovered ? (isGame ? "#ffd700" : isDark ? "#0bd1a2" : "#475569") : "transparent"}
-                strokeWidth={isHovered ? 2 : 0}
+                stroke={isHighlighted || isHovered ? (isGame ? "#ffd700" : isDark ? "#0bd1a2" : "#475569") : "transparent"}
+                strokeWidth={isHighlighted ? 2.5 : isHovered ? 2 : 0}
                 className="transition-all duration-150 cursor-pointer"
                 onMouseEnter={(e) => handleMouseEnter(point, e)}
+                onMouseLeave={handleMouseLeave}
                 onMouseMove={(e) => {
                   if (!containerRef.current) return;
                   const rect = containerRef.current.getBoundingClientRect();
@@ -245,21 +260,108 @@ export function DRepScatterPlot({ dreps, metric, topN, rationaleMap }: DRepScatt
             );
           })}
         </g>
+
+        {/* Zoom lens */}
+        {lensTarget && (
+          <ZoomLens
+            target={lensTarget}
+            svgWidth={SVG_WIDTH}
+            svgHeight={SVG_HEIGHT}
+            isGame={isGame}
+            isDark={isDark}
+            isLight={isLight}
+            rationaleMap={rationaleMap}
+            idPrefix="scatter"
+          >
+            {(() => {
+              const scale = 2.8;
+              const lensX = lensTarget.x < SVG_WIDTH / 2 ? SVG_WIDTH - LENS_W - 16 : 16;
+              const lensY = lensTarget.y < SVG_HEIGHT / 2 ? SVG_HEIGHT - (LENS_CHART_H + 135) - 16 : 16;
+              return (
+                <g transform={`translate(${lensX + LENS_W / 2 - lensTarget.x * scale}, ${lensY + LENS_CHART_H / 2 - lensTarget.y * scale}) scale(${scale})`}>
+                  <g transform={`translate(${MARGIN.left},${MARGIN.top})`}>
+                    {points.map((point) => {
+                      const isMatch = highlightedIds!.has(point.drep.drepId);
+                      const hasAvatar = isMatch && point.drep.iconUrl;
+                      const avatarR = 18;
+                      return (
+                        <g key={`lens-${point.drep.drepId}`}>
+                          {hasAvatar ? (
+                            <>
+                              <defs>
+                                <clipPath id={`lens-scatter-avatar-${point.drep.drepId}`}>
+                                  <circle cx={point.cx} cy={point.cy} r={avatarR} />
+                                </clipPath>
+                              </defs>
+                              <image
+                                href={point.drep.iconUrl!}
+                                x={point.cx - avatarR}
+                                y={point.cy - avatarR}
+                                width={avatarR * 2}
+                                height={avatarR * 2}
+                                clipPath={`url(#lens-scatter-avatar-${point.drep.drepId})`}
+                                preserveAspectRatio="xMidYMid slice"
+                              />
+                              <circle
+                                cx={point.cx}
+                                cy={point.cy}
+                                r={avatarR}
+                                fill="none"
+                                stroke={isGame ? "#ffd700" : isDark ? "#0bd1a2" : point.fillColor}
+                                strokeWidth={1.5}
+                              />
+                            </>
+                          ) : (
+                            <circle
+                              cx={point.cx}
+                              cy={point.cy}
+                              r={isMatch ? point.r + 2 : point.r}
+                              fill={isMatch
+                                ? point.fillColor
+                                : (isGame ? "rgba(20,20,20,0.4)" : isDark ? "rgba(255,255,255,0.03)" : "rgba(200,200,200,0.5)")}
+                              stroke={isMatch
+                                ? (isGame ? "#ffd700" : isDark ? "#0bd1a2" : point.fillColor)
+                                : "transparent"}
+                              strokeWidth={isMatch ? 1.5 : 0}
+                              opacity={isMatch ? 1 : 0.3}
+                            />
+                          )}
+                        </g>
+                      );
+                    })}
+                  </g>
+                </g>
+              );
+            })()}
+          </ZoomLens>
+        )}
       </svg>
 
       {/* Tooltip */}
-      {hoveredPoint && (
+      {hoveredPoint && (() => {
+        const containerW = containerRef.current?.clientWidth ?? SVG_WIDTH;
+        const containerH = containerRef.current?.clientHeight ?? SVG_HEIGHT;
+        const flipX = hoveredPoint.x > containerW * 0.7;
+        const flipY = hoveredPoint.y < containerH * 0.25;
+        return (
         <div
           className={
             isGame
               ? "absolute z-50 rounded-sm px-4 py-3 text-xs pointer-events-none game-tooltip-card"
               : "absolute z-50 rounded-2xl border border-white/8 bg-[#faf9f6] px-4 py-3 text-xs shadow-[0_12px_30px_rgba(15,23,42,0.25)] pointer-events-none dark:rounded-none dark:border-[#0bd1a2] dark:bg-background dark:shadow-none"
           }
-          style={{
-            left: `${hoveredPoint.x + 15}px`,
-            top: `${Math.max(8, hoveredPoint.y - 14)}px`,
-            transform: "translateY(-100%)",
-          }}
+          style={flipX
+            ? {
+                right: `${containerW - hoveredPoint.x + 15}px`,
+                top: flipY ? `${hoveredPoint.y + 15}px` : `${Math.max(8, hoveredPoint.y - 14)}px`,
+                transform: flipY ? undefined : "translateY(-100%)",
+              }
+            : {
+                left: `${hoveredPoint.x + 15}px`,
+                top: flipY ? `${hoveredPoint.y + 15}px` : `${Math.max(8, hoveredPoint.y - 14)}px`,
+                transform: flipY ? undefined : "translateY(-100%)",
+              }
+          }
         >
           <div className={isGame ? "font-semibold text-white" : "font-semibold text-foreground"}>
             #{hoveredPoint.point.rank} {hoveredPoint.point.drep.name || t("anonymous")}
@@ -285,7 +387,8 @@ export function DRepScatterPlot({ dreps, metric, topN, rationaleMap }: DRepScatt
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
