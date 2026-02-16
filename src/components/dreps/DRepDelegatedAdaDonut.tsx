@@ -187,17 +187,31 @@ export function DRepDelegatedAdaDonut({ dreps, className }: DRepDelegatedAdaDonu
       <div className="flex justify-center mt-3 px-3">
         <div className="flex flex-col gap-1.5">
           {[
-            { label: t("drep.delegatorsAll"), value: total, pct: 100 },
-            { label: t("drep.delegatorsTop", { n: 10 }), value: concentration.top10, pct: total > 0 ? (concentration.top10 / total) * 100 : 0 },
-            { label: t("drep.delegatorsTop", { n: 20 }), value: concentration.top20, pct: total > 0 ? (concentration.top20 / total) * 100 : 0 },
-            { label: t("drep.delegatorsTop", { n: 50 }), value: concentration.top50, pct: total > 0 ? (concentration.top50 / total) * 100 : 0 },
-          ].map(({ label, value, pct }) => (
-            <div key={label} className="flex items-center gap-3 text-[11px]">
-              <span className={`w-[50px] ${mutedColor}`}>{label}</span>
-              <span className={`w-[55px] text-right font-medium ${textColor}`}>{formatAda(value)}</span>
-              <span className={`font-medium ${textColor}`}>{pct.toFixed(1)}%</span>
-            </div>
-          ))}
+            { label: t("drep.delegatorsAll"), value: total, pct: 100, n: null as number | null },
+            { label: t("drep.delegatorsTop", { n: 10 }), value: concentration.top10, pct: total > 0 ? (concentration.top10 / total) * 100 : 0, n: 10 },
+            { label: t("drep.delegatorsTop", { n: 20 }), value: concentration.top20, pct: total > 0 ? (concentration.top20 / total) * 100 : 0, n: 20 },
+            { label: t("drep.delegatorsTop", { n: 50 }), value: concentration.top50, pct: total > 0 ? (concentration.top50 / total) * 100 : 0, n: 50 },
+          ].map(({ label, value, pct, n }) => {
+            const isActive = n === topN;
+            return (
+              <div key={label} className={`flex items-center gap-3 text-[11px] rounded px-1 -mx-1 transition-colors ${
+                isActive
+                  ? isLight
+                    ? "bg-black/8"
+                    : isGame
+                    ? "bg-white/10"
+                    : "bg-[#0bd1a2]/10"
+                  : ""
+              }`}>
+                <span className={`w-[50px] ${isActive
+                  ? isLight ? "text-black font-semibold" : isGame ? "text-white font-semibold" : "text-[#0bd1a2] font-semibold"
+                  : mutedColor
+                }`}>{label}</span>
+                <span className={`w-[55px] text-right font-medium ${textColor}`}>{formatAda(value)}</span>
+                <span className={`font-medium ${textColor}`}>{pct.toFixed(1)}%</span>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

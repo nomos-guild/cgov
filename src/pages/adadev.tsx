@@ -88,12 +88,9 @@ function DashboardPage() {
             <ChartColorsProvider>
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 sm:mb-6 md:mb-8">
                 <div className="text-left">
-                  <h1 className="landing-title text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-2 sm:mb-3 md:mb-4 text-black dark:text-foreground">
+                  <h1 className="landing-title text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-black dark:text-foreground">
                     {t("dashboard.title")}
                   </h1>
-                  <p className="landing-subtitle text-muted-foreground text-sm sm:text-base md:text-lg">
-                    {t("dashboard.subtitle")}
-                  </p>
                 </div>
                 <div className="flex items-center gap-3">
                   <DevelopmentRangeSelector />

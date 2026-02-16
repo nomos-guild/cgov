@@ -3,6 +3,7 @@ import * as d3 from "d3";
 import { useTranslations } from "next-intl";
 import { useTheme } from "@/lib/theme";
 import type { DRepSummary } from "@/types/drep";
+import { ZoomLens, LENS_W, LENS_CHART_H } from "@/components/dreps/ZoomLens";
 
 type ChartMetric = "votingPower" | "delegators";
 
@@ -11,6 +12,7 @@ interface DRepBubbleMapProps {
   metric: ChartMetric;
   topN?: number | null;
   rationaleMap: Map<string, number>;
+  highlightedIds?: Set<string>;
 }
 
 interface DRepBubble {
@@ -56,8 +58,9 @@ function getMetricValue(drep: DRepSummary, metric: ChartMetric): number {
 
 const SVG_WIDTH = 800;
 const SVG_HEIGHT = 600;
+const LENS_SCALE = 2.8;
 
-export function DRepBubbleMap({ dreps, metric, topN, rationaleMap }: DRepBubbleMapProps) {
+export function DRepBubbleMap({ dreps, metric, topN, rationaleMap, highlightedIds }: DRepBubbleMapProps) {
   const t = useTranslations("drep");
   const { theme, activeTheme } = useTheme();
   const isDark = theme === "dark";
@@ -66,6 +69,7 @@ export function DRepBubbleMap({ dreps, metric, topN, rationaleMap }: DRepBubbleM
   const containerRef = useRef<HTMLDivElement>(null);
   const [hoveredBubble, setHoveredBubble] = useState<{ bubble: DRepBubble; x: number; y: number } | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const hasHighlight = highlightedIds != null && highlightedIds.size > 0;
 
   // Always flat hierarchy — positions stay fixed regardless of topN
   const bubbles = useMemo(() => {
@@ -119,6 +123,12 @@ export function DRepBubbleMap({ dreps, metric, topN, rationaleMap }: DRepBubbleM
     return resultBubbles;
   }, [dreps, metric, isLight, isDark]);
 
+  // Zoom lens: find first highlighted bubble and position lens in farthest corner
+  const lensTarget = useMemo(() => {
+    if (!hasHighlight || !bubbles.length) return null;
+    return bubbles.find((b) => highlightedIds!.has(b.drep.drepId)) ?? null;
+  }, [bubbles, highlightedIds, hasHighlight]);
+
   const handleMouseEnter = (bubble: DRepBubble, event: React.MouseEvent<SVGCircleElement>) => {
     if (containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
@@ -138,7 +148,8 @@ export function DRepBubbleMap({ dreps, metric, topN, rationaleMap }: DRepBubbleM
   if (!dreps.length) return null;
 
   return (
-    <div ref={containerRef} className="w-full relative overflow-hidden" onMouseLeave={handleMouseLeave}>
+    <div ref={containerRef} className="w-full relative overflow-visible" onMouseLeave={handleMouseLeave}>
+      <div className="overflow-hidden">
       <svg
         viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`}
         className="w-full h-auto max-h-[500px] sm:max-h-[700px]"
@@ -233,6 +244,8 @@ export function DRepBubbleMap({ dreps, metric, topN, rationaleMap }: DRepBubbleM
           {/* Render hovered bubble last so it paints on top */}
           {(hoveredId ? [...bubbles].sort((a, b) => a.drep.drepId === hoveredId ? 1 : b.drep.drepId === hoveredId ? -1 : 0) : bubbles).map((bubble) => {
             const isHovered = hoveredId === bubble.drep.drepId;
+            const isHighlighted = hasHighlight && highlightedIds!.has(bubble.drep.drepId);
+            const isDimmedBySearch = hasHighlight && !isHighlighted;
             const scale = isHovered ? 1.08 : 1;
             const color = generateColor(bubble.rank - 1, dreps.length);
 
@@ -268,7 +281,8 @@ export function DRepBubbleMap({ dreps, metric, topN, rationaleMap }: DRepBubbleM
                 key={bubble.drep.drepId}
                 style={{
                   transform: `translate(${bubble.x}px, ${bubble.y}px) scale(${scale}) translate(${-bubble.x}px, ${-bubble.y}px)`,
-                  transition: "transform 0.3s ease",
+                  transition: "transform 0.3s ease, opacity 0.3s ease",
+                  opacity: isDimmedBySearch ? 0.12 : 1,
                 }}
               >
                 <circle
@@ -286,6 +300,20 @@ export function DRepBubbleMap({ dreps, metric, topN, rationaleMap }: DRepBubbleM
                   }}
                   onMouseLeave={handleMouseLeave}
                 />
+                {isHighlighted && (
+                  <circle
+                    cx={bubble.x}
+                    cy={bubble.y}
+                    r={bubble.radius + 3}
+                    fill="none"
+                    stroke={isGame ? "#ffd700" : isDark ? "#0bd1a2" : color}
+                    strokeWidth={2.5}
+                    className="pointer-events-none"
+                  >
+                    <animate attributeName="opacity" values="0.9;0.3;0.9" dur="1.5s" repeatCount="indefinite" />
+                    <animate attributeName="r" values={`${bubble.radius + 2};${bubble.radius + 5};${bubble.radius + 2}`} dur="1.5s" repeatCount="indefinite" />
+                  </circle>
+                )}
                 {showLabel && (
                   <text
                     x={bubble.x}
@@ -304,7 +332,82 @@ export function DRepBubbleMap({ dreps, metric, topN, rationaleMap }: DRepBubbleM
             );
           })}
         </g>
+
+        {/* Zoom lens */}
+        {lensTarget && (
+          <ZoomLens
+            target={{ x: lensTarget.x, y: lensTarget.y, drep: lensTarget.drep, rank: lensTarget.rank }}
+            svgWidth={SVG_WIDTH}
+            svgHeight={SVG_HEIGHT}
+            isGame={isGame}
+            isDark={isDark}
+            isLight={isLight}
+            rationaleMap={rationaleMap}
+            idPrefix="bubble"
+          >
+            {(() => {
+              const scale = LENS_SCALE;
+              const lensX = lensTarget.x < SVG_WIDTH / 2 ? SVG_WIDTH - LENS_W - 16 : 16;
+              const lensY = lensTarget.y < SVG_HEIGHT / 2 ? SVG_HEIGHT - (LENS_CHART_H + 135) - 16 : 16;
+              return (
+                <g transform={`translate(${lensX + LENS_W / 2 - lensTarget.x * scale}, ${lensY + LENS_CHART_H / 2 - lensTarget.y * scale}) scale(${scale})`}>
+                  {bubbles.map((bubble) => {
+                    const isMatch = highlightedIds!.has(bubble.drep.drepId);
+                    const lensColor = generateColor(bubble.rank - 1, dreps.length);
+                    const hasAvatar = isMatch && bubble.drep.iconUrl;
+                    const avatarR = 18;
+                    return (
+                      <g key={`lens-${bubble.drep.drepId}`}>
+                        {hasAvatar ? (
+                          <>
+                            <defs>
+                              <clipPath id={`lens-avatar-${bubble.drep.drepId}`}>
+                                <circle cx={bubble.x} cy={bubble.y} r={avatarR} />
+                              </clipPath>
+                            </defs>
+                            <image
+                              href={bubble.drep.iconUrl!}
+                              x={bubble.x - avatarR}
+                              y={bubble.y - avatarR}
+                              width={avatarR * 2}
+                              height={avatarR * 2}
+                              clipPath={`url(#lens-avatar-${bubble.drep.drepId})`}
+                              preserveAspectRatio="xMidYMid slice"
+                            />
+                            <circle
+                              cx={bubble.x}
+                              cy={bubble.y}
+                              r={avatarR}
+                              fill="none"
+                              stroke={isGame ? "#ffd700" : isDark ? "#0bd1a2" : lensColor}
+                              strokeWidth={1.5}
+                            />
+                          </>
+                        ) : (
+                          <circle
+                            cx={bubble.x}
+                            cy={bubble.y}
+                            r={bubble.radius}
+                            fill={isMatch
+                              ? (isGame ? "rgba(40,40,40,0.9)" : isDark ? "rgba(11,209,162,0.15)" : "#ffffff")
+                              : (isGame ? "rgba(20,20,20,0.4)" : isDark ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.5)")}
+                            stroke={isMatch
+                              ? (isGame ? "#ffd700" : isDark ? "#0bd1a2" : lensColor)
+                              : (isGame ? "rgba(255,255,255,0.06)" : isDark ? "rgba(11,209,162,0.2)" : `${lensColor}40`)}
+                            strokeWidth={isMatch ? 1.5 : 0.5}
+                            opacity={isMatch ? 1 : 0.3}
+                          />
+                        )}
+                      </g>
+                    );
+                  })}
+                </g>
+              );
+            })()}
+          </ZoomLens>
+        )}
       </svg>
+      </div>
       {hoveredBubble && (
         <div
           className={
@@ -314,7 +417,7 @@ export function DRepBubbleMap({ dreps, metric, topN, rationaleMap }: DRepBubbleM
           }
           style={{
             left: `${hoveredBubble.x + 15}px`,
-            top: `${Math.max(8, hoveredBubble.y - 14)}px`,
+            top: `${hoveredBubble.y - 14}px`,
             transform: "translateY(-100%)",
           }}
         >

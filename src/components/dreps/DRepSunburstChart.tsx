@@ -1,7 +1,7 @@
 import { useMemo, useState, useRef, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { useTranslations, useLocale } from "next-intl";
-import { Search } from "lucide-react";
+import { Search, Download } from "lucide-react";
 import { useTheme } from "@/lib/theme";
 import type { DRepSummary } from "@/types/drep";
 import { Input } from "@/components/ui/input";
@@ -53,6 +53,8 @@ export function DRepSunburstChart({ className, initialDreps, view = "all" }: DRe
   const [powerSort, setPowerSort] = useState<string>("none");
   const [delegatorSort, setDelegatorSort] = useState<string>("none");
   const [votesSort, setVotesSort] = useState<string>("none");
+  const [downloadMenuOpen, setDownloadMenuOpen] = useState(false);
+  const downloadMenuRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const rowsContainerRef = useRef<HTMLDivElement>(null);
 
@@ -104,42 +106,39 @@ export function DRepSunburstChart({ className, initialDreps, view = "all" }: DRe
     return map;
   }, [voteChangeStats]);
 
-  // Filter dreps: exclude 0 voting power or 0 votes cast, apply search, then sort
-  const filteredDreps = useMemo(() => {
+  // All valid DReps sorted (no search filter) — used by charts
+  const chartDreps = useMemo(() => {
     const nonZero = dreps.filter((drep) => drep.votingPowerAda > 0 && drep.totalVotesCast > 0);
-    const searched = searchTerm.trim()
-      ? nonZero.filter((drep) => {
-          const term = searchTerm.toLowerCase();
-          return (drep.name?.toLowerCase().includes(term)) || drep.drepId.toLowerCase().includes(term);
-        })
-      : nonZero;
 
-    // Apply explicit sort from dropdowns (first non-default wins)
-    if (powerSort === "high") {
-      return [...searched].sort((a, b) => b.votingPowerAda - a.votingPowerAda);
-    }
-    if (powerSort === "low") {
-      return [...searched].sort((a, b) => a.votingPowerAda - b.votingPowerAda);
-    }
-    if (delegatorSort === "most") {
-      return [...searched].sort((a, b) => (b.delegatorCount ?? 0) - (a.delegatorCount ?? 0));
-    }
-    if (delegatorSort === "fewest") {
-      return [...searched].sort((a, b) => (a.delegatorCount ?? 0) - (b.delegatorCount ?? 0));
-    }
-    if (votesSort === "most") {
-      return [...searched].sort((a, b) => b.totalVotesCast - a.totalVotesCast);
-    }
-    if (votesSort === "fewest") {
-      return [...searched].sort((a, b) => a.totalVotesCast - b.totalVotesCast);
-    }
+    if (powerSort === "high") return [...nonZero].sort((a, b) => b.votingPowerAda - a.votingPowerAda);
+    if (powerSort === "low") return [...nonZero].sort((a, b) => a.votingPowerAda - b.votingPowerAda);
+    if (delegatorSort === "most") return [...nonZero].sort((a, b) => (b.delegatorCount ?? 0) - (a.delegatorCount ?? 0));
+    if (delegatorSort === "fewest") return [...nonZero].sort((a, b) => (a.delegatorCount ?? 0) - (b.delegatorCount ?? 0));
+    if (votesSort === "most") return [...nonZero].sort((a, b) => b.totalVotesCast - a.totalVotesCast);
+    if (votesSort === "fewest") return [...nonZero].sort((a, b) => a.totalVotesCast - b.totalVotesCast);
+    if (chartMetric === "delegators") return [...nonZero].sort((a, b) => (b.delegatorCount ?? 0) - (a.delegatorCount ?? 0));
+    return nonZero;
+  }, [dreps, chartMetric, powerSort, delegatorSort, votesSort]);
 
-    // Fallback: sort by chart metric so charts reflect correct ranking
-    if (chartMetric === "delegators") {
-      return [...searched].sort((a, b) => (b.delegatorCount ?? 0) - (a.delegatorCount ?? 0));
-    }
-    return searched; // already sorted by votingPower from the hook
-  }, [dreps, searchTerm, chartMetric, powerSort, delegatorSort, votesSort]);
+  // DRep IDs matching the search (empty set when no search)
+  const highlightedIds = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) return new Set<string>();
+    return new Set(
+      chartDreps
+        .filter((drep) => drep.name?.toLowerCase().includes(term) || drep.drepId.toLowerCase().includes(term))
+        .map((drep) => drep.drepId)
+    );
+  }, [chartDreps, searchTerm]);
+
+  // Search-filtered DReps — used by table/list view + stats
+  const filteredDreps = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) return chartDreps;
+    return chartDreps.filter((drep) =>
+      drep.name?.toLowerCase().includes(term) || drep.drepId.toLowerCase().includes(term)
+    );
+  }, [chartDreps, searchTerm]);
 
   // Aggregated stats for the selection (top-N or all)
   const selectionStats = useMemo(() => {
@@ -198,6 +197,18 @@ export function DRepSunburstChart({ className, initialDreps, view = "all" }: DRe
     return () => container.removeEventListener("scroll", handleScroll);
   }, [handleScroll]);
 
+  // Close download menu on outside click
+  useEffect(() => {
+    if (!downloadMenuOpen) return;
+    const onClick = (e: MouseEvent) => {
+      if (downloadMenuRef.current && !downloadMenuRef.current.contains(e.target as Node)) {
+        setDownloadMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [downloadMenuOpen]);
+
   if (isLoading) {
     return (
       <div className={className}>
@@ -244,6 +255,29 @@ export function DRepSunburstChart({ className, initialDreps, view = "all" }: DRe
       {view !== "list" && <div className="flex flex-col sm:flex-row gap-4">
         {/* Left column: controls + summary */}
         <div className="flex flex-col gap-4 sm:w-[230px] sm:flex-shrink-0">
+        {/* Search card */}
+        <div className={`${cardClass} flex flex-col gap-2`}>
+          <p className={`text-[10px] font-semibold uppercase tracking-wide ${isGame ? "text-white/50" : "text-muted-foreground"}`}>
+            {tCommon("search")}
+          </p>
+          <div className="relative">
+            <Search className={cn("absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 transform", isGame ? "text-white/50" : "text-muted-foreground")} />
+            <Input
+              placeholder={t("drep.searchPlaceholder")}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className={cn("pl-8 h-8 text-xs", isGame ? "game-nav-input" : "filter-input")}
+            />
+          </div>
+          {searchTerm && (
+            <p className={`text-xs ${isGame ? "text-white/60" : "text-muted-foreground"}`}>
+              {filteredDreps.length === 1
+                ? t("drep.found", { count: filteredDreps.length })
+                : t("drep.foundPlural", { count: filteredDreps.length })}
+            </p>
+          )}
+        </div>
+
         {/* Controls card */}
         <div className={`${cardClass} flex flex-col gap-3`}>
           <div>
@@ -373,37 +407,41 @@ export function DRepSunburstChart({ className, initialDreps, view = "all" }: DRe
             {chartType === "bubble" && (
               <DRepBubbleMap
                 key={chartMetric}
-                dreps={filteredDreps}
+                dreps={chartDreps}
                 metric={chartMetric}
                 topN={topN}
                 rationaleMap={rationaleMap}
+                highlightedIds={highlightedIds}
               />
             )}
             {chartType === "treemap" && (
               <DRepTreeMap
                 key={chartMetric}
-                dreps={filteredDreps}
+                dreps={chartDreps}
                 metric={chartMetric}
                 topN={topN}
                 rationaleMap={rationaleMap}
+                highlightedIds={highlightedIds}
               />
             )}
             {chartType === "donut" && (
               <DRepDonutChart
                 key={chartMetric}
-                dreps={filteredDreps}
+                dreps={chartDreps}
                 metric={chartMetric}
                 topN={topN}
                 rationaleMap={rationaleMap}
+                highlightedIds={highlightedIds}
               />
             )}
             {chartType === "scatter" && (
               <DRepScatterPlot
                 key={chartMetric}
-                dreps={filteredDreps}
+                dreps={chartDreps}
                 metric={chartMetric}
                 topN={topN}
                 rationaleMap={rationaleMap}
+                highlightedIds={highlightedIds}
               />
             )}
           </div>
@@ -434,7 +472,7 @@ export function DRepSunburstChart({ className, initialDreps, view = "all" }: DRe
         <div className="flex flex-wrap gap-2 sm:gap-3 md:gap-4">
           {/* Search Card */}
           <div className={cn(
-            "w-full sm:flex-1 sm:min-w-[300px] p-2.5 sm:p-3 md:p-4",
+            "w-full sm:w-auto sm:min-w-[300px] sm:flex-1 p-2.5 sm:p-3 md:p-4",
             isGame
               ? "game-detail-card"
               : "rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
@@ -466,7 +504,7 @@ export function DRepSunburstChart({ className, initialDreps, view = "all" }: DRe
           )}>
             <div className="flex flex-wrap gap-2 sm:gap-3 md:gap-4">
               {/* Sort by Voting Power */}
-              <div className="flex-1 min-w-[140px]">
+              <div className="flex-1 min-w-[100px]">
                 {isGame ? (
                   <GameDropdown
                     value={powerSort}
@@ -492,7 +530,7 @@ export function DRepSunburstChart({ className, initialDreps, view = "all" }: DRe
               </div>
 
               {/* Sort by Delegators */}
-              <div className="flex-1 min-w-[140px]">
+              <div className="flex-1 min-w-[100px]">
                 {isGame ? (
                   <GameDropdown
                     value={delegatorSort}
@@ -518,7 +556,7 @@ export function DRepSunburstChart({ className, initialDreps, view = "all" }: DRe
               </div>
 
               {/* Sort by Votes Cast */}
-              <div className="flex-1 min-w-[140px]">
+              <div className="flex-1 min-w-[100px]">
                 {isGame ? (
                   <GameDropdown
                     value={votesSort}
@@ -544,29 +582,47 @@ export function DRepSunburstChart({ className, initialDreps, view = "all" }: DRe
               </div>
 
               {/* Download DRep List */}
-              <div className="flex-1 min-w-[140px]">
-                {isGame ? (
-                  <GameDropdown
-                    value=""
-                    onValueChange={onExportFormat}
-                    placeholder={tDownload("downloadDRepList")}
-                    options={[
-                      { value: "json", label: tDownload("json") },
-                      { value: "markdown", label: tDownload("markdown") },
-                      { value: "csv", label: tDownload("csv") },
-                    ]}
-                  />
-                ) : (
-                  <Select value="" onValueChange={onExportFormat}>
-                    <SelectTrigger className="btn-neon ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:ring-offset-0 focus:border-black data-[state=open]:ring-0 data-[state=open]:ring-transparent data-[state=open]:ring-offset-0 data-[state=open]:border-black dark:focus:border-[#0bd1a2] dark:data-[state=open]:border-[#0bd1a2] [&>span]:truncate">
-                      <SelectValue placeholder={tDownload("downloadDRepList")} />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-none dark:border dark:border-[#0bd1a2] dark:bg-black dark:text-[#0bd1a2] dark:rounded-none">
-                      <SelectItem className={selectItemClass} value="json">{tDownload("json")}</SelectItem>
-                      <SelectItem className={selectItemClass} value="markdown">{tDownload("markdown")}</SelectItem>
-                      <SelectItem className={selectItemClass} value="csv">{tDownload("csv")}</SelectItem>
-                    </SelectContent>
-                  </Select>
+              <div ref={downloadMenuRef} className="relative flex items-center">
+                <button
+                  type="button"
+                  onClick={() => setDownloadMenuOpen((v) => !v)}
+                  className={cn(
+                    "flex items-center justify-center w-9 h-9 rounded-full border transition-colors",
+                    isGame
+                      ? "border-white/20 bg-black/50 text-white/80 hover:bg-white/10"
+                      : "border-gray-300 bg-white text-gray-600 hover:bg-gray-100 dark:border-[#0bd1a2]/40 dark:bg-transparent dark:text-[#0bd1a2] dark:hover:bg-[#0bd1a2]/10"
+                  )}
+                  title={tDownload("downloadDRepList")}
+                >
+                  <Download className="w-4 h-4" />
+                </button>
+
+                {downloadMenuOpen && (
+                  <div className={cn(
+                    "absolute top-full right-0 mt-2 z-50 min-w-[160px] py-1 shadow-lg",
+                    isGame
+                      ? "bg-black/90 border border-white/20 text-white"
+                      : "bg-white border border-gray-200 dark:bg-black dark:border-[#0bd1a2] dark:text-[#0bd1a2]"
+                  )}>
+                    {(["csv", "json", "markdown"] as const).map((fmt) => (
+                      <button
+                        key={fmt}
+                        type="button"
+                        className={cn(
+                          "w-full px-3 py-1.5 text-sm text-left transition-colors",
+                          isGame
+                            ? "hover:bg-white/10"
+                            : "hover:bg-gray-100 dark:hover:bg-[#0bd1a2]/10"
+                        )}
+                        onClick={() => {
+                          setDownloadMenuOpen(false);
+                          onExportFormat(fmt);
+                        }}
+                      >
+                        {tDownload(fmt)}
+                      </button>
+                    ))}
+                  </div>
                 )}
               </div>
             </div>

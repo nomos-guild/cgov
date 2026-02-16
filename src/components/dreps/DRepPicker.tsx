@@ -234,9 +234,11 @@ export default function DRepPicker({ initialDreps }: DRepPickerProps) {
       <div className="w-full lg:w-[320px] flex-shrink-0 flex flex-col gap-4">
         {/* Chart card */}
         <div className={`${chartCardClass} p-4 sm:p-6 min-h-[280px] flex items-center justify-center`}>
-          <span className={`text-xs ${isGame ? "text-white/30" : "text-muted-foreground/50"}`}>
-            {/* Chart placeholder */}
-          </span>
+          <img
+            src={isLight ? "/images/Cardano-RGB_Logo-Icon-Black.svg" : "/images/Cardano-RGB_Logo-Icon-White.svg"}
+            alt="Cardano"
+            className={`w-36 h-36 ${isLight ? "opacity-15" : isGame ? "opacity-10" : "opacity-15"}`}
+          />
         </div>
 
         {/* Filters */}
