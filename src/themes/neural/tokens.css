@@ -360,13 +360,13 @@
 }
 
 [data-theme="neural"] .voting-record-row.first-row,
-[data-theme="neural"] .voting-record-row.first-row * {
+[data-theme="neural"] .voting-record-row.first-row *:not(a):not(button):not(.btn-neon):not(.btn-neon *) {
   color: #000 !important;
   font-weight: 700;
 }
 
 [data-theme="neural"] .voting-record-row.vote-no-row,
-[data-theme="neural"] .voting-record-row.vote-no-row * {
+[data-theme="neural"] .voting-record-row.vote-no-row *:not(a):not(button):not(.btn-neon):not(.btn-neon *) {
   color: hsl(var(--destructive)) !important;
 }
 
