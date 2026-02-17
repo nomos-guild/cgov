@@ -253,19 +253,6 @@ src/
 └── themes/                     # Theme CSS tokens (light, dark, game)
 ```
 
-## Known Issues & Considerations
-
-### Resolved
-
-1. **HardFork DRep Eligibility** — Fixed: DReps DO vote on Hard Forks with 60% threshold per Conway Ledger spec (Fig. 42)
-2. **UpdateCommittee CC State** — Documented: Threshold varies based on CC state (67% normal, 60% no-confidence). Backend provides CC confidence state
-3. **SPO Percentage Bug** — Backend bug confirmed (see [spo-percentage-bug-investigation.md](spo-percentage-bug-investigation.md))
-4. **Mesh SDK Bundle Crash** — Fixed: Runtime `import()` gated by Web Crypto availability
-
-### Low Priority
-
-1. **Threshold Validation** — Frontend trusts backend thresholds without validation
-2. **Protocol Parameter Subgroups** — No distinction between governance group (75%) and other groups (67%)
 
 ## Related Documentation
 
