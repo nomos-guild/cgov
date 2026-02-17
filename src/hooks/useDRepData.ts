@@ -615,6 +615,8 @@ interface DRepRationaleStatsResponse {
     totalVotesCast: number;
     rationalesProvided: number;
     proposalParticipationPercent: number;
+    uniqueProposals: number;
+    voteChanges: number;
   }>;
 }
 
@@ -644,36 +646,3 @@ export function useDRepRationaleStats(initialData?: DRepRationaleStatsResponse["
   };
 }
 
-/** Response from /api/dreps/vote-changes */
-interface DRepVoteChangesResponse {
-  dreps: Array<{
-    drepId: string;
-    uniqueProposals: number;
-    voteChanges: number;
-  }>;
-}
-
-/**
- * Hook to fetch aggregated vote-change stats for ALL DReps.
- * Returns how many times each DRep changed their vote on proposals.
- */
-export function useDRepVoteChanges(initialData?: DRepVoteChangesResponse["dreps"]) {
-  const fallback = initialData?.length ? { dreps: initialData } : undefined;
-  const { data, error, isLoading, mutate } = useSWR<DRepVoteChangesResponse>(
-    API_ENDPOINTS.drepVoteChanges,
-    fetcher,
-    {
-      fallbackData: fallback,
-      revalidateOnFocus: false,
-      revalidateOnReconnect: true,
-      dedupingInterval: 300000, // 5 minutes
-    }
-  );
-
-  return {
-    dreps: data?.dreps || [],
-    isLoading: !fallback && isLoading,
-    error: error?.message || null,
-    refresh: () => mutate(),
-  };
-}

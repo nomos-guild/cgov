@@ -7,7 +7,7 @@ import type { DRepSummary } from "@/types/drep";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { GameDropdown } from "@/components/ui/game-dropdown";
-import { useAllDReps, useDRepStats, useDRepRationaleStats, useDRepVoteChanges } from "@/hooks/useDRepData";
+import { useAllDReps, useDRepStats, useDRepRationaleStats } from "@/hooks/useDRepData";
 import { DRepBubbleMap } from "@/components/dreps/DRepBubbleMap";
 import { DRepTreeMap } from "@/components/dreps/DRepTreeMap";
 import { DRepDonutChart } from "@/components/dreps/DRepDonutChart";
@@ -36,11 +36,12 @@ function formatVotingPower(value: number, decimals: number = 1): string {
 interface DRepSunburstChartProps {
   className?: string;
   initialDreps?: DRepSummary[];
+  initialRationaleStats?: Array<{ drepId: string; totalVotesCast: number; rationalesProvided: number; proposalParticipationPercent: number; uniqueProposals: number; voteChanges: number }>;
   /** Which sections to show: "all" (default), "chart" (chart + controls only), "list" (table only) */
   view?: "all" | "chart" | "list";
 }
 
-export function DRepSunburstChart({ className, initialDreps, view = "all" }: DRepSunburstChartProps) {
+export function DRepSunburstChart({ className, initialDreps, initialRationaleStats, view = "all" }: DRepSunburstChartProps) {
   const t = useTranslations();
   const { activeTheme } = useTheme();
   const isGame = activeTheme.id === "game";
@@ -87,7 +88,7 @@ export function DRepSunburstChart({ className, initialDreps, view = "all" }: DRe
   const totalVotingPower = stats?.totalDelegatedAda || 0;
 
   // Rationale stats (keyed by drepId for fast lookup)
-  const { dreps: rationaleStats } = useDRepRationaleStats();
+  const { dreps: rationaleStats } = useDRepRationaleStats(initialRationaleStats);
   const rationaleMap = useMemo(() => {
     const map = new Map<string, number>();
     for (const d of rationaleStats) {
@@ -96,15 +97,14 @@ export function DRepSunburstChart({ className, initialDreps, view = "all" }: DRe
     return map;
   }, [rationaleStats]);
 
-  // Vote change stats (keyed by drepId)
-  const { dreps: voteChangeStats } = useDRepVoteChanges();
+  // Vote change stats (derived from rationale stats)
   const voteChangesMap = useMemo(() => {
     const map = new Map<string, number>();
-    for (const d of voteChangeStats) {
+    for (const d of rationaleStats) {
       map.set(d.drepId, d.voteChanges);
     }
     return map;
-  }, [voteChangeStats]);
+  }, [rationaleStats]);
 
   // All valid DReps sorted (no search filter) — used by charts
   const chartDreps = useMemo(() => {

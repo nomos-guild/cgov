@@ -3,13 +3,14 @@ import { useTranslations } from "next-intl";
 
 import type { DRepSummary } from "@/types/drep";
 import { useTheme } from "@/lib/theme";
-import { useAllDReps, useDRepRationaleStats, useDRepVoteChanges } from "@/hooks/useDRepData";
+import { useAllDReps, useDRepRationaleStats } from "@/hooks/useDRepData";
 import DRepPickerFilters from "@/components/dreps/DRepPickerFilters";
 import DRepPickerResults from "@/components/dreps/DRepPickerResults";
 import type { EnrichedDRep } from "@/components/dreps/DRepPickerResults";
 
 interface DRepPickerProps {
   initialDreps?: DRepSummary[];
+  initialRationaleStats?: Array<{ drepId: string; totalVotesCast: number; rationalesProvided: number; proposalParticipationPercent: number; uniqueProposals: number; voteChanges: number }>;
 }
 
 function formatVotingPower(value: number, decimals: number = 1): string {
@@ -33,40 +34,35 @@ function toPos(fraction: number): number {
 }
 
 
-export default function DRepPicker({ initialDreps }: DRepPickerProps) {
+export default function DRepPicker({ initialDreps, initialRationaleStats }: DRepPickerProps) {
   const t = useTranslations("drep");
   const { activeTheme } = useTheme();
   const isGame = activeTheme.id === "game";
   const isLight = activeTheme.id === "light" || activeTheme.id === "neural";
 
-  // Data hooks — rationaleStats & voteChanges fetched client-side only (too slow for ISR)
+  // Data hooks — rationaleStats seeded from ISR, revalidated client-side via SWR
   const { dreps: allDreps, isLoading: loadingDreps } = useAllDReps({}, initialDreps);
-  const { dreps: rationaleStats, isLoading: loadingRationale } = useDRepRationaleStats();
-  const { dreps: voteChangeStats, isLoading: loadingChanges } = useDRepVoteChanges();
+  const { dreps: rationaleStats, isLoading: loadingRationale } = useDRepRationaleStats(initialRationaleStats);
 
-  const isLoading = loadingDreps || loadingRationale || loadingChanges;
+  const isLoading = loadingDreps || loadingRationale;
 
-  // Enrich DRep data by joining the 3 sources
+  // Enrich DRep data by joining DRep list + rationale stats (which now includes vote changes)
   const enrichedDreps = useMemo(() => {
     if (!allDreps.length) return [];
 
-    const rationaleMap = new Map<string, { rationalesProvided: number; participationPercent: number; totalVotesCast: number }>();
+    const rationaleMap = new Map<string, { rationalesProvided: number; participationPercent: number; totalVotesCast: number; uniqueProposals: number; voteChanges: number }>();
     for (const r of rationaleStats) {
       rationaleMap.set(r.drepId, {
         rationalesProvided: r.rationalesProvided,
         participationPercent: r.proposalParticipationPercent,
         totalVotesCast: r.totalVotesCast,
+        uniqueProposals: r.uniqueProposals,
+        voteChanges: r.voteChanges,
       });
-    }
-
-    const voteChangeMap = new Map<string, { uniqueProposals: number; voteChanges: number }>();
-    for (const v of voteChangeStats) {
-      voteChangeMap.set(v.drepId, { uniqueProposals: v.uniqueProposals, voteChanges: v.voteChanges });
     }
 
     return allDreps.map((d): EnrichedDRep => {
       const rationale = rationaleMap.get(d.drepId);
-      const changes = voteChangeMap.get(d.drepId);
       const votes = rationale?.totalVotesCast ?? d.totalVotesCast;
 
       return {
@@ -80,12 +76,12 @@ export default function DRepPicker({ initialDreps }: DRepPickerProps) {
         rationalePercent: votes > 0 && rationale
           ? (rationale.rationalesProvided / votes) * 100
           : 0,
-        flexibilityPercent: changes && changes.uniqueProposals > 0
-          ? (changes.voteChanges / changes.uniqueProposals) * 100
+        flexibilityPercent: rationale && rationale.uniqueProposals > 0
+          ? (rationale.voteChanges / rationale.uniqueProposals) * 100
           : 0,
       };
     });
-  }, [allDreps, rationaleStats, voteChangeStats]);
+  }, [allDreps, rationaleStats]);
 
   // Compute bounds + percentile breakpoints from data
   const bounds = useMemo(() => {
