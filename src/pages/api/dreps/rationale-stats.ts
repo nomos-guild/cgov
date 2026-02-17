@@ -4,17 +4,34 @@ import { callApi } from "@/utils/apiHelper";
 /**
  * Aggregated DRep rationale statistics + vote-change counts
  *
- * Fetches all DRep pages + their details server-side and returns
- * per-DRep { drepId, totalVotesCast, rationalesProvided, uniqueProposals, voteChanges }
- * sorted by voting power descending.
+ * Fetches all DRep pages + details for DReps with votes, and returns
+ * per-DRep { drepId, totalVotesCast, rationalesProvided, uniqueProposals, voteChanges }.
  *
- * Vote changes are derived from totalVotesCast and proposalParticipationPercent
- * (which are already on the detail response), plus the total proposal count
- * (1 extra API call). This eliminates the old N+1 vote-changes endpoint.
+ * Optimization: DReps with 0 votes (typically ~half) are returned with
+ * zeroed stats immediately — no detail fetch needed. This cuts the N+1
+ * from ~1500 detail calls to ~700.
  *
- * One client call replaces hundreds of individual detail fetches.
  * Cached for 5 minutes with stale-while-revalidate.
  */
+
+type DRepStatResult = {
+  drepId: string;
+  totalVotesCast: number;
+  rationalesProvided: number;
+  proposalParticipationPercent: number;
+  uniqueProposals: number;
+  voteChanges: number;
+};
+
+const ZERO_STATS = (drepId: string): DRepStatResult => ({
+  drepId,
+  totalVotesCast: 0,
+  rationalesProvided: 0,
+  proposalParticipationPercent: 0,
+  uniqueProposals: 0,
+  voteChanges: 0,
+});
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -40,7 +57,7 @@ export default async function handler(
     const totalProposals = Array.isArray(proposalsData) ? proposalsData.length : 0;
 
     // 2. Fetch remaining DRep pages in parallel
-    const allDreps = [...firstData.dreps];
+    const allDreps: Array<{ drepId: string; totalVotesCast?: number }> = [...firstData.dreps];
 
     if (totalPages > 1) {
       const remaining = Array.from({ length: totalPages - 1 }, (_, i) => i + 2);
@@ -57,21 +74,20 @@ export default async function handler(
       for (const page of pages) allDreps.push(...page);
     }
 
-    // 3. Fetch details for every DRep in parallel batches
-    const batchSize = 20;
-    const results: {
-      drepId: string;
-      totalVotesCast: number;
-      rationalesProvided: number;
-      proposalParticipationPercent: number;
-      uniqueProposals: number;
-      voteChanges: number;
-    }[] = [];
+    // 3. Split: DReps with votes need detail fetch; zero-vote DReps get zeroed stats
+    const withVotes = allDreps.filter((d) => (d.totalVotesCast ?? 0) > 0);
+    const withoutVotes = allDreps.filter((d) => (d.totalVotesCast ?? 0) === 0);
 
-    for (let i = 0; i < allDreps.length; i += batchSize) {
-      const batch = allDreps.slice(i, i + batchSize);
+    const zeroResults = withoutVotes.map((d) => ZERO_STATS(d.drepId));
+
+    // 4. Fetch details only for DReps with votes — bigger batches for speed
+    const batchSize = 50;
+    const fetchedResults: DRepStatResult[] = [];
+
+    for (let i = 0; i < withVotes.length; i += batchSize) {
+      const batch = withVotes.slice(i, i + batchSize);
       const details = await Promise.all(
-        batch.map(async (drep: { drepId: string }) => {
+        batch.map(async (drep) => {
           try {
             const r = await callApi({
               endpoint: `/dreps/${encodeURIComponent(drep.drepId)}`,
@@ -92,18 +108,11 @@ export default async function handler(
               voteChanges: Math.max(0, totalVotes - uniqueProposals),
             };
           } catch {
-            return {
-              drepId: drep.drepId,
-              totalVotesCast: 0,
-              rationalesProvided: 0,
-              proposalParticipationPercent: 0,
-              uniqueProposals: 0,
-              voteChanges: 0,
-            };
+            return ZERO_STATS(drep.drepId);
           }
         })
       );
-      results.push(...details);
+      fetchedResults.push(...details);
     }
 
     // Cache aggressively — this is an expensive endpoint
@@ -111,7 +120,7 @@ export default async function handler(
       "Cache-Control",
       "public, s-maxage=300, stale-while-revalidate=600"
     );
-    return res.status(200).json({ dreps: results });
+    return res.status(200).json({ dreps: [...fetchedResults, ...zeroResults] });
   } catch (error) {
     console.error("DRep rationale stats API error:", error);
     return res.status(500).json({ error: "Failed to fetch rationale stats" });

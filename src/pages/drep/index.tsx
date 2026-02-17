@@ -15,7 +15,6 @@ import { cn } from "@/lib/utils";
 import {
   fetchDRepStatsServer,
   fetchAllDRepsServer,
-  fetchDRepRationaleStatsServer,
   type DRepServerItem,
   type DRepRationaleStatItem,
 } from "@/lib/serverFetch";
@@ -247,16 +246,18 @@ export const getStaticProps: GetStaticProps<DRepDashboardPageProps> = async ({ l
   const messages = (await import(`@/messages/${locale ?? "en"}.json`)).default;
 
   try {
-    const [drepStats, allDreps, rationaleStats] = await Promise.all([
+    const [drepStats, allDreps] = await Promise.all([
       fetchDRepStatsServer(),
       fetchAllDRepsServer(),
-      fetchDRepRationaleStatsServer().catch(() => []),
     ]);
+    // NOTE: rationaleStats is NOT fetched at ISR time — the N+1 detail
+    // fetches for ~1500 DReps exceed Vercel's 60s build timeout.
+    // It loads client-side via SWR from /api/dreps/rationale-stats instead.
 
     return {
       props: {
         messages,
-        initialData: { drepStats, allDreps, rationaleStats },
+        initialData: { drepStats, allDreps, rationaleStats: [] },
       },
       revalidate: 60,
     };

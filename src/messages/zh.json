@@ -10,7 +10,8 @@
     "showMore": "显示更多{count}项",
     "showMoreProposals": "显示更多{count}个提案",
     "showMoreVotes": "显示更多{count}个投票",
-    "selected": "已选择{count}项"
+    "selected": "已选择{count}项",
+    "profile": "个人资料"
   },
   "meta": {
     "homeTitle": "CGOV - 卡达诺治理平台",

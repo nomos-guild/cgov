@@ -10,7 +10,8 @@
     "showMore": "Afficher {count} de plus",
     "showMoreProposals": "Afficher {count} propositions de plus",
     "showMoreVotes": "Afficher {count} votes de plus",
-    "selected": "{count} sélectionné(s)"
+    "selected": "{count} sélectionné(s)",
+    "profile": "Profil"
   },
   "meta": {
     "homeTitle": "CGOV - Plate-forme de gouvernance Cardano",

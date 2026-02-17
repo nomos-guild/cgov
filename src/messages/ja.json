@@ -10,7 +10,8 @@
     "showMore": "さらに{count}件表示",
     "showMoreProposals": "さらに{count}件の提案を表示",
     "showMoreVotes": "さらに{count}件の投票を表示",
-    "selected": "{count}件選択中"
+    "selected": "{count}件選択中",
+    "profile": "プロフィール"
   },
   "meta": {
     "homeTitle": "CGOV - カルダノ・ガバナンス・プラットフォーム",

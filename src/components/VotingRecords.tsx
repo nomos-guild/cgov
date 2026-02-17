@@ -11,6 +11,7 @@ import type { VoteRecord } from "@/types/governance";
 import { useAllDReps } from "@/hooks/useDRepData";
 import useSWR from "swr";
 import { Search, ChevronDown, ChevronRight, Copy, Check, Download } from "lucide-react";
+import Link from "next/link";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
@@ -821,9 +822,18 @@ export function VotingRecords({
                         </span>
                       )}
                     </div>
-                    <div className={cn("font-semibold text-xs truncate", isGame ? "text-white" : "dark:text-[#0bd1a2]")}>
-                      {formatVoterDisplayName(vote)}
-                    </div>
+                    {vote.voterType === "DRep" && (vote.voterId || vote.drepId) ? (
+                      <Link
+                        href={`/drep/${encodeURIComponent(vote.voterId || vote.drepId!)}`}
+                        className={cn("inline-flex items-center h-7 px-2 text-[10px] font-semibold truncate transition-colors", isGame ? "game-nav-btn" : "bg-white text-black hover:bg-black hover:text-white shadow-[0_8px_16px_rgba(15,23,42,0.2)] btn-neon")}
+                      >
+                        {formatVoterDisplayName(vote)}
+                      </Link>
+                    ) : (
+                      <div className={cn("font-semibold text-xs truncate", isGame ? "text-white" : "dark:text-[#0bd1a2]")}>
+                        {formatVoterDisplayName(vote)}
+                      </div>
+                    )}
                     <div className={cn("font-mono text-[9px] truncate", isGame ? "text-white/40" : "text-muted-foreground/70 dark:text-[#0bd1a2]/70")}>
                       {vote.voterId || vote.drepId || "—"}
                     </div>
@@ -914,9 +924,18 @@ export function VotingRecords({
                         <TableCell className="py-2 sm:py-3">
                           <div>
                             <div className="mb-0.5 sm:mb-1 flex flex-wrap items-center gap-1 sm:gap-2">
-                              <span className={cn("font-semibold text-xs sm:text-sm", isGame ? "text-white" : "dark:text-[#0bd1a2]")}>
-                                {formatVoterDisplayName(vote)}
-                              </span>
+                              {vote.voterType === "DRep" && (vote.voterId || vote.drepId) ? (
+                                <Link
+                                  href={`/drep/${encodeURIComponent(vote.voterId || vote.drepId!)}`}
+                                  className={cn("inline-flex items-center h-7 sm:h-8 px-2 sm:px-3 text-xs font-semibold transition-colors", isGame ? "game-nav-btn" : "bg-white text-black hover:bg-black hover:text-white shadow-[0_12px_30px_rgba(15,23,42,0.25)] btn-neon")}
+                                >
+                                  {formatVoterDisplayName(vote)}
+                                </Link>
+                              ) : (
+                                <span className={cn("font-semibold text-xs sm:text-sm", isGame ? "text-white" : "dark:text-[#0bd1a2]")}>
+                                  {formatVoterDisplayName(vote)}
+                                </span>
+                              )}
                               <Badge variant="outline" className={cn("px-1 sm:px-1.5 py-0 text-[10px] sm:text-xs", isGame ? "border-white/30 bg-transparent text-white/70" : "border-foreground/20 bg-transparent dark:text-[#0bd1a2] dark:border-[#0bd1a2] dark:bg-transparent")}>
                                 {vote.voterType}
                               </Badge>
@@ -1055,9 +1074,18 @@ export function VotingRecords({
                       </span>
                     )}
                   </div>
-                  <div className={cn("font-semibold text-xs truncate", isGame ? "text-white" : "dark:text-[#0bd1a2]")}>
-                    {item.name || item.id}
-                  </div>
+                  {item.role === "DRep" ? (
+                    <Link
+                      href={`/drep/${encodeURIComponent(item.id)}`}
+                      className={cn("inline-flex items-center h-7 px-2 text-[10px] font-semibold truncate transition-colors", isGame ? "game-nav-btn" : "bg-white text-black hover:bg-black hover:text-white shadow-[0_8px_16px_rgba(15,23,42,0.2)] btn-neon")}
+                    >
+                      {item.name || item.id}
+                    </Link>
+                  ) : (
+                    <div className={cn("font-semibold text-xs truncate", isGame ? "text-white" : "dark:text-[#0bd1a2]")}>
+                      {item.name || item.id}
+                    </div>
+                  )}
                   <div className={cn("font-mono text-[9px] truncate", isGame ? "text-white/40" : "text-muted-foreground/70 dark:text-[#0bd1a2]/70")}>
                     {item.id}
                   </div>
@@ -1123,9 +1151,18 @@ export function VotingRecords({
                       <TableCell className="py-2 sm:py-3">
                         <div>
                           <div className="mb-0.5 sm:mb-1 flex flex-wrap items-center gap-1 sm:gap-2">
-                            <span className={cn("font-semibold text-xs sm:text-sm", isGame ? "text-white" : "dark:text-[#0bd1a2]")}>
-                              {item.name || item.id}
-                            </span>
+                            {item.role === "DRep" ? (
+                              <Link
+                                href={`/drep/${encodeURIComponent(item.id)}`}
+                                className={cn("inline-flex items-center h-7 sm:h-8 px-2 sm:px-3 text-xs font-semibold transition-colors", isGame ? "game-nav-btn" : "bg-white text-black hover:bg-black hover:text-white shadow-[0_12px_30px_rgba(15,23,42,0.25)] btn-neon")}
+                              >
+                                {item.name || item.id}
+                              </Link>
+                            ) : (
+                              <span className={cn("font-semibold text-xs sm:text-sm", isGame ? "text-white" : "dark:text-[#0bd1a2]")}>
+                                {item.name || item.id}
+                              </span>
+                            )}
                             <Badge variant="outline" className={cn("px-1 sm:px-1.5 py-0 text-[10px] sm:text-xs", isGame ? "border-white/30 bg-transparent text-white/70" : "border-foreground/20 bg-transparent dark:text-[#0bd1a2] dark:border-[#0bd1a2] dark:bg-transparent")}>
                               {item.role}
                             </Badge>
