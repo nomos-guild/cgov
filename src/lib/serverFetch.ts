@@ -400,12 +400,25 @@ export async function fetchDRepRationaleStatsServer(): Promise<DRepRationaleStat
     ]);
     const totalProposals = Array.isArray(proposalsData) ? proposalsData.length : 0;
 
-    // 2. Fetch details for every DRep in parallel batches
-    const batchSize = 20;
-    const results: DRepRationaleStatItem[] = [];
+    // 2. Split: only DReps with votes need a detail fetch
+    const withVotes = allDrepItems.filter((d) => d.totalVotesCast > 0);
+    const zeroResults: DRepRationaleStatItem[] = allDrepItems
+      .filter((d) => d.totalVotesCast === 0)
+      .map((d) => ({
+        drepId: d.drepId,
+        totalVotesCast: 0,
+        rationalesProvided: 0,
+        proposalParticipationPercent: 0,
+        uniqueProposals: 0,
+        voteChanges: 0,
+      }));
 
-    for (let i = 0; i < allDrepItems.length; i += batchSize) {
-      const batch = allDrepItems.slice(i, i + batchSize);
+    // 3. Fetch details for DReps with votes in large parallel batches
+    const batchSize = 50;
+    const fetchedResults: DRepRationaleStatItem[] = [];
+
+    for (let i = 0; i < withVotes.length; i += batchSize) {
+      const batch = withVotes.slice(i, i + batchSize);
       const details = await Promise.all(
         batch.map(async (drep) => {
           try {
@@ -439,10 +452,10 @@ export async function fetchDRepRationaleStatsServer(): Promise<DRepRationaleStat
           }
         })
       );
-      results.push(...details);
+      fetchedResults.push(...details);
     }
 
-    return sanitizeForJson(results);
+    return sanitizeForJson([...fetchedResults, ...zeroResults]);
   } catch (error) {
     console.error("Failed to fetch DRep rationale stats server-side:", error);
     return [];
