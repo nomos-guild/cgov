@@ -31,6 +31,7 @@
     "subtitle": "可定制的开发活动概览",
     "governanceTitle": "治理仪表板",
     "governanceSubtitle": "可定制的治理概览",
+    "devActivityTitle": "开发活动",
     "loadingData": "加载仪表板数据..."
   },
   "notFound": {

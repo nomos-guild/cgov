@@ -31,6 +31,7 @@
     "subtitle": "Votre aperçu personnalisable de l'activité de développement",
     "governanceTitle": "Tableau de bord de gouvernance",
     "governanceSubtitle": "Votre aperçu de la gouvernance personnalisable",
+    "devActivityTitle": "Activité de développement",
     "loadingData": "Chargement des données du tableau de bord..."
   },
   "notFound": {

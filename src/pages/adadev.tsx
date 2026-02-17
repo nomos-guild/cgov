@@ -89,8 +89,19 @@ function DashboardPage() {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 sm:mb-6 md:mb-8">
                 <div className="text-left">
                   <h1 className="landing-title text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-black dark:text-foreground">
-                    {t("dashboard.title")}
+                    {t("dashboard.devActivityTitle")}
                   </h1>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Developed and maintained by{" "}
+                    <a
+                      href="https://adadev.io"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline-offset-2 hover:underline"
+                    >
+                      ADADEV.io
+                    </a>
+                  </p>
                 </div>
                 <div className="flex items-center gap-3">
                   <DevelopmentRangeSelector />
