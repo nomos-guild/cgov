@@ -2,14 +2,18 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { callApi } from "@/utils/apiHelper";
 
 /**
- * Aggregated DRep rationale statistics
+ * Aggregated DRep rationale statistics + vote-change counts
  *
  * Fetches all DRep pages + their details server-side and returns
- * per-DRep { drepId, totalVotesCast, rationalesProvided } sorted
- * by voting power descending.
+ * per-DRep { drepId, totalVotesCast, rationalesProvided, uniqueProposals, voteChanges }
+ * sorted by voting power descending.
+ *
+ * Vote changes are derived from totalVotesCast and proposalParticipationPercent
+ * (which are already on the detail response), plus the total proposal count
+ * (1 extra API call). This eliminates the old N+1 vote-changes endpoint.
  *
  * One client call replaces hundreds of individual detail fetches.
- * Cached for 60s with stale-while-revalidate.
+ * Cached for 5 minutes with stale-while-revalidate.
  */
 export default async function handler(
   req: NextApiRequest,
@@ -20,16 +24,22 @@ export default async function handler(
   }
 
   try {
-    // 1. Fetch first page to get totalPages
+    // 1. Fetch first DRep page + proposals count in parallel
     const pageSize = 100;
-    const firstRes = await callApi({
-      endpoint: `/dreps?page=1&pageSize=${pageSize}&sortBy=votingPower&sortOrder=desc`,
-      method: "GET",
-    });
+    const [firstRes, proposalsRes] = await Promise.all([
+      callApi({
+        endpoint: `/dreps?page=1&pageSize=${pageSize}&sortBy=votingPower&sortOrder=desc`,
+        method: "GET",
+      }),
+      callApi({ endpoint: "/overview/proposals", method: "GET" }),
+    ]);
     const firstData = await firstRes.json();
     const { totalPages } = firstData.pagination;
 
-    // 2. Fetch remaining pages in parallel
+    const proposalsData = await proposalsRes.json();
+    const totalProposals = Array.isArray(proposalsData) ? proposalsData.length : 0;
+
+    // 2. Fetch remaining DRep pages in parallel
     const allDreps = [...firstData.dreps];
 
     if (totalPages > 1) {
@@ -54,6 +64,8 @@ export default async function handler(
       totalVotesCast: number;
       rationalesProvided: number;
       proposalParticipationPercent: number;
+      uniqueProposals: number;
+      voteChanges: number;
     }[] = [];
 
     for (let i = 0; i < allDreps.length; i += batchSize) {
@@ -66,11 +78,18 @@ export default async function handler(
               method: "GET",
             });
             const d = await r.json();
+            const participationPct = d.proposalParticipationPercent ?? 0;
+            const totalVotes = d.totalVotesCast ?? 0;
+            const uniqueProposals = totalProposals > 0
+              ? Math.round(totalProposals * participationPct / 100)
+              : 0;
             return {
               drepId: drep.drepId,
-              totalVotesCast: d.totalVotesCast ?? 0,
+              totalVotesCast: totalVotes,
               rationalesProvided: d.rationalesProvided ?? 0,
-              proposalParticipationPercent: d.proposalParticipationPercent ?? 0,
+              proposalParticipationPercent: participationPct,
+              uniqueProposals,
+              voteChanges: Math.max(0, totalVotes - uniqueProposals),
             };
           } catch {
             return {
@@ -78,6 +97,8 @@ export default async function handler(
               totalVotesCast: 0,
               rationalesProvided: 0,
               proposalParticipationPercent: 0,
+              uniqueProposals: 0,
+              voteChanges: 0,
             };
           }
         })

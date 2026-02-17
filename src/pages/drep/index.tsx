@@ -15,7 +15,9 @@ import { cn } from "@/lib/utils";
 import {
   fetchDRepStatsServer,
   fetchAllDRepsServer,
+  fetchDRepRationaleStatsServer,
   type DRepServerItem,
+  type DRepRationaleStatItem,
 } from "@/lib/serverFetch";
 import type { DRepSummary } from "@/types/drep";
 
@@ -24,6 +26,7 @@ type IntlMessages = typeof import("@/messages/en.json");
 interface InitialDRepData {
   drepStats: DRepStatsApiResponse | null;
   allDreps: DRepServerItem[];
+  rationaleStats: DRepRationaleStatItem[];
 }
 
 interface DRepDashboardPageProps {
@@ -81,6 +84,9 @@ export default function DRepDashboard({ initialData }: InferGetStaticPropsType<t
     () => initialData?.allDreps?.length ? transformServerDreps(initialData.allDreps) : undefined,
     [initialData?.allDreps]
   );
+  const initialRationaleStats = initialData?.rationaleStats?.length
+    ? initialData.rationaleStats
+    : undefined;
 
   const { stats, isLoading } = useDRepStats(initialData?.drepStats ?? undefined);
   const { dreps } = useAllDReps({}, initialDreps);
@@ -208,18 +214,19 @@ export default function DRepDashboard({ initialData }: InferGetStaticPropsType<t
 
                 {/* DRep Chart Tab — forceMount to keep hooks alive across tab switches */}
                 <TabsContent value="drep-list" className="mt-0 data-[state=inactive]:hidden" forceMount>
-                  <DRepSunburstChart initialDreps={initialDreps} view="chart" />
+                  <DRepSunburstChart initialDreps={initialDreps} initialRationaleStats={initialRationaleStats} view="chart" />
                 </TabsContent>
 
                 {/* DRep List Tab — forceMount to keep hooks alive across tab switches */}
                 <TabsContent value="drep-table" className="mt-0 data-[state=inactive]:hidden" forceMount>
-                  <DRepSunburstChart initialDreps={initialDreps} view="list" />
+                  <DRepSunburstChart initialDreps={initialDreps} initialRationaleStats={initialRationaleStats} view="list" />
                 </TabsContent>
 
                 {/* DRep Picker Tab — no forceMount to avoid mounting 3 heavy components at once */}
                 <TabsContent value="drep-picker" className="mt-0">
                   <DRepPicker
                     initialDreps={initialDreps}
+                    initialRationaleStats={initialRationaleStats}
                   />
                 </TabsContent>
               </Tabs>
@@ -240,15 +247,16 @@ export const getStaticProps: GetStaticProps<DRepDashboardPageProps> = async ({ l
   const messages = (await import(`@/messages/${locale ?? "en"}.json`)).default;
 
   try {
-    const [drepStats, allDreps] = await Promise.all([
+    const [drepStats, allDreps, rationaleStats] = await Promise.all([
       fetchDRepStatsServer(),
       fetchAllDRepsServer(),
+      fetchDRepRationaleStatsServer().catch(() => []),
     ]);
 
     return {
       props: {
         messages,
-        initialData: { drepStats, allDreps },
+        initialData: { drepStats, allDreps, rationaleStats },
       },
       revalidate: 60,
     };
@@ -257,7 +265,7 @@ export const getStaticProps: GetStaticProps<DRepDashboardPageProps> = async ({ l
     return {
       props: {
         messages,
-        initialData: { drepStats: null, allDreps: [] },
+        initialData: { drepStats: null, allDreps: [], rationaleStats: [] },
       },
       revalidate: 30,
     };

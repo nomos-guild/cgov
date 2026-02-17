@@ -383,6 +383,8 @@ export interface DRepRationaleStatItem {
   totalVotesCast: number;
   rationalesProvided: number;
   proposalParticipationPercent: number;
+  uniqueProposals: number;
+  voteChanges: number;
 }
 
 /**
@@ -391,8 +393,12 @@ export interface DRepRationaleStatItem {
  */
 export async function fetchDRepRationaleStatsServer(): Promise<DRepRationaleStatItem[]> {
   try {
-    // 1. Get all DReps (reuse existing helper)
-    const allDrepItems = await fetchAllDRepsServer();
+    // 1. Get all DReps + total proposals count in parallel
+    const [allDrepItems, proposalsData] = await Promise.all([
+      fetchAllDRepsServer(),
+      fetchBackend<unknown[]>("/overview/proposals").catch(() => [] as unknown[]),
+    ]);
+    const totalProposals = Array.isArray(proposalsData) ? proposalsData.length : 0;
 
     // 2. Fetch details for every DRep in parallel batches
     const batchSize = 20;
@@ -408,11 +414,18 @@ export async function fetchDRepRationaleStatsServer(): Promise<DRepRationaleStat
               rationalesProvided?: number;
               proposalParticipationPercent?: number;
             }>(`/dreps/${encodeURIComponent(drep.drepId)}`);
+            const participationPct = d.proposalParticipationPercent ?? 0;
+            const totalVotes = d.totalVotesCast ?? 0;
+            const uniqueProposals = totalProposals > 0
+              ? Math.round(totalProposals * participationPct / 100)
+              : 0;
             return {
               drepId: drep.drepId,
-              totalVotesCast: d.totalVotesCast ?? 0,
+              totalVotesCast: totalVotes,
               rationalesProvided: d.rationalesProvided ?? 0,
-              proposalParticipationPercent: d.proposalParticipationPercent ?? 0,
+              proposalParticipationPercent: participationPct,
+              uniqueProposals,
+              voteChanges: Math.max(0, totalVotes - uniqueProposals),
             };
           } catch {
             return {
@@ -420,6 +433,8 @@ export async function fetchDRepRationaleStatsServer(): Promise<DRepRationaleStat
               totalVotesCast: 0,
               rationalesProvided: 0,
               proposalParticipationPercent: 0,
+              uniqueProposals: 0,
+              voteChanges: 0,
             };
           }
         })
@@ -434,77 +449,6 @@ export async function fetchDRepRationaleStatsServer(): Promise<DRepRationaleStat
   }
 }
 
-/** Shape returned by fetchDRepVoteChangesServer */
-export interface DRepVoteChangeItem {
-  drepId: string;
-  uniqueProposals: number;
-  voteChanges: number;
-}
-
-/**
- * Server-side aggregation of vote-change stats for all DReps.
- * Mirrors logic in pages/api/dreps/vote-changes.ts but uses fetchBackend directly.
- */
-export async function fetchDRepVoteChangesServer(): Promise<DRepVoteChangeItem[]> {
-  try {
-    // 1. Get all DReps (reuse existing helper)
-    const allDrepItems = await fetchAllDRepsServer();
-
-    // 2. For each DRep, fetch all vote pages and count unique proposals
-    const batchSize = 10;
-    const results: DRepVoteChangeItem[] = [];
-
-    for (let i = 0; i < allDrepItems.length; i += batchSize) {
-      const batch = allDrepItems.slice(i, i + batchSize);
-      const batchResults = await Promise.all(
-        batch.map(async (drep) => {
-          try {
-            return await fetchVoteChangesForDRepServer(drep.drepId);
-          } catch {
-            return { drepId: drep.drepId, uniqueProposals: 0, voteChanges: 0 };
-          }
-        })
-      );
-      results.push(...batchResults);
-    }
-
-    return sanitizeForJson(results);
-  } catch (error) {
-    console.error("Failed to fetch DRep vote changes server-side:", error);
-    return [];
-  }
-}
-
-async function fetchVoteChangesForDRepServer(drepId: string): Promise<DRepVoteChangeItem> {
-  const votesPageSize = 100;
-  const encodedId = encodeURIComponent(drepId);
-
-  const firstData = await fetchBackend<{
-    votes: Array<{ proposalId: string }>;
-    pagination: { totalPages: number; totalItems: number };
-  }>(`/dreps/${encodedId}/votes?page=1&pageSize=${votesPageSize}`);
-
-  const proposalIds: string[] = firstData.votes.map((v) => v.proposalId);
-  const { totalPages, totalItems } = firstData.pagination;
-
-  if (totalPages > 1) {
-    const remaining = Array.from({ length: totalPages - 1 }, (_, i) => i + 2);
-    const pages = await Promise.all(
-      remaining.map(async (pg) => {
-        const d = await fetchBackend<{
-          votes: Array<{ proposalId: string }>;
-        }>(`/dreps/${encodedId}/votes?page=${pg}&pageSize=${votesPageSize}`);
-        return d.votes.map((v) => v.proposalId);
-      })
-    );
-    for (const page of pages) proposalIds.push(...page);
-  }
-
-  const uniqueProposals = new Set(proposalIds).size;
-  const voteChanges = totalItems - uniqueProposals;
-
-  return { drepId, uniqueProposals, voteChanges };
-}
 
 // ──────────────────────────────────────────────────────────────────────
 // DRep profile page — server-side fetches for ISR
