@@ -440,7 +440,9 @@
     "columnPercent": "权力 %",
     "columnDelegators": "委托人",
     "columnVotes": "投票",
+    "columnParticipation": "参与 %",
     "columnVoteChanges": "变更",
+    "columnEngagement": "Engagement",
     "chartPlaceholder": "图表",
     "activityTitle": "DRep 活动",
     "delegatorConcentrationTitle": "委托人集中度",
@@ -494,6 +496,8 @@
       "abstain": "弃权",
       "voted": "已投票",
       "notVoted": "未投票",
+      "filterAll": "全部",
+      "votesChanged": "投票变更",
       "withRationale": "有理由",
       "without": "无理由",
       "votesCount": "{count}票"

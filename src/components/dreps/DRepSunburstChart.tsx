@@ -106,6 +106,25 @@ export function DRepSunburstChart({ className, initialDreps, initialRationaleSta
     return map;
   }, [rationaleStats]);
 
+  // Unique proposals voted on (deduped vote count per DRep)
+  const uniqueProposalsMap = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const d of rationaleStats) {
+      map.set(d.drepId, d.uniqueProposals);
+    }
+    return map;
+  }, [rationaleStats]);
+
+  // Engagement % per DRep (from server-side calculation matching profile page)
+  const engagementMap = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const d of rationaleStats) {
+      map.set(d.drepId, d.proposalParticipationPercent);
+    }
+    return map;
+  }, [rationaleStats]);
+
+
   // All valid DReps sorted (no search filter) — used by charts
   const chartDreps = useMemo(() => {
     const nonZero = dreps.filter((drep) => drep.votingPowerAda > 0 && drep.totalVotesCast > 0);
@@ -145,10 +164,10 @@ export function DRepSunburstChart({ className, initialDreps, initialRationaleSta
     const selected = topN === null ? filteredDreps : filteredDreps.slice(0, topN);
     const votingPower = selected.reduce((sum, d) => sum + d.votingPowerAda, 0);
     const delegators = selected.reduce((sum, d) => sum + (d.delegatorCount ?? 0), 0);
-    const votes = selected.reduce((sum, d) => sum + d.totalVotesCast, 0);
+    const votes = selected.reduce((sum, d) => sum + (uniqueProposalsMap.get(d.drepId) ?? d.totalVotesCast), 0);
 
     const totalDelegators = filteredDreps.reduce((sum, d) => sum + (d.delegatorCount ?? 0), 0);
-    const totalVotes = filteredDreps.reduce((sum, d) => sum + d.totalVotesCast, 0);
+    const totalVotes = filteredDreps.reduce((sum, d) => sum + (uniqueProposalsMap.get(d.drepId) ?? d.totalVotesCast), 0);
 
     return {
       votingPower,
@@ -158,7 +177,7 @@ export function DRepSunburstChart({ className, initialDreps, initialRationaleSta
       votes,
       votesPct: totalVotes > 0 ? (votes / totalVotes) * 100 : 0,
     };
-  }, [filteredDreps, topN, totalVotingPower]);
+  }, [filteredDreps, topN, totalVotingPower, uniqueProposalsMap]);
 
   // Export labels for DRep list download
   const exportLabels = useMemo<DRepExportLabels>(() => ({
@@ -184,8 +203,9 @@ export function DRepSunburstChart({ className, initialDreps, initialRationaleSta
       voteChangesMap,
       exportLabels,
       locale,
+      uniqueProposalsMap,
     );
-  }, [filteredDreps, totalVotingPower, voteChangesMap, exportLabels, locale]);
+  }, [filteredDreps, totalVotingPower, voteChangesMap, exportLabels, locale, uniqueProposalsMap]);
 
   // Stable scroll handler (no-op now, kept for list ref)
   const handleScroll = useCallback(() => {}, []);
@@ -641,7 +661,7 @@ export function DRepSunburstChart({ className, initialDreps, initialRationaleSta
           >
             <div className="px-4">
               {/* Table Header */}
-              <div className={`flex items-center gap-3 py-2 px-2 text-[10px] font-semibold uppercase tracking-wide border-b sticky top-0 z-20 ${
+              <div className={`flex items-center gap-6 py-2 px-2 text-[10px] font-semibold uppercase tracking-wide border-b sticky top-0 z-20 ${
                 isLight
                   ? "border-black/10 text-black/60 bg-[#faf9f6]"
                   : isGame
@@ -650,11 +670,12 @@ export function DRepSunburstChart({ className, initialDreps, initialRationaleSta
               }`}>
                 <span className="w-7 text-center">{t("drep.columnRank")}</span>
                 <span className="flex-1 min-w-0 sm:w-[140px] sm:flex-none">{t("drep.columnName")}</span>
-                <span className="w-[100px] text-right">{t("drep.columnPower")}</span>
-                <span className="hidden sm:inline w-[65px] text-right">{t("drep.columnPercent")}</span>
-                <span className="hidden sm:inline w-[70px] text-right">{t("drep.columnDelegators")}</span>
-                <span className="hidden sm:inline w-[50px] text-right">{t("drep.columnVotes")}</span>
-                <span className="hidden sm:inline w-[60px] text-right">{t("drep.columnVoteChanges")}</span>
+                <span className="w-[100px] text-center">{t("drep.columnPower")}</span>
+                <span className="hidden sm:inline w-[65px] text-center">{t("drep.columnPercent")}</span>
+                <span className="hidden sm:inline w-[70px] text-center">{t("drep.columnDelegators")}</span>
+                <span className="hidden sm:inline w-[50px] text-center">{t("drep.columnVotes")}</span>
+                <span className="hidden sm:inline w-[60px] text-center">{t("drep.columnVoteChanges")}</span>
+                <span className="hidden sm:inline w-[75px] text-center">{t("drep.columnEngagement")}</span>
               </div>
               {/* Table Rows */}
               <div ref={rowsContainerRef} className="flex flex-col gap-1.5 mt-2">
@@ -666,7 +687,7 @@ export function DRepSunburstChart({ className, initialDreps, initialRationaleSta
                     <Link
                       key={drep.drepId}
                       href={`/drep/${encodeURIComponent(drep.drepId)}`}
-                      className={`flex items-center gap-3 py-1.5 px-2 rounded-lg text-[11px] transition-all duration-200 ease-out no-underline ${
+                      className={`flex items-center gap-6 py-1.5 px-2 rounded-lg text-[11px] transition-all duration-200 ease-out no-underline ${
                         isLight
                           ? "bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:scale-[1.02] hover:shadow-[0_6px_20px_rgba(0,0,0,0.15)]"
                           : isGame
@@ -700,24 +721,28 @@ export function DRepSunburstChart({ className, initialDreps, initialRationaleSta
                         {drep.name || t("drep.anonymous")}
                       </span>
                       {/* Voting Power */}
-                      <span className={`w-[100px] text-right tabular-nums flex-shrink-0 ${isGame ? "text-white/70" : "text-muted-foreground"}`}>
+                      <span className={`w-[100px] text-center tabular-nums flex-shrink-0 ${isGame ? "text-white/70" : "text-muted-foreground"}`}>
                         {formatVotingPower(drep.votingPowerAda)}
                       </span>
                       {/* % of Total */}
-                      <span className={`hidden sm:inline w-[65px] text-right tabular-nums flex-shrink-0 ${isGame ? "text-white/70" : "text-muted-foreground"}`}>
+                      <span className={`hidden sm:inline w-[65px] text-center tabular-nums flex-shrink-0 ${isGame ? "text-white/70" : "text-muted-foreground"}`}>
                         {percentOfTotal}%
                       </span>
                       {/* Delegators */}
-                      <span className={`hidden sm:inline w-[70px] text-right tabular-nums flex-shrink-0 ${isGame ? "text-white/70" : "text-muted-foreground"}`}>
+                      <span className={`hidden sm:inline w-[70px] text-center tabular-nums flex-shrink-0 ${isGame ? "text-white/70" : "text-muted-foreground"}`}>
                         {drep.delegatorCount != null ? drep.delegatorCount.toLocaleString() : "--"}
                       </span>
-                      {/* Votes Cast */}
-                      <span className={`hidden sm:inline w-[50px] text-right tabular-nums flex-shrink-0 ${isGame ? "text-white/70" : "text-muted-foreground"}`}>
-                        {drep.totalVotesCast}
+                      {/* Votes Cast (unique proposals) */}
+                      <span className={`hidden sm:inline w-[50px] text-center tabular-nums flex-shrink-0 ${isGame ? "text-white/70" : "text-muted-foreground"}`}>
+                        {uniqueProposalsMap.get(drep.drepId) ?? drep.totalVotesCast}
                       </span>
                       {/* Vote Changes */}
-                      <span className={`hidden sm:inline w-[60px] text-right tabular-nums flex-shrink-0 ${isGame ? "text-white/70" : "text-muted-foreground"}`}>
+                      <span className={`hidden sm:inline w-[60px] text-center tabular-nums flex-shrink-0 ${isGame ? "text-white/70" : "text-muted-foreground"}`}>
                         {voteChangesMap.has(drep.drepId) ? voteChangesMap.get(drep.drepId) : "--"}
+                      </span>
+                      {/* Engagement % */}
+                      <span className={`hidden sm:inline w-[75px] text-center tabular-nums flex-shrink-0 ${isGame ? "text-white/70" : "text-muted-foreground"}`}>
+                        {engagementMap.has(drep.drepId) ? `${engagementMap.get(drep.drepId)!.toFixed(1)}%` : "--"}
                       </span>
                     </Link>
                   );

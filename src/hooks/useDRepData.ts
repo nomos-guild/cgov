@@ -513,6 +513,7 @@ export function useAllDRepVotes(
   initialVotes?: DRepVoteRecord[]
 ) {
   const [allVotes, setAllVotes] = useState<DRepVoteRecord[]>(initialVotes ?? []);
+  const [rawVotes, setRawVotes] = useState<DRepVoteRecord[]>([]);
   const [isLoading, setIsLoading] = useState(!initialVotes);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -580,6 +581,9 @@ export function useAllDRepVotes(
         }
 
         if (!controller.signal.aborted) {
+          // Store raw (non-deduplicated) votes for vote-change detection
+          setRawVotes([...accumulated]);
+
           // Deduplicate by proposalId — keep only the latest vote per proposal.
           const seen = new Map<string, DRepVoteRecord>();
           for (const vote of accumulated) {
@@ -605,7 +609,7 @@ export function useAllDRepVotes(
     return () => controller.abort();
   }, [drepId]);
 
-  return { votes: allVotes, isLoading, error };
+  return { votes: allVotes, rawVotes, isLoading, error };
 }
 
 /** Response from /api/dreps/rationale-stats */

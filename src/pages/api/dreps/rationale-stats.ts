@@ -4,12 +4,12 @@ import { callApi } from "@/utils/apiHelper";
 /**
  * Aggregated DRep rationale statistics + vote-change counts
  *
- * Fetches all DRep pages + details for DReps with votes, and returns
- * per-DRep { drepId, totalVotesCast, rationalesProvided, uniqueProposals, voteChanges }.
+ * For each DRep with votes, fetches their detail (for rationalesProvided)
+ * AND their actual votes (for accurate uniqueProposals / voteChanges).
  *
- * Optimization: DReps with 0 votes (typically ~half) are returned with
- * zeroed stats immediately — no detail fetch needed. This cuts the N+1
- * from ~1500 detail calls to ~700.
+ * Computes engagement % using the same logic as the DRep profile page:
+ * uniqueProposals / eligibleProposals (all statuses, filtered by DRep
+ * eligibility, registration epoch, and active DRep vote existence).
  *
  * Cached for 5 minutes with stale-while-revalidate.
  */
@@ -41,7 +41,7 @@ export default async function handler(
   }
 
   try {
-    // 1. Fetch first DRep page + proposals count in parallel
+    // 1. Fetch first DRep page + all proposals in parallel
     const pageSize = 100;
     const [firstRes, proposalsRes] = await Promise.all([
       callApi({
@@ -53,8 +53,33 @@ export default async function handler(
     const firstData = await firstRes.json();
     const { totalPages } = firstData.pagination;
 
+    // Parse proposals for engagement calculation (same logic as DRep profile page)
     const proposalsData = await proposalsRes.json();
-    const totalProposals = Array.isArray(proposalsData) ? proposalsData.length : 0;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const proposals: Array<any> = Array.isArray(proposalsData) ? proposalsData : [];
+
+    // Determine if DReps could actually vote on a proposal (mirrors isDRepEligible on profile page)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    function isDRepEligible(p: any): boolean {
+      // If backend says no DRep threshold, DReps can't vote
+      if (p.threshold && p.threshold.drepThreshold == null) return false;
+      // For finished proposals, check if any active DRep actually voted
+      if (p.status !== "Active" && p.drep?.breakdown) {
+        const b = p.drep.breakdown;
+        if (Number(b.activeYes || 0) === 0 && Number(b.activeNo || 0) === 0 && Number(b.activeAbstain || 0) === 0) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    // Pre-filter eligible proposals; use expiryEpoch so proposals still active
+    // when a DRep registered are counted (they could vote on them).
+    const eligibleProposals = proposals.filter(isDRepEligible);
+    const eligibleByEpoch = (registeredEpoch: number | null) =>
+      registeredEpoch != null
+        ? eligibleProposals.filter((p) => (p.expiryEpoch ?? p.submissionEpoch ?? 0) >= registeredEpoch).length
+        : eligibleProposals.length;
 
     // 2. Fetch remaining DRep pages in parallel
     const allDreps: Array<{ drepId: string; totalVotesCast?: number }> = [...firstData.dreps];
@@ -74,14 +99,14 @@ export default async function handler(
       for (const page of pages) allDreps.push(...page);
     }
 
-    // 3. Split: DReps with votes need detail fetch; zero-vote DReps get zeroed stats
+    // 3. Split: DReps with votes need detail+votes fetch; zero-vote DReps get zeroed stats
     const withVotes = allDreps.filter((d) => (d.totalVotesCast ?? 0) > 0);
     const withoutVotes = allDreps.filter((d) => (d.totalVotesCast ?? 0) === 0);
 
     const zeroResults = withoutVotes.map((d) => ZERO_STATS(d.drepId));
 
-    // 4. Fetch details only for DReps with votes — bigger batches for speed
-    const batchSize = 50;
+    // 4. Fetch details AND votes for DReps with votes
+    const batchSize = 25;
     const fetchedResults: DRepStatResult[] = [];
 
     for (let i = 0; i < withVotes.length; i += batchSize) {
@@ -89,23 +114,54 @@ export default async function handler(
       const details = await Promise.all(
         batch.map(async (drep) => {
           try {
-            const r = await callApi({
-              endpoint: `/dreps/${encodeURIComponent(drep.drepId)}`,
-              method: "GET",
-            });
-            const d = await r.json();
-            const participationPct = d.proposalParticipationPercent ?? 0;
-            const totalVotes = d.totalVotesCast ?? 0;
-            const uniqueProposals = totalProposals > 0
-              ? Math.round(totalProposals * participationPct / 100)
+            // Fetch detail + votes in parallel per DRep
+            const [detailRes, votesRes] = await Promise.all([
+              callApi({
+                endpoint: `/dreps/${encodeURIComponent(drep.drepId)}`,
+                method: "GET",
+              }),
+              callApi({
+                endpoint: `/dreps/${encodeURIComponent(drep.drepId)}/votes?page=1&pageSize=200`,
+                method: "GET",
+              }),
+            ]);
+            const detail = await detailRes.json();
+            const votesData = await votesRes.json();
+            const votes: Array<{ proposalId: string; vote: string; votedAt: string | null }> =
+              votesData.votes ?? [];
+
+            // Unique proposals = distinct proposalIds
+            const votedProposalIds = new Set(votes.map((v) => v.proposalId));
+            const uniqueProposals = votedProposalIds.size;
+
+            // Vote changes = proposals where DRep actually changed vote value
+            // (same logic as profile page: group by proposalId, check for 2+ distinct votes)
+            const grouped = new Map<string, string[]>();
+            for (const v of votes) {
+              const list = grouped.get(v.proposalId) ?? [];
+              list.push(v.vote);
+              grouped.set(v.proposalId, list);
+            }
+            let voteChanges = 0;
+            for (const [, voteList] of grouped) {
+              if (new Set(voteList).size >= 2) voteChanges++;
+            }
+
+            // Engagement: same formula as DRep profile page
+            // = uniqueProposals / eligibleProposals (filtered by registration epoch)
+            const registeredEpoch = detail.registeredEpoch ?? null;
+            const eligible = eligibleByEpoch(registeredEpoch);
+            const correctedParticipation = eligible > 0
+              ? (uniqueProposals / eligible) * 100
               : 0;
+
             return {
               drepId: drep.drepId,
-              totalVotesCast: totalVotes,
-              rationalesProvided: d.rationalesProvided ?? 0,
-              proposalParticipationPercent: participationPct,
+              totalVotesCast: votes.length,
+              rationalesProvided: detail.rationalesProvided ?? 0,
+              proposalParticipationPercent: correctedParticipation,
               uniqueProposals,
-              voteChanges: Math.max(0, totalVotes - uniqueProposals),
+              voteChanges,
             };
           } catch {
             return ZERO_STATS(drep.drepId);
