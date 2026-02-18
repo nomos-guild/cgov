@@ -441,7 +441,9 @@
     "columnPercent": "Pouvoir %",
     "columnDelegators": "Délégateurs",
     "columnVotes": "Votes",
+    "columnParticipation": "Part. %",
     "columnVoteChanges": "Changements",
+    "columnEngagement": "Engagement",
     "chartPlaceholder": "Graphique",
     "activityTitle": "Activité DRep",
     "delegatorConcentrationTitle": "Concentration des Délégateurs",
@@ -495,6 +497,8 @@
       "abstain": "Abstention",
       "voted": "Voté",
       "notVoted": "Non Voté",
+      "filterAll": "Tous",
+      "votesChanged": "Votes Modifiés",
       "withRationale": "Avec Justification",
       "without": "Sans",
       "votesCount": "{count, plural, one {# vote} other {# votes}}"

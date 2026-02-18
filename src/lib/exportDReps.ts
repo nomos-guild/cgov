@@ -33,6 +33,7 @@ function buildRows(
   totalVotingPower: number,
   voteChangesMap: Map<string, number>,
   labels: DRepExportLabels,
+  uniqueProposalsMap?: Map<string, number>,
 ): DRepExportRow[] {
   return dreps.map((drep, i) => ({
     rank: i + 1,
@@ -43,7 +44,7 @@ function buildRows(
       ? ((drep.votingPowerAda / totalVotingPower) * 100).toFixed(2)
       : "0.00",
     delegators: drep.delegatorCount,
-    votesCast: drep.totalVotesCast,
+    votesCast: uniqueProposalsMap?.get(drep.drepId) ?? drep.totalVotesCast,
     voteChanges: voteChangesMap.has(drep.drepId)
       ? voteChangesMap.get(drep.drepId)!
       : "--",
@@ -55,8 +56,9 @@ export function exportDRepsToJSON(
   totalVotingPower: number,
   voteChangesMap: Map<string, number>,
   labels: DRepExportLabels,
+  uniqueProposalsMap?: Map<string, number>,
 ): string {
-  const rows = buildRows(dreps, totalVotingPower, voteChangesMap, labels);
+  const rows = buildRows(dreps, totalVotingPower, voteChangesMap, labels, uniqueProposalsMap);
   const data = {
     title: labels.title,
     exportedAt: new Date().toISOString(),
@@ -81,9 +83,10 @@ export function exportDRepsToMarkdown(
   voteChangesMap: Map<string, number>,
   labels: DRepExportLabels,
   locale?: string,
+  uniqueProposalsMap?: Map<string, number>,
 ): string {
   const loc = locale ?? "en";
-  const rows = buildRows(dreps, totalVotingPower, voteChangesMap, labels);
+  const rows = buildRows(dreps, totalVotingPower, voteChangesMap, labels, uniqueProposalsMap);
 
   let md = `# ${labels.title}\n\n`;
   md += `**${labels.exported}:** ${new Date().toLocaleString(loc)}\n`;
@@ -108,8 +111,9 @@ export function exportDRepsToCSV(
   totalVotingPower: number,
   voteChangesMap: Map<string, number>,
   labels: DRepExportLabels,
+  uniqueProposalsMap?: Map<string, number>,
 ): string {
-  const rows = buildRows(dreps, totalVotingPower, voteChangesMap, labels);
+  const rows = buildRows(dreps, totalVotingPower, voteChangesMap, labels, uniqueProposalsMap);
 
   const headers = [
     labels.headerRank,
@@ -151,6 +155,7 @@ export function handleDRepExport(
   voteChangesMap: Map<string, number>,
   labels: DRepExportLabels,
   locale?: string,
+  uniqueProposalsMap?: Map<string, number>,
 ): void {
   const timestamp = new Date().toISOString().slice(0, 10);
   const baseName = `drep-list-${timestamp}`;
@@ -161,17 +166,17 @@ export function handleDRepExport(
 
   switch (format) {
     case "json":
-      content = exportDRepsToJSON(dreps, totalVotingPower, voteChangesMap, labels);
+      content = exportDRepsToJSON(dreps, totalVotingPower, voteChangesMap, labels, uniqueProposalsMap);
       filename = `${baseName}.json`;
       mimeType = "application/json;charset=utf-8";
       break;
     case "markdown":
-      content = exportDRepsToMarkdown(dreps, totalVotingPower, voteChangesMap, labels, locale);
+      content = exportDRepsToMarkdown(dreps, totalVotingPower, voteChangesMap, labels, locale, uniqueProposalsMap);
       filename = `${baseName}.md`;
       mimeType = "text/markdown;charset=utf-8";
       break;
     case "csv":
-      content = exportDRepsToCSV(dreps, totalVotingPower, voteChangesMap, labels);
+      content = exportDRepsToCSV(dreps, totalVotingPower, voteChangesMap, labels, uniqueProposalsMap);
       filename = `${baseName}.csv`;
       mimeType = "text/csv;charset=utf-8";
       break;

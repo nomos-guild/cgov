@@ -441,7 +441,9 @@
     "columnPercent": "Anteil %",
     "columnDelegators": "Delegatoren",
     "columnVotes": "Stimmen",
+    "columnParticipation": "Teiln. %",
     "columnVoteChanges": "Änderungen",
+    "columnEngagement": "Engagement",
     "chartPlaceholder": "Diagramm",
     "activityTitle": "DRep-Aktivität",
     "delegatorConcentrationTitle": "Delegator-Konzentration",
@@ -495,6 +497,8 @@
       "abstain": "Enthaltung",
       "voted": "Abgestimmt",
       "notVoted": "Nicht abgestimmt",
+      "filterAll": "Alle",
+      "votesChanged": "Stimme geändert",
       "withRationale": "Mit Begründung",
       "without": "Ohne",
       "votesCount": "{count, plural, one {# Stimme} other {# Stimmen}}"

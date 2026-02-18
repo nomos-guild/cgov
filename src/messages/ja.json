@@ -441,7 +441,9 @@
     "columnPercent": "権力 %",
     "columnDelegators": "委任者",
     "columnVotes": "投票",
+    "columnParticipation": "参加 %",
     "columnVoteChanges": "変更",
+    "columnEngagement": "Engagement",
     "chartPlaceholder": "チャート",
     "activityTitle": "DRep活動",
     "delegatorConcentrationTitle": "デリゲーター集中度",
@@ -495,6 +497,8 @@
       "abstain": "棄権",
       "voted": "投票済み",
       "notVoted": "未投票",
+      "filterAll": "すべて",
+      "votesChanged": "投票変更",
       "withRationale": "根拠あり",
       "without": "根拠なし",
       "votesCount": "{count}票"

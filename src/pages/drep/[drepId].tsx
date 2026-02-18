@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/router";
 import type { GetStaticProps, GetStaticPaths } from "next";
 import Head from "next/head";
@@ -20,6 +20,8 @@ import {
 import { DRepDelegationChart } from "@/components/dreps/DRepDelegationChart";
 import { cn } from "@/lib/utils";
 import { VotingRationaleModal } from "@/components/VotingRationaleModal";
+import { useGovernanceActions } from "@/hooks/useGovernanceData";
+import type { GovernanceAction } from "@/types/governance";
 import type { VoteRecord } from "@/types/governance";
 import type { DRepVoteRecord } from "@/types/drep";
 import {
@@ -265,20 +267,16 @@ const ENGAGEMENT_COLORS = {
 };
 
 interface EngagementChartProps {
-  totalVotesCast: number;
-  participationPercent: number;
+  votedCount: number;
+  notVotedCount: number;
   isGame: boolean;
   isLight: boolean;
   labels: { voted: string; notVoted: string; empty: string };
 }
 
-function EngagementChart({ totalVotesCast, participationPercent, isGame, isLight, labels }: EngagementChartProps) {
-  // Calculate total proposals and not voted count
-  const voted = totalVotesCast;
-  const totalProposals = participationPercent > 0
-    ? Math.round(totalVotesCast / (participationPercent / 100))
-    : 0;
-  const notVoted = totalProposals - voted;
+function EngagementChart({ votedCount, notVotedCount, isGame, isLight, labels }: EngagementChartProps) {
+  const voted = votedCount;
+  const notVoted = notVotedCount;
   const total = voted + notVoted;
 
   const colors = isGame ? ENGAGEMENT_COLORS.game : isLight ? ENGAGEMENT_COLORS.light : ENGAGEMENT_COLORS.dark;
@@ -529,8 +527,27 @@ function toVoteRecord(vote: DRepVoteRecord, drepId: string, drepName: string): V
   };
 }
 
+/** Display item that works for both voted and not-voted proposals */
+interface VotingDisplayItem {
+  proposalId: string;
+  proposalTitle: string;
+  proposalType: string | null;
+  vote: "Yes" | "No" | "Abstain" | null;
+  votedAt: string | null;
+  txHash: string;
+  rationale: string | null;
+  anchorUrl: string | null;
+  votingPower: string | null;
+  votingPowerAda: number;
+  /** Previous vote (only set for vote-change items) */
+  previousVote?: "Yes" | "No" | "Abstain";
+  previousVotedAt?: string | null;
+}
+
+type VoteFilter = "voted" | "not_voted" | "all" | "changed";
+
 interface VotingHistoryTableProps {
-  votes: DRepVoteRecord[];
+  items: VotingDisplayItem[];
   drepId: string;
   drepName: string;
   isGame: boolean;
@@ -550,10 +567,11 @@ interface VotingHistoryTableProps {
     yes: string;
     no: string;
     abstain: string;
+    notVoted: string;
   };
 }
 
-function VotingHistoryTable({ votes, drepId, drepName, isGame, isLight, isLoading, locale, labels }: VotingHistoryTableProps) {
+function VotingHistoryTable({ items, drepId, drepName, isGame, isLight, isLoading, locale, labels }: VotingHistoryTableProps) {
   const [selectedVote, setSelectedVote] = useState<VoteRecord | null>(null);
 
   if (isLoading) {
@@ -564,7 +582,7 @@ function VotingHistoryTable({ votes, drepId, drepName, isGame, isLight, isLoadin
     );
   }
 
-  if (votes.length === 0) {
+  if (items.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
         {labels.empty}
@@ -589,11 +607,13 @@ function VotingHistoryTable({ votes, drepId, drepName, isGame, isLight, isLoadin
             </tr>
           </thead>
           <tbody>
-            {votes.map((vote) => {
-              const hasRationale = vote.rationale != null && vote.rationale.trim().length > 0;
+            {items.map((item) => {
+              const hasRationale = item.rationale != null && item.rationale.trim().length > 0;
+              const isNotVoted = item.vote === null;
+              const hasVoteChange = !!item.previousVote;
               return (
                 <tr
-                  key={`${vote.proposalId}-${vote.txHash}`}
+                  key={`${item.proposalId}-${item.txHash}`}
                   className={cn(
                     "border-b transition-colors",
                     isGame
@@ -605,13 +625,13 @@ function VotingHistoryTable({ votes, drepId, drepName, isGame, isLight, isLoadin
                 >
                   <td className="py-3 px-2">
                     <Link
-                      href={`/governance/${encodeURIComponent(vote.proposalId)}`}
+                      href={`/governance/${encodeURIComponent(item.proposalId)}`}
                       className={cn(
                         "hover:underline font-medium",
                         isGame ? "text-white" : isLight ? "text-primary" : "text-[#0bd1a2]"
                       )}
                     >
-                      {vote.proposalTitle || truncateId(vote.proposalId)}
+                      {item.proposalTitle || truncateId(item.proposalId)}
                     </Link>
                   </td>
                   <td className="py-3 px-2 hidden sm:table-cell">
@@ -619,28 +639,58 @@ function VotingHistoryTable({ votes, drepId, drepName, isGame, isLight, isLoadin
                       "text-xs px-2 py-0.5 rounded",
                       isGame ? "bg-white/10 text-white/70" : isLight ? "bg-gray-100 text-muted-foreground" : "bg-[#0bd1a2]/10 text-[#0bd1a2]/70"
                     )}>
-                      {vote.proposalType || labels.unknown}
+                      {item.proposalType || labels.unknown}
                     </span>
                   </td>
                   <td className="py-3 px-2">
-                    <span className={cn(
-                      "text-xs px-2 py-1 font-medium",
-                      isGame ? "rounded-full" : isLight ? "rounded-full" : "rounded-none",
-                      getVoteBadgeClass(vote.vote, isGame, isLight)
-                    )}>
-                      {vote.vote === "Yes" ? labels.yes : vote.vote === "No" ? labels.no : labels.abstain}
-                    </span>
+                    {isNotVoted ? (
+                      <span className={cn(
+                        "text-xs px-2 py-1 font-medium",
+                        isGame ? "rounded-full text-white/30" : isLight ? "rounded-full text-muted-foreground/50" : "rounded-none text-[#0bd1a2]/30"
+                      )}>
+                        --
+                      </span>
+                    ) : hasVoteChange ? (
+                      <span className="inline-flex items-center gap-1">
+                        <span className={cn(
+                          "text-xs px-2 py-1 font-medium opacity-50 line-through",
+                          isGame ? "rounded-full" : isLight ? "rounded-full" : "rounded-none",
+                          getVoteBadgeClass(item.previousVote!, isGame, isLight)
+                        )}>
+                          {item.previousVote === "Yes" ? labels.yes : item.previousVote === "No" ? labels.no : labels.abstain}
+                        </span>
+                        <span className={cn(
+                          "text-xs",
+                          isGame ? "text-white/40" : isLight ? "text-muted-foreground/50" : "text-[#0bd1a2]/40"
+                        )}>→</span>
+                        <span className={cn(
+                          "text-xs px-2 py-1 font-medium",
+                          isGame ? "rounded-full" : isLight ? "rounded-full" : "rounded-none",
+                          getVoteBadgeClass(item.vote!, isGame, isLight)
+                        )}>
+                          {item.vote === "Yes" ? labels.yes : item.vote === "No" ? labels.no : labels.abstain}
+                        </span>
+                      </span>
+                    ) : (
+                      <span className={cn(
+                        "text-xs px-2 py-1 font-medium",
+                        isGame ? "rounded-full" : isLight ? "rounded-full" : "rounded-none",
+                        getVoteBadgeClass(item.vote!, isGame, isLight)
+                      )}>
+                        {item.vote === "Yes" ? labels.yes : item.vote === "No" ? labels.no : labels.abstain}
+                      </span>
+                    )}
                   </td>
                   <td className={cn(
                     "py-3 px-2",
                     isGame ? "text-white/60" : isLight ? "text-muted-foreground" : "text-[#0bd1a2]/60"
                   )}>
-                    {formatDate(vote.votedAt, locale)}
+                    {isNotVoted ? "--" : formatDate(item.votedAt, locale)}
                   </td>
                   <td className="py-3 px-2 hidden sm:table-cell">
-                    {hasRationale ? (
+                    {hasRationale && !isNotVoted ? (
                       <button
-                        onClick={() => setSelectedVote(toVoteRecord(vote, drepId, drepName))}
+                        onClick={() => setSelectedVote(toVoteRecord(item as DRepVoteRecord, drepId, drepName))}
                         className={cn(
                           "text-xs font-medium px-2.5 py-1 transition-colors",
                           isGame
@@ -687,7 +737,7 @@ export default function DRepProfile({
   const drepIdStr = typeof drepId === "string" ? drepId : null;
 
   const { drep, isLoading: isLoadingDrep, error: drepError, refresh } = useDRepDetail(drepIdStr, initialDrep);
-  const { votes: allVotes, isLoading: isLoadingAllVotes } = useAllDRepVotes(drepIdStr, initialVotes);
+  const { votes: allVotes, rawVotes, isLoading: isLoadingAllVotes } = useAllDRepVotes(drepIdStr, initialVotes);
   const { history: delegationHistory } = useDRepHistory(drepIdStr, initialHistory);
 
   // Compute deduped vote stats from allVotes (already deduplicated by proposalId).
@@ -699,6 +749,121 @@ export default function DRepProfile({
     : drep?.rationalesProvided ?? 0;
 
   const isLoading = isLoadingDrep && !drep;
+
+  // Vote filter state
+  const [voteFilter, setVoteFilter] = useState<VoteFilter>("voted");
+  const { actions: allProposals } = useGovernanceActions();
+
+  // Build voted set and not-voted display items
+  const votedIds = useMemo(
+    () => new Set(allVotes.map((v) => v.proposalId)),
+    [allVotes]
+  );
+
+  // Determine whether DReps could actually vote on a proposal.
+  // The backend may report a drepThreshold for early-era proposals where no active
+  // DRep actually cast a vote (only automated delegations like alwaysAbstain exist).
+  // For non-Active proposals, check if any active DRep voted via the breakdown.
+  const isDRepEligible = (a: GovernanceAction) => {
+    // If backend says no DRep threshold, DReps can't vote
+    if (a.threshold && a.threshold.drepThreshold == null) return false;
+    // For finished proposals, check if any active DRep actually voted
+    if (a.status !== "Active" && a.drepBreakdown) {
+      const b = a.drepBreakdown;
+      const hasActiveDRepVotes =
+        Number(b.activeYes || 0) > 0 || Number(b.activeNo || 0) > 0 || Number(b.activeAbstain || 0) > 0;
+      if (!hasActiveDRepVotes) return false;
+    }
+    return true;
+  };
+
+  const notVotedItems = useMemo<VotingDisplayItem[]>(() => {
+    if (!allProposals.length) return [];
+    return allProposals
+      .filter((a) => {
+        // Only show Active proposals DReps can still vote on
+        if (a.status !== "Active") return false;
+        if (!isDRepEligible(a)) return false;
+        const id = a.proposalId ?? a.hash;
+        return !votedIds.has(id);
+      })
+      .map((a) => ({
+        proposalId: a.proposalId ?? a.hash,
+        proposalTitle: a.title,
+        proposalType: a.type,
+        vote: null,
+        votedAt: null,
+        txHash: a.txHash ?? a.hash,
+        rationale: null,
+        anchorUrl: null,
+        votingPower: null,
+        votingPowerAda: 0,
+      }));
+  }, [allProposals, votedIds]);
+
+  const votedItems = useMemo<VotingDisplayItem[]>(
+    () => allVotes.map((v) => ({ ...v })),
+    [allVotes]
+  );
+
+  // Proposals where the DRep changed their vote (multiple records for same proposalId)
+  const changedVoteItems = useMemo<VotingDisplayItem[]>(() => {
+    if (!rawVotes.length) return [];
+    // Group raw votes by proposalId
+    const grouped = new Map<string, DRepVoteRecord[]>();
+    for (const v of rawVotes) {
+      const list = grouped.get(v.proposalId) ?? [];
+      list.push(v);
+      grouped.set(v.proposalId, list);
+    }
+    const items: VotingDisplayItem[] = [];
+    for (const [, records] of grouped) {
+      if (records.length < 2) continue;
+      // Sort by date ascending so we can pair previous → current
+      records.sort((a, b) => (a.votedAt ?? "").localeCompare(b.votedAt ?? ""));
+      // Only include if the vote actually changed (not just re-submitted the same vote)
+      const uniqueVotes = new Set(records.map((r) => r.vote));
+      if (uniqueVotes.size < 2) continue;
+      const latest = records[records.length - 1];
+      const previous = records[records.length - 2];
+      items.push({
+        ...latest,
+        previousVote: previous.vote,
+        previousVotedAt: previous.votedAt,
+      });
+    }
+    return items;
+  }, [rawVotes]);
+
+  const displayItems = useMemo<VotingDisplayItem[]>(() => {
+    switch (voteFilter) {
+      case "voted":
+        return votedItems;
+      case "not_voted":
+        return notVotedItems;
+      case "all":
+        return [...votedItems, ...notVotedItems];
+      case "changed":
+        return changedVoteItems;
+    }
+  }, [voteFilter, votedItems, notVotedItems, changedVoteItems]);
+
+  // Corrected participation: count ALL proposals (any status) that DReps are eligible
+  // to vote on, filtered by registration epoch so new DReps aren't penalized for
+  // proposals that existed before they registered.
+  const registeredEpoch = drep?.registeredEpoch ?? null;
+  const eligibleProposalCount = useMemo(() => {
+    if (!allProposals.length) return 0;
+    return allProposals.filter((a) => {
+      if (!isDRepEligible(a)) return false;
+      // Only count proposals that hadn't expired when the DRep registered
+      if (registeredEpoch != null && a.expiryEpoch < registeredEpoch) return false;
+      return true;
+    }).length;
+  }, [allProposals, registeredEpoch]);
+  const correctedParticipation = eligibleProposalCount > 0
+    ? (dedupedVoteCount / eligibleProposalCount) * 100
+    : 0;
 
   // Card styling — tri-state for light / game / dark
   const cardClass = isGame
@@ -894,18 +1059,35 @@ export default function DRepProfile({
                           {formatNumber(dedupedVoteCount)}
                         </td>
                       </tr>
-                      <tr>
+                      <tr className={cn(
+                        "border-b",
+                        isGame ? "border-white/10" : isLight ? "border-black/5" : "border-[#0bd1a2]/20"
+                      )}>
                         <td className={cn(
                           "py-2.5",
                           isGame ? "text-white/60" : isLight ? "text-muted-foreground" : "text-[#0bd1a2]/60"
                         )}>
-                          {t("participation")}
+                          {t("votesChanged")}
                         </td>
                         <td className={cn(
                           "py-2.5 text-right font-medium",
                           isGame ? "text-white" : isLight ? "text-foreground" : "text-[#0bd1a2]"
                         )}>
-                          {drep.proposalParticipationPercent.toFixed(1)}%
+                          {formatNumber(changedVoteItems.length)}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className={cn(
+                          "py-2.5",
+                          isGame ? "text-white/60" : isLight ? "text-muted-foreground" : "text-[#0bd1a2]/60"
+                        )}>
+                          {t("engagement")}
+                        </td>
+                        <td className={cn(
+                          "py-2.5 text-right font-medium",
+                          isGame ? "text-white" : isLight ? "text-foreground" : "text-[#0bd1a2]"
+                        )}>
+                          {allProposals.length > 0 ? correctedParticipation.toFixed(1) : drep.proposalParticipationPercent.toFixed(1)}%
                         </td>
                       </tr>
                       <tr>
@@ -990,8 +1172,8 @@ export default function DRepProfile({
                         {t("engagement")}
                       </h3>
                       <EngagementChart
-                        totalVotesCast={dedupedVoteCount}
-                        participationPercent={drep.proposalParticipationPercent}
+                        votedCount={dedupedVoteCount}
+                        notVotedCount={Math.max(0, eligibleProposalCount - dedupedVoteCount)}
                         isGame={isGame}
                         isLight={isLight}
                         labels={{
@@ -1046,7 +1228,7 @@ export default function DRepProfile({
                   </div>
 
                   {/* Delegation History Line Chart */}
-                  <div className="mt-4 pt-4 border-t border-border/30">
+                  <div className="mt-10 pt-8 border-t border-border/30">
                     <DRepDelegationChart
                       history={delegationHistory}
                       isGame={isGame}
@@ -1059,16 +1241,64 @@ export default function DRepProfile({
               )}
 
               {/* Voting History - always shown, uses separate endpoint */}
+              {/* Filter bar */}
+              <div className={cn(
+                "mb-4 px-4 sm:px-6 py-3",
+                isGame
+                  ? "game-drep-content rounded-[2px] border-none bg-[rgba(12,12,12,0.5)] shadow-[0_18px_36px_rgba(0,0,0,0.55),0_6px_18px_rgba(0,0,0,0.4)]"
+                  : isLight
+                  ? "rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)]"
+                  : "rounded-none border border-[#0bd1a2] bg-transparent shadow-none"
+              )}>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <h2 className={cn(
+                    "text-lg font-semibold",
+                    isGame ? "landing-title text-white" : isLight ? "text-foreground" : "text-[#0bd1a2]"
+                  )}>
+                    {t("votingHistory")}
+                  </h2>
+                  <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                    {(["voted", "not_voted", "changed", "all"] as const).map((filter) => {
+                      const label = filter === "voted"
+                        ? t("voted")
+                        : filter === "not_voted"
+                        ? t("notVoted")
+                        : filter === "changed"
+                        ? t("votesChanged")
+                        : t("filterAll");
+                      const isActive = voteFilter === filter;
+                      return (
+                        <button
+                          key={filter}
+                          onClick={() => setVoteFilter(filter)}
+                          className={cn(
+                            "text-xs font-semibold uppercase tracking-wide px-2 sm:px-3 py-1 sm:py-1.5 transition-colors whitespace-nowrap",
+                            isGame
+                              ? cn("game-tab-btn", isActive && "game-tab-btn-active")
+                              : isLight
+                              ? cn(
+                                  "rounded-full border border-white/8 bg-white text-black shadow-[0_12px_30px_rgba(15,23,42,0.25)]",
+                                  isActive ? "bg-black text-white" : "hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)]"
+                                )
+                              : cn(
+                                  "rounded-none border border-[#0bd1a2] bg-transparent text-[#0bd1a2] btn-neon",
+                                  isActive ? "bg-[#0bd1a2] text-black" : "hover:bg-[#0bd1a2] hover:text-black"
+                                )
+                          )}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Voting table */}
               <div className={cardClass}>
-                <h2 className={cn(
-                  "text-lg font-semibold mb-4",
-                  isGame ? "landing-title text-white" : isLight ? "text-foreground" : "text-[#0bd1a2]"
-                )}>
-                  {t("votingHistory")}
-                </h2>
                 <div className="max-h-[500px] overflow-y-auto">
                   <VotingHistoryTable
-                    votes={allVotes}
+                    items={displayItems}
                     drepId={drepIdStr || ""}
                     drepName={drep?.name || t("anonymousDRep")}
                     isGame={isGame}
@@ -1088,6 +1318,7 @@ export default function DRepProfile({
                       yes: t("yes"),
                       no: t("no"),
                       abstain: t("abstain"),
+                      notVoted: t("notVoted"),
                     }}
                   />
                 </div>
