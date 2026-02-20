@@ -150,3 +150,23 @@ export interface DRepVotesResponse {
  */
 export type DRepSortBy = "votingPower" | "name" | "totalVotes";
 export type SortOrder = "asc" | "desc";
+
+/**
+ * Single epoch data point for DRep power concentration history
+ */
+export interface ConcentrationHistoryPoint {
+  epoch: number;
+  top10VpPct: number;
+  top20VpPct: number;
+  top50VpPct: number;
+  top10DelPct: number;
+  top20DelPct: number;
+  top50DelPct: number;
+  top10VpAda: number;
+  top20VpAda: number;
+  top50VpAda: number;
+  top10Del: number;
+  top20Del: number;
+  top50Del: number;
+  [key: string]: string | number;
+}

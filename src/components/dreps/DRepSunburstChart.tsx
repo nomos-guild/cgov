@@ -15,6 +15,7 @@ import { DRepScatterPlot } from "@/components/dreps/DRepScatterPlot";
 import { DRepActivityDonut } from "@/components/dreps/DRepActivityDonut";
 import { DRepDelegatorsDonut } from "@/components/dreps/DRepDelegatorsDonut";
 import { DRepDelegatedAdaDonut } from "@/components/dreps/DRepDelegatedAdaDonut";
+import { DRepConcentrationChart } from "@/components/dreps/DRepConcentrationChart";
 import { handleDRepExport } from "@/lib/exportDReps";
 import type { DRepExportLabels } from "@/lib/exportDReps";
 import { cn } from "@/lib/utils";
@@ -467,6 +468,13 @@ export function DRepSunburstChart({ className, initialDreps, initialRationaleSta
           </div>
         </div>
       </div>}
+
+      {/* Concentration History Chart */}
+      {view !== "list" && (
+        <div className={`${cardClass} mt-4`}>
+          <DRepConcentrationChart metric={chartMetric} isGame={isGame} isLight={isLight} />
+        </div>
+      )}
 
       {/* Donut Chart Cards */}
       {view !== "chart" && (
