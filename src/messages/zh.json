@@ -42,8 +42,10 @@
   "stats": {
     "total": "总计",
     "active": "活跃",
-    "ratified": "批准",
-    "expired": "已过期",
+    "passed": "已通过",
+    "passedInfo": "已批准和已实施的提案",
+    "failed": "未通过",
+    "failedInfo": "已过期和已关闭的提案",
     "ncl": "{年份｝NCL"
   },
   "status": {
@@ -458,6 +460,11 @@
     "share": "占比",
     "others": "其他",
     "othersDReps": "其他（{count}个DRep）",
+    "concentrationTitle": "Top-N权力集中度",
+    "concentrationTop10": "前10名",
+    "concentrationTop20": "前20名",
+    "concentrationTop50": "前50名",
+    "concentrationNoData": "集中度数据不可用",
     "profile": {
       "pageTitle": "{name} - CGOV",
       "pageTitleFallback": "DRep个人资料 - CGOV",

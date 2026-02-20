@@ -42,8 +42,10 @@
   "stats": {
     "total": "Total",
     "active": "Active",
-    "ratified": "Ratified",
-    "expired": "Expired",
+    "passed": "Passed",
+    "passedInfo": "Ratified & Enacted proposals",
+    "failed": "Failed",
+    "failedInfo": "Expired & Closed proposals",
     "ncl": "{year} NCL"
   },
   "status": {
@@ -458,6 +460,11 @@
     "share": "Share",
     "others": "Others",
     "othersDReps": "Others ({count} DReps)",
+    "concentrationTitle": "Top-N Power Concentration",
+    "concentrationTop10": "Top 10",
+    "concentrationTop20": "Top 20",
+    "concentrationTop50": "Top 50",
+    "concentrationNoData": "Concentration data unavailable",
     "profile": {
       "pageTitle": "{name} - CGOV",
       "pageTitleFallback": "DRep Profile - CGOV",

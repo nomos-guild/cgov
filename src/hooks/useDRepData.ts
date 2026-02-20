@@ -15,6 +15,7 @@ import type {
   SortOrder,
   VoteBreakdown,
   DRepHistoryDataPoint,
+  ConcentrationHistoryPoint,
 } from "@/types/drep";
 
 /**
@@ -222,49 +223,20 @@ export function useAllDReps(options: Omit<UseDRepListOptions, "page"> = {}, init
           return;
         }
 
-        // Fetch page 1 to learn totalPages
-        const firstParams = new URLSearchParams();
-        firstParams.set("page", "1");
-        firstParams.set("pageSize", String(pageSize));
-        firstParams.set("sortBy", sortBy);
-        firstParams.set("sortOrder", sortOrder);
-        if (search) firstParams.set("search", search);
+        // Single request — server-side route handles pagination internally
+        const params = new URLSearchParams();
+        params.set("sortBy", sortBy);
+        params.set("sortOrder", sortOrder);
+        if (search) params.set("search", search);
 
-        const firstRes = await fetch(
-          `${API_ENDPOINTS.dreps}?${firstParams.toString()}`,
+        const res = await fetch(
+          `${API_ENDPOINTS.drepsAll}?${params.toString()}`,
           { signal: controller.signal }
         );
-        if (!firstRes.ok) throw new Error(await firstRes.text() || firstRes.statusText);
+        if (!res.ok) throw new Error(await res.text() || res.statusText);
 
-        const firstData: DRepListApiResponse = await firstRes.json();
-        const accumulated = firstData.dreps.map(transformDRepSummary);
-        const { totalPages } = firstData.pagination;
-
-        // Fetch remaining pages in parallel
-        if (totalPages > 1) {
-          const remaining = Array.from({ length: totalPages - 1 }, (_, i) => i + 2);
-          const results = await Promise.all(
-            remaining.map(async (pg) => {
-              const p = new URLSearchParams();
-              p.set("page", String(pg));
-              p.set("pageSize", String(pageSize));
-              p.set("sortBy", sortBy);
-              p.set("sortOrder", sortOrder);
-              if (search) p.set("search", search);
-
-              const res = await fetch(
-                `${API_ENDPOINTS.dreps}?${p.toString()}`,
-                { signal: controller.signal }
-              );
-              if (!res.ok) throw new Error(await res.text() || res.statusText);
-              const data: DRepListApiResponse = await res.json();
-              return data.dreps.map(transformDRepSummary);
-            })
-          );
-          for (const page of results) {
-            accumulated.push(...page);
-          }
-        }
+        const data: DRepListApiResponse = await res.json();
+        const accumulated = data.dreps.map(transformDRepSummary);
 
         if (!controller.signal.aborted) {
           allDrepsCache.set(cacheKey, { data: accumulated, timestamp: Date.now() });
@@ -647,6 +619,26 @@ export function useDRepRationaleStats(initialData?: DRepRationaleStatsResponse["
     isLoading: !fallback && isLoading,
     error: error?.message || null,
     refresh: () => mutate(),
+  };
+}
+
+/**
+ * Fetch historical DRep power concentration data (top-10/20/50 by epoch)
+ */
+export function useConcentrationHistory() {
+  const { data, error, isLoading } = useSWR<{ history: ConcentrationHistoryPoint[] }>(
+    API_ENDPOINTS.analyticsConcentrationHistory,
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 300000,
+    }
+  );
+
+  return {
+    history: data?.history || [],
+    isLoading,
+    error: error?.message || null,
   };
 }
 

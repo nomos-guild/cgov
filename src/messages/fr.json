@@ -42,8 +42,10 @@
   "stats": {
     "total": "Total",
     "active": "Actif",
-    "ratified": "Ratifié",
-    "expired": "Expiré",
+    "passed": "Adopté",
+    "passedInfo": "Propositions ratifiées et promulguées",
+    "failed": "Échoué",
+    "failedInfo": "Propositions expirées et clôturées",
     "ncl": "{année} NCL"
   },
   "status": {
@@ -458,6 +460,11 @@
     "share": "Part",
     "others": "Autres",
     "othersDReps": "Autres ({count} DReps)",
+    "concentrationTitle": "Concentration de Pouvoir Top-N",
+    "concentrationTop10": "Top 10",
+    "concentrationTop20": "Top 20",
+    "concentrationTop50": "Top 50",
+    "concentrationNoData": "Données de concentration indisponibles",
     "profile": {
       "pageTitle": "{name} - CGOV",
       "pageTitleFallback": "Profil DRep - CGOV",
