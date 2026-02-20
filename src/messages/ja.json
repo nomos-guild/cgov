@@ -43,8 +43,10 @@
   "stats": {
     "total": "合計",
     "active": "アクティブ",
-    "ratified": "承認",
-    "expired": "期限切れ",
+    "passed": "可決",
+    "passedInfo": "承認済みおよび施行済みの提案",
+    "failed": "否決",
+    "failedInfo": "期限切れおよび終了した提案",
     "ncl": "年NCL"
   },
   "status": {
@@ -459,6 +461,11 @@
     "share": "シェア",
     "others": "その他",
     "othersDReps": "その他（{count} DRep）",
+    "concentrationTitle": "トップN権力集中度",
+    "concentrationTop10": "トップ10",
+    "concentrationTop20": "トップ20",
+    "concentrationTop50": "トップ50",
+    "concentrationNoData": "集中度データが利用できません",
     "profile": {
       "pageTitle": "{name} - CGOV",
       "pageTitleFallback": "DRepプロフィール - CGOV",

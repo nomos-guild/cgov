@@ -34,6 +34,7 @@ export const API_ENDPOINTS = {
   // DRep endpoints
   drepStats: "/api/dreps/stats",
   dreps: "/api/dreps",
+  drepsAll: "/api/dreps/all",
   drepDetail: (drepId: string) => `/api/dreps/${encodeURIComponent(drepId)}`,
   drepVotes: (drepId: string) =>
     `/api/dreps/${encodeURIComponent(drepId)}/votes`,
@@ -77,4 +78,7 @@ export const API_ENDPOINTS = {
 
   // Analytics endpoints - Category 6: Tooling & UX
   analyticsInfoAvailability: "/api/analytics/info-availability",
+
+  // Analytics endpoints - DRep Concentration
+  analyticsConcentrationHistory: "/api/analytics/drep-concentration-history",
 } as const;

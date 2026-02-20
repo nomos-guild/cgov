@@ -1,6 +1,8 @@
 import { useMemo } from "react";
 import { useTranslations } from "next-intl";
+import { Info } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useAppSelector } from "@/store/hooks";
 import { useTheme } from "@/lib/theme";
 import type { NCLDisplayData } from "@/types/governance";
@@ -14,11 +16,10 @@ export function GovernanceStats() {
   const stats = {
     total: actions.length,
     active: actions.filter((a) => a.status === "Active").length,
-    // Treat "Enacted" as successfully ratified and "Closed" as an expired outcome
-    ratified: actions.filter(
+    passed: actions.filter(
       (a) => a.status === "Ratified" || a.status === "Enacted"
     ).length,
-    expired: actions.filter(
+    failed: actions.filter(
       (a) => a.status === "Expired" || a.status === "Closed"
     ).length,
   };
@@ -80,7 +81,6 @@ export function GovernanceStats() {
       {/* Proposal Counter Box */}
       <div className="rounded-2xl border border-white/8 bg-[#faf9f6] p-2.5 sm:p-3 md:p-4 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none">
         <div className="flex flex-col gap-3">
-          {/* First row: Total */}
           <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-2">
             <span className="text-xl sm:text-2xl md:text-3xl font-bold dark:text-[#0bd1a2]">{stats.total}</span>
             <span className="text-[10px] sm:text-xs md:text-sm text-muted-foreground uppercase tracking-wide dark:text-[#0bd1a2]">
@@ -88,7 +88,6 @@ export function GovernanceStats() {
             </span>
           </div>
 
-          {/* Second row: Active, Ratified, Expired */}
           <div className="flex items-center gap-4 sm:gap-6 md:gap-8">
             <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-2">
               <span className="text-lg sm:text-xl md:text-2xl font-semibold dark:text-[#0bd1a2]">
@@ -101,19 +100,35 @@ export function GovernanceStats() {
 
             <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-2">
               <span className="text-lg sm:text-xl md:text-2xl font-semibold dark:text-[#0bd1a2]">
-                {stats.ratified}
+                {stats.passed}
               </span>
-              <span className="text-[10px] sm:text-xs md:text-sm text-muted-foreground dark:text-[#0bd1a2]">
-                {t("ratified")}
+              <span className="text-[10px] sm:text-xs md:text-sm text-muted-foreground dark:text-[#0bd1a2] inline-flex items-center gap-1">
+                {t("passed")}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 cursor-help opacity-60 hover:opacity-100 transition-opacity" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <p className="text-xs">{t("passedInfo")}</p>
+                  </TooltipContent>
+                </Tooltip>
               </span>
             </div>
 
             <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-2">
               <span className="text-lg sm:text-xl md:text-2xl font-semibold dark:text-[#0bd1a2]">
-                {stats.expired}
+                {stats.failed}
               </span>
-              <span className="text-[10px] sm:text-xs md:text-sm text-muted-foreground dark:text-[#0bd1a2]">
-                {t("expired")}
+              <span className="text-[10px] sm:text-xs md:text-sm text-muted-foreground dark:text-[#0bd1a2] inline-flex items-center gap-1">
+                {t("failed")}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 cursor-help opacity-60 hover:opacity-100 transition-opacity" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <p className="text-xs">{t("failedInfo")}</p>
+                  </TooltipContent>
+                </Tooltip>
               </span>
             </div>
           </div>
