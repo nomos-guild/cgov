@@ -3,10 +3,13 @@ import { useTranslations } from "next-intl";
 
 import type { DRepSummary } from "@/types/drep";
 import { useTheme } from "@/lib/theme";
+import { cn } from "@/lib/utils";
 import { useAllDReps, useDRepRationaleStats } from "@/hooks/useDRepData";
+import { useGovernanceActions } from "@/hooks/useGovernanceData";
 import DRepPickerFilters from "@/components/dreps/DRepPickerFilters";
 import DRepPickerResults from "@/components/dreps/DRepPickerResults";
 import type { EnrichedDRep } from "@/components/dreps/DRepPickerResults";
+import MatchMe from "@/components/dreps/MatchMe";
 
 interface DRepPickerProps {
   initialDreps?: DRepSummary[];
@@ -40,6 +43,10 @@ export default function DRepPicker({ initialDreps, initialRationaleStats }: DRep
   const isGame = activeTheme.id === "game";
   const isLight = activeTheme.id === "light" || activeTheme.id === "neural";
 
+  // Match Me modal state
+  const [matchMeOpen, setMatchMeOpen] = useState(false);
+  const { actions: governanceActions } = useGovernanceActions();
+
   // Data hooks — rationaleStats seeded from ISR, revalidated client-side via SWR
   const { dreps: allDreps, isLoading: loadingDreps } = useAllDReps({}, initialDreps);
   const { dreps: rationaleStats, isLoading: loadingRationale } = useDRepRationaleStats(initialRationaleStats);
@@ -61,7 +68,7 @@ export default function DRepPicker({ initialDreps, initialRationaleStats }: DRep
       });
     }
 
-    return allDreps.map((d): EnrichedDRep => {
+    return allDreps.filter((d) => d.totalVotesCast > 0 && d.votingPowerAda > 0).map((d): EnrichedDRep => {
       const rationale = rationaleMap.get(d.drepId);
       const votes = rationale?.totalVotesCast ?? d.totalVotesCast;
 
@@ -82,6 +89,13 @@ export default function DRepPicker({ initialDreps, initialRationaleStats }: DRep
       };
     });
   }, [allDreps, rationaleStats]);
+
+  // Build drepId→name map for Match Me results
+  const drepNames = useMemo(() => {
+    const map = new Map<string, string | null>();
+    for (const d of enrichedDreps) map.set(d.drepId, d.name);
+    return map;
+  }, [enrichedDreps]);
 
   // Compute bounds + percentile breakpoints from data
   const bounds = useMemo(() => {
@@ -228,14 +242,42 @@ export default function DRepPicker({ initialDreps, initialRationaleStats }: DRep
     <div className="flex flex-col lg:flex-row lg:items-stretch gap-4">
       {/* Left column: chart + filters */}
       <div className="w-full lg:w-[320px] flex-shrink-0 flex flex-col gap-4">
-        {/* Chart card */}
-        <div className={`${chartCardClass} p-4 sm:p-6 min-h-[280px] flex items-center justify-center`}>
+        {/* Match Me card */}
+        <div className={`${chartCardClass} p-4 sm:p-6 min-h-[280px] flex flex-col items-center justify-center gap-4`}>
           <img
             src={isLight ? "/images/Cardano-RGB_Logo-Icon-Black.svg" : "/images/Cardano-RGB_Logo-Icon-White.svg"}
             alt="Cardano"
-            className={`w-36 h-36 ${isLight ? "opacity-15" : isGame ? "opacity-10" : "opacity-15"}`}
+            className={`w-24 h-24 ${isLight ? "opacity-10" : isGame ? "opacity-8" : "opacity-10"}`}
           />
+          <div className="text-center">
+            <p className={cn("text-xs font-semibold mb-1", isGame ? "text-white" : isLight ? "text-black" : "text-[#0bd1a2]")}>
+              Not sure which DRep to pick?
+            </p>
+            <p className={cn("text-[10px] mb-3 max-w-[200px]", isGame ? "text-white/40" : isLight ? "text-black/40" : "text-[#0bd1a2]/40")}>
+              Vote on 5 proposals and find DReps that match your views
+            </p>
+            <button
+              onClick={() => setMatchMeOpen(true)}
+              className={cn(
+                "px-5 py-2 text-xs font-bold transition-all duration-200",
+                isLight
+                  ? "rounded-full bg-black text-white hover:bg-black/80 hover:scale-105"
+                  : isGame
+                    ? "rounded-[2px] bg-white text-black hover:bg-white/90 hover:scale-105"
+                    : "rounded-none bg-[#0bd1a2] text-black hover:bg-[#0bd1a2]/80 hover:scale-105"
+              )}
+            >
+              Match Me
+            </button>
+          </div>
         </div>
+
+        <MatchMe
+          actions={governanceActions}
+          drepNames={drepNames}
+          open={matchMeOpen}
+          onOpenChange={setMatchMeOpen}
+        />
 
         {/* Filters */}
         <DRepPickerFilters
