@@ -141,19 +141,51 @@ cd .claude/mcp/cardano-governance && npm run build
 cd .claude/mcp/cgov-project && npm run build
 ```
 
+### Hooks (`.claude/hooks.json`)
+
+Event-driven automations that fire deterministically on every tool call:
+
+**PreToolUse** (before tool execution):
+- **Doc file blocker** — Blocks creation of random `.md`/`.txt` files outside allowed paths (README, CLAUDE, .claude/)
+- **Git push warning** — Warns before `git push` to review changes first
+
+**PostToolUse** (after tool execution):
+- **Console.log warning** — Warns when `console.log` is added to source files
+
+**Stop** (session end):
+- **Console.log audit** — Scans all modified files for remaining `console.log` statements
+
 ### Skills (`.claude/skills/`)
 
 Reusable task templates for common operations:
+
+**Task skills** (code generation):
 - `add-chart` - Add a new dashboard chart
 - `add-dashboard` - Create a new dashboard with chart registry
 - `add-api-route` - Add a new API endpoint
 - `add-thunk` - Add a Redux async thunk
-- `cgov-build` - Build and validate the project
+
+**Quality skills** (verification & review):
+- `build-fix` - Build and intelligently fix TypeScript errors with guardrails (was `cgov-build`)
+- `verify` - Pre-PR verification loop (build, types, lint, security, console.log audit)
+- `code-review` - Security and quality review of uncommitted changes
+- `security-review` - Deep security audit for Next.js, API routes, wallet integration
+
+**Reference skills** (guidelines):
 - `theming` - Theme styling guidelines for light/dark/game
 - `i18n` - Add translations across all 7 locale files
+- `context` - Context window conservation rules
+
+**Meta skills** (system management):
 - `journey` - Create session learning logs
 - `wrap-up` - End-of-session learning consolidation
-- `reflect` - Deep reflection on the skill system itself (periodic meta-improvement)
+- `reflect` - Deep reflection on the skill system itself
+
+### Contexts (`.claude/contexts/`)
+
+Behavioral modes that change Claude's working style:
+- **`dev`** — Active coding. Write code first, explain after. Minimal changes, no unsolicited refactoring.
+- **`review`** — Code review. Read thoroughly, prioritize by severity, suggest specific fixes.
 
 ### Skill Learning System
 
