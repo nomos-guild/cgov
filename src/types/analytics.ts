@@ -959,7 +959,8 @@ export interface AnalyticsEnactedOnlyParam {
 export type VotingTurnoutQueryParams = AnalyticsPaginationParams &
   AnalyticsEpochRangeParams &
   AnalyticsStatusParams &
-  AnalyticsGovernanceActionTypeParams;
+  AnalyticsGovernanceActionTypeParams &
+  AnalyticsProposalIdParam;
 
 export type StakeParticipationQueryParams = AnalyticsProposalIdParam;
 
@@ -979,10 +980,12 @@ export type GiniCoefficientQueryParams = AnalyticsActiveOnlyParam;
 export type DRepActivityRateQueryParams = AnalyticsPaginationParams &
   AnalyticsEpochRangeParams &
   AnalyticsStatusParams &
+  AnalyticsDRepIdParam &
   AnalyticsActiveOnlyParam &
   Omit<AnalyticsSortParams, "sortBy"> & { sortBy?: DRepActivityRateSortBy };
 
 export type DRepRationaleRateQueryParams = AnalyticsPaginationParams &
+  AnalyticsDRepIdParam &
   AnalyticsActiveOnlyParam &
   Omit<AnalyticsSortParams, "sortBy"> & { sortBy?: DRepRationaleRateSortBy };
 
@@ -994,17 +997,20 @@ export type DRepLifecycleRateQueryParams = AnalyticsEpochRangeParams & Analytics
 
 export type SpoSilentStakeQueryParams = AnalyticsPaginationParams &
   AnalyticsEpochRangeParams &
-  AnalyticsStatusParams;
+  AnalyticsStatusParams &
+  AnalyticsProposalIdParam;
 
 export type SpoDefaultStanceQueryParams = AnalyticsPaginationParams &
   AnalyticsEpochRangeParams &
-  AnalyticsStatusParams;
+  AnalyticsStatusParams &
+  AnalyticsProposalIdParam;
 
 export type EntityConcentrationQueryParams = AnalyticsLimitParam;
 
 export type VoteDivergenceQueryParams = AnalyticsPaginationParams &
   AnalyticsEpochRangeParams &
-  AnalyticsStatusParams;
+  AnalyticsStatusParams &
+  AnalyticsProposalIdParam;
 
 export type ActionVolumeQueryParams = AnalyticsEpochRangeParams & AnalyticsLimitParam;
 
@@ -1012,6 +1018,7 @@ export type ContentionRateQueryParams = AnalyticsPaginationParams &
   AnalyticsEpochRangeParams &
   AnalyticsStatusParams &
   AnalyticsGovernanceActionTypeParams &
+  AnalyticsProposalIdParam &
   AnalyticsContentiousOnlyParam;
 
 export type TreasuryRateQueryParams = AnalyticsEpochRangeParams & AnalyticsLimitParam;
@@ -1019,19 +1026,30 @@ export type TreasuryRateQueryParams = AnalyticsEpochRangeParams & AnalyticsLimit
 export type TimeToEnactmentQueryParams = AnalyticsPaginationParams &
   AnalyticsStatusParams &
   AnalyticsGovernanceActionTypeParams &
+  AnalyticsProposalIdParam &
   AnalyticsEnactedOnlyParam;
 
-export type ComplianceStatusQueryParams = AnalyticsPaginationParams & AnalyticsStatusParams;
+export type ComplianceStatusQueryParams = AnalyticsPaginationParams &
+  AnalyticsStatusParams &
+  AnalyticsProposalIdParam;
 
-export type CCTimeToDecisionQueryParams = AnalyticsPaginationParams & AnalyticsStatusParams;
+export type CCTimeToDecisionQueryParams = AnalyticsPaginationParams &
+  AnalyticsStatusParams &
+  AnalyticsProposalIdParam;
 
 export type CCParticipationQueryParams = AnalyticsStatusParams;
 
-export type CCAbstainRateQueryParams = AnalyticsPaginationParams & AnalyticsStatusParams;
+export type CCAbstainRateQueryParams = AnalyticsPaginationParams &
+  AnalyticsStatusParams &
+  AnalyticsProposalIdParam;
 
-export type CCAgreementRateQueryParams = AnalyticsPaginationParams & AnalyticsStatusParams;
+export type CCAgreementRateQueryParams = AnalyticsPaginationParams &
+  AnalyticsStatusParams &
+  AnalyticsProposalIdParam;
 
-export type InfoAvailabilityQueryParams = AnalyticsPaginationParams & AnalyticsStatusParams;
+export type InfoAvailabilityQueryParams = AnalyticsPaginationParams &
+  AnalyticsStatusParams &
+  AnalyticsProposalIdParam;
 
 /**
  * Maps each analytics endpoint key to the query params it supports.
