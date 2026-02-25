@@ -1,7 +1,11 @@
+import { useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 
 import { useTheme } from "@/lib/theme";
+import { cn } from "@/lib/utils";
+
+const DEFAULT_DISPLAY_LIMIT = 50;
 
 export interface EnrichedDRep {
   drepId: string;
@@ -32,6 +36,10 @@ export default function DRepPickerResults({ dreps }: DRepPickerResultsProps) {
   const { activeTheme } = useTheme();
   const isGame = activeTheme.id === "game";
   const isLight = activeTheme.id === "light" || activeTheme.id === "neural";
+  const [showAll, setShowAll] = useState(false);
+
+  const visibleDreps = showAll ? dreps : dreps.slice(0, DEFAULT_DISPLAY_LIMIT);
+  const hasMore = dreps.length > DEFAULT_DISPLAY_LIMIT;
 
   const cardClass = isLight
     ? "rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)]"
@@ -81,7 +89,7 @@ export default function DRepPickerResults({ dreps }: DRepPickerResultsProps) {
 
             {/* Table Rows */}
             <div className="flex flex-col gap-1.5 mt-2 pb-2">
-              {dreps.map((drep, index) => (
+              {visibleDreps.map((drep, index) => (
                 <Link
                   key={drep.drepId}
                   href={`/drep/${encodeURIComponent(drep.drepId)}`}
@@ -130,6 +138,24 @@ export default function DRepPickerResults({ dreps }: DRepPickerResultsProps) {
                   </span>
                 </Link>
               ))}
+
+              {hasMore && (
+                <button
+                  onClick={(e) => { e.preventDefault(); setShowAll(!showAll); }}
+                  className={cn(
+                    "w-full py-2 mt-1 text-[11px] font-medium transition-colors duration-150",
+                    isLight
+                      ? "rounded-lg text-black/50 hover:text-black hover:bg-black/5"
+                      : isGame
+                        ? "rounded-[2px] text-white/40 hover:text-white hover:bg-white/5"
+                        : "rounded-none text-[#0bd1a2]/50 hover:text-[#0bd1a2] hover:bg-[#0bd1a2]/5"
+                  )}
+                >
+                  {showAll
+                    ? `Show Top ${DEFAULT_DISPLAY_LIMIT}`
+                    : `Show All ${dreps.length.toLocaleString()} DReps`}
+                </button>
+              )}
             </div>
           </div>
         </div>

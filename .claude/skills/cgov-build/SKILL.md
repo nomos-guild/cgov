@@ -1,106 +1,141 @@
 ---
-name: cgov-build
-updated: 2026-02-02
-description: Run the build and iteratively fix TypeScript errors. Use when you need to verify the build passes or fix compilation errors.
+name: build-fix
+updated: 2026-02-20
+description: Run the build and intelligently fix TypeScript errors with guardrails. Stops if fixes introduce more errors or the same error persists after 3 attempts.
 disable-model-invocation: true
 allowed-tools: Bash, Read, Edit, Grep, Glob, TodoWrite
 ---
 
-# CGOV Build & Fix
+# Build Fix
 
-Run the Next.js build and iteratively fix any TypeScript errors.
+Run the Next.js build, parse errors, and fix them incrementally with smart guardrails.
 
 ## Instructions
 
-### Step 1: Run Build
-
-Execute the build command:
+### Step 1: Detect Current State
 
 ```bash
-npm run build
+npm run build 2>&1
 ```
 
-### Step 2: Parse Errors
+If build succeeds, report success and exit. Otherwise continue.
 
-If the build fails, parse the TypeScript errors from the output. Common error patterns:
+### Step 2: Parse and Group Errors
 
+Parse TypeScript errors from build output. Group by file and sort by dependency order:
+1. Type definition files (`types/*.ts`) first — fixing these often resolves downstream errors
+2. Utility/lib files (`lib/*.ts`, `utils/*.ts`) second
+3. Store/service files (`store/*.ts`, `services/*.ts`) third
+4. Component files (`components/**/*.tsx`) fourth
+5. Page files (`pages/**/*.tsx`) last
+
+Common error patterns:
 - `Type 'X' is not assignable to type 'Y'`
 - `Property 'X' does not exist on type 'Y'`
 - `Cannot find module 'X'`
 - `Argument of type 'X' is not assignable to parameter of type 'Y'`
+- `Object is possibly 'undefined'`
 
 ### Step 3: Create Todo List
 
-Use TodoWrite to track each error:
+Use TodoWrite to track each error group (by file):
 
 ```
-- Fix type error in src/components/Foo.tsx:42
-- Fix missing property in src/store/slice.ts:100
-- Fix import error in src/pages/bar.tsx:5
+- Fix 3 type errors in src/types/governance.ts
+- Fix 1 missing property in src/store/governanceSlice.ts
+- Fix 2 import errors in src/pages/dashboard.tsx
 ```
 
-### Step 4: Fix Each Error
+### Step 4: Fix Loop (with guardrails)
 
-For each error:
+For each error, follow this cycle:
 
-1. Read the file to understand context
-2. Identify the root cause
-3. Apply the fix using Edit tool
-4. Mark the todo as completed
+1. **Read context**: Read 10-20 lines around the error (not the whole file)
+2. **Diagnose**: Identify root cause — is it a type mismatch, missing import, null check, etc.?
+3. **Minimal fix**: Apply the smallest edit that resolves the error. Do NOT refactor surrounding code.
+4. **Mark todo complete**
 
-### Step 5: Re-run Build
+#### Guardrails — STOP if any of these trigger:
 
-After fixing all errors, run the build again:
+| Guardrail | Condition | Action |
+|-----------|-----------|--------|
+| **Error loop** | Same error in same file after 3 fix attempts | STOP. Report the error and suggest manual review. |
+| **Error explosion** | Re-build shows MORE errors than before | REVERT last edit. Report what happened. |
+| **Architectural change needed** | Fix requires changing interfaces used by 5+ files | STOP. Report as architectural issue needing manual decision. |
+| **Missing dependency** | Error requires installing a new package | STOP. Report the missing package, do not auto-install. |
+| **20 error limit** | More than 20 individual errors | Fix the first 20, then re-build to see if downstream errors resolve. |
+
+### Step 5: Re-build
+
+After fixing all parsed errors (or hitting a guardrail), re-run:
 
 ```bash
-npm run build
+npm run build 2>&1
 ```
 
-Repeat steps 2-5 until the build succeeds.
+- If clean: report success with summary
+- If new errors: repeat from Step 2 (max 3 full cycles)
+- If same errors persist: stop and report
 
-### Step 6: Verify Success
+### Step 6: Report
 
-When build passes, report:
-- Total errors fixed
-- Files modified
-- Any warnings to note
+```
+BUILD FIX REPORT
+═══════════════════════════
+Result:     [SUCCESS / PARTIAL / BLOCKED]
+Errors fixed: X
+Files modified: Y
+Build cycles: Z
+═══════════════════════════
 
-## Common Fixes
+Fixed:
+  - src/types/governance.ts:42 — Added missing property 'votingPower'
+  - src/components/Foo.tsx:18 — Added null check for optional data
 
-### Missing Type Export
-```typescript
-// Add to types file
-export type { NewType } from "./source";
+Remaining (if any):
+  - src/store/slice.ts:100 — Architectural: interface change affects 8 files
+  - src/pages/bar.tsx:5 — Missing dependency: @types/foo
+
+Warnings (pre-existing, expected):
+  - [drepId].tsx uses <img> instead of <Image />
+  - / page data exceeds 128 kB threshold
 ```
 
-### Incorrect Prop Type
+## Fix Patterns
+
+### Missing Null Check
 ```typescript
-// Update interface
-interface Props {
-  value: string; // was: number
-}
+// Before
+const value = data.property;
+// After
+const value = data?.property;
+```
+
+### Type Mismatch
+```typescript
+// Check if the type definition needs updating, not the usage
+// Prefer widening the type to adding `as X` casts
 ```
 
 ### Missing Import
 ```typescript
-// Add import
-import { SomeComponent } from "@/components/SomeComponent";
+// Always use @/ path alias
+import { Component } from "@/components/Component";
 ```
 
-### Null Check
+### Index Signature for Recharts Data
 ```typescript
-// Add optional chaining
-const value = data?.property ?? defaultValue;
+// Recharts data arrays need this
+interface ChartData {
+  name: string;
+  value: number;
+  [key: string]: string | number; // Required for Recharts
+}
 ```
-
-## Build Output Locations
-
-- Type errors: stdout during `npm run build`
-- Build artifacts: `.next/` directory
-- Lint errors: `npm run lint` (separate command)
 
 ## Notes
 
-- Always fix errors in the order they appear (earlier errors may cause later ones)
-- If stuck on a complex type error, check if the related type definitions need updating
-- After significant changes, run `npm run dev` to test hot reload works
+- Always fix errors in dependency order (types → utils → store → components → pages)
+- If stuck on a complex type error, check if the related type definitions need updating first
+- Never use `@ts-ignore` or `as any` as a fix — these hide real problems
+- After significant changes, consider running `npm run lint` as well

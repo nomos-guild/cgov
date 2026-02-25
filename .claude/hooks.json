@@ -1,0 +1,49 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const input = JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); const fp = input.tool_input?.file_path || ''; const allowed = ['README','CLAUDE','CONTRIBUTING','CHANGELOG','LICENSE','.claude/','.github/']; if (fp.match(/\\.(md|txt)$/) && !allowed.some(a => fp.includes(a))) { process.stderr.write('BLOCKED: Creating random doc files. Only README, CLAUDE.md, CONTRIBUTING.md, and files under .claude/ are allowed.'); process.exit(2); }\"",
+            "description": "Block creation of random doc files outside allowed paths"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const input = JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); const cmd = input.tool_input?.command || ''; if (cmd.match(/git\\s+push/)) { process.stderr.write('WARNING: About to push to remote. Make sure you have reviewed all changes (git diff, git log) and the build passes.'); }\"",
+            "description": "Warn before git push to review changes"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const input = JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); const fp = input.tool_input?.file_path || ''; const ns = input.tool_input?.new_string || ''; if (fp.match(/\\.(ts|tsx|js|jsx)$/) && ns.match(/console\\.log\\(/)) { process.stderr.write('WARNING: console.log detected in ' + fp + '. Remove before committing to production.'); }\"",
+            "description": "Warn when console.log is added to source files"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const {execSync} = require('child_process'); try { const files = execSync('git diff --name-only HEAD', {encoding:'utf8'}).trim().split('\\n').filter(f => f.match(/\\.(ts|tsx|js|jsx)$/)); let found = []; for (const f of files) { try { const content = require('fs').readFileSync(f,'utf8'); const lines = content.split('\\n'); lines.forEach((line, i) => { if (line.match(/console\\.log\\(/) && !line.match(/\\/\\//)) found.push(f + ':' + (i+1)); }); } catch(e) {} } if (found.length) { process.stderr.write('AUDIT: ' + found.length + ' console.log(s) found in modified files:\\n' + found.join('\\n')); } } catch(e) {}\"",
+            "description": "Audit console.log in modified files at session end"
+          }
+        ]
+      }
+    ]
+  }
+}
