@@ -23,6 +23,11 @@ const directionMap = {
   right: (d: number) => `translateX(-${d}px)`,
 };
 
+// Track routes where entrance animations have already played.
+// Survives React tree remounts (e.g. from MeshProvider loading)
+// so animations don't replay on the same page.
+const animatedRoutes = new Set<string>();
+
 export function FadeIn({
   children,
   delay = 0,
@@ -33,17 +38,20 @@ export function FadeIn({
   className,
 }: FadeInProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
+  const route = typeof window !== "undefined" ? window.location.pathname : "";
+  const alreadyAnimated = show === undefined && animatedRoutes.has(route);
+  const [visible, setVisible] = useState(alreadyAnimated);
 
   // IntersectionObserver mode (when `show` is not provided)
   useEffect(() => {
-    if (show !== undefined) return;
+    if (show !== undefined || alreadyAnimated) return;
     const el = ref.current;
     if (!el) return;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
+          animatedRoutes.add(route);
           setVisible(true);
           observer.unobserve(el);
         }
@@ -52,7 +60,7 @@ export function FadeIn({
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [show]);
+  }, [show, alreadyAnimated, route]);
 
   // Controlled mode (when `show` is provided)
   useEffect(() => {
@@ -70,7 +78,9 @@ export function FadeIn({
       style={{
         opacity: isVisible ? 1 : 0,
         transform: isVisible ? "translate(0, 0)" : directionMap[direction](distance),
-        transition: `opacity ${duration}ms ease-out ${delay}ms, transform ${duration}ms ease-out ${delay}ms`,
+        transition: alreadyAnimated
+          ? undefined
+          : `opacity ${duration}ms ease-out ${delay}ms, transform ${duration}ms ease-out ${delay}ms`,
         willChange: isVisible ? "auto" : "opacity, transform",
       }}
     >
