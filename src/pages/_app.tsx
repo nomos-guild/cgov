@@ -37,15 +37,14 @@ export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
   const locale = router.locale ?? "en";
 
-  // Restore saved language preference from localStorage on first load
+  // Migrate saved locale preference to NEXT_LOCALE cookie.
+  // Next.js reads this cookie server-side to route to the correct locale,
+  // avoiding a client-side router.replace() that caused a visible double render.
   useEffect(() => {
     const savedLocale = localStorage.getItem("preferred-locale");
-    if (savedLocale && isValidLocale(savedLocale) && savedLocale !== router.locale) {
-      router.replace({ pathname: router.pathname, query: router.query }, undefined, {
-        locale: savedLocale,
-      });
+    if (savedLocale && isValidLocale(savedLocale)) {
+      document.cookie = `NEXT_LOCALE=${savedLocale};path=/;max-age=31536000;SameSite=Lax`;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Load pre-translated messages for the current locale
@@ -57,24 +56,24 @@ export default function App({ Component, pageProps }: AppProps) {
       messages={messages}
       timeZone="UTC"
     >
-      <MeshProviderWrapper>
-        <ThemeProvider>
-          <Provider store={store}>
-            <TooltipProvider delayDuration={300}>
-              <Head>
-                <link rel="icon" href="/favicon.ico?v=2" />
-              </Head>
-              <div id="app-brightness-wrapper" className="min-h-screen flex flex-col">
+      <ThemeProvider>
+        <Provider store={store}>
+          <TooltipProvider delayDuration={300}>
+            <Head>
+              <link rel="icon" href="/favicon.ico?v=2" />
+            </Head>
+            <div id="app-brightness-wrapper" className="min-h-screen flex flex-col">
+              <MeshProviderWrapper>
                 <Header />
                 <main className="main-content">
                   <Component {...pageProps} />
                 </main>
                 <Footer />
-              </div>
-            </TooltipProvider>
-          </Provider>
-        </ThemeProvider>
-      </MeshProviderWrapper>
+              </MeshProviderWrapper>
+            </div>
+          </TooltipProvider>
+        </Provider>
+      </ThemeProvider>
     </NextIntlClientProvider>
   );
 }

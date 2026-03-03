@@ -6,8 +6,12 @@
  */
 
 import useSWR from "swr";
-import { useEffect, useRef, useMemo } from "react";
+import { useEffect, useLayoutEffect, useRef, useMemo } from "react";
 import { API_ENDPOINTS } from "@/config/api";
+
+// useLayoutEffect on client (fires before paint), useEffect on server (avoids SSR warning)
+const useIsomorphicLayoutEffect =
+  typeof window !== "undefined" ? useLayoutEffect : useEffect;
 import type {
   GovernanceAction,
   GovernanceActionDetail,
@@ -167,8 +171,8 @@ export function useGovernanceActions(fallbackData?: GovernanceAction[]) {
     }
   );
 
-  // Transform data and sync to Redux
-  useEffect(() => {
+  // Transform data and sync to Redux before browser paint to avoid visible flash
+  useIsomorphicLayoutEffect(() => {
     if (data) {
       const transformed = data.map(transformGovernanceAction);
       dispatch(setActions(transformed));
@@ -200,8 +204,8 @@ export function useOverviewSummary(fallbackData?: OverviewSummary | null) {
     }
   );
 
-  // Sync to Redux
-  useEffect(() => {
+  // Sync to Redux before browser paint to avoid visible flash
+  useIsomorphicLayoutEffect(() => {
     if (data) {
       dispatch(setOverview(data));
     }
@@ -233,8 +237,8 @@ export function useNCLData(fallbackData?: NCLDisplayData[]) {
     }
   );
 
-  // Transform and sync to Redux
-  useEffect(() => {
+  // Transform and sync to Redux before browser paint to avoid visible flash
+  useIsomorphicLayoutEffect(() => {
     // Use fallback data if available and no fresh data yet
     if (fallbackData && !data) {
       dispatch(setNCLDataList(fallbackData));
@@ -413,7 +417,7 @@ export function useGovernanceActionDetail(
   );
 
   // Sync to Redux for backward compatibility with components reading selectedAction
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     if (transformed) {
       dispatch(setSelectedAction(transformed));
     }

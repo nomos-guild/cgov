@@ -18,11 +18,11 @@ export function LanguageSelector() {
   const currentLocale = (router.locale ?? "en") as Locale;
 
   const handleLocaleChange = (newLocale: string) => {
-    // Save preference to localStorage
+    // Set NEXT_LOCALE cookie so Next.js handles locale routing server-side on future visits
+    document.cookie = `NEXT_LOCALE=${newLocale};path=/;max-age=31536000;SameSite=Lax`;
     localStorage.setItem("preferred-locale", newLocale);
 
     // Navigate to the same page with new locale
-    // Use pathname with query to avoid issues with asPath containing old locale prefix
     router.push({ pathname: router.pathname, query: router.query }, undefined, {
       locale: newLocale,
     });

@@ -1,5 +1,9 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useLayoutEffect, useState } from "react";
 import type { ReactNode } from "react";
+
+// useLayoutEffect on client (fires before paint), useEffect on server (avoids SSR warning)
+const useIsomorphicLayoutEffect =
+  typeof window !== "undefined" ? useLayoutEffect : useEffect;
 import {
   DEFAULT_THEME_ID,
   getNextThemeId,
@@ -39,7 +43,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<ThemeId>(DEFAULT_THEME_ID);
   const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const savedTheme =
       typeof localStorage !== "undefined"
         ? (localStorage.getItem(STORAGE_KEY) as ThemeId | null)
@@ -52,7 +56,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setMounted(true);
   }, []);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     if (!mounted) return;
 
     applyTheme(theme);
