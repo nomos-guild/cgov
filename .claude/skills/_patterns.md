@@ -273,3 +273,4 @@ Game theme uses CSS class `game-tab-btn` / `game-tab-btn-active` with `[data-sta
 - **Batch related edits**: If changing colors in 3 const objects, read the range covering all 3 once (not 3 separate reads).
 - **Skip verification reads**: After an edit, don't read the file to confirm — the Edit tool reports success/failure.
 - **Subagents for exploration**: Use `Explore` agent for broad codebase research so findings don't bloat the main context.
+- **Decompose large files proactively**: Files over ~300 lines should be split. A 1000-line file costs ~4K tokens per read-edit cycle. Extract utilities → inline components → tabs/sections into separate files. See `context` skill for decomposition details.
