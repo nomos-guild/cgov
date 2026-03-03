@@ -1,6 +1,6 @@
 ---
 name: context
-updated: 2026-02-11
+updated: 2026-03-03
 description: Context window conservation rules. Invoke when approaching context limits or before large tasks.
 argument-hint: (no arguments)
 allowed-tools: Read, Edit, Glob, Grep
@@ -85,6 +85,17 @@ For identical edits across multiple files:
 3. Edit ALL files in parallel (one message, 7 Edit calls)
 
 Total: 1 Grep + 7 Reads + 7 Edits = 15 tool calls. Not a skill invocation + exploration.
+
+## File Size Awareness
+
+Files over ~300 lines cost 1-2K tokens per full read. A read-edit-read cycle on a 1000+ line file eats 4-6K tokens. When a file repeatedly causes context pressure:
+
+1. **Decompose it** — extract inline components, utility functions, tab content into separate files (see `2026-03-03-monster-file-decomposition` journey)
+2. **Extraction order**: pure utilities → inline components with typed props → shared/duplicated rendering → tab content → complex sections
+3. **Move local-only state into extracted components** — if state is only used within a tab, make it internal, don't pass as props
+4. **Target**: each file under 300 lines. The page shell keeps imports, hooks, layout; everything else gets its own file.
+
+**Current monster files remaining**: `GovernanceTable.tsx` (1263), `drep/[drepId].tsx` (1392)
 
 ## Anti-Patterns
 

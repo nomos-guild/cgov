@@ -1,6 +1,6 @@
 ---
 name: add-dashboard
-updated: 2026-02-04
+updated: 2026-03-03
 description: Create a new customizable dashboard with its own chart registry, provider, and page. Use when adding dashboards like DRep or SPO dashboard.
 argument-hint: [DashboardName]
 allowed-tools: Read, Edit, Write, Glob, Grep, Bash
@@ -41,6 +41,11 @@ src/
 │   │       ├── index.tsx          # CHART_REGISTRY
 │   │       └── *.tsx              # Chart components
 │   │
+│   ├── development_activity/      # Dev activity dashboard (real example)
+│   │   └── charts/
+│   │       ├── index.ts           # CHART_REGISTRY
+│   │       └── *.tsx              # 13+ chart components
+│   │
 │   └── ${lowercase}/              # YOUR NEW DASHBOARD
 │       ├── charts/
 │       │   ├── index.tsx          # CHART_REGISTRY for this dashboard
@@ -51,7 +56,7 @@ src/
 │       └── index.ts               # Barrel export
 │
 ├── pages/
-│   ├── dashboard.tsx              # Governance dashboard page
+│   ├── adadev.tsx                 # Governance dashboard page
 │   └── ${lowercase}-dashboard.tsx # YOUR NEW DASHBOARD PAGE
 │
 └── types/

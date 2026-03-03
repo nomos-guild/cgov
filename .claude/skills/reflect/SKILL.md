@@ -93,7 +93,6 @@ Look for:
 Reflect on whether the system structure is working:
 
 - **wrap-up**: Is it doing its job? Are skills actually getting better over time?
-- **Learning notes**: Are `<!-- LEARNING -->` comments being used during work? If not, why?
 - **Journeys**: Are they useful to future sessions or just noise?
 - **_patterns.md**: Is it being referenced and kept current?
 

@@ -12,6 +12,7 @@ import type { DRepStatsApiResponse } from "@/hooks/useDRepData";
 import { DRepSunburstChart } from "@/components/dreps/DRepSunburstChart";
 import DRepPicker from "@/components/dreps/DRepPicker";
 import { cn } from "@/lib/utils";
+import { FadeIn } from "@/components/ui/fade-in";
 import {
   fetchDRepStatsServer,
   fetchAllDRepsServer,
@@ -116,11 +117,13 @@ export default function DRepDashboard({ initialData }: InferGetStaticPropsType<t
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-3 pt-8 pb-28 sm:px-4 sm:pt-10 sm:pb-36 md:px-6 md:pt-12 md:pb-44">
           {/* Header */}
-          <div className="mb-6 sm:mb-8 md:mb-10 text-left">
-            <h1 className="landing-title text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-black dark:text-foreground">
-              {t("title")}
-            </h1>
-          </div>
+          <FadeIn delay={0} duration={400} distance={12}>
+            <div className="mb-6 sm:mb-8 md:mb-10 text-left">
+              <h1 className="landing-title text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-black dark:text-foreground">
+                {t("title")}
+              </h1>
+            </div>
+          </FadeIn>
 
           {/* Loading state */}
           {showLoadingSpinner && (
@@ -144,48 +147,51 @@ export default function DRepDashboard({ initialData }: InferGetStaticPropsType<t
           {!showLoadingSpinner && (
             <>
               {/* Stats Cards */}
-              <div className={cn(
-                "grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6",
-                isGame && "game-drep-stats"
-              )}>
-                {([
-                  { label: t("totalDReps"), value: dreps.length ? formatNumber(activeDRepCount) : "--", tooltip: t("activeDRepsTooltip") },
-                  { label: t("totalDelegators"), value: dreps.length ? formatNumber(totalDelegators) : "--" },
-                  { label: t("totalDelegatedAda"), value: stats ? `${formatCompactNumber(stats.totalDelegatedAda)} ADA` : "--" },
-                  { label: t("totalVotesCast"), value: stats ? formatNumber(stats.totalVotesCast) : "--" },
-                ] as { label: string; value: string; tooltip?: string }[]).map(({ label, value, tooltip }) => (
-                  <div
-                    key={label}
-                    className={
-                      isLight
-                        ? "rounded-2xl border border-white/8 bg-[#faf9f6] p-4 shadow-[0_12px_30px_rgba(15,23,42,0.25)]"
-                        : isGame
-                        ? "rounded-[2px] border-none bg-[rgba(12,12,12,0.5)] p-4 shadow-[0_12px_28px_rgba(0,0,0,0.5),0_4px_12px_rgba(0,0,0,0.35)]"
-                        : "rounded-none border border-[#0bd1a2] bg-transparent p-4 shadow-none"
-                    }
-                  >
-                    <p className={`text-sm ${isGame ? "text-white/70" : isLight ? "text-muted-foreground" : "text-[#0bd1a2]"}`}>
-                      {label}
-                      {tooltip && (
-                        <span className="relative ml-1 inline-block align-middle group">
-                          <Info className={cn("inline h-3.5 w-3.5 cursor-help", isGame ? "text-white/50" : isLight ? "text-muted-foreground" : "text-[#0bd1a2]/60")} />
-                          <span className={cn(
-                            "pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 w-48 rounded px-2.5 py-1.5 text-xs font-normal leading-snug opacity-0 transition-opacity group-hover:opacity-100 z-50",
-                            isGame ? "bg-black/90 text-white border border-white/20" : isLight ? "bg-foreground text-background shadow-lg" : "bg-black text-[#0bd1a2] border border-[#0bd1a2]"
-                          )}>
-                            {tooltip}
+              <FadeIn delay={120} duration={500} distance={18}>
+                <div className={cn(
+                  "grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6",
+                  isGame && "game-drep-stats"
+                )}>
+                  {([
+                    { label: t("totalDReps"), value: dreps.length ? formatNumber(activeDRepCount) : "--", tooltip: t("activeDRepsTooltip") },
+                    { label: t("totalDelegators"), value: dreps.length ? formatNumber(totalDelegators) : "--" },
+                    { label: t("totalDelegatedAda"), value: stats ? `${formatCompactNumber(stats.totalDelegatedAda)} ADA` : "--" },
+                    { label: t("totalVotesCast"), value: stats ? formatNumber(stats.totalVotesCast) : "--" },
+                  ] as { label: string; value: string; tooltip?: string }[]).map(({ label, value, tooltip }) => (
+                    <div
+                      key={label}
+                      className={
+                        isLight
+                          ? "rounded-2xl border border-white/8 bg-[#faf9f6] p-4 shadow-[0_12px_30px_rgba(15,23,42,0.25)]"
+                          : isGame
+                          ? "rounded-[2px] border-none bg-[rgba(12,12,12,0.5)] p-4 shadow-[0_12px_28px_rgba(0,0,0,0.5),0_4px_12px_rgba(0,0,0,0.35)]"
+                          : "rounded-none border border-[#0bd1a2] bg-transparent p-4 shadow-none"
+                      }
+                    >
+                      <p className={`text-sm ${isGame ? "text-white/70" : isLight ? "text-muted-foreground" : "text-[#0bd1a2]"}`}>
+                        {label}
+                        {tooltip && (
+                          <span className="relative ml-1 inline-block align-middle group">
+                            <Info className={cn("inline h-3.5 w-3.5 cursor-help", isGame ? "text-white/50" : isLight ? "text-muted-foreground" : "text-[#0bd1a2]/60")} />
+                            <span className={cn(
+                              "pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 w-48 rounded px-2.5 py-1.5 text-xs font-normal leading-snug opacity-0 transition-opacity group-hover:opacity-100 z-50",
+                              isGame ? "bg-black/90 text-white border border-white/20" : isLight ? "bg-foreground text-background shadow-lg" : "bg-black text-[#0bd1a2] border border-[#0bd1a2]"
+                            )}>
+                              {tooltip}
+                            </span>
                           </span>
-                        </span>
-                      )}
-                    </p>
-                    <p className={`text-2xl font-bold ${isGame ? "text-white" : isLight ? "" : "text-[#0bd1a2]"}`}>
-                      {value}
-                    </p>
-                  </div>
-                ))}
-              </div>
+                        )}
+                      </p>
+                      <p className={`text-2xl font-bold ${isGame ? "text-white" : isLight ? "" : "text-[#0bd1a2]"}`}>
+                        {value}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </FadeIn>
 
               {/* Tabbed Chart Section */}
+              <FadeIn delay={260} duration={500} distance={24}>
               <Tabs
                 value={selectedTab}
                 onValueChange={setSelectedTab}
@@ -213,22 +219,29 @@ export default function DRepDashboard({ initialData }: InferGetStaticPropsType<t
 
                 {/* DRep Chart Tab — forceMount to keep hooks alive across tab switches */}
                 <TabsContent value="drep-list" className="mt-0 data-[state=inactive]:hidden" forceMount>
-                  <DRepSunburstChart initialDreps={initialDreps} initialRationaleStats={initialRationaleStats} view="chart" />
+                  <FadeIn delay={0} duration={400} distance={16}>
+                    <DRepSunburstChart initialDreps={initialDreps} initialRationaleStats={initialRationaleStats} view="chart" />
+                  </FadeIn>
                 </TabsContent>
 
                 {/* DRep List Tab — forceMount to keep hooks alive across tab switches */}
                 <TabsContent value="drep-table" className="mt-0 data-[state=inactive]:hidden" forceMount>
-                  <DRepSunburstChart initialDreps={initialDreps} initialRationaleStats={initialRationaleStats} view="list" />
+                  <FadeIn delay={0} duration={400} distance={16}>
+                    <DRepSunburstChart initialDreps={initialDreps} initialRationaleStats={initialRationaleStats} view="list" />
+                  </FadeIn>
                 </TabsContent>
 
                 {/* DRep Picker Tab — no forceMount to avoid mounting 3 heavy components at once */}
                 <TabsContent value="drep-picker" className="mt-0">
-                  <DRepPicker
-                    initialDreps={initialDreps}
-                    initialRationaleStats={initialRationaleStats}
-                  />
+                  <FadeIn delay={0} duration={400} distance={16}>
+                    <DRepPicker
+                      initialDreps={initialDreps}
+                      initialRationaleStats={initialRationaleStats}
+                    />
+                  </FadeIn>
                 </TabsContent>
               </Tabs>
+              </FadeIn>
             </>
           )}
         </div>

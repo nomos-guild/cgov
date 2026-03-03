@@ -8,6 +8,7 @@ import { fetchAllGovernanceData } from "@/lib/serverFetch";
 import { Card } from "@/components/ui/card";
 import { GameLoader } from "@/components/ui/game-loader";
 import { useTheme } from "@/lib/theme";
+import { FadeIn } from "@/components/ui/fade-in";
 
 interface HomeProps {
   initialData: InitialGovernanceData;
@@ -36,11 +37,13 @@ export default function Home({ initialData }: InferGetStaticPropsType<typeof get
       </Head>
       <div className="min-h-screen bg-background overflow-visible">
         <div className="container mx-auto px-3 pt-8 pb-4 sm:px-4 sm:pt-10 sm:pb-6 md:px-6 md:pt-12 md:pb-8 overflow-visible">
-          <div className="mb-6 sm:mb-8 md:mb-10 text-left">
-            <h1 className="landing-title text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-black dark:text-foreground">
-              {t("landing.title")}
-            </h1>
-          </div>
+          <FadeIn delay={0} duration={400} distance={12}>
+            <div className="mb-6 sm:mb-8 md:mb-10 text-left">
+              <h1 className="landing-title text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-black dark:text-foreground">
+                {t("landing.title")}
+              </h1>
+            </div>
+          </FadeIn>
 
           {/* Error state */}
           {error && (
@@ -81,8 +84,12 @@ export default function Home({ initialData }: InferGetStaticPropsType<typeof get
           {/* Content - show existing data even while refreshing (stale-while-revalidate) */}
           {(hasData || (!isLoading && !error)) && !showLoadingSpinner && (
             <>
-              <GovernanceStats />
-              <GovernanceTable />
+              <FadeIn delay={120} duration={500} distance={18}>
+                <GovernanceStats />
+              </FadeIn>
+              <FadeIn delay={260} duration={500} distance={24}>
+                <GovernanceTable />
+              </FadeIn>
             </>
           )}
         </div>

@@ -6,7 +6,6 @@ import {
   useMemo,
   useCallback,
   useRef,
-  type ComponentType,
 } from "react";
 import type { GetStaticProps, GetStaticPaths } from "next";
 import { useRouter } from "next/router";
@@ -15,29 +14,16 @@ import Head from "next/head";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { VoteProgress } from "@/components/ui/vote-progress";
-import { Progress } from "@/components/ui/progress";
 import { VotingRecords } from "@/components/VotingRecords";
 import { BubbleMap } from "@/components/BubbleMap";
 import { useAppSelector } from "@/store/hooks";
 import { useGovernanceActionDetail } from "@/hooks/useGovernanceData";
-import { ArrowLeft, Copy, Check, Info } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import type {
   GovernanceActionDetail,
   VoterType,
   ProposalReferenceObject,
 } from "@/types/governance";
-import {
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip as RechartsTooltip,
-  Legend,
-  ReferenceLine,
-} from "recharts";
 import type { TooltipProps } from "recharts";
 import {
   exportToJSON,
@@ -61,240 +47,37 @@ import {
   buildLegendSegments,
   calculateExcludedBreakdown,
   getGovernanceActionTypeCode,
-  SEGMENT_COLORS,
-  type ExcludedBreakdown,
-  type VoteSegment,
 } from "@/lib/voteBreakdownCalculator";
 import { ProposalContent } from "@/components/ProposalContent";
 import { useContentTranslation } from "@/hooks/useContentTranslation";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/lib/theme";
+import { FadeIn } from "@/components/ui/fade-in";
 import { GameLoader } from "@/components/ui/game-loader";
-
-/**
- * Cardano epoch reference: Epoch 208 started on July 29, 2020 at 21:44:51 UTC (Shelley era start)
- * Each epoch is exactly 5 days (432,000 seconds)
- */
-const SHELLEY_START_EPOCH = 208;
-const SHELLEY_START_TIME = new Date("2020-07-29T21:44:51Z").getTime();
-const EPOCH_DURATION_MS = 5 * 24 * 60 * 60 * 1000; // 5 days in milliseconds
-
-/**
- * Get current epoch number
- */
-function getCurrentEpoch(): number {
-  const now = Date.now();
-  const epochsSinceShelley = Math.floor((now - SHELLEY_START_TIME) / EPOCH_DURATION_MS);
-  return SHELLEY_START_EPOCH + epochsSinceShelley;
-}
-
-/**
- * Convert epoch number to timestamp
- */
-function epochToTimestamp(epoch: number): number {
-  const epochsSinceShelley = epoch - SHELLEY_START_EPOCH;
-  return SHELLEY_START_TIME + (epochsSinceShelley * EPOCH_DURATION_MS);
-}
-
-/**
- * Convert IPFS URI to a gateway URL
- * Supports: ipfs://<cid>, ipfs:<cid>, <cid>
- */
-function convertIpfsToGateway(uri: string): string {
-  if (!uri) return uri;
-
-  // Check if it's an IPFS URI
-  const ipfsMatch = uri.match(/^(?:ipfs:\/\/|ipfs:)(.+)$/i);
-  if (ipfsMatch) {
-    const cid = ipfsMatch[1];
-    return `https://ipfs.io/ipfs/${cid}`;
-  }
-
-  // Check if it's a raw CID (starts with Qm or b for CIDv0/v1)
-  if (/^(Qm[a-zA-Z0-9]{44}|b[a-z2-7]{58})/.test(uri)) {
-    return `https://ipfs.io/ipfs/${uri}`;
-  }
-
-  // Return original URI if not IPFS
-  return uri;
-}
-
-/**
- * Legacy governance actions with special voting rules
- */
-const LEGACY_NON_APPLICABLE_DREP_ACTIONS = [
-  "gov_action1k2jertppnnndejjcglszfqq4yzw8evzrd2nt66rr6rqlz54xp0zsq05ecsn",
-  "gov_action1286ft23r7jem825s4l0y5rn8sgam0tz2ce04l7a38qmnhp3l9a6qqn850dw",
-  "gov_action1pvv5wmjqhwa4u85vu9f4ydmzu2mgt8n7et967ph2urhx53r70xusqnmm525",
-];
-
-const LEGACY_NON_APPLICABLE_SPO_ACTIONS = [
-  "gov_action1k2jertppnnndejjcglszfqq4yzw8evzrd2nt66rr6rqlz54xp0zsq05ecsn",
-  "gov_action1286ft23r7jem825s4l0y5rn8sgam0tz2ce04l7a38qmnhp3l9a6qqn850dw",
-];
-
-const LEGACY_NON_APPLICABLE_CC_ACTIONS: string[] = [];
-
-/**
- * Governance action types where CC doesn't vote (threshold is null)
- */
-const CC_NOT_APPLICABLE_TYPES = ["No Confidence", "Update Committee"];
-
-/**
- * Governance action types where SPO doesn't vote (threshold is null)
- */
-const SPO_NOT_APPLICABLE_TYPES = [
-  "New Constitution",
-  "Protocol Parameter Change",
-  "Treasury Withdrawals",
-];
-
-function isLegacyAction(hash: string): boolean {
-  const legacyActions = [
-    ...LEGACY_NON_APPLICABLE_DREP_ACTIONS,
-    ...LEGACY_NON_APPLICABLE_SPO_ACTIONS,
-    ...LEGACY_NON_APPLICABLE_CC_ACTIONS,
-  ];
-  return legacyActions.some(
-    (actionId) => hash === actionId || hash.includes(actionId)
-  );
-}
-
-function isCcNotApplicable(action: GovernanceActionDetail): boolean {
-  if (
-    LEGACY_NON_APPLICABLE_CC_ACTIONS.some(
-      (actionId) => action.hash === actionId || action.hash.includes(actionId)
-    )
-  ) {
-    return true;
-  }
-  // Prefer explicit threshold from backend when available:
-  // if ccThreshold is null, CC is not eligible to vote;
-  // if it is a number, CC is eligible regardless of type.
-  if (!isLegacyAction(action.hash) && action.threshold) {
-    if (action.threshold.ccThreshold === null) {
-      return true;
-    }
-    if (typeof action.threshold.ccThreshold === "number") {
-      return false;
-    }
-  }
-  if (!isLegacyAction(action.hash)) {
-    return CC_NOT_APPLICABLE_TYPES.includes(action.type);
-  }
-  return false;
-}
-
-function isDrepNotApplicable(action: GovernanceActionDetail): boolean {
-  if (
-    LEGACY_NON_APPLICABLE_DREP_ACTIONS.some(
-      (actionId) => action.hash === actionId || action.hash.includes(actionId)
-    )
-  ) {
-    return true;
-  }
-  return false;
-}
-
-function isSpoNotApplicable(action: GovernanceActionDetail): boolean {
-  if (
-    LEGACY_NON_APPLICABLE_SPO_ACTIONS.some(
-      (actionId) => action.hash === actionId || action.hash.includes(actionId)
-    )
-  ) {
-    return true;
-  }
-
-  // If there are SPO votes in the votes array, SPOs can vote (security-critical parameter changes)
-  const hasSpoVotes = action.votes?.some((v) => v.voterType === "SPO") ?? false;
-  if (hasSpoVotes) {
-    return false; // SPOs are applicable if they have votes
-  }
-
-  // For non-legacy actions, prefer explicit threshold from backend:
-  // if spoThreshold is null, SPOs are not eligible to vote.
-  if (!isLegacyAction(action.hash) && action.threshold) {
-    if (action.threshold.spoThreshold === null) {
-      return true;
-    }
-  }
-  if (!isLegacyAction(action.hash)) {
-    return SPO_NOT_APPLICABLE_TYPES.includes(action.type);
-  }
-  return false;
-}
-
-const formatAdaValue = (value: number) => {
-  if (!value || Number.isNaN(value)) return "0 ₳";
-  if (value >= 1_000_000_000) {
-    return `${(value / 1_000_000_000).toFixed(1)}B ₳`;
-  }
-  if (value >= 1_000_000) {
-    return `${(value / 1_000_000).toFixed(1)}M ₳`;
-  }
-  if (value >= 1_000) {
-    return `${(value / 1_000).toFixed(1)}k ₳`;
-  }
-  return `${value.toLocaleString()} ₳`;
-};
-
-const VOTE_COLORS_LIGHT = {
-  yes: "#0B8C30",
-  no: "#8C200B",
-  abstain: "#000000",
-  pending: "#94A3B8",
-};
-
-const VOTE_COLORS_DARK = {
-  yes: "#0B8C30",
-  no: "#8C200B",
-  abstain: "#ffffff",
-  pending: "#94A3B8",
-};
-
-const VOTE_COLORS_NEURAL = {
-  yes: "#000000",
-  no: "#aaaaaa",
-  abstain: "#dddddd",
-  pending: "#cccccc",
-};
-
-type TimelinePoint = {
-  label: string; // Clean label for display (just the date)
-  timestamp: number; // Numeric ms timestamp for time-based axis
-  yesCount: number;
-  noCount: number;
-  abstainCount: number;
-  yesPower: number;
-  noPower: number;
-  abstainPower: number;
-};
+import { epochToTimestamp } from "@/lib/epochUtils";
+import {
+  VOTE_COLORS_LIGHT,
+  VOTE_COLORS_DARK,
+  VOTE_COLORS_NEURAL,
+  type TimelinePoint,
+} from "@/lib/voteColors";
+import {
+  isCcNotApplicable,
+  isDrepNotApplicable,
+  isSpoNotApplicable,
+  convertIpfsToGateway,
+} from "@/lib/governanceEligibilityOverrides";
+import { VoteTrendTooltip } from "@/components/governance/VoteTrendTooltip";
+import { LazyVoteOnProposal } from "@/components/governance/LazyVoteOnProposal";
+import { ProposalExpiryCard } from "@/components/governance/ProposalExpiryCard";
+import { LiveVotingTab } from "@/components/governance/LiveVotingTab";
+import { ProposalDetailsTab } from "@/components/governance/ProposalDetailsTab";
+import { ThresholdsTab } from "@/components/governance/ThresholdsTab";
+import { VoteTrendLineChart } from "@/components/governance/VoteTrendLineChart";
 
 type RoleFilter = "All" | VoterType;
 type ChartMode = "live" | "projected";
 
-interface VoteOnProposalProps {
-  txHash: string;
-  certIndex: number;
-  proposalTitle: string;
-  status: string;
-  proposalId: string;
-}
-
-function LazyVoteOnProposal(props: VoteOnProposalProps) {
-  const [Comp, setComp] = useState<ComponentType<VoteOnProposalProps> | null>(null);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (!(window.crypto && window.crypto.subtle)) return;
-    import("@/components/governance/VoteOnProposal")
-      .then((mod) => setComp(() => mod.VoteOnProposal))
-      .catch(() => {});
-  }, []);
-
-  if (!Comp) return null;
-  return <Comp {...props} />;
-}
 
 interface GovernanceDetailProps {
   initialDetail?: GovernanceActionDetail | null;
@@ -304,7 +87,6 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
   const router = useRouter();
   const { hash } = router.query;
   const { theme, activeTheme } = useTheme();
-  const tExpiry = useTranslations("expiry");
   const tTabs = useTranslations("tabs");
   const tVoting = useTranslations("voting");
   const tProposal = useTranslations("proposal");
@@ -337,14 +119,10 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
   const [isExporting, setIsExporting] = useState(false);
   const [contentVisible, setContentVisible] = useState(!!initialDetail);
   const [isContentExpanded, setIsContentExpanded] = useState<boolean>(false);
-  const [isDrepExcludedExpanded, setIsDrepExcludedExpanded] = useState<boolean>(false);
-  const [isSpoExcludedExpanded, setIsSpoExcludedExpanded] = useState<boolean>(false);
-  const [isCcExcludedExpanded, setIsCcExcludedExpanded] = useState<boolean>(false);
   const [curveRoleFilter, setCurveRoleFilter] =
     useState<RoleFilter>("All");
   const [chartMode, setChartMode] = useState<ChartMode>("live");
   const [selectedTab, setSelectedTab] = useState<string>("live-voting");
-  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [submittedAt, setSubmittedAt] = useState<number | null>(null);
 
   // Fetch precise submission timestamp from Koios via txHash
@@ -1027,15 +805,7 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
     }
   };
 
-  const handleCopy = async (text: string, id: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedId(id);
-      setTimeout(() => setCopiedId(null), 2000);
-    } catch (err) {
-      console.error("Failed to copy:", err);
-    }
-  };
+
 
   return (
     <>
@@ -1048,9 +818,10 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
       </Head>
       <div className="min-h-screen bg-background">
         <div
-          className={`container mx-auto px-3 py-4 sm:px-4 sm:py-6 md:px-6 md:py-8 transition-opacity duration-300 ${contentVisible ? "opacity-100" : "opacity-0"}`}
+          className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 md:px-6 md:py-8"
         >
           {/* Top actions */}
+          <FadeIn show={contentVisible} delay={0} duration={400} distance={12}>
           <div className="mb-4 sm:mb-6 flex flex-wrap items-center gap-2 sm:gap-3">
             <Link href="/">
               <Button
@@ -1080,8 +851,10 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
               </Button>
             )}
           </div>
+          </FadeIn>
 
           {/* Proposal Detail + Expiry Row */}
+          <FadeIn show={contentVisible} delay={120} duration={500} distance={18}>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6 mb-4 sm:mb-6 md:mb-8">
             {/* Proposal Detail */}
           <Card className={cn(
@@ -1182,231 +955,18 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
           </Card>
 
           {/* Time Until Expiry Card */}
-          {selectedAction && (() => {
-            // Calculate expiry based on epoch, not days
-            // Governance actions expire at the END of the expiryEpoch
-            const now = Date.now();
-            const currentEpoch = getCurrentEpoch();
-            const submissionEpoch = selectedAction.submissionEpoch > 0
-              ? selectedAction.submissionEpoch
-              : currentEpoch;
-
-            // Get expiry epoch (default to submission + 6 epochs if not set)
-            // The "Valid Until Epoch" is expiryEpoch - 1, meaning voting ends at the end of that epoch
-            const expiryEpoch = selectedAction.expiryEpoch > 0
-              ? selectedAction.expiryEpoch
-              : submissionEpoch + 6;
-
-            // Calculate timestamps for the start and end of the voting period
-            const submissionTimestamp = epochToTimestamp(submissionEpoch);
-            // Voting ends at the END of (expiryEpoch - 1), which is the START of expiryEpoch
-            const expiryTimestamp = epochToTimestamp(expiryEpoch);
-
-            // Calculate time remaining until end of voting period
-            const timeRemaining = Math.max(0, expiryTimestamp - now);
-            const daysRemaining = Math.floor(timeRemaining / (24 * 60 * 60 * 1000));
-
-            // Calculate progress based on epochs
-            const totalEpochs = expiryEpoch - submissionEpoch;
-            const epochsElapsed = currentEpoch - submissionEpoch;
-            const progressPercent = totalEpochs > 0
-              ? Math.min(100, Math.max(0, (epochsElapsed / totalEpochs) * 100))
-              : 0;
-
-            return (
-              <Card className={cn("p-6", isGame && "game-detail-card")}>
-                <div className="flex items-center justify-between mb-4">
-                  <label className={cn(
-                    "text-sm font-semibold",
-                    isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
-                  )}>
-                    {tExpiry("timeUntilExpiry")}
-                  </label>
-                  <div className={cn(
-                    "text-base font-semibold",
-                    isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
-                  )}>
-                    {daysRemaining > 0 ? (
-                      <>
-                        {daysRemaining}{" "}
-                        {daysRemaining === 1 ? tExpiry("day") : tExpiry("days")}
-                      </>
-                    ) : (
-                      <span className={isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"}>
-                        {tExpiry("expired")}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <Progress
-                  value={progressPercent}
-                  className={cn(
-                    "h-3",
-                    isGame
-                      ? "rounded-full bg-white/20"
-                      : "rounded-full bg-secondary dark:bg-transparent dark:border dark:border-[#0bd1a2] dark:rounded-none"
-                  )}
-                  indicatorClassName={isGame ? "bg-white/50" : "bg-black dark:bg-[#0bd1a2]"}
-                />
-
-                {/* Proposal Info + Epoch Details */}
-                <div className="mt-4 pt-3 border-t border-border/50">
-                    <table className="text-xs w-full">
-                      <tbody>
-                        <tr className={cn(
-                          "border-b",
-                          isGame ? "border-white/10" : "border-border/30"
-                        )}>
-                          <td className={cn(
-                            "py-2 pr-4",
-                            isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
-                          )}>
-                            {tProposal("govActionType")}
-                          </td>
-                          <td className={cn(
-                            "py-2 font-semibold whitespace-nowrap",
-                            isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
-                          )}>
-                            {selectedAction.type}
-                          </td>
-                        </tr>
-                        <tr className={cn(
-                          "border-b",
-                          isGame ? "border-white/10" : "border-border/30"
-                        )}>
-                          <td className={cn(
-                            "py-2 pr-4",
-                            isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
-                          )}>
-                            {tProposal("status")}
-                          </td>
-                          <td className={cn(
-                            "py-2 font-semibold whitespace-nowrap",
-                            isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
-                          )}>
-                            {selectedAction.status}
-                          </td>
-                        </tr>
-                        <tr className={cn(
-                          "border-b",
-                          isGame ? "border-white/10" : "border-border/30"
-                        )}>
-                          <td className={cn(
-                            "py-2 pr-4",
-                            isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
-                          )}>
-                            {tProposal("constitutionality")}
-                          </td>
-                          <td className={cn(
-                            "py-2 font-semibold whitespace-nowrap",
-                            isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
-                          )}>
-                            {isInfoAction ? (
-                              <div className="flex items-center gap-1.5">
-                                <span className={isGame ? "text-white/60" : "text-muted-foreground dark:text-[#0bd1a2]/60"}>
-                                  {tProposal("notApplicable")}
-                                </span>
-                                <div className="group relative">
-                                  <Info
-                                    className={cn(
-                                      "h-3.5 w-3.5 cursor-help",
-                                      isGame ? "text-white/50" : "text-muted-foreground/60 dark:text-[#0bd1a2]/60"
-                                    )}
-                                  />
-                                  <div className="pointer-events-none absolute right-0 top-full z-50 mt-1 hidden w-48 rounded-md border bg-popover p-2 text-xs text-popover-foreground shadow-md group-hover:block">
-                                    {tProposal("infoActionTooltip")}
-                                  </div>
-                                </div>
-                              </div>
-                            ) : selectedAction.constitutionality ? (
-                              selectedAction.status === "Active" && selectedAction.constitutionality.toLowerCase() !== "constitutional"
-                                ? tProposal("pending")
-                                : selectedAction.constitutionality
-                            ) : null}
-                          </td>
-                        </tr>
-                        <tr className={cn(
-                          "border-b",
-                          isGame ? "border-white/10" : "border-border/30"
-                        )}>
-                          <td className={cn(
-                            "py-2 pr-4",
-                            isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
-                          )}>
-                            {tExpiry("submissionDate")}
-                          </td>
-                          <td className={cn(
-                            "py-2 font-semibold whitespace-nowrap",
-                            isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
-                          )}>
-                            {new Date(submittedAt ?? submissionTimestamp).toLocaleDateString("en-GB", {
-                              day: "2-digit",
-                              month: "2-digit",
-                              year: "numeric"
-                            })}
-                          </td>
-                        </tr>
-                        <tr className={cn(
-                          "border-b",
-                          isGame ? "border-white/10" : "border-border/30"
-                        )}>
-                          <td className={cn(
-                            "py-2 pr-4",
-                            isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
-                          )}>
-                            {tExpiry("epochBoundary")}
-                          </td>
-                          <td className={cn(
-                            "py-2 font-semibold whitespace-nowrap",
-                            isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
-                          )}>
-                            {new Date(expiryTimestamp).toLocaleDateString("en-GB", {
-                              day: "2-digit",
-                              month: "2-digit",
-                              year: "numeric"
-                            })}
-                          </td>
-                        </tr>
-                        <tr className={cn(
-                          "border-b",
-                          isGame ? "border-white/10" : "border-border/30"
-                        )}>
-                          <td className={cn(
-                            "py-2 pr-4",
-                            isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
-                          )}>
-                            {tExpiry("submissionEpoch")}
-                          </td>
-                          <td className={cn(
-                            "py-2 font-semibold whitespace-nowrap",
-                            isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
-                          )}>
-                            {submissionEpoch}
-                          </td>
-                        </tr>
-                        <tr>
-                          <td className={cn(
-                            "py-2 pr-4",
-                            isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
-                          )}>
-                            {tExpiry("validUntilEpoch")}
-                          </td>
-                          <td className={cn(
-                            "py-2 font-semibold whitespace-nowrap",
-                            isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
-                          )}>
-                            {(selectedAction.expiryEpoch > 0 ? selectedAction.expiryEpoch : submissionEpoch + 6) - 1}
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-              </Card>
-            );
-          })()}
+          {selectedAction && (
+            <ProposalExpiryCard
+              action={selectedAction}
+              isInfoAction={isInfoAction}
+              submittedAt={submittedAt}
+            />
+          )}
           </div>
+          </FadeIn>
 
           {/* Main Grid: 2/3 Left, 1/3 Right */}
+          <FadeIn show={contentVisible} delay={260} duration={500} distance={24}>
           <div className="grid grid-cols-1 gap-4 sm:gap-5 md:gap-6 lg:grid-cols-3">
             {/* Left Column - Tabs for donuts, bubble map, curves, details */}
             <div className="space-y-4 sm:space-y-5 md:space-y-6 lg:col-span-2">
@@ -1478,155 +1038,29 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
                     <>
                         {/* Live voting donuts */}
                         <TabsContent value="live-voting" className="mt-0">
-                          {(allVotes.length > 0 || hasAggregateVotingData) ? (
-                            <div className="space-y-0 sm:space-y-4">
-                              {/* Mobile: horizontal donut + legend. Desktop: horizontal row with vertical stacks */}
-                              <div className={cn(
-                                "flex flex-col -space-y-20 sm:space-y-0 sm:flex-row sm:flex-wrap xl:flex-nowrap sm:items-start sm:justify-start",
-                                isGame ? "sm:gap-2 md:gap-3" : "sm:gap-4 md:gap-6"
-                              )}>
-                                {/* DRep */}
-                                <div className="flex flex-row items-center gap-1 sm:flex-col sm:items-center sm:gap-3 my-0">
-                                  {allowDRep ? (
-                                    drepInfo ? (
-                                      <>
-                                        <VoteProgress
-                                          title={tProposal("drepVotes")}
-                                          segments={drepDonutSegments ?? undefined}
-                                          valueUnit="ada"
-                                          className="origin-left scale-[0.5] -mr-24 sm:mr-0 sm:origin-center sm:scale-90 md:scale-100 shrink-0"
-                                          fixedWidth={240}
-                                          showTooltip={false}
-                                          animate={false}
-                                          interactive={false}
-                                          showYesPercent={!!drepDonutSegments}
-                                        />
-                                        <RoleLegend
-                                          role="DRep"
-                                          segments={drepLegendSegments}
-                                          unit="ADA"
-                                        />
-                                        <ExcludedBreakdownDisplay
-                                          role="DRep"
-                                          breakdown={drepExcludedBreakdown}
-                                          isInfoAction={isInfoAction}
-                                          isExpanded={isDrepExcludedExpanded}
-                                          setIsExpanded={setIsDrepExcludedExpanded}
-                                        />
-                                      </>
-                                    ) : (
-                                      <RolePlaceholder
-                                        role="DRep"
-                                        message={tProposal("noOnChainData")}
-                                      />
-                                    )
-                                  ) : (
-                                    <RolePlaceholder
-                                      role="DRep"
-                                      message={tProposal("notEligibleForAction")}
-                                      notEligible
-                                    />
-                                  )}
-                                </div>
-                                {/* Vertical divider */}
-                                {isGame && <div className="hidden sm:block w-0 self-stretch border-r border-white/20 mx-4" />}
-                                {/* CC */}
-                                <div className="flex flex-row items-center gap-1 sm:flex-col sm:items-center sm:gap-3 my-0">
-                                  {allowCC ? (
-                                    <>
-                                      <VoteProgress
-                                        title={tProposal("ccVotes")}
-                                        yesPercent={ccYesPercent}
-                                        noPercent={ccNoPercent}
-                                        pendingPercent={ccPendingPercentRecalc}
-                                        yesValue={ccYesCount}
-                                        noValue={ccNoCount}
-                                        pendingValue={ccPendingCount || 1}
-                                        valueUnit="count"
-                                        className="origin-left scale-[0.5] -mr-24 sm:mr-0 sm:origin-center sm:scale-90 md:scale-100 shrink-0"
-                                        fixedWidth={240}
-                                        showTooltip={false}
-                                        animate={false}
-                                        interactive={false}
-                                        showYesPercent
-                                      />
-                                      <RoleLegend
-                                        role="CC"
-                                        yesLabel={`${ccYesCount}`}
-                                        noLabel={`${ccNoCount}`}
-                                        pendingLabel={ccInfo ? `${ccPendingCount}` : "100%"}
-                                        unit="votes"
-                                      />
-                                      <ExcludedBreakdownDisplay
-                                        role="CC"
-                                        breakdown={{
-                                          abstain: ccAbstainStats.count ?? 0,
-                                        }}
-                                        isInfoAction={isInfoAction}
-                                        isExpanded={isCcExcludedExpanded}
-                                        setIsExpanded={setIsCcExcludedExpanded}
-                                      />
-                                    </>
-                                  ) : (
-                                    <RolePlaceholder
-                                      role="CC"
-                                      message={tProposal("notEligibleForAction")}
-                                      notEligible
-                                    />
-                                  )}
-                                </div>
-                                {/* Vertical divider */}
-                                {isGame && <div className="hidden sm:block w-0 self-stretch border-r border-white/20 mx-4" />}
-                                {/* SPO */}
-                                <div className="flex flex-row items-center gap-1 sm:flex-col sm:items-center sm:gap-3 my-0">
-                                  {allowSPO ? (
-                                    spoInfo ? (
-                                      <>
-                                        <VoteProgress
-                                          title={tProposal("spoVotes")}
-                                          segments={spoDonutSegments ?? undefined}
-                                          valueUnit="ada"
-                                          className="origin-left scale-[0.5] -mr-24 sm:mr-0 sm:origin-center sm:scale-90 md:scale-100 shrink-0"
-                                          fixedWidth={240}
-                                          showTooltip={false}
-                                          animate={false}
-                                          interactive={false}
-                                          showYesPercent={!!spoDonutSegments}
-                                        />
-                                        <RoleLegend
-                                          role="SPO"
-                                          segments={spoLegendSegments}
-                                          unit="ADA"
-                                        />
-                                        <ExcludedBreakdownDisplay
-                                          role="SPO"
-                                          breakdown={spoExcludedBreakdown}
-                                          isInfoAction={isInfoAction}
-                                          isExpanded={isSpoExcludedExpanded}
-                                          setIsExpanded={setIsSpoExcludedExpanded}
-                                        />
-                                      </>
-                                    ) : (
-                                      <RolePlaceholder
-                                        role="SPO"
-                                        message={tProposal("noOnChainData")}
-                                      />
-                                    )
-                                  ) : (
-                                    <RolePlaceholder
-                                      role="SPO"
-                                      message={tProposal("notEligibleForAction")}
-                                      notEligible
-                                    />
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex items-center justify-center py-6 text-sm text-muted-foreground">
-                              {tProposal("noVotingActivity")}
-                            </div>
-                          )}
+                          <LiveVotingTab
+                            hasData={allVotes.length > 0 || hasAggregateVotingData}
+                            isInfoAction={isInfoAction}
+                            allowDRep={allowDRep}
+                            hasDrepInfo={!!drepInfo}
+                            drepDonutSegments={drepDonutSegments}
+                            drepLegendSegments={drepLegendSegments}
+                            drepExcludedBreakdown={drepExcludedBreakdown}
+                            allowCC={allowCC}
+                            hasCcInfo={!!ccInfo}
+                            ccYesPercent={ccYesPercent}
+                            ccNoPercent={ccNoPercent}
+                            ccPendingPercentRecalc={ccPendingPercentRecalc}
+                            ccYesCount={ccYesCount}
+                            ccNoCount={ccNoCount}
+                            ccPendingCount={ccPendingCount}
+                            ccAbstainCount={ccAbstainStats.count ?? 0}
+                            allowSPO={allowSPO}
+                            hasSpoInfo={!!spoInfo}
+                            spoDonutSegments={spoDonutSegments}
+                            spoLegendSegments={spoLegendSegments}
+                            spoExcludedBreakdown={spoExcludedBreakdown}
+                          />
                         </TabsContent>
 
                         {/* Bubble map */}
@@ -1717,147 +1151,26 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
                               </div>
                             </div>
                             {voteTimelineData.length > 0 ? (
-                              <div className="h-[320px] w-full min-w-0">
-                                <ResponsiveContainer
-                                  width="100%"
-                                  height="100%"
-                                  minWidth={0}
-                                  minHeight={0}
-                                >
-                                  <LineChart
-                                    data={voteTimelineData}
-                                    margin={{
-                                      top: 10,
-                                      right: 40,
-                                      left: 0,
-                                      bottom: 0,
-                                    }}
-                                  >
-                                    <CartesianGrid
-                                      strokeDasharray="3 3"
-                                      className="stroke-border/60"
-                                    />
-                                    <XAxis
-                                      dataKey="timestamp"
-                                      type="number"
-                                      domain={chartDomain}
-                                      ticks={dailyTicks}
-                                      tick={{ fontSize: 12 }}
-                                      minTickGap={24}
-                                      tickFormatter={formatTickDate}
-                                    />
-                                    <YAxis
-                                      yAxisId="primary"
-                                      allowDecimals={false}
-                                      tick={{ fontSize: 12 }}
-                                      domain={yAxisDomain}
-                                      tickFormatter={
-                                        shouldShowPower
-                                          ? (value) =>
-                                              formatAdaValue(value).replace(
-                                                " ₳",
-                                                ""
-                                              )
-                                          : undefined
-                                      }
-                                    />
-                                    <RechartsTooltip
-                                      content={renderVoteTrendTooltip}
-                                    />
-                                    <Legend
-                                      iconType="square"
-                                    />
-                                    {chartMode === "projected" && thresholdReferenceValue != null && (
-                                      <ReferenceLine
-                                        y={thresholdReferenceValue}
-                                        yAxisId="primary"
-                                        stroke={isGame ? "#FFD700" : isDark ? "#0bd1a2" : "#000000"}
-                                        strokeDasharray="6 4"
-                                        strokeWidth={1}
-                                        label={{
-                                          value: thresholdLabel,
-                                          position: "insideTopRight",
-                                          fill: isGame ? "#FFD700" : isDark ? "#0bd1a2" : "#000000",
-                                          fontSize: 10,
-                                          fontWeight: 500,
-                                        }}
-                                      />
-                                    )}
-                                    {shouldShowPower ? (
-                                      <>
-                                        <Line
-                                          type="monotone"
-                                          dataKey="yesPower"
-                                          stroke={voteColors.yes}
-                                          strokeWidth={2}
-                                          strokeDasharray={
-                                            useDashedPowerLines ? "5 4" : undefined
-                                          }
-                                          dot={false}
-                                          name={tProposal("yesPower")}
-                                          yAxisId="primary"
-                                        />
-                                        <Line
-                                          type="monotone"
-                                          dataKey="noPower"
-                                          stroke={voteColors.no}
-                                          strokeWidth={2}
-                                          strokeDasharray={
-                                            useDashedPowerLines ? "5 4" : undefined
-                                          }
-                                          dot={false}
-                                          name={tProposal("noPower")}
-                                          yAxisId="primary"
-                                        />
-                                        <Line
-                                          type="monotone"
-                                          dataKey="abstainPower"
-                                          stroke={voteColors.abstain}
-                                          strokeOpacity={0.9}
-                                          strokeWidth={2}
-                                          strokeDasharray={
-                                            useDashedPowerLines ? "5 4" : undefined
-                                          }
-                                          dot={false}
-                                          name={tProposal("abstainPower")}
-                                          yAxisId="primary"
-                                        />
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Line
-                                          type="monotone"
-                                          dataKey="yesCount"
-                                          stroke={voteColors.yes}
-                                          strokeWidth={2}
-                                          dot={false}
-                                          name={tProposal("yesVotes")}
-                                          yAxisId="primary"
-                                        />
-                                        <Line
-                                          type="monotone"
-                                          dataKey="noCount"
-                                          stroke={voteColors.no}
-                                          strokeWidth={2}
-                                          dot={false}
-                                          name={tProposal("noVotes")}
-                                          yAxisId="primary"
-                                        />
-                                        <Line
-                                          type="monotone"
-                                          dataKey="abstainCount"
-                                          stroke={voteColors.abstain}
-                                          strokeOpacity={0.9}
-                                          strokeWidth={2}
-                                          dot={false}
-                                          name={tProposal("abstainVotes")}
-                                          yAxisId="primary"
-                                        />
-                                      </>
-                                    )}
-                                  </LineChart>
-                                </ResponsiveContainer>
-                              </div>
+                              <VoteTrendLineChart
+                                data={voteTimelineData}
+                                chartDomain={chartDomain}
+                                dailyTicks={dailyTicks}
+                                yAxisDomain={yAxisDomain}
+                                voteColors={voteColors}
+                                shouldShowPower={shouldShowPower}
+                                useDashedPowerLines={useDashedPowerLines}
+                                formatTickDate={formatTickDate}
+                                renderTooltip={renderVoteTrendTooltip}
+                                showLegend
+                                height={320}
+                                margin={{ top: 10, right: 40, left: 0, bottom: 0 }}
+                                tickFontSize={12}
+                                minTickGap={24}
+                                thresholdReferenceValue={chartMode === "projected" ? thresholdReferenceValue : null}
+                                thresholdLabel={thresholdLabel}
+                                isGame={isGame}
+                                isDark={isDark}
+                              />
                             ) : (
                               <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground">
                                 {tProposal("notEnoughData")}
@@ -1868,489 +1181,21 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
 
                         {/* Details */}
                         <TabsContent value="details" className="mt-0">
-                          <div className="space-y-4">
-                            {/* Voting Participation Metrics */}
-                            <div className={cn(
-                              "p-4 sm:p-5",
-                              isGame
-                                ? "game-detail-card"
-                                : "rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
-                            )}>
-                              <label className={cn(
-                                "mb-3 block text-sm font-semibold sm:text-base",
-                                isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
-                              )}>
-                                {tProposal("votingParticipation")}
-                              </label>
-                              <div className={cn(
-                                "overflow-hidden",
-                                isGame
-                                  ? "rounded border border-white/30"
-                                  : "rounded-lg border border-border/50 dark:border-[#0bd1a2]/50"
-                              )}>
-                                <table className="w-full">
-                                  <tbody>
-                                    {(() => {
-                                      const votes = selectedAction.votes || [];
-                                      const ccVotes = selectedAction.ccVotes || [];
-
-                                      const drepVotes = votes.filter(v => v.voterType === "DRep" || (!v.voterType && v.drepId));
-                                      const spoVotes = votes.filter(v => v.voterType === "SPO");
-
-                                      const eligibleRoles = getEligibleRoles(selectedAction.type, selectedAction.threshold, actionVoteData);
-
-                                      return (
-                                        <>
-                                          {eligibleRoles.includes("DRep") && (
-                                            <tr className={cn(
-                                              "border-b last:border-b-0",
-                                              isGame
-                                                ? "border-white/30"
-                                                : "border-border/50 dark:border-[#0bd1a2]/50"
-                                            )}>
-                                              <td className={cn(
-                                                "px-3 py-2.5 text-sm",
-                                                isGame ? "text-white/80" : "text-muted-foreground dark:text-[#0bd1a2]/80"
-                                              )}>
-                                                {tVoting("dreps")}
-                                              </td>
-                                              <td className={cn(
-                                                "px-3 py-2.5 text-sm font-semibold text-right",
-                                                isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
-                                              )}>
-                                                {drepVotes.length.toLocaleString()} {tProposal("voted")}
-                                              </td>
-                                            </tr>
-                                          )}
-                                          {eligibleRoles.includes("SPO") && (
-                                            <tr className={cn(
-                                              "border-b last:border-b-0",
-                                              isGame
-                                                ? "border-white/30"
-                                                : "border-border/50 dark:border-[#0bd1a2]/50"
-                                            )}>
-                                              <td className={cn(
-                                                "px-3 py-2.5 text-sm",
-                                                isGame ? "text-white/80" : "text-muted-foreground dark:text-[#0bd1a2]/80"
-                                              )}>
-                                                {tVoting("spos")}
-                                              </td>
-                                              <td className={cn(
-                                                "px-3 py-2.5 text-sm font-semibold text-right",
-                                                isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
-                                              )}>
-                                                {spoVotes.length.toLocaleString()} {tProposal("voted")}
-                                              </td>
-                                            </tr>
-                                          )}
-                                          {eligibleRoles.includes("CC") && (
-                                            <tr className="last:border-b-0">
-                                              <td className={cn(
-                                                "px-3 py-2.5 text-sm",
-                                                isGame ? "text-white/80" : "text-muted-foreground dark:text-[#0bd1a2]/80"
-                                              )}>
-                                                {tProposal("ccMembers")}
-                                              </td>
-                                              <td className={cn(
-                                                "px-3 py-2.5 text-sm font-semibold text-right",
-                                                isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
-                                              )}>
-                                                {ccVotes.length.toLocaleString()} {tProposal("voted")}
-                                              </td>
-                                            </tr>
-                                          )}
-                                        </>
-                                      );
-                                    })()}
-                                  </tbody>
-                                </table>
-                              </div>
-                            </div>
-
-                            <div className={cn(
-                              "p-4 sm:p-5",
-                              isGame
-                                ? "game-detail-card"
-                                : "rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
-                            )}>
-                              <label className={cn(
-                                "mb-3 block text-sm font-semibold sm:text-base",
-                                isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
-                              )}>
-                                {tProposal("governanceActionId")}
-                              </label>
-                              <div className="flex items-start gap-2">
-                                <code className={cn(
-                                  "flex-1 break-all px-2 py-1 font-mono text-xs sm:px-3 sm:text-sm",
-                                  isGame
-                                    ? "rounded bg-white/10 text-white/80"
-                                    : "rounded bg-secondary text-muted-foreground dark:bg-transparent dark:border dark:border-[#0bd1a2] dark:text-[#0bd1a2]"
-                                )}>
-                                  {selectedAction.proposalId}
-                                </code>
-                                <button
-                                  onClick={() =>
-                                    handleCopy(
-                                      selectedAction.proposalId || "",
-                                      "proposalId"
-                                    )
-                                  }
-                                  className={cn(
-                                    "flex h-7 w-7 shrink-0 items-center justify-center transition-colors",
-                                    isGame
-                                      ? "game-nav-btn !p-0 !min-w-0 !min-h-0"
-                                      : "rounded-full bg-white text-black hover:bg-black hover:text-white shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:hover:bg-[#0bd1a2] dark:hover:text-black dark:shadow-none"
-                                  )}
-                                  aria-label="Copy Governance Action ID"
-                                >
-                                  {copiedId === "proposalId" ? (
-                                    <Check className="h-3.5 w-3.5" />
-                                  ) : (
-                                    <Copy className="h-3.5 w-3.5" />
-                                  )}
-                                </button>
-                              </div>
-                            </div>
-                            <div className={cn(
-                              "p-4 sm:p-5",
-                              isGame
-                                ? "game-detail-card"
-                                : "rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
-                            )}>
-                              <label className={cn(
-                                "mb-3 block text-sm font-semibold sm:text-base",
-                                isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
-                              )}>
-                                {tProposal("legacyGovActionId")}
-                              </label>
-                              <div className="flex items-start gap-2">
-                                <code className={cn(
-                                  "flex-1 break-all px-2 py-1 font-mono text-xs sm:px-3 sm:text-sm",
-                                  isGame
-                                    ? "rounded bg-white/10 text-white/80"
-                                    : "rounded bg-secondary text-muted-foreground dark:bg-transparent dark:border dark:border-[#0bd1a2] dark:text-[#0bd1a2]"
-                                )}>
-                                  {selectedAction.hash?.replace(/:/g, '#')}
-                                </code>
-                                <button
-                                  onClick={() =>
-                                    handleCopy(
-                                      selectedAction.hash?.replace(/:/g, '#') || "",
-                                      "hash"
-                                    )
-                                  }
-                                  className={cn(
-                                    "flex h-7 w-7 shrink-0 items-center justify-center transition-colors",
-                                    isGame
-                                      ? "game-nav-btn !p-0 !min-w-0 !min-h-0"
-                                      : "rounded-full bg-white text-black hover:bg-black hover:text-white shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:hover:bg-[#0bd1a2] dark:hover:text-black dark:shadow-none"
-                                  )}
-                                  aria-label="Copy Legacy Governance Action ID"
-                                >
-                                  {copiedId === "hash" ? (
-                                    <Check className="h-3.5 w-3.5" />
-                                  ) : (
-                                    <Copy className="h-3.5 w-3.5" />
-                                  )}
-                                </button>
-                              </div>
-                            </div>
-                            <div className={cn(
-                              "p-4 sm:p-5",
-                              isGame
-                                ? "game-detail-card"
-                                : "rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
-                            )}>
-                              <label className={cn(
-                                "mb-3 block text-sm font-semibold sm:text-base",
-                                isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
-                              )}>
-                                {tProposal("transactionHash")}
-                              </label>
-                              <div className="flex items-start gap-2">
-                                <code className={cn(
-                                  "flex-1 break-all px-2 py-1 font-mono text-xs sm:px-3 sm:text-sm",
-                                  isGame
-                                    ? "rounded bg-white/10 text-white/80"
-                                    : "rounded bg-secondary text-muted-foreground dark:bg-transparent dark:border dark:border-[#0bd1a2] dark:text-[#0bd1a2]"
-                                )}>
-                                  {selectedAction.txHash}
-                                </code>
-                                <button
-                                  onClick={() =>
-                                    handleCopy(
-                                      selectedAction.txHash || "",
-                                      "txHash"
-                                    )
-                                  }
-                                  className={cn(
-                                    "flex h-7 w-7 shrink-0 items-center justify-center transition-colors",
-                                    isGame
-                                      ? "game-nav-btn !p-0 !min-w-0 !min-h-0"
-                                      : "rounded-full bg-white text-black hover:bg-black hover:text-white shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:hover:bg-[#0bd1a2] dark:hover:text-black dark:shadow-none"
-                                  )}
-                                  aria-label="Copy Transaction Hash"
-                                >
-                                  {copiedId === "txHash" ? (
-                                    <Check className="h-3.5 w-3.5" />
-                                  ) : (
-                                    <Copy className="h-3.5 w-3.5" />
-                                  )}
-                                </button>
-                              </div>
-                            </div>
-                          </div>
+                          <ProposalDetailsTab action={selectedAction} />
                         </TabsContent>
 
                         {/* Thresholds */}
+                        {/* Thresholds */}
                         <TabsContent value="thresholds" className="mt-0">
-                          <div className={cn(
-                            "p-4 sm:p-5 space-y-6",
-                            isGame
-                              ? "game-detail-card"
-                              : "rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
-                          )}>
-                            {/* Total Voting Power Section */}
-                            <div className="space-y-3">
-                              <h4 className={cn(
-                                "text-sm font-semibold",
-                                isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
-                              )}>
-                                {tProposal("totalVotingPower")}
-                              </h4>
-                              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                {/* DRep Total */}
-                                {selectedAction.threshold?.drepThreshold !== null && selectedAction.threshold?.drepThreshold !== undefined && (
-                                  <div className={cn(
-                                    "p-3 rounded-lg",
-                                    isGame ? "bg-white/10" : "bg-gray-100 dark:bg-gray-800"
-                                  )}>
-                                    <div className={cn(
-                                      "text-xs",
-                                      isGame ? "text-white/60" : "text-muted-foreground"
-                                    )}>
-                                      {tVoting("dreps")}
-                                    </div>
-                                    <div className={cn(
-                                      "text-lg font-semibold",
-                                      isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
-                                    )}>
-                                      {selectedAction.rawVotingPowerValues?.drep_total_vote_power
-                                        ? formatAdaValue(Number(selectedAction.rawVotingPowerValues.drep_total_vote_power) / 1_000_000)
-                                        : "N/A"}
-                                    </div>
-                                  </div>
-                                )}
-                                {/* SPO Total */}
-                                {((selectedAction.threshold?.spoThreshold !== null && selectedAction.threshold?.spoThreshold !== undefined) || hasSpoVotes) && (
-                                  <div className={cn(
-                                    "p-3 rounded-lg",
-                                    isGame ? "bg-white/10" : "bg-gray-100 dark:bg-gray-800"
-                                  )}>
-                                    <div className={cn(
-                                      "text-xs",
-                                      isGame ? "text-white/60" : "text-muted-foreground"
-                                    )}>
-                                      {tVoting("spos")}
-                                    </div>
-                                    <div className={cn(
-                                      "text-lg font-semibold",
-                                      isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
-                                    )}>
-                                      {selectedAction.rawVotingPowerValues?.spo_total_vote_power
-                                        ? formatAdaValue(Number(selectedAction.rawVotingPowerValues.spo_total_vote_power) / 1_000_000)
-                                        : "N/A"}
-                                    </div>
-                                  </div>
-                                )}
-                                {/* CC Total */}
-                                {selectedAction.threshold?.ccThreshold !== null && selectedAction.threshold?.ccThreshold !== undefined && (() => {
-                                  // CC total members: use sum of votes if available, otherwise default to 7
-                                  const ccTotalMembers = (ccYesCount + ccNoCount + ccPendingCount) || 7;
-                                  return (
-                                    <div className={cn(
-                                      "p-3 rounded-lg",
-                                      isGame ? "bg-white/10" : "bg-gray-100 dark:bg-gray-800"
-                                    )}>
-                                      <div className={cn(
-                                        "text-xs",
-                                        isGame ? "text-white/60" : "text-muted-foreground"
-                                      )}>
-                                        {tProposal("ccMembers")}
-                                      </div>
-                                      <div className={cn(
-                                        "text-lg font-semibold",
-                                        isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
-                                      )}>
-                                        {tProposal("members", { count: ccTotalMembers })}
-                                      </div>
-                                    </div>
-                                  );
-                                })()}
-                              </div>
-                            </div>
-
-                            {/* Threshold Progress Section */}
-                            <div className="space-y-4">
-                              <h4 className={cn(
-                                "text-sm font-semibold",
-                                isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
-                              )}>
-                                {tProposal("approvalProgress")}
-                              </h4>
-
-                              {/* DRep Threshold */}
-                              {selectedAction.threshold?.drepThreshold !== null && selectedAction.threshold?.drepThreshold !== undefined && (() => {
-                                const thresholdPercent = selectedAction.threshold.drepThreshold * 100;
-                                // Use calculated percentage from breakdown segments
-                                const currentPercent = drepDonutSegments?.find(s => s.type === "yes")?.percent ?? selectedAction.drepYesPercent ?? 0;
-
-                                return (
-                                  <div className="space-y-2">
-                                    <div className="flex justify-between items-center">
-                                      <span className={cn(
-                                        "text-sm font-medium",
-                                        isGame ? "text-white" : "text-foreground"
-                                      )}>
-                                        {tVoting("dreps")}
-                                      </span>
-                                      <span className={cn(
-                                        "text-sm",
-                                        isGame ? "text-white/70" : "text-muted-foreground"
-                                      )}>
-                                        {currentPercent.toFixed(1)}% / {thresholdPercent.toFixed(1)}%
-                                      </span>
-                                    </div>
-                                    <div className="relative">
-                                      <Progress
-                                        value={Math.min(currentPercent, 100)}
-                                        className={cn(
-                                          "h-3",
-                                          isGame ? "bg-white/20" : "bg-gray-200 dark:bg-gray-700"
-                                        )}
-                                        indicatorClassName={
-                                          isGame
-                                            ? "bg-gray-400"
-                                            : "bg-black dark:bg-[#0bd1a2]"
-                                        }
-                                      />
-                                      {/* Threshold marker */}
-                                      <div
-                                        className="absolute top-0 h-3 w-0.5 bg-black dark:bg-white"
-                                        style={{ left: `${thresholdPercent}%` }}
-                                      />
-                                    </div>
-                                  </div>
-                                );
-                              })()}
-
-                              {/* SPO Threshold */}
-                              {((selectedAction.threshold?.spoThreshold !== null && selectedAction.threshold?.spoThreshold !== undefined) || hasSpoVotes) && (() => {
-                                // Use 51% as default for security-critical parameter changes when SPOs can vote
-                                const thresholdPercent = selectedAction.threshold?.spoThreshold != null
-                                  ? selectedAction.threshold.spoThreshold * 100
-                                  : 51; // Default SPO threshold for security-critical changes
-                                // Use calculated percentage from breakdown segments
-                                const currentPercent = spoDonutSegments?.find(s => s.type === "yes")?.percent ?? selectedAction.spoYesPercent ?? 0;
-
-                                return (
-                                  <div className="space-y-2">
-                                    <div className="flex justify-between items-center">
-                                      <span className={cn(
-                                        "text-sm font-medium",
-                                        isGame ? "text-white" : "text-foreground"
-                                      )}>
-                                        {tVoting("spos")}
-                                      </span>
-                                      <span className={cn(
-                                        "text-sm",
-                                        isGame ? "text-white/70" : "text-muted-foreground"
-                                      )}>
-                                        {currentPercent.toFixed(1)}% / {thresholdPercent.toFixed(1)}%
-                                      </span>
-                                    </div>
-                                    <div className="relative">
-                                      <Progress
-                                        value={Math.min(currentPercent, 100)}
-                                        className={cn(
-                                          "h-3",
-                                          isGame ? "bg-white/20" : "bg-gray-200 dark:bg-gray-700"
-                                        )}
-                                        indicatorClassName={
-                                          isGame
-                                            ? "bg-gray-400"
-                                            : "bg-black dark:bg-[#0bd1a2]"
-                                        }
-                                      />
-                                      {/* Threshold marker */}
-                                      <div
-                                        className="absolute top-0 h-3 w-0.5 bg-black dark:bg-white"
-                                        style={{ left: `${thresholdPercent}%` }}
-                                      />
-                                    </div>
-                                  </div>
-                                );
-                              })()}
-
-                              {/* CC Threshold */}
-                              {selectedAction.threshold?.ccThreshold !== null && selectedAction.threshold?.ccThreshold !== undefined && (() => {
-                                // Calculate CC progress: yes count / total members (default to 7 if no data)
-                                const totalMembers = (ccYesCount + ccNoCount + ccPendingCount) || 7;
-                                const currentPercent = (ccYesCount / totalMembers) * 100;
-                                const thresholdPercent = selectedAction.threshold.ccThreshold * 100;
-
-                                return (
-                                  <div className="space-y-2">
-                                    <div className="flex justify-between items-center">
-                                      <span className={cn(
-                                        "text-sm font-medium",
-                                        isGame ? "text-white" : "text-foreground"
-                                      )}>
-                                        {tVoting("ccFull")}
-                                      </span>
-                                      <span className={cn(
-                                        "text-sm",
-                                        isGame ? "text-white/70" : "text-muted-foreground"
-                                      )}>
-                                        {currentPercent.toFixed(1)}% / {thresholdPercent.toFixed(1)}%
-                                      </span>
-                                    </div>
-                                    <div className="relative">
-                                      <Progress
-                                        value={Math.min(currentPercent, 100)}
-                                        className={cn(
-                                          "h-3",
-                                          isGame ? "bg-white/20" : "bg-gray-200 dark:bg-gray-700"
-                                        )}
-                                        indicatorClassName={
-                                          isGame
-                                            ? "bg-gray-400"
-                                            : "bg-black dark:bg-[#0bd1a2]"
-                                        }
-                                      />
-                                      {/* Threshold marker */}
-                                      <div
-                                        className="absolute top-0 h-3 w-0.5 bg-black dark:bg-white"
-                                        style={{ left: `${thresholdPercent}%` }}
-                                      />
-                                    </div>
-                                  </div>
-                                );
-                              })()}
-                            </div>
-
-                            {/* No thresholds available message */}
-                            {selectedAction.threshold?.drepThreshold === null &&
-                             selectedAction.threshold?.spoThreshold === null &&
-                             selectedAction.threshold?.ccThreshold === null && (
-                              <p className={cn(
-                                "text-sm",
-                                isGame ? "text-white/70" : "text-muted-foreground"
-                              )}>
-                                {tProposal("noThresholdData")}
-                              </p>
-                            )}
-                          </div>
+                          <ThresholdsTab
+                            action={selectedAction}
+                            hasSpoVotes={hasSpoVotes}
+                            ccYesCount={ccYesCount}
+                            ccNoCount={ccNoCount}
+                            ccPendingCount={ccPendingCount}
+                            drepDonutSegments={drepDonutSegments}
+                            spoDonutSegments={spoDonutSegments}
+                          />
                         </TabsContent>
                       </>
                   </div>
@@ -2433,110 +1278,21 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
                     </div>
                   </div>
                   {voteTimelineData.length > 0 ? (
-                  <div className="h-[200px] w-full min-w-0">
-                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                      <LineChart
-                        data={voteTimelineData}
-                        margin={{ top: 5, right: 30, left: -10, bottom: 5 }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" className="stroke-border/60" />
-                        <XAxis
-                          dataKey="timestamp"
-                          type="number"
-                          domain={chartDomain}
-                          ticks={dailyTicks}
-                          tick={{ fontSize: 10 }}
-                          minTickGap={30}
-                          tickFormatter={formatTickDate}
-                        />
-                        <YAxis
-                          yAxisId="primary"
-                          allowDecimals={false}
-                          tick={{ fontSize: 10 }}
-                          domain={yAxisDomain}
-                          tickFormatter={
-                            shouldShowPower
-                              ? (value) => formatAdaValue(value).replace(" ₳", "")
-                              : undefined
-                          }
-                        />
-                        <RechartsTooltip content={renderVoteTrendTooltip} />
-                        {chartMode === "projected" && thresholdReferenceValue != null && (
-                          <ReferenceLine
-                            y={thresholdReferenceValue}
-                            yAxisId="primary"
-                            stroke={isGame ? "#FFD700" : isDark ? "#0bd1a2" : "#000000"}
-                            strokeDasharray="6 4"
-                            strokeWidth={1}
-                            label={{
-                              value: thresholdLabel,
-                              position: "insideTopRight",
-                              fill: isGame ? "#FFD700" : isDark ? "#0bd1a2" : "#000000",
-                              fontSize: 8,
-                              fontWeight: 500,
-                            }}
-                          />
-                        )}
-                        {shouldShowPower ? (
-                          <>
-                            <Line
-                              type="monotone"
-                              dataKey="yesPower"
-                              stroke={voteColors.yes}
-                              strokeWidth={2}
-                              dot={false}
-                              yAxisId="primary"
-                            />
-                            <Line
-                              type="monotone"
-                              dataKey="noPower"
-                              stroke={voteColors.no}
-                              strokeWidth={2}
-                              dot={false}
-                              yAxisId="primary"
-                            />
-                            <Line
-                              type="monotone"
-                              dataKey="abstainPower"
-                              stroke={voteColors.abstain}
-                              strokeOpacity={0.9}
-                              strokeWidth={2}
-                              dot={false}
-                              yAxisId="primary"
-                            />
-                          </>
-                        ) : (
-                          <>
-                            <Line
-                              type="monotone"
-                              dataKey="yesCount"
-                              stroke={voteColors.yes}
-                              strokeWidth={2}
-                              dot={false}
-                              yAxisId="primary"
-                            />
-                            <Line
-                              type="monotone"
-                              dataKey="noCount"
-                              stroke={voteColors.no}
-                              strokeWidth={2}
-                              dot={false}
-                              yAxisId="primary"
-                            />
-                            <Line
-                              type="monotone"
-                              dataKey="abstainCount"
-                              stroke={voteColors.abstain}
-                              strokeOpacity={0.9}
-                              strokeWidth={2}
-                              dot={false}
-                              yAxisId="primary"
-                            />
-                          </>
-                        )}
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
+                    <VoteTrendLineChart
+                      data={voteTimelineData}
+                      chartDomain={chartDomain}
+                      dailyTicks={dailyTicks}
+                      yAxisDomain={yAxisDomain}
+                      voteColors={voteColors}
+                      shouldShowPower={shouldShowPower}
+                      formatTickDate={formatTickDate}
+                      renderTooltip={renderVoteTrendTooltip}
+                      height={200}
+                      thresholdReferenceValue={chartMode === "projected" ? thresholdReferenceValue : null}
+                      thresholdLabel={thresholdLabel}
+                      isGame={isGame}
+                      isDark={isDark}
+                    />
                   ) : (
                     <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground">
                       {tProposal("notEnoughData")}
@@ -2558,9 +1314,11 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
 
             </div>
           </div>
+          </FadeIn>
 
           {/* Voting Records Section - Combined DRep, SPO, and CC votes */}
           {allVotes.length > 0 && (
+            <FadeIn delay={100} duration={500} distance={24}>
             <div className="mt-12">
               <VotingRecords
                 votes={allVotes}
@@ -2571,6 +1329,7 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
                 onMetricsExport={handleMetricsExport}
               />
             </div>
+            </FadeIn>
           )}
         </div>
       </div>
@@ -2578,454 +1337,7 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
   );
 }
 
-function VoteTrendTooltip({
-  active,
-  payload,
-  showPower,
-  colors,
-  isGame,
-}: {
-  active?: boolean;
-  payload?: Array<{
-    payload?: unknown;
-    [key: string]: unknown;
-  }>;
-  showPower: boolean;
-  colors: VoteColorSet;
-  isGame: boolean;
-}) {
-  const tVoting = useTranslations("voting");
-  const tProposal = useTranslations("proposal");
-
-  if (!active || !payload?.length) {
-    return null;
-  }
-
-  const point = payload[0]?.payload as TimelinePoint | undefined;
-  if (!point) {
-    return null;
-  }
-
-  const rows = [
-    {
-      label: tVoting("yes"),
-      value: showPower
-        ? formatAdaValue(point.yesPower)
-        : `${point.yesCount.toLocaleString()} ${tProposal("votes")}`,
-        color: colors.yes,
-      border: "transparent",
-    },
-    {
-      label: tVoting("no"),
-      value: showPower
-        ? formatAdaValue(point.noPower)
-        : `${point.noCount.toLocaleString()} ${tProposal("votes")}`,
-        color: colors.no,
-      border: "transparent",
-    },
-    {
-      label: tVoting("abstain"),
-      value: showPower
-        ? formatAdaValue(point.abstainPower)
-        : `${point.abstainCount.toLocaleString()} ${tProposal("votes")}`,
-        color: colors.abstain,
-      border: "rgba(148, 163, 184, 0.85)",
-    },
-  ];
-
-  return (
-    <div className={cn(
-      "rounded-md bg-background/95 px-3 py-2 text-xs shadow-md",
-      !isGame && "border"
-    )}>
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-        {point.label}
-      </div>
-      <div className="mt-2 space-y-1.5">
-        {rows.map((row) => (
-          <div
-            key={row.label}
-            className="flex items-center justify-between gap-4"
-          >
-            <div className="flex items-center gap-2">
-              <span
-                className="h-2.5 w-2.5 rounded-full border"
-                style={{ backgroundColor: row.color, borderColor: row.border }}
-              />
-              <span className="font-semibold text-foreground">
-                {row.label}
-              </span>
-            </div>
-            <div className="font-mono text-[11px] text-muted-foreground">
-              {row.value}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-type VoteColorSet = typeof VOTE_COLORS_LIGHT;
-
-function RoleLegend({
-  role,
-  segments,
-  yesLabel,
-  noLabel,
-  pendingLabel,
-  unit,
-}: {
-  role: string;
-  segments?: VoteSegment[] | null;
-  // Legacy props for CC only (no breakdown data from API)
-  yesLabel?: string;
-  noLabel?: string;
-  pendingLabel?: string;
-  unit: string;
-}) {
-  const { activeTheme } = useTheme();
-  const isGame = activeTheme.id === "game";
-  const tVoting = useTranslations("voting");
-  const tProposal = useTranslations("proposal");
-
-  // Translate segment type to localized label
-  const segmentLabel = (type: string, fallback: string) => {
-    const map: Record<string, string> = {
-      yes: tVoting("yes"),
-      no: tVoting("no"),
-      abstain: tVoting("abstain"),
-      notVoted: tVoting("notVoted"),
-      alwaysNoConfidence: "ANC",
-    };
-    return map[type] ?? fallback;
-  };
-
-  // Use segments when provided (DRep/SPO), otherwise use legacy props (CC)
-  const items = segments && segments.length > 0
-    ? segments.map((seg) => ({
-        label: segmentLabel(seg.type, seg.label),
-        type: seg.type,
-        value: formatAdaValue(seg.value),
-        // For ANC with black color, don't apply opacity to keep it black
-        color: seg.type === "alwaysNoConfidence" && seg.color === "#000000"
-          ? seg.color
-          : `${seg.color}73`, // Apply 45% opacity to match donut inactive state
-        border: seg.type === "abstain" || seg.type === "notVoted" || seg.type === "excluded" || seg.type === "alwaysNoConfidence"
-          ? "rgba(148, 163, 184, 0.85)"
-          : "transparent",
-      }))
-    : [
-        // CC legacy fallback - uses SEGMENT_COLORS with 45% opacity
-        {
-          label: tVoting("yes"),
-          type: "yes",
-          value: yesLabel ?? "0",
-          color: `${SEGMENT_COLORS.yes}73`,
-          border: "transparent",
-        },
-        {
-          label: tVoting("no"),
-          type: "no",
-          value: noLabel ?? "0",
-          color: `${SEGMENT_COLORS.no}73`,
-          border: "transparent",
-        },
-        {
-          label: tVoting("notVoted"),
-          type: "notVoted",
-          value: pendingLabel ?? (unit === "ADA" ? "0 ₳" : `0 ${tProposal("votes")}`),
-          color: `${SEGMENT_COLORS.notVoted}73`,
-          border: "rgba(148, 163, 184, 0.85)",
-        },
-      ];
-
-  return (
-    <div className={cn(
-      "w-full max-w-none px-2 py-0 text-[10px] sm:text-xs",
-      isGame
-        ? "sm:w-[180px] border-none bg-transparent"
-        : "sm:w-[240px] sm:px-3 sm:py-2 rounded-xl border border-border/60 bg-card/40 shadow-sm dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
-    )}>
-      <div className={cn(
-        "mb-0.5 sm:mb-2 flex items-center justify-between text-[10px] sm:text-[11px] uppercase tracking-wide",
-        isGame ? "text-white" : "text-muted-foreground dark:text-[#0bd1a2]"
-      )}>
-        <span className={cn("font-semibold", isGame ? "text-white" : "dark:text-[#0bd1a2]")}>{role}</span>
-        <span className={isGame ? "text-white" : "dark:text-[#0bd1a2]"}>{unit}</span>
-      </div>
-      <div className={cn("space-y-1.5", isGame && "space-y-1")}>
-        {items.map((item) => (
-          <div
-            key={item.label}
-            className={cn(
-              "flex items-start justify-between",
-              isGame ? "gap-1" : "gap-2"
-            )}
-          >
-            <div className={cn(
-              "flex items-start min-w-0 flex-1",
-              isGame ? "gap-1.5" : "gap-2"
-            )}>
-              <span
-                className="h-2.5 w-2.5 border shrink-0 mt-0.5"
-                style={{
-                  backgroundColor: item.color,
-                  borderColor: item.border,
-                }}
-              />
-              <div className="flex items-center gap-1">
-                <span className={cn(
-                  "font-semibold leading-tight",
-                  isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
-                )}>
-                  {item.label}
-                </span>
-                {item.type === "alwaysNoConfidence" && (
-                  <div className="group relative inline-block">
-                    <Info className={cn(
-                      "h-3 w-3 cursor-help",
-                      isGame ? "text-white/60" : "text-muted-foreground dark:text-[#0bd1a2]/60"
-                    )} />
-                    <div className={cn(
-                      "absolute left-0 bottom-full mb-1 hidden group-hover:block z-50 w-max max-w-[200px] rounded px-2 py-1 text-[10px] shadow-lg",
-                      isGame
-                        ? "bg-black/90 text-white border border-white/20"
-                        : "bg-popover text-popover-foreground border border-border"
-                    )}>
-                      {tProposal("alwaysNoConfidence")}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-            <span className={cn(
-              "font-mono text-[11px] shrink-0 text-right",
-              isGame ? "text-white/80" : "text-muted-foreground dark:text-[#0bd1a2]"
-            )}>
-              {item.value}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function ExcludedBreakdownDisplay({
-  role,
-  breakdown,
-  isInfoAction = false,
-  isExpanded,
-  setIsExpanded,
-}: {
-  role: "DRep" | "SPO" | "CC";
-  breakdown: ExcludedBreakdown | { abstain: number } | null;
-  isInfoAction?: boolean;
-  isExpanded: boolean;
-  setIsExpanded: (value: boolean) => void;
-}) {
-  const { activeTheme } = useTheme();
-  const isGame = activeTheme.id === "game";
-  const tVoting = useTranslations("voting");
-  const tProposal = useTranslations("proposal");
-
-  if (!breakdown) return null;
-
-  // CC uses simple abstain count, DRep/SPO use full breakdown
-  const isCC = role === "CC";
-  const ccAbstain = isCC && "abstain" in breakdown ? breakdown.abstain : 0;
-  const fullBreakdown = !isCC && "total" in breakdown ? breakdown : null;
-
-  // For CC: always show the excluded section (even if 0)
-  // For DRep/SPO: only show if there's actual excluded data
-  if (!isCC && (!fullBreakdown || fullBreakdown.total === 0)) return null;
-
-  const items = isCC
-    ? [{ label: tVoting("abstain"), value: ccAbstain }]
-    : [
-        { label: tProposal("activeAbstain"), value: fullBreakdown!.activeAbstain },
-        { label: tProposal("alwaysAbstain"), value: fullBreakdown!.alwaysAbstain },
-        ...(fullBreakdown!.inactive !== undefined && role === "DRep"
-          ? [{ label: tProposal("inactive"), value: fullBreakdown!.inactive }]
-          : []),
-      ];
-
-  const totalValue = isCC ? ccAbstain : fullBreakdown!.total;
-
-  return (
-    <div className={cn(
-      "hidden sm:block w-full max-w-[200px] sm:max-w-none text-xs mt-1 sm:mt-2",
-      isGame
-        ? "sm:w-[180px] border-none bg-transparent"
-        : "sm:w-[240px] rounded-xl border border-dashed border-border/40 bg-card/20 dark:rounded-none dark:border-[#0bd1a2]/50 dark:bg-transparent"
-    )}>
-      {/* Header with total - always visible */}
-      <div
-        className={cn(
-          "flex items-center justify-between px-3 py-2 cursor-pointer",
-          isGame ? "text-white/60" : "text-muted-foreground/70 dark:text-[#0bd1a2]/70"
-        )}
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
-        <div className="text-[10px] uppercase tracking-wide">
-          {isInfoAction ? tProposal("excluded") : tProposal("excludedFromRatification")}
-        </div>
-        <div className="flex items-center gap-2">
-          <span className={cn(
-            "font-mono text-[10px]",
-            isGame ? "text-white/60" : "text-muted-foreground/80 dark:text-[#0bd1a2]/70"
-          )}>
-            {isCC ? `${totalValue}` : formatAdaValue(totalValue)}
-          </span>
-          <svg
-            className={cn(
-              "h-3 w-3 transition-transform duration-300",
-              isExpanded ? "rotate-180" : "",
-              isGame ? "text-white/60" : "text-foreground dark:text-[#0bd1a2]"
-            )}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </div>
-      </div>
-
-      {/* Expandable breakdown details */}
-      <div className={cn(
-        "overflow-hidden transition-all duration-300 ease-in-out",
-        isExpanded ? "max-h-[200px] opacity-100" : "max-h-0 opacity-0"
-      )}>
-        <div className={cn(
-          "px-3 pb-2 border-t",
-          isGame ? "border-white/10" : "border-border/20 dark:border-[#0bd1a2]/20",
-          isGame && "space-y-0.5",
-          !isGame && "space-y-1"
-        )}>
-          <div className="h-2" /> {/* Spacer */}
-          {items.map((item) => (
-            <div
-              key={item.label}
-              className={cn(
-                "flex items-center justify-between",
-                isGame ? "gap-1" : "gap-3"
-              )}
-            >
-              <span className={cn(
-                "text-[10px]",
-                isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
-              )}>
-                {item.label}
-              </span>
-              <span className={cn(
-                "font-mono text-[10px]",
-                isGame ? "text-white/60" : "text-muted-foreground/80 dark:text-[#0bd1a2]/70"
-              )}>
-                {isCC ? `${item.value}` : formatAdaValue(item.value)}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function RolePlaceholder({ role, message, notEligible }: { role: string; message: string; notEligible?: boolean }) {
-  const { activeTheme } = useTheme();
-  const isGame = activeTheme.id === "game";
-  const tVoting = useTranslations("voting");
-
-  if (notEligible) {
-    // Show empty donut with single gray slice and legend showing "Not eligible"
-    return (
-      <>
-        <VoteProgress
-          title={`${role} ${tVoting("notEligible")}`}
-          titlePosition="top"
-          centerText={tVoting("notEligible")}
-          yesPercent={0}
-          noPercent={0}
-          abstainPercent={0}
-          pendingPercent={100}
-          pendingValue={1}
-          className="origin-left scale-[0.5] -mr-24 sm:mr-0 sm:origin-center sm:scale-90 md:scale-100 shrink-0"
-          fixedWidth={240}
-          showTooltip={false}
-          animate={false}
-          interactive={false}
-        />
-        <div className={cn(
-          "w-[240px] px-3 py-2 text-xs",
-          isGame
-            ? "border-none bg-transparent"
-            : "rounded-xl border border-border/60 bg-card/40 shadow-sm dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
-        )}>
-          <div className={cn(
-            "mb-2 flex items-center justify-between text-[11px] uppercase tracking-wide",
-            isGame ? "text-white" : "text-muted-foreground dark:text-[#0bd1a2]"
-          )}>
-            <span className={cn("font-semibold", isGame ? "text-white" : "dark:text-[#0bd1a2]")}>{role}</span>
-          </div>
-          <div className="space-y-1.5">
-            {([
-              { label: tVoting("yes"), colorKey: "yes" as keyof typeof SEGMENT_COLORS, hasBorder: false },
-              { label: tVoting("no"), colorKey: "no" as keyof typeof SEGMENT_COLORS, hasBorder: false },
-              { label: tVoting("abstain"), colorKey: "abstain" as keyof typeof SEGMENT_COLORS, hasBorder: true },
-              { label: tVoting("notVoted"), colorKey: "notVoted" as keyof typeof SEGMENT_COLORS, hasBorder: true },
-            ]).map((item) => (
-              <div
-                key={item.colorKey}
-                className="flex items-start justify-between gap-2"
-              >
-                <div className="flex items-start gap-2 min-w-0 flex-1">
-                  <span
-                    className="h-2.5 w-2.5 border shrink-0 mt-0.5"
-                    style={{
-                      backgroundColor: `${SEGMENT_COLORS[item.colorKey] || SEGMENT_COLORS.excluded}73`,
-                      borderColor: item.hasBorder ? "rgba(148, 163, 184, 0.85)" : "transparent",
-                    }}
-                  />
-                  <span className={cn(
-                    "font-semibold leading-tight",
-                    isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
-                  )}>
-                    {item.label}
-                  </span>
-                </div>
-                <span className={cn(
-                  "font-mono text-[11px] shrink-0 text-right italic",
-                  isGame ? "text-white/60" : "text-muted-foreground/60 dark:text-[#0bd1a2]/60"
-                )}>
-                  {tVoting("notEligible")}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </>
-    );
-  }
-
-  // Default placeholder for "No on-chain data yet"
-  return (
-    <div className={cn(
-      "flex h-full min-h-[180px] w-full max-w-[220px] flex-col items-center justify-center px-4 py-6 text-center text-xs text-muted-foreground",
-      isGame
-        ? "border-none bg-transparent"
-        : "rounded-xl border border-dashed border-border/60 bg-card/30 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none"
-    )}>
-      <span className={cn(
-        "mb-1 font-semibold",
-        isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
-      )}>{role}</span>
-      <span className={isGame ? "text-white/70" : "dark:text-[#0bd1a2]"}>{message}</span>
-    </div>
-  );
-}
-
+// Extracted components: VoteTrendTooltip, RoleLegend, ExcludedBreakdownDisplay, RolePlaceholder
 export const getStaticPaths: GetStaticPaths = async () => {
   return {
     paths: [],

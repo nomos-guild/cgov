@@ -46,6 +46,7 @@ export function Header() {
     <>
     <header
       className={cn(
+        "relative z-10",
         isGame
           ? "border-b border-transparent game-detail-card !rounded-none"
           : "border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"

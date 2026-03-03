@@ -5,7 +5,6 @@ import { useTranslations } from "next-intl";
 import { TranslatedText } from "@/components/TranslatedText";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
 import { VoteProgress } from "@/components/ui/vote-progress";
 import { cn } from "@/lib/utils";
 import {
@@ -41,99 +40,12 @@ import {
   getGovernanceActionTypeCode,
 } from "@/lib/voteBreakdownCalculator";
 import { canRoleVoteOnAction, getVoteDataPresence } from "@/lib/governanceVotingEligibility";
-// import { VoteButtons } from "@/components/governance/VoteButtons";
+import {
+  TYPE_LABELS, STATUS_LABELS, SHOWCASE_ORDER,
+  mapTypeLabelToProposalType, getStatusColor, getStatusIndicatorColor, getTypeLabel,
+} from "@/lib/proposalLabels";
+import { ProposalThresholdBars } from "@/components/governance/ProposalThresholdBars";
 
-const TYPE_LABELS: Record<ProposalType, string> = {
-  NoConfidence: "Motion of No-Confidence",
-  UpdateCommittee: "Update Committee / Terms",
-  NewConstitution: "Constitution Update",
-  HardForkInitiation: "Hard Fork Initiation",
-  ParameterChange: "Protocol Parameter Change",
-  Treasury: "Treasury Withdrawal",
-  InfoAction: "Info Action",
-};
-
-const STATUS_LABELS: Record<ProposalStatus, string> = {
-  Active: "Active",
-  Ratified: "Ratified",
-  Enacted: "Enacted",
-  Expired: "Expired",
-  Closed: "Closed",
-};
-
-const SHOWCASE_ORDER: ProposalType[] = [
-  "NoConfidence",
-  "UpdateCommittee",
-  "NewConstitution",
-  "HardForkInitiation",
-  "ParameterChange",
-  "Treasury",
-  "InfoAction",
-];
-
-/**
- * Map API type labels (e.g. "Update Committee", "Info Action") to the
- * internal ProposalType keys used by filters and eligibility logic.
- */
-function mapTypeLabelToProposalType(typeLabel: string): ProposalType | null {
-  const normalized = typeLabel.trim().toLowerCase();
-
-  switch (normalized) {
-    case "no confidence":
-      return "NoConfidence";
-    case "update committee":
-      return "UpdateCommittee";
-    case "new constitution":
-      return "NewConstitution";
-    case "hard fork initiation":
-      return "HardForkInitiation";
-    case "protocol parameter change":
-      return "ParameterChange";
-    case "treasury withdrawals":
-    case "treasury withdrawal":
-      return "Treasury";
-    case "info action":
-      return "InfoAction";
-    default:
-      return null;
-  }
-}
-
-
-function getStatusColor(status: GovernanceAction["status"]): string {
-  return status === "Active" ? "text-foreground" : "text-foreground/60";
-}
-
-function getStatusIndicatorColor(
-  status: GovernanceAction["status"],
-  isGame: boolean
-): { color: string; animate: boolean } | null {
-  switch (status) {
-    case "Active":
-      return { color: "bg-green-500", animate: true };
-    case "Ratified":
-    case "Enacted":
-      return {
-        color: isGame ? "bg-green-400" : "bg-green-500 dark:bg-[#0bd1a2]",
-        animate: false,
-      };
-    case "Expired":
-    case "Closed":
-      return {
-        color: isGame ? "bg-red-400" : "bg-red-500 dark:bg-[#8C200B]",
-        animate: false,
-      };
-    default:
-      return null;
-  }
-}
-
-function getTypeLabel(type: GovernanceAction["type"]): string {
-  const mapped = mapTypeLabelToProposalType(type as string);
-  if (mapped && mapped in TYPE_LABELS) return TYPE_LABELS[mapped];
-  if (type in TYPE_LABELS) return TYPE_LABELS[type as ProposalType];
-  return type;
-}
 
 export function GovernanceTable() {
   const router = useRouter();
@@ -643,11 +555,12 @@ export function GovernanceTable() {
         <>
         {/* Mobile card layout */}
         <div className="sm:hidden space-y-3 pb-6 overflow-visible">
-          {displayedActions.map((action) => (
+          {displayedActions.map((action, cardIndex) => (
             <Link
               key={action.proposalId ?? action.hash}
               href={`/governance/${action.hash}`}
-              className="block"
+              className="stagger-card block"
+              style={{ animationDelay: `${Math.min(cardIndex, 8) * 60}ms` }}
             >
               <div
                 className={
@@ -682,82 +595,9 @@ export function GovernanceTable() {
                 <h3 className={`text-sm font-semibold line-clamp-2 ${isGame ? "text-white" : "dark:text-[#0bd1a2]"}`}>
                   <TranslatedText text={action.title} />
                 </h3>
-                {/* Threshold Progress Bars */}
-                {action.threshold && (action.threshold.drepThreshold !== null || action.threshold.spoThreshold !== null || action.threshold.ccThreshold !== null) && (
-                  <div className="mt-2 space-y-1.5 max-w-[200px]">
-                    {/* DRep Threshold */}
-                    {action.threshold.drepThreshold !== null && action.threshold.drepThreshold !== undefined && (() => {
-                      const thresholdPercent = action.threshold!.drepThreshold! * 100;
-                      // Use calculated percentage from breakdown
-                      const actionTypeCode = getGovernanceActionTypeCode(action.governanceActionType || action.type);
-                      const drepTotalVotePower = action.rawVotingPowerValues?.drep_total_vote_power;
-                      const drepSegments = action.drepBreakdown
-                        ? buildDonutSegments(action.drepBreakdown, actionTypeCode, true, drepTotalVotePower)
-                        : null;
-                      const currentPercent = drepSegments?.find(s => s.type === "yes")?.percent ?? action.drepYesPercent ?? 0;
-                      return (
-                        <div className="space-y-0.5">
-                          <div className="flex justify-between items-center">
-                            <span className={cn("text-[10px] font-medium", isGame ? "text-white/80" : "text-muted-foreground")}>DReps</span>
-                            <span className={cn("text-[10px]", isGame ? "text-white/60" : "text-muted-foreground")}>{currentPercent.toFixed(1)}% / {thresholdPercent.toFixed(1)}%</span>
-                          </div>
-                          <div className="relative">
-                            <Progress value={Math.min(currentPercent, 100)} className={cn("h-1.5", isGame ? "bg-white/20" : "bg-gray-200 dark:bg-gray-700")} indicatorClassName={isGame ? "bg-gray-400" : "bg-black dark:bg-[#0bd1a2]"} />
-                            <div className="absolute top-0 h-1.5 w-0.5 bg-black dark:bg-white" style={{ left: `${thresholdPercent}%` }} />
-                          </div>
-                        </div>
-                      );
-                    })()}
-                    {/* SPO Threshold */}
-                    {(() => {
-                      const voteData = getVoteDataPresence(action);
-                      const spoCanVote = canRoleVoteOnAction(action.type, "SPO", action.threshold, voteData);
-                      if (!spoCanVote) return null;
-                      const thresholdPercent = action.threshold?.spoThreshold != null ? action.threshold.spoThreshold * 100 : 51;
-                      // Use calculated percentage from breakdown
-                      const actionTypeCode = getGovernanceActionTypeCode(action.governanceActionType || action.type);
-                      const spoTotalVotePower = action.rawVotingPowerValues?.spo_total_vote_power;
-                      const spoSegments = action.spoBreakdown
-                        ? buildDonutSegments(action.spoBreakdown, actionTypeCode, false, spoTotalVotePower)
-                        : null;
-                      const currentPercent = spoSegments?.find(s => s.type === "yes")?.percent ?? action.spoYesPercent ?? 0;
-                      return (
-                        <div className="space-y-0.5">
-                          <div className="flex justify-between items-center">
-                            <span className={cn("text-[10px] font-medium", isGame ? "text-white/80" : "text-muted-foreground")}>SPOs</span>
-                            <span className={cn("text-[10px]", isGame ? "text-white/60" : "text-muted-foreground")}>{currentPercent.toFixed(1)}% / {thresholdPercent.toFixed(1)}%</span>
-                          </div>
-                          <div className="relative">
-                            <Progress value={Math.min(currentPercent, 100)} className={cn("h-1.5", isGame ? "bg-white/20" : "bg-gray-200 dark:bg-gray-700")} indicatorClassName={isGame ? "bg-gray-400" : "bg-black dark:bg-[#0bd1a2]"} />
-                            <div className="absolute top-0 h-1.5 w-0.5 bg-black dark:bg-white" style={{ left: `${thresholdPercent}%` }} />
-                          </div>
-                        </div>
-                      );
-                    })()}
-                    {/* CC Threshold */}
-                    {action.threshold.ccThreshold !== null && action.threshold.ccThreshold !== undefined && (() => {
-                      const ccData = action.cc;
-                      const ccYesCount = ccData?.yesCount ?? 0;
-                      const ccNoCount = ccData?.noCount ?? 0;
-                      const ccNotVotedCount = ccData?.notVotedCount ?? 0;
-                      const totalMembers = (ccYesCount + ccNoCount + ccNotVotedCount) || 7;
-                      const currentPercent = (ccYesCount / totalMembers) * 100;
-                      const thresholdPercent = action.threshold!.ccThreshold! * 100;
-                      return (
-                        <div className="space-y-0.5">
-                          <div className="flex justify-between items-center">
-                            <span className={cn("text-[10px] font-medium", isGame ? "text-white/80" : "text-muted-foreground")}>CC</span>
-                            <span className={cn("text-[10px]", isGame ? "text-white/60" : "text-muted-foreground")}>{currentPercent.toFixed(1)}% / {thresholdPercent.toFixed(1)}%</span>
-                          </div>
-                          <div className="relative">
-                            <Progress value={Math.min(currentPercent, 100)} className={cn("h-1.5", isGame ? "bg-white/20" : "bg-gray-200 dark:bg-gray-700")} indicatorClassName={isGame ? "bg-gray-400" : "bg-black dark:bg-[#0bd1a2]"} />
-                            <div className="absolute top-0 h-1.5 w-0.5 bg-black dark:bg-white" style={{ left: `${thresholdPercent}%` }} />
-                          </div>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                )}
+                <div className="mt-2">
+                  <ProposalThresholdBars action={action} isGame={isGame} maxWidth="200px" />
+                </div>
               </div>
             </Link>
           ))}
@@ -831,11 +671,11 @@ export function GovernanceTable() {
                 return (
                   <TableRow
                     key={rowId}
-                    className={`proposal-row cursor-pointer transition-all duration-300 ease-out transform-gpu hover:scale-[1.01] hover:bg-transparent border-b-0 ${
+                    className={`stagger-item proposal-row cursor-pointer transition-all duration-300 ease-out transform-gpu hover:scale-[1.01] hover:bg-transparent border-b-0 ${
                       isFirstRow ? "first-row" : ""
                     }`}
                     onClick={() => router.push(`/governance/${action.hash}`)}
-                    style={{ cursor: 'pointer' }}
+                    style={{ cursor: 'pointer', animationDelay: `${Math.min(index, 10) * 50}ms` }}
                   >
                     <TableCell className="hidden md:table-cell py-1 px-0">
                       <div
@@ -974,79 +814,9 @@ export function GovernanceTable() {
                       <h3 className="text-sm sm:text-base font-semibold line-clamp-1 dark:text-[#0bd1a2]">
                         <TranslatedText text={action.title} />
                       </h3>
-                      {/* Threshold Progress Bars */}
-                      {action.threshold && (action.threshold.drepThreshold !== null || action.threshold.spoThreshold !== null || action.threshold.ccThreshold !== null) && (
-                        <div className="mt-1 space-y-1 max-w-[280px]">
-                          {/* DRep Threshold */}
-                          {action.threshold.drepThreshold !== null && action.threshold.drepThreshold !== undefined && (() => {
-                            const thresholdPercent = action.threshold!.drepThreshold! * 100;
-                            // Use calculated percentage from breakdown (already computed above for donut)
-                            const actionTypeCode = getGovernanceActionTypeCode(action.governanceActionType || action.type);
-                            const drepTotalVotePower = action.rawVotingPowerValues?.drep_total_vote_power;
-                            const drepSegmentsForBar = action.drepBreakdown
-                              ? buildDonutSegments(action.drepBreakdown, actionTypeCode, true, drepTotalVotePower)
-                              : null;
-                            const currentPercent = drepSegmentsForBar?.find(s => s.type === "yes")?.percent ?? action.drepYesPercent ?? 0;
-                            return (
-                              <div className="space-y-0.5">
-                                <div className="flex justify-between items-center">
-                                  <span className={cn("text-[10px] font-medium", isGame ? "text-white/80" : "text-muted-foreground")}>DReps</span>
-                                  <span className={cn("text-[10px]", isGame ? "text-white/60" : "text-muted-foreground")}>{currentPercent.toFixed(1)}% / {thresholdPercent.toFixed(1)}%</span>
-                                </div>
-                                <div className="relative">
-                                  <Progress value={Math.min(currentPercent, 100)} className={cn("h-1.5", isGame ? "bg-white/20" : "bg-gray-200 dark:bg-gray-700")} indicatorClassName={isGame ? "bg-gray-400" : "bg-black dark:bg-[#0bd1a2]"} />
-                                  <div className="absolute top-0 h-1.5 w-0.5 bg-black dark:bg-white" style={{ left: `${thresholdPercent}%` }} />
-                                </div>
-                              </div>
-                            );
-                          })()}
-                          {/* SPO Threshold */}
-                          {showSpo && (() => {
-                            const thresholdPercent = action.threshold?.spoThreshold != null ? action.threshold.spoThreshold * 100 : 51;
-                            // Use calculated percentage from breakdown (already computed above for donut)
-                            const actionTypeCode = getGovernanceActionTypeCode(action.governanceActionType || action.type);
-                            const spoTotalVotePower = action.rawVotingPowerValues?.spo_total_vote_power;
-                            const spoSegmentsForBar = action.spoBreakdown
-                              ? buildDonutSegments(action.spoBreakdown, actionTypeCode, false, spoTotalVotePower)
-                              : null;
-                            const currentPercent = spoSegmentsForBar?.find(s => s.type === "yes")?.percent ?? action.spoYesPercent ?? 0;
-                            return (
-                              <div className="space-y-0.5">
-                                <div className="flex justify-between items-center">
-                                  <span className={cn("text-[10px] font-medium", isGame ? "text-white/80" : "text-muted-foreground")}>SPOs</span>
-                                  <span className={cn("text-[10px]", isGame ? "text-white/60" : "text-muted-foreground")}>{currentPercent.toFixed(1)}% / {thresholdPercent.toFixed(1)}%</span>
-                                </div>
-                                <div className="relative">
-                                  <Progress value={Math.min(currentPercent, 100)} className={cn("h-1.5", isGame ? "bg-white/20" : "bg-gray-200 dark:bg-gray-700")} indicatorClassName={isGame ? "bg-gray-400" : "bg-black dark:bg-[#0bd1a2]"} />
-                                  <div className="absolute top-0 h-1.5 w-0.5 bg-black dark:bg-white" style={{ left: `${thresholdPercent}%` }} />
-                                </div>
-                              </div>
-                            );
-                          })()}
-                          {/* CC Threshold */}
-                          {action.threshold.ccThreshold !== null && action.threshold.ccThreshold !== undefined && (() => {
-                            const ccDataForBar = action.cc;
-                            const ccYesCountForBar = ccDataForBar?.yesCount ?? 0;
-                            const ccNoCountForBar = ccDataForBar?.noCount ?? 0;
-                            const ccNotVotedCountForBar = ccDataForBar?.notVotedCount ?? 0;
-                            const totalMembers = (ccYesCountForBar + ccNoCountForBar + ccNotVotedCountForBar) || 7;
-                            const currentPercent = (ccYesCountForBar / totalMembers) * 100;
-                            const thresholdPercent = action.threshold!.ccThreshold! * 100;
-                            return (
-                              <div className="space-y-0.5">
-                                <div className="flex justify-between items-center">
-                                  <span className={cn("text-[10px] font-medium", isGame ? "text-white/80" : "text-muted-foreground")}>CC</span>
-                                  <span className={cn("text-[10px]", isGame ? "text-white/60" : "text-muted-foreground")}>{currentPercent.toFixed(1)}% / {thresholdPercent.toFixed(1)}%</span>
-                                </div>
-                                <div className="relative">
-                                  <Progress value={Math.min(currentPercent, 100)} className={cn("h-1.5", isGame ? "bg-white/20" : "bg-gray-200 dark:bg-gray-700")} indicatorClassName={isGame ? "bg-gray-400" : "bg-black dark:bg-[#0bd1a2]"} />
-                                  <div className="absolute top-0 h-1.5 w-0.5 bg-black dark:bg-white" style={{ left: `${thresholdPercent}%` }} />
-                                </div>
-                              </div>
-                            );
-                          })()}
-                        </div>
-                      )}
+                      <div className="mt-1">
+                        <ProposalThresholdBars action={action} isGame={isGame} maxWidth="280px" />
+                      </div>
                       {(action.totalYes + action.totalNo + action.totalAbstain) > 0 && (
                         <div className="mt-1">
                           <span className={cn("text-[10px]", isGame ? "text-white/60" : "text-muted-foreground")}>
@@ -1119,7 +889,7 @@ export function GovernanceTable() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {displayedActions.map((action) => {
+              {displayedActions.map((action, compactIndex) => {
                 const rowId = action.proposalId ?? action.hash;
                 const voteData = getVoteDataPresence(action);
                 const showDrep = canRoleVoteOnAction(action.type, "DRep", action.threshold, voteData);
@@ -1155,8 +925,9 @@ export function GovernanceTable() {
                 return (
                   <TableRow
                     key={rowId}
-                    className="proposal-row cursor-pointer transition-colors hover:bg-muted/50 border-b-0"
+                    className="stagger-item proposal-row cursor-pointer transition-colors hover:bg-muted/50 border-b-0"
                     onClick={() => router.push(`/governance/${action.hash}`)}
+                    style={{ animationDelay: `${Math.min(compactIndex, 10) * 50}ms` }}
                   >
                     <TableCell className="py-2 pl-3 sm:pl-4 max-w-[300px]">
                       <h3 className="text-sm font-medium truncate dark:text-[#0bd1a2]">

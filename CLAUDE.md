@@ -26,8 +26,8 @@ Cardano Governance Tracking Dashboard for monitoring on-chain governance actions
 │   │   ├── dashboards/           # Dashboard system
 │   │   │   ├── shared/           # Shared infrastructure (DashboardProvider, DashboardGrid, etc.)
 │   │   │   ├── governance/       # Governance dashboard charts
-│   │   │   ├── drep/             # DRep dashboard (placeholder)
-│   │   │   └── phil/             # Phil's dashboard (placeholder)
+│   │   │   ├── drep/             # DRep dashboard
+│   │   │   └── development_activity/ # Dev activity dashboard
 │   │   ├── ui/                   # shadcn/ui base components
 │   │   ├── layout/               # Header, Footer
 │   │   ├── governance/           # Voting components
@@ -35,7 +35,7 @@ Cardano Governance Tracking Dashboard for monitoring on-chain governance actions
 │   ├── pages/
 │   │   ├── api/                  # Server-side API routes (proxy to backend)
 │   │   ├── governance/[hash].tsx # Proposal detail
-│   │   ├── dashboard.tsx         # Customizable dashboard
+│   │   ├── adadev.tsx            # Governance dashboard
 │   │   └── index.tsx             # Landing page
 │   ├── store/
 │   │   ├── governanceSlice.ts    # Redux state + async thunks
@@ -44,7 +44,7 @@ Cardano Governance Tracking Dashboard for monitoring on-chain governance actions
 │   │   └── api.ts                # API client with lovelace→ADA transforms
 │   ├── types/
 │   │   ├── governance.ts         # GovernanceAction, VoteRecord, etc.
-│   │   └── dashboard.ts          # ChartId, ChartLayout, DashboardConfig
+│   │   └── dashboard.ts          # ChartId (GovernanceChartId | DevActivityChartId), ChartLayout, DashboardConfig
 │   ├── lib/
 │   │   ├── theme.tsx             # Theme provider (light/dark/game)
 │   │   ├── voteBreakdownCalculator.ts  # Vote calculation by action type
@@ -59,7 +59,7 @@ Cardano Governance Tracking Dashboard for monitoring on-chain governance actions
 - `DashboardProvider`: Context + localStorage for chart visibility/layout
 - `DashboardGrid`: Grid-snapping canvas (20px grid)
 - `DashboardChartCard`: Draggable/resizable wrapper
-- Each dashboard (governance, drep, phil) has its own `charts/index.ts` with `CHART_REGISTRY`
+- Each dashboard (governance, development_activity) has its own `charts/index.tsx` with `CHART_REGISTRY`
 
 ### Data Flow
 ```
@@ -193,23 +193,13 @@ Skills improve through a natural learning loop — no formal ceremonies, just wo
 
 **How it works:**
 ```
-Work (use skill) → Notice & annotate inline → /wrap-up consolidates → Skills improve
+Work → /wrap-up consolidates → Skills improve
 ```
 
-**During work:** If a skill's instructions are wrong or incomplete, leave an inline learning note:
-```markdown
-### Some Section
-Existing instruction text...
-
-<!-- LEARNING 2026-02-04: Discovered that X needs Y because Z -->
-```
-
-**At session end:** `/wrap-up {title}` does all consolidation:
+**At session end:** `/wrap-up {title}` does consolidation:
 1. Creates a journey documenting what was done and learned
-2. Processes learning notes — integrates them into skill text, removes raw notes
-3. Evolves skills based on journey learnings
-4. Cross-pollinates shared patterns to `_patterns.md`
-5. Prunes stale content
+2. Evolves skills based on journey learnings
+3. Cross-pollinates shared patterns to `_patterns.md`
 
 **Shared Patterns:** `.claude/skills/_patterns.md` holds cross-cutting knowledge (theming rules, Recharts gotchas, i18n conventions, etc.) that applies across all skills.
 
