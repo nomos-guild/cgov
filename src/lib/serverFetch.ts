@@ -3,6 +3,7 @@
  * These functions fetch directly from the backend API for use in getStaticProps/getServerSideProps
  */
 
+import { Pool } from "pg";
 import type {
   GovernanceAction,
   GovernanceActionDetail,
@@ -48,9 +49,18 @@ function lovelaceToAdaNumber(lovelace: string | undefined): number {
 /**
  * Transform NCL data to display format
  */
+// Known NCL targets (in ADA) – fallback when backend returns 0
+const NCL_TARGETS_ADA: Record<number, number> = {
+  2025: 350_000_000,
+  2026: 350_000_000,
+};
+
 function transformNCLData(data: NCLYearData): NCLDisplayData {
   const currentAda = lovelaceToAdaNumber(data.currentValue);
-  const targetAda = lovelaceToAdaNumber(data.targetValue);
+  let targetAda = lovelaceToAdaNumber(data.targetValue);
+  if (targetAda === 0 && NCL_TARGETS_ADA[data.year]) {
+    targetAda = NCL_TARGETS_ADA[data.year];
+  }
   const percentUsed = targetAda > 0 ? (currentAda / targetAda) * 100 : 0;
 
   return {
@@ -254,12 +264,69 @@ export async function fetchOverviewSummaryServer(): Promise<OverviewSummary | nu
   }
 }
 
+/** Epoch boundary: epoch 612 starts on Feb 8 2026 ~21:44 UTC */
+const NCL_2026_START_EPOCH = 612;
+
+/** Known NCL limits in lovelace */
+const NCL_LIMITS_LOVELACE: Record<number, string> = {
+  2025: "350000000000000",
+  2026: "350000000000000",
+};
+
+let pool: Pool | null = null;
+function getPool(): Pool {
+  if (!pool) {
+    pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      max: 3,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 5000,
+    });
+  }
+  return pool;
+}
+
+async function calcNCLCurrentFromDB(fromEpoch: number): Promise<string> {
+  const sql = `
+    SELECT COALESCE(SUM((w->>'withdrawalAmount')::bigint), 0) AS total
+    FROM proposal p,
+         jsonb_array_elements(p.metadata::jsonb->'body'->'onChain'->'withdrawals') w
+    WHERE p.governance_action_type = 'TREASURY_WITHDRAWALS'
+      AND p.status = 'ENACTED'
+      AND p.enacted_epoch >= $1
+  `;
+  const { rows } = await getPool().query(sql, [fromEpoch]);
+  return (rows[0]?.total ?? 0).toString();
+}
+
 /**
  * Server-side fetch for NCL data
+ * Augments 2026 NCL with direct DB calculation when available
  */
 export async function fetchNCLDataServer(): Promise<NCLDisplayData[]> {
   try {
     const data = await fetchBackend<NCLYearData[]>("/overview/ncl");
+
+    // Augment 2026 NCL when backend returns zeros
+    if (process.env.DATABASE_URL) {
+      const ncl2026 = data.find((r) => r.year === 2026);
+      if (ncl2026) {
+        if (ncl2026.targetValue === "0" && NCL_LIMITS_LOVELACE[2026]) {
+          ncl2026.targetValue = NCL_LIMITS_LOVELACE[2026];
+        }
+        ncl2026.currentValue = await calcNCLCurrentFromDB(NCL_2026_START_EPOCH);
+      } else {
+        const current = await calcNCLCurrentFromDB(NCL_2026_START_EPOCH);
+        data.push({
+          year: 2026,
+          currentValue: current,
+          targetValue: NCL_LIMITS_LOVELACE[2026],
+          epoch: 0,
+          updatedAt: new Date().toISOString(),
+        });
+      }
+    }
+
     return data.map(transformNCLData);
   } catch (error) {
     console.error("Failed to fetch NCL data server-side:", error);

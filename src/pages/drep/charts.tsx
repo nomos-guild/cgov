@@ -13,7 +13,7 @@ import type { DRepSummary } from "@/types/drep";
 
 type IntlMessages = typeof import("@/messages/en.json");
 
-interface DRepListPageProps {
+interface DRepChartsPageProps {
   messages: IntlMessages;
   initialData: {
     drepStats: DRepStatsApiResponse | null;
@@ -33,7 +33,7 @@ function transformServerDreps(items: DRepServerItem[]): DRepSummary[] {
   }));
 }
 
-export default function DRepListPage({ initialData }: InferGetStaticPropsType<typeof getStaticProps>) {
+export default function DRepChartsPage({ initialData }: InferGetStaticPropsType<typeof getStaticProps>) {
   const initialDreps = useMemo(
     () => initialData?.allDreps?.length ? transformServerDreps(initialData.allDreps) : undefined,
     [initialData?.allDreps]
@@ -45,13 +45,13 @@ export default function DRepListPage({ initialData }: InferGetStaticPropsType<ty
       initialDreps={initialDreps}
     >
       <FadeIn delay={0} duration={400} distance={16} force>
-        <DRepSunburstChart initialDreps={initialDreps} view="list" />
+        <DRepSunburstChart initialDreps={initialDreps} view="chart" />
       </FadeIn>
     </DRepPageLayout>
   );
 }
 
-export const getStaticProps: GetStaticProps<DRepListPageProps> = async ({ locale }) => {
+export const getStaticProps: GetStaticProps<DRepChartsPageProps> = async ({ locale }) => {
   const messages = (await import(`@/messages/${locale ?? "en"}.json`)).default;
 
   try {

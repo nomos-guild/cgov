@@ -383,7 +383,7 @@
     "loadingData": "正在加载DRep数据...",
     "failedToLoad": "加载DRep数据失败",
     "noDataAvailable": "暂无DRep数据",
-    "totalDReps": "DRep总数",
+    "totalDReps": "活跃DRep",
     "activeDRepsTooltip": "不包括投票次数为0的DRep和投票权为0 ADA的DRep",
     "totalDelegators": "委托人总数",
     "totalDelegatedAda": "委托ADA总量",

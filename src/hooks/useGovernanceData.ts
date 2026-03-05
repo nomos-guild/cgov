@@ -120,9 +120,18 @@ function transformGovernanceAction(action: GovernanceAction): GovernanceAction {
 /**
  * Transform NCL API response to display format
  */
+// Known NCL targets (in ADA) – fallback when backend returns 0
+const NCL_TARGETS_ADA: Record<number, number> = {
+  2025: 350_000_000,
+  2026: 350_000_000,
+};
+
 function transformNCLData(data: NCLYearData): NCLDisplayData {
   const currentAda = lovelaceToAdaNumber(data.currentValue);
-  const targetAda = lovelaceToAdaNumber(data.targetValue);
+  let targetAda = lovelaceToAdaNumber(data.targetValue);
+  if (targetAda === 0 && NCL_TARGETS_ADA[data.year]) {
+    targetAda = NCL_TARGETS_ADA[data.year];
+  }
   const percentUsed = targetAda > 0 ? (currentAda / targetAda) * 100 : 0;
 
   return {
