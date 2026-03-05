@@ -101,9 +101,18 @@ function lovelaceToAda(lovelace: string): number {
 /**
  * Transform NCL API response to display format (lovelace to ADA)
  */
+// Known NCL targets (in ADA) – fallback when backend returns 0
+const NCL_TARGETS_ADA: Record<number, number> = {
+  2025: 350_000_000,
+  2026: 350_000_000,
+};
+
 function transformNCLData(data: NCLYearData): NCLDisplayData {
   const currentAda = lovelaceToAda(data.currentValue);
-  const targetAda = lovelaceToAda(data.targetValue);
+  let targetAda = lovelaceToAda(data.targetValue);
+  if (targetAda === 0 && NCL_TARGETS_ADA[data.year]) {
+    targetAda = NCL_TARGETS_ADA[data.year];
+  }
   const percentUsed = targetAda > 0 ? (currentAda / targetAda) * 100 : 0;
 
   return {

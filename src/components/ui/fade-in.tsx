@@ -13,6 +13,10 @@ interface FadeInProps {
   distance?: number;
   /** If provided, animation triggers when this becomes true. Otherwise uses IntersectionObserver. */
   show?: boolean;
+  /** Override the route key for "already animated" tracking. Useful for sub-pages that share a layout. */
+  routeKey?: string;
+  /** Always play the animation on mount, ignoring route tracking. */
+  force?: boolean;
   className?: string;
 }
 
@@ -35,11 +39,13 @@ export function FadeIn({
   direction = "up",
   distance = 20,
   show,
+  routeKey,
+  force,
   className,
 }: FadeInProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const route = typeof window !== "undefined" ? window.location.pathname : "";
-  const alreadyAnimated = show === undefined && animatedRoutes.has(route);
+  const route = routeKey ?? (typeof window !== "undefined" ? window.location.pathname : "");
+  const alreadyAnimated = !force && show === undefined && animatedRoutes.has(route);
   const [visible, setVisible] = useState(alreadyAnimated);
 
   // IntersectionObserver mode (when `show` is not provided)

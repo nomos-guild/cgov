@@ -382,7 +382,7 @@
     "loadingData": "DRepデータを読み込み中...",
     "failedToLoad": "DRepデータの読み込みに失敗しました",
     "noDataAvailable": "DRepデータがありません",
-    "totalDReps": "DRep総数",
+    "totalDReps": "アクティブDRep",
     "activeDRepsTooltip": "投票数0のDRepと投票力0 ADAのDRepを除外",
     "totalDelegators": "委任者総数",
     "totalDelegatedAda": "委任ADA総額",

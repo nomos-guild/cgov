@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { GetStaticProps, InferGetStaticPropsType } from "next";
-import { DRepSunburstChart } from "@/components/dreps/DRepSunburstChart";
+import DRepPicker from "@/components/dreps/DRepPicker";
 import DRepPageLayout from "@/components/dreps/DRepPageLayout";
 import { FadeIn } from "@/components/ui/fade-in";
 import {
@@ -13,7 +13,7 @@ import type { DRepSummary } from "@/types/drep";
 
 type IntlMessages = typeof import("@/messages/en.json");
 
-interface DRepListPageProps {
+interface DRepPickerPageProps {
   messages: IntlMessages;
   initialData: {
     drepStats: DRepStatsApiResponse | null;
@@ -33,7 +33,7 @@ function transformServerDreps(items: DRepServerItem[]): DRepSummary[] {
   }));
 }
 
-export default function DRepListPage({ initialData }: InferGetStaticPropsType<typeof getStaticProps>) {
+export default function DRepPickerPage({ initialData }: InferGetStaticPropsType<typeof getStaticProps>) {
   const initialDreps = useMemo(
     () => initialData?.allDreps?.length ? transformServerDreps(initialData.allDreps) : undefined,
     [initialData?.allDreps]
@@ -45,13 +45,13 @@ export default function DRepListPage({ initialData }: InferGetStaticPropsType<ty
       initialDreps={initialDreps}
     >
       <FadeIn delay={0} duration={400} distance={16} force>
-        <DRepSunburstChart initialDreps={initialDreps} view="list" />
+        <DRepPicker initialDreps={initialDreps} />
       </FadeIn>
     </DRepPageLayout>
   );
 }
 
-export const getStaticProps: GetStaticProps<DRepListPageProps> = async ({ locale }) => {
+export const getStaticProps: GetStaticProps<DRepPickerPageProps> = async ({ locale }) => {
   const messages = (await import(`@/messages/${locale ?? "en"}.json`)).default;
 
   try {

@@ -382,7 +382,7 @@
     "loadingData": "Cargando datos DRep...",
     "failedToLoad": "Error al cargar los datos DRep",
     "noDataAvailable": "No hay datos DRep disponibles",
-    "totalDReps": "Total DReps",
+    "totalDReps": "DReps activos",
     "activeDRepsTooltip": "Excluye DReps con 0 votos realizados y DReps con 0 ADA de poder de voto",
     "totalDelegators": "Total Delegadores",
     "totalDelegatedAda": "Total ADA Delegado",
