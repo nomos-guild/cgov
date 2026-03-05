@@ -3,7 +3,6 @@
  * These functions fetch directly from the backend API for use in getStaticProps/getServerSideProps
  */
 
-import { Pool } from "pg";
 import type {
   GovernanceAction,
   GovernanceActionDetail,
@@ -273,9 +272,11 @@ const NCL_LIMITS_LOVELACE: Record<number, string> = {
   2026: "350000000000000",
 };
 
-let pool: Pool | null = null;
-function getPool(): Pool {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let pool: any = null;
+async function getPool() {
   if (!pool) {
+    const { Pool } = await import("pg");
     pool = new Pool({
       connectionString: process.env.DATABASE_URL,
       max: 3,
@@ -295,7 +296,8 @@ async function calcNCLCurrentFromDB(fromEpoch: number): Promise<string> {
       AND p.status = 'ENACTED'
       AND p.enacted_epoch >= $1
   `;
-  const { rows } = await getPool().query(sql, [fromEpoch]);
+  const pg = await getPool();
+  const { rows } = await pg.query(sql, [fromEpoch]);
   return (rows[0]?.total ?? 0).toString();
 }
 
