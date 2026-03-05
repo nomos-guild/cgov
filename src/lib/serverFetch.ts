@@ -263,72 +263,16 @@ export async function fetchOverviewSummaryServer(): Promise<OverviewSummary | nu
   }
 }
 
-/** Epoch boundary: epoch 612 starts on Feb 8 2026 ~21:44 UTC */
-const NCL_2026_START_EPOCH = 612;
-
-/** Known NCL limits in lovelace */
-const NCL_LIMITS_LOVELACE: Record<number, string> = {
-  2025: "350000000000000",
-  2026: "350000000000000",
-};
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let pool: any = null;
-async function getPool() {
-  if (!pool) {
-    const { Pool } = await import("pg");
-    pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-      max: 3,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 5000,
-    });
-  }
-  return pool;
-}
-
-async function calcNCLCurrentFromDB(fromEpoch: number): Promise<string> {
-  const sql = `
-    SELECT COALESCE(SUM((w->>'withdrawalAmount')::bigint), 0) AS total
-    FROM proposal p,
-         jsonb_array_elements(p.metadata::jsonb->'body'->'onChain'->'withdrawals') w
-    WHERE p.governance_action_type = 'TREASURY_WITHDRAWALS'
-      AND p.status = 'ENACTED'
-      AND p.enacted_epoch >= $1
-  `;
-  const pg = await getPool();
-  const { rows } = await pg.query(sql, [fromEpoch]);
-  return (rows[0]?.total ?? 0).toString();
-}
-
 /**
  * Server-side fetch for NCL data
- * Augments 2026 NCL with direct DB calculation when available
+ *
+ * ISR/SSG path: returns backend data with fallback targets only.
+ * The client-side SWR fetch goes through /api/overview/ncl which
+ * augments 2026 NCL with direct DB calculation.
  */
 export async function fetchNCLDataServer(): Promise<NCLDisplayData[]> {
   try {
     const data = await fetchBackend<NCLYearData[]>("/overview/ncl");
-
-    // Augment 2026 NCL when backend returns zeros
-    if (process.env.DATABASE_URL) {
-      const ncl2026 = data.find((r) => r.year === 2026);
-      if (ncl2026) {
-        if (ncl2026.targetValue === "0" && NCL_LIMITS_LOVELACE[2026]) {
-          ncl2026.targetValue = NCL_LIMITS_LOVELACE[2026];
-        }
-        ncl2026.currentValue = await calcNCLCurrentFromDB(NCL_2026_START_EPOCH);
-      } else {
-        const current = await calcNCLCurrentFromDB(NCL_2026_START_EPOCH);
-        data.push({
-          year: 2026,
-          currentValue: current,
-          targetValue: NCL_LIMITS_LOVELACE[2026],
-          epoch: 0,
-          updatedAt: new Date().toISOString(),
-        });
-      }
-    }
-
     return data.map(transformNCLData);
   } catch (error) {
     console.error("Failed to fetch NCL data server-side:", error);
