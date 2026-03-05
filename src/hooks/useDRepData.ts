@@ -584,7 +584,7 @@ export function useAllDRepVotes(
   return { votes: allVotes, rawVotes, isLoading, error };
 }
 
-/** Response from /api/dreps/rationale-stats */
+/** Response from /api/dreps/engagement-stats */
 interface DRepRationaleStatsResponse {
   dreps: Array<{
     drepId: string;
@@ -604,7 +604,7 @@ interface DRepRationaleStatsResponse {
 export function useDRepRationaleStats(initialData?: DRepRationaleStatsResponse["dreps"]) {
   const fallback = initialData?.length ? { dreps: initialData } : undefined;
   const { data, error, isLoading, mutate } = useSWR<DRepRationaleStatsResponse>(
-    API_ENDPOINTS.drepRationaleStats,
+    API_ENDPOINTS.drepEngagementStats,
     fetcher,
     {
       fallbackData: fallback,

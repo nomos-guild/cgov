@@ -40,7 +40,7 @@ export const API_ENDPOINTS = {
     `/api/dreps/${encodeURIComponent(drepId)}/votes`,
   drepHistory: (drepId: string) =>
     `/api/dreps/${encodeURIComponent(drepId)}/history`,
-  drepRationaleStats: "/api/dreps/rationale-stats",
+  drepEngagementStats: "/api/dreps/engagement-stats",
 
   // Analytics endpoints - Category 1: Ada Holder Participation
   analyticsVotingTurnout: "/api/analytics/voting-turnout",
