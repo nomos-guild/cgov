@@ -9,7 +9,6 @@ import { useGovernanceActions } from "@/hooks/useGovernanceData";
 import DRepPickerFilters from "@/components/dreps/DRepPickerFilters";
 import DRepPickerResults from "@/components/dreps/DRepPickerResults";
 import type { EnrichedDRep } from "@/components/dreps/DRepPickerResults";
-import DRepListBuilder from "@/components/dreps/DRepListBuilder";
 import MatchMe from "@/components/dreps/MatchMe";
 
 interface DRepPickerProps {
@@ -240,7 +239,6 @@ export default function DRepPicker({ initialDreps, initialRationaleStats }: DRep
     : "rounded-none border border-[#0bd1a2] bg-transparent shadow-none";
 
   return (
-    <div className="flex flex-col gap-4">
     <div className="flex flex-col lg:flex-row lg:items-stretch gap-4">
       {/* Left column: chart + filters */}
       <div className="w-full lg:w-[320px] flex-shrink-0 flex flex-col gap-4">
@@ -296,10 +294,6 @@ export default function DRepPicker({ initialDreps, initialRationaleStats }: DRep
           <DRepPickerResults dreps={filteredDreps} totalVotingPower={totalVotingPower} />
         </div>
       </div>
-    </div>
-
-    {/* DRep List Builder — custom group analysis */}
-    <DRepListBuilder dreps={enrichedDreps} totalVotingPower={totalVotingPower} />
     </div>
   );
 }
