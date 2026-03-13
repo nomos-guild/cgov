@@ -333,9 +333,9 @@ export default function DRepListBuilder({ dreps, totalVotingPower }: DRepListBui
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className={labelClass}>{t("pickerColumnActivity")}</span>
+                      <span className={labelClass}>{t("listBuilderPowerPct")}</span>
                       <span className={cn("text-[11px] font-medium tabular-nums", accentClass)}>
-                        {drep.activityPercent.toFixed(0)}%
+                        {totalVotingPower > 0 ? ((drep.votingPowerAda / totalVotingPower) * 100).toFixed(2) : "0.00"}%
                       </span>
                     </div>
                   </div>
