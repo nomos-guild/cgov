@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import type { GetStaticProps, InferGetStaticPropsType } from "next";
 import { DRepSunburstChart } from "@/components/dreps/DRepSunburstChart";
+import DRepListBuilderSection from "@/components/dreps/DRepListBuilderSection";
 import DRepPageLayout from "@/components/dreps/DRepPageLayout";
 import { FadeIn } from "@/components/ui/fade-in";
 import {
@@ -46,6 +47,9 @@ export default function DRepListPage({ initialData }: InferGetStaticPropsType<ty
     >
       <FadeIn delay={0} duration={400} distance={16} force>
         <DRepSunburstChart initialDreps={initialDreps} view="list" />
+      </FadeIn>
+      <FadeIn delay={100} duration={400} distance={16} force>
+        <DRepListBuilderSection initialDreps={initialDreps} />
       </FadeIn>
     </DRepPageLayout>
   );
