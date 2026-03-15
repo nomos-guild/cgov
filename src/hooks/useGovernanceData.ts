@@ -8,6 +8,7 @@
 import useSWR from "swr";
 import { useEffect, useLayoutEffect, useRef, useMemo } from "react";
 import { API_ENDPOINTS } from "@/config/api";
+import { normalizeProposalSurveyResponse } from "@/lib/surveyMetadata";
 
 // useLayoutEffect on client (fires before paint), useEffect on server (avoids SSR warning)
 const useIsomorphicLayoutEffect =
@@ -18,6 +19,8 @@ import type {
   OverviewSummary,
   NCLDisplayData,
   NCLYearData,
+  ProposalSurveyResponse,
+  ProposalSurveyTallyResponse,
   VoteRecord,
   ProposalReferenceObject,
 } from "@/types/governance";
@@ -435,6 +438,56 @@ export function useGovernanceActionDetail(
   return {
     detail: transformed,
     isLoading: !fallbackData && isLoading,
+    error: error?.message ?? null,
+    refresh: mutate,
+  };
+}
+
+export function useProposalSurvey(
+  proposalId: string | null | undefined,
+  fallbackData?: ProposalSurveyResponse | null
+) {
+  const swrKey = proposalId ? API_ENDPOINTS.proposalSurvey(proposalId) : null;
+
+  const { data, error, isLoading, mutate } = useSWR<ProposalSurveyResponse>(
+    swrKey,
+    fetcher,
+    {
+      ...swrConfig,
+      fallbackData: fallbackData ?? undefined,
+      revalidateOnMount: true,
+    }
+  );
+
+  return {
+    survey: normalizeProposalSurveyResponse(data) ?? null,
+    isLoading: !fallbackData && isLoading,
+    error: error?.message ?? null,
+    refresh: mutate,
+  };
+}
+
+export function useProposalSurveyTally(
+  proposalId: string | null | undefined,
+  enabled = true,
+  fallbackData?: ProposalSurveyTallyResponse | null
+) {
+  const swrKey =
+    proposalId && enabled ? API_ENDPOINTS.proposalSurveyTally(proposalId) : null;
+
+  const { data, error, isLoading, mutate } = useSWR<ProposalSurveyTallyResponse>(
+    swrKey,
+    fetcher,
+    {
+      ...swrConfig,
+      fallbackData: fallbackData ?? undefined,
+      revalidateOnMount: enabled,
+    }
+  );
+
+  return {
+    tally: data ?? null,
+    isLoading: enabled && !fallbackData && isLoading,
     error: error?.message ?? null,
     refresh: mutate,
   };

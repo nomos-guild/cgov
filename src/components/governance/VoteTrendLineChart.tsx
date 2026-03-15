@@ -9,7 +9,7 @@ import {
   Legend,
   ReferenceLine,
 } from "recharts";
-import type { TooltipProps } from "recharts";
+import type { TooltipContentProps } from "recharts";
 import { formatAdaValue } from "@/lib/formatters";
 import type { TimelinePoint, VoteColorSet } from "@/lib/voteColors";
 
@@ -22,7 +22,7 @@ export interface VoteTrendLineChartProps {
   shouldShowPower: boolean;
   useDashedPowerLines?: boolean;
   formatTickDate: (ts: number) => string;
-  renderTooltip: (props: TooltipProps<number, string>) => React.ReactElement | null;
+  renderTooltip: (props: TooltipContentProps) => React.ReactElement | null;
   /** Show chart legend (curves tab only) */
   showLegend?: boolean;
   /** Chart height in px */
