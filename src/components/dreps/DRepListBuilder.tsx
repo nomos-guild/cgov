@@ -349,7 +349,12 @@ export default function DRepListBuilder({ dreps, totalVotingPower }: DRepListBui
                         dataKey="value"
                         strokeWidth={0}
                         onMouseEnter={(data) => {
-                          if (data.name !== "Rest") setHoveredSlice({ name: data.name, value: data.value });
+                          if (
+                            typeof data.name === "string" &&
+                            data.name !== "Rest"
+                          ) {
+                            setHoveredSlice({ name: data.name, value: data.value });
+                          }
                         }}
                         onMouseLeave={() => setHoveredSlice(null)}
                       >

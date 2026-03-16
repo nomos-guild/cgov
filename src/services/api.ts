@@ -7,6 +7,7 @@
  */
 
 import { API_ENDPOINTS } from "@/config/api";
+import { normalizeProposalSurveyResponse } from "@/lib/surveyMetadata";
 import type {
   GovernanceAction,
   GovernanceActionDetail,
@@ -14,6 +15,8 @@ import type {
   VoteRecord,
   NCLYearData,
   NCLDisplayData,
+  ProposalSurveyResponse,
+  ProposalSurveyTallyResponse,
   ProposalReferenceObject,
 } from "@/types/governance";
 import type {
@@ -182,6 +185,56 @@ export async function fetchGovernanceActionDetail(
     return transformGovernanceActionDetail(data);
   } catch (error) {
     console.error(`Failed to fetch proposal ${proposalId}:`, error);
+    return null;
+  }
+}
+
+export async function fetchProposalSurvey(
+  proposalId: string
+): Promise<ProposalSurveyResponse | null> {
+  try {
+    const survey = await fetchApi<ProposalSurveyResponse>(
+      API_ENDPOINTS.proposalSurvey(proposalId)
+    );
+    return normalizeProposalSurveyResponse(survey);
+  } catch (error) {
+    console.error(`Failed to fetch proposal survey ${proposalId}:`, error);
+    return null;
+  }
+}
+
+export async function fetchProposalSurveyTally(
+  proposalId: string
+): Promise<ProposalSurveyTallyResponse | null> {
+  try {
+    return await fetchApi<ProposalSurveyTallyResponse>(
+      API_ENDPOINTS.proposalSurveyTally(proposalId)
+    );
+  } catch (error) {
+    console.error(`Failed to fetch proposal survey tally ${proposalId}:`, error);
+    return null;
+  }
+}
+
+export interface DRepVerificationResult {
+  drepId: string;
+  exists: boolean;
+  isRegistered: boolean;
+  isActive: boolean;
+  expiresEpoch: number | null;
+  source?: "db" | "koios";
+}
+
+export async function verifyDRepRole(
+  drepId: string
+): Promise<DRepVerificationResult | null> {
+  try {
+    const data = await fetchApi<DRepVerificationResult>(
+      API_ENDPOINTS.drepVerify(drepId)
+    );
+    return data;
+  } catch (error) {
+    console.error(`Failed to verify DRep role for ${drepId}:`, error);
     return null;
   }
 }

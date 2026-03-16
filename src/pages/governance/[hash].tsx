@@ -17,14 +17,18 @@ import { Button } from "@/components/ui/button";
 import { VotingRecords } from "@/components/VotingRecords";
 import { BubbleMap } from "@/components/BubbleMap";
 import { useAppSelector } from "@/store/hooks";
-import { useGovernanceActionDetail } from "@/hooks/useGovernanceData";
+import {
+  useGovernanceActionDetail,
+  useProposalSurvey,
+  useProposalSurveyTally,
+} from "@/hooks/useGovernanceData";
 import { ArrowLeft } from "lucide-react";
 import type {
   GovernanceActionDetail,
   VoterType,
   ProposalReferenceObject,
 } from "@/types/governance";
-import type { TooltipProps } from "recharts";
+import type { TooltipContentProps, TooltipPayload } from "recharts";
 import {
   exportToJSON,
   exportToMarkdown,
@@ -69,6 +73,7 @@ import {
 } from "@/lib/governanceEligibilityOverrides";
 import { VoteTrendTooltip } from "@/components/governance/VoteTrendTooltip";
 import { LazyVoteOnProposal } from "@/components/governance/LazyVoteOnProposal";
+import { LinkedSurveyPanel } from "@/components/governance/LinkedSurveyPanel";
 import { ProposalExpiryCard } from "@/components/governance/ProposalExpiryCard";
 import { LiveVotingTab } from "@/components/governance/LiveVotingTab";
 import { ProposalDetailsTab } from "@/components/governance/ProposalDetailsTab";
@@ -104,6 +109,20 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
   // SWR-based data loading with ISR fallback for instant hydration
   const { isLoading: swrLoading, error: swrError, refresh } =
     useGovernanceActionDetail(proposalId, initialDetail);
+  const {
+    survey: proposalSurvey,
+    isLoading: isSurveyLoading,
+    error: surveyError,
+  } = useProposalSurvey(proposalId);
+  const shouldFetchSurveyTally =
+    !!proposalSurvey?.linked &&
+    !!proposalSurvey.linkValidation.valid &&
+    !!proposalSurvey.surveyDetailsValidation.valid;
+  const {
+    tally: proposalSurveyTally,
+    isLoading: isSurveyTallyLoading,
+    error: surveyTallyError,
+  } = useProposalSurveyTally(proposalId, shouldFetchSurveyTally);
 
   // Redux still has the data (synced by the hook) for components that read from it
   const { selectedAction } = useAppSelector((state) => state.governance);
@@ -452,9 +471,10 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
   const shouldShowPower = curveRoleFilter !== "CC";
 
   const renderVoteTrendTooltip = useCallback(
-    (tooltipProps: TooltipProps<number, string>) => (
+    (tooltipProps: TooltipContentProps) => (
       <VoteTrendTooltip
-        {...tooltipProps}
+        active={tooltipProps.active}
+        payload={tooltipProps.payload as TooltipPayload | undefined}
         showPower={shouldShowPower}
         colors={voteColors}
         isGame={isGame}
@@ -1201,6 +1221,18 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
                   </div>
                 </Tabs>
               </Card>
+
+              {selectedAction && (
+                <LinkedSurveyPanel
+                  survey={proposalSurvey}
+                  tally={proposalSurveyTally}
+                  isSurveyLoading={isSurveyLoading}
+                  isTallyLoading={isSurveyTallyLoading}
+                  surveyError={surveyError}
+                  tallyError={surveyTallyError}
+                  isGame={isGame}
+                />
+              )}
 
             </div>
 
