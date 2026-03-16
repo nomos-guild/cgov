@@ -19,6 +19,10 @@ export const API_ENDPOINTS = {
   // Proposal detail endpoint (requires proposal_id parameter)
   proposalDetail: (proposalId: string) =>
     `/api/proposal/${encodeURIComponent(proposalId)}`,
+  proposalSurvey: (proposalId: string) =>
+    `/api/proposal/${encodeURIComponent(proposalId)}/survey`,
+  proposalSurveyTally: (proposalId: string) =>
+    `/api/proposal/${encodeURIComponent(proposalId)}/survey-tally`,
 
   // Development Activity endpoints
   devOverview: (range: string) => `/api/development/overview?range=${range}&compare=previous`,
@@ -36,6 +40,8 @@ export const API_ENDPOINTS = {
   dreps: "/api/dreps",
   drepsAll: "/api/dreps/all",
   drepDetail: (drepId: string) => `/api/dreps/${encodeURIComponent(drepId)}`,
+  drepVerify: (drepId: string) =>
+    `/api/dreps/${encodeURIComponent(drepId)}/verify`,
   drepVotes: (drepId: string) =>
     `/api/dreps/${encodeURIComponent(drepId)}/votes`,
   drepHistory: (drepId: string) =>

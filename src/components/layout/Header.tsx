@@ -3,21 +3,49 @@ import { useRouter } from "next/router";
 import { useEffect, useState, type ComponentType } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSelector } from "@/components/LanguageSelector";
+import { Button } from "@/components/ui/button";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
+import { Wallet } from "lucide-react";
+
+type WalletButtonState = "loading" | "ready" | "error";
 
 function LazyWalletButton() {
   const [WalletBtn, setWalletBtn] = useState<ComponentType | null>(null);
+  const [state, setState] = useState<WalletButtonState>("loading");
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (!(window.crypto && window.crypto.subtle)) return;
+
     import("@/components/wallet/ConnectWalletButton")
-      .then((mod) => setWalletBtn(() => mod.ConnectWalletButton))
-      .catch(() => {});
+      .then((mod) => {
+        setWalletBtn(() => mod.ConnectWalletButton);
+        setState("ready");
+      })
+      .catch((error) => {
+        console.warn("Wallet button failed to initialize:", error);
+        setState("error");
+      });
   }, []);
 
-  if (!WalletBtn) return null;
+  if (!WalletBtn) {
+    return (
+      <Button
+        variant="outline"
+        disabled
+        title={
+          state === "error"
+            ? "Wallet UI could not be initialized in this browser session."
+            : "Loading wallet UI"
+        }
+        className="flex items-center gap-2 rounded-none"
+      >
+        <Wallet className="h-4 w-4" />
+        {state === "error" ? "Wallet unavailable" : "Loading wallet..."}
+      </Button>
+    );
+  }
+
   return <WalletBtn />;
 }
 

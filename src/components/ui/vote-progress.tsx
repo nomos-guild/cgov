@@ -4,7 +4,8 @@ import {
   Pie,
   Cell,
   Tooltip,
-  type TooltipProps,
+  type TooltipContentProps,
+  type PieSectorDataItem,
 } from "recharts";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/lib/theme";
@@ -176,7 +177,7 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
     ]);
 
     const onPieEnter = React.useCallback(
-      (_: SliceData, index: number) => {
+      (_: PieSectorDataItem, index: number) => {
         if (!interactive) return;
         setActiveIndex(index);
       },
@@ -219,8 +220,8 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
     );
 
     const renderTooltip = React.useCallback(
-      (tooltipProps: TooltipProps<number, string>) => {
-        const extended = tooltipProps as TooltipProps<number, string> & {
+      (tooltipProps: TooltipContentProps) => {
+        const extended = tooltipProps as TooltipContentProps & {
           payload?: ReadonlyArray<{ payload: SliceData }>;
         };
 
@@ -460,7 +461,7 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
           >
             {showTooltip && (
               <Tooltip
-                content={renderTooltip}
+                  content={renderTooltip}
                 cursor={false}
                 wrapperClassName="recharts-no-box"
                 wrapperStyle={{ pointerEvents: "none" }}
