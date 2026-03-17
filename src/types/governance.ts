@@ -88,6 +88,7 @@ export interface GovernanceAction {
   // Content
   title: string;
   type: string; // Governance action type label
+  withdrawalAmount?: string | null; // Treasury withdrawal amount in lovelace
   status: "Active" | "Ratified" | "Enacted" | "Expired" | "Closed";
   constitutionality: string;
 
