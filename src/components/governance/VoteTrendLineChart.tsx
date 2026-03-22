@@ -22,7 +22,7 @@ export interface VoteTrendLineChartProps {
   shouldShowPower: boolean;
   useDashedPowerLines?: boolean;
   formatTickDate: (ts: number) => string;
-  renderTooltip: (props: TooltipContentProps) => React.ReactElement | null;
+  renderTooltip: (props: TooltipContentProps<number, string>) => React.ReactElement | null;
   /** Show chart legend (curves tab only) */
   showLegend?: boolean;
   /** Chart height in px */

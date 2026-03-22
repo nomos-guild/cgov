@@ -1,5 +1,5 @@
 import { useTranslations } from "next-intl";
-import type { TooltipPayload } from "recharts";
+import type { Payload } from "recharts/types/component/DefaultTooltipContent";
 import { cn } from "@/lib/utils";
 import { formatAdaValue } from "@/lib/formatters";
 import type { TimelinePoint, VoteColorSet } from "@/lib/voteColors";
@@ -12,7 +12,7 @@ export function VoteTrendTooltip({
   isGame,
 }: {
   active?: boolean;
-  payload?: TooltipPayload;
+  payload?: Payload<number, string>[];
   showPower: boolean;
   colors: VoteColorSet;
   isGame: boolean;

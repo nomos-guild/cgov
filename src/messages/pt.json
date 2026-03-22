@@ -25,7 +25,9 @@
   },
   "landing": {
     "title": "Governação de Cardano",
-    "subtitle": "Acompanhar e monitorizar as acções de governação na cadeia"
+    "subtitle": "Acompanhar e monitorizar as acções de governação na cadeia",
+    "tabAllProposals": "Todas as propostas",
+    "tabAnalytics": "Analítica"
   },
   "dashboard": {
     "title": "Painel de controlo",
@@ -231,10 +233,8 @@
     "days": "dias",
     "expired": "Expirado",
     "subject": "Assunto",
-    "submissionDate": "Data de submissão",
-    "epochBoundary": "Limite de época",
-    "submissionEpoch": "Época de submissão",
-    "validUntilEpoch": "Válido até a época"
+    "submission": "Submissão",
+    "epochBoundary": "Prazo final de votação"
   },
   "tabs": {
     "liveVoting": "Votação ao vivo",

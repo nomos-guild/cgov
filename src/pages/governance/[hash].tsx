@@ -19,8 +19,8 @@ import { BubbleMap } from "@/components/BubbleMap";
 import { useAppSelector } from "@/store/hooks";
 import {
   useGovernanceActionDetail,
-  useProposalSurvey,
-  useProposalSurveyTally,
+  // useProposalSurvey,
+  // useProposalSurveyTally,
 } from "@/hooks/useGovernanceData";
 import { ArrowLeft } from "lucide-react";
 import type {
@@ -28,7 +28,8 @@ import type {
   VoterType,
   ProposalReferenceObject,
 } from "@/types/governance";
-import type { TooltipContentProps, TooltipPayload } from "recharts";
+import type { TooltipContentProps } from "recharts";
+import type { Payload } from "recharts/types/component/DefaultTooltipContent";
 import {
   exportToJSON,
   exportToMarkdown,
@@ -73,7 +74,7 @@ import {
 } from "@/lib/governanceEligibilityOverrides";
 import { VoteTrendTooltip } from "@/components/governance/VoteTrendTooltip";
 import { LazyVoteOnProposal } from "@/components/governance/LazyVoteOnProposal";
-import { LinkedSurveyPanel } from "@/components/governance/LinkedSurveyPanel";
+// import { LinkedSurveyPanel } from "@/components/governance/LinkedSurveyPanel";
 import { ProposalExpiryCard } from "@/components/governance/ProposalExpiryCard";
 import { LiveVotingTab } from "@/components/governance/LiveVotingTab";
 import { ProposalDetailsTab } from "@/components/governance/ProposalDetailsTab";
@@ -109,20 +110,21 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
   // SWR-based data loading with ISR fallback for instant hydration
   const { isLoading: swrLoading, error: swrError, refresh } =
     useGovernanceActionDetail(proposalId, initialDetail);
-  const {
-    survey: proposalSurvey,
-    isLoading: isSurveyLoading,
-    error: surveyError,
-  } = useProposalSurvey(proposalId);
-  const shouldFetchSurveyTally =
-    !!proposalSurvey?.linked &&
-    !!proposalSurvey.linkValidation.valid &&
-    !!proposalSurvey.surveyDetailsValidation.valid;
-  const {
-    tally: proposalSurveyTally,
-    isLoading: isSurveyTallyLoading,
-    error: surveyTallyError,
-  } = useProposalSurveyTally(proposalId, shouldFetchSurveyTally);
+  // Hidden until surveys exist on-chain
+  // const {
+  //   survey: proposalSurvey,
+  //   isLoading: isSurveyLoading,
+  //   error: surveyError,
+  // } = useProposalSurvey(proposalId);
+  // const shouldFetchSurveyTally =
+  //   !!proposalSurvey?.linked &&
+  //   !!proposalSurvey.linkValidation.valid &&
+  //   !!proposalSurvey.surveyDetailsValidation.valid;
+  // const {
+  //   tally: proposalSurveyTally,
+  //   isLoading: isSurveyTallyLoading,
+  //   error: surveyTallyError,
+  // } = useProposalSurveyTally(proposalId, shouldFetchSurveyTally);
 
   // Redux still has the data (synced by the hook) for components that read from it
   const { selectedAction } = useAppSelector((state) => state.governance);
@@ -471,10 +473,10 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
   const shouldShowPower = curveRoleFilter !== "CC";
 
   const renderVoteTrendTooltip = useCallback(
-    (tooltipProps: TooltipContentProps) => (
+    (tooltipProps: TooltipContentProps<number, string>) => (
       <VoteTrendTooltip
         active={tooltipProps.active}
-        payload={tooltipProps.payload as TooltipPayload | undefined}
+        payload={tooltipProps.payload as Payload<number, string>[] | undefined}
         showPower={shouldShowPower}
         colors={voteColors}
         isGame={isGame}
@@ -772,17 +774,6 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
     ? (ccPendingCount / ccTotalVotesExcludingAbstain) * 100
     : 100;
 
-  const handleTwitterShare = () => {
-    const url =
-      typeof window !== "undefined"
-        ? `${window.location.origin}/governance/${selectedAction.hash}`
-        : "";
-    const text = `Check out this Cardano governance proposal: ${selectedAction.title}`;
-    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(
-      text
-    )}&url=${encodeURIComponent(url)}`;
-    window.open(twitterUrl, "_blank", "noopener,noreferrer");
-  };
 
   const handleExport = async (format: "json" | "markdown" | "csv") => {
     const sanitizedTitle = selectedAction.title
@@ -840,45 +831,12 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
         <div
           className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 md:px-6 md:py-8"
         >
-          {/* Top actions */}
-          <FadeIn show={contentVisible} delay={0} duration={400} distance={12}>
-          <div className="mb-4 sm:mb-6 flex flex-wrap items-center gap-2 sm:gap-3">
-            <Link href="/">
-              <Button
-                variant="default"
-                size="icon"
-                className={
-                  isGame
-                    ? "game-nav-btn"
-                    : "bg-white text-black shadow-[0_12px_30px_rgba(15,23,42,0.25)] h-8 w-8 sm:h-10 sm:w-10 transform-gpu transition-transform transition-shadow duration-450 ease-in-out hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] hover:bg-white hover:text-black btn-neon"
-                }
-                aria-label="Back to Dashboard"
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-            </Link>
-            {allVotes.length > 0 && (
-              <Button
-                variant="default"
-                className={
-                  isGame
-                    ? "game-nav-btn text-xs sm:text-sm"
-                    : "bg-white text-black shadow-[0_12px_30px_rgba(15,23,42,0.25)] h-8 sm:h-10 px-3 sm:px-4 text-xs sm:text-sm transform-gpu transition-transform transition-shadow duration-450 ease-in-out hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] hover:bg-white hover:text-black btn-neon"
-                }
-                onClick={handleTwitterShare}
-              >
-                {tProposal("shareOnX")}
-              </Button>
-            )}
-          </div>
-          </FadeIn>
-
           {/* Proposal Detail + Expiry Row */}
           <FadeIn show={contentVisible} delay={120} duration={500} distance={18}>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6 mb-4 sm:mb-6 md:mb-8">
-            {/* Proposal Detail */}
+          <div className="mb-4 sm:mb-6 md:mb-8">
+            {/* Proposal Detail + Expiry */}
           <Card className={cn(
-            "lg:col-span-2 p-3 sm:p-4 md:p-6 flex flex-col",
+            "p-3 sm:p-4 md:p-6 flex flex-col",
             isGame && "game-proposal-header-card"
           )}>
             <div className="mb-2 sm:mb-3 flex items-center gap-2 sm:gap-3">
@@ -893,6 +851,18 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent shrink-0" />
               )}
             </div>
+
+            {/* Expiry info section */}
+            {selectedAction && (
+              <div className="border-t border-border/50 pt-4 mb-4">
+                <ProposalExpiryCard
+                  action={selectedAction}
+                  isInfoAction={isInfoAction}
+                  submittedAt={submittedAt}
+                />
+              </div>
+            )}
+
             {contentPreview && (
               <div className="border-t border-border/50 pt-4 flex-1 flex flex-col">
                 <div
@@ -974,14 +944,6 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
             )}
           </Card>
 
-          {/* Time Until Expiry Card */}
-          {selectedAction && (
-            <ProposalExpiryCard
-              action={selectedAction}
-              isInfoAction={isInfoAction}
-              submittedAt={submittedAt}
-            />
-          )}
           </div>
           </FadeIn>
 
@@ -991,15 +953,15 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
             {/* Left Column - Tabs for donuts, bubble map, curves, details */}
             <div className="space-y-4 sm:space-y-5 md:space-y-6 lg:col-span-2">
               <Card className={cn(
-                "info-container p-3 sm:p-4 md:p-6 overflow-hidden dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none dark:rounded-none",
+                "info-container p-3 sm:p-4 md:p-6 overflow-hidden dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none dark:rounded-none h-full flex flex-col",
                 isGame && "game-voting-card"
               )}>
                 <Tabs
                   value={selectedTab}
                   onValueChange={setSelectedTab}
-                  className="w-full"
+                  className="w-full flex-1 flex flex-col"
                 >
-                  <div className="flex flex-col gap-3 sm:gap-4">
+                  <div className="flex flex-col gap-3 sm:gap-4 flex-1">
                     <div className="flex flex-col gap-2 sm:gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <TabsList className="flex-1 flex-wrap justify-start gap-1.5 sm:gap-2 bg-transparent p-0 py-2 overflow-x-auto overflow-visible">
                         <TabsTrigger
@@ -1222,6 +1184,7 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
                 </Tabs>
               </Card>
 
+              {/* Hidden until surveys exist on-chain
               {selectedAction && (
                 <LinkedSurveyPanel
                   survey={proposalSurvey}
@@ -1233,6 +1196,7 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
                   isGame={isGame}
                 />
               )}
+              */}
 
             </div>
 

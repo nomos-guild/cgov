@@ -25,7 +25,9 @@
   },
   "landing": {
     "title": "カルダノ・ガバナンス",
-    "subtitle": "オン・チェーン・ガバナンス活動の追跡と監視"
+    "subtitle": "オン・チェーン・ガバナンス活動の追跡と監視",
+    "tabAllProposals": "すべての提案",
+    "tabAnalytics": "分析"
   },
   "dashboard": {
     "title": "ダッシュボード",
@@ -231,10 +233,8 @@
     "days": "日",
     "expired": "期限切れ",
     "subject": "件名",
-    "submissionDate": "提出日",
-    "epochBoundary": "エポック境界",
-    "submissionEpoch": "提出エポック",
-    "validUntilEpoch": "有効期限エポック"
+    "submission": "提出",
+    "epochBoundary": "投票締切日"
   },
   "tabs": {
     "liveVoting": "ライブ投票",

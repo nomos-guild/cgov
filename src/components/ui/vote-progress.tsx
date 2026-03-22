@@ -220,8 +220,8 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
     );
 
     const renderTooltip = React.useCallback(
-      (tooltipProps: TooltipContentProps) => {
-        const extended = tooltipProps as TooltipContentProps & {
+      (tooltipProps: TooltipContentProps<number, string>) => {
+        const extended = tooltipProps as TooltipContentProps<number, string> & {
           payload?: ReadonlyArray<{ payload: SliceData }>;
         };
 

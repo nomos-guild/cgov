@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { GameLoader } from "@/components/ui/game-loader";
 import { useTheme } from "@/lib/theme";
 import { FadeIn } from "@/components/ui/fade-in";
+import ProposalPageLayout from "@/components/governance/ProposalPageLayout";
 
 interface HomeProps {
   initialData: InitialGovernanceData;
@@ -87,9 +88,9 @@ export default function Home({ initialData }: InferGetStaticPropsType<typeof get
               <FadeIn delay={120} duration={500} distance={18}>
                 <GovernanceStats />
               </FadeIn>
-              <FadeIn delay={260} duration={500} distance={24}>
+              <ProposalPageLayout>
                 <GovernanceTable />
-              </FadeIn>
+              </ProposalPageLayout>
             </>
           )}
         </div>
