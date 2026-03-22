@@ -25,7 +25,9 @@
   },
   "landing": {
     "title": "Cardano Governance",
-    "subtitle": "Track and monitor on-chain governance actions"
+    "subtitle": "Track and monitor on-chain governance actions",
+    "tabAllProposals": "All Proposals",
+    "tabAnalytics": "Analytics"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -231,10 +233,8 @@
     "days": "days",
     "expired": "Expired",
     "subject": "Subject",
-    "submissionDate": "Submission Date",
-    "epochBoundary": "Epoch Boundary",
-    "submissionEpoch": "Submission Epoch",
-    "validUntilEpoch": "Valid Until Epoch"
+    "submission": "Submission",
+    "epochBoundary": "Voting End Deadline"
   },
   "tabs": {
     "liveVoting": "Live Voting",

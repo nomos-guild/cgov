@@ -25,7 +25,9 @@
   },
   "landing": {
     "title": "Gobernanza de Cardano",
-    "subtitle": "Seguimiento y control de las acciones de gobernanza en la cadena"
+    "subtitle": "Seguimiento y control de las acciones de gobernanza en la cadena",
+    "tabAllProposals": "Todas las propuestas",
+    "tabAnalytics": "Analítica"
   },
   "dashboard": {
     "title": "Cuadro de mandos",
@@ -231,10 +233,8 @@
     "days": "días",
     "expired": "Expirado",
     "subject": "Asunto",
-    "submissionDate": "Fecha de presentación",
-    "epochBoundary": "Límite de época",
-    "submissionEpoch": "Época de presentación",
-    "validUntilEpoch": "Válido hasta la época"
+    "submission": "Presentación",
+    "epochBoundary": "Fecha límite de votación"
   },
   "tabs": {
     "liveVoting": "Votación en vivo",

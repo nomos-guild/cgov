@@ -65,7 +65,7 @@
   pointer-events: none;
   box-shadow: none;
   --f: blur(7em) brightness(5);
-  animation: game-blobs 150s linear infinite, game-thingy 5s linear infinite;
+  animation: game-blobs 400s linear infinite, game-thingy 30s linear infinite;
   background-color: #000;
   background-image: radial-gradient(
       ellipse 66px 50px at 50% 50%,

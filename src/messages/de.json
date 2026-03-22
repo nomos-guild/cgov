@@ -25,7 +25,9 @@
   },
   "landing": {
     "title": "Cardano-Governance",
-    "subtitle": "Verfolgung und Überwachung von Governance-Maßnahmen in der Kette"
+    "subtitle": "Verfolgung und Überwachung von Governance-Maßnahmen in der Kette",
+    "tabAllProposals": "Alle Vorschläge",
+    "tabAnalytics": "Analytik"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -231,10 +233,8 @@
     "days": "Tage",
     "expired": "Abgelaufen",
     "subject": "Betreff",
-    "submissionDate": "Einreichungsdatum",
-    "epochBoundary": "Epochengrenze",
-    "submissionEpoch": "Einreichungs-Epoch",
-    "validUntilEpoch": "Gültig bis Epoch"
+    "submission": "Einreichung",
+    "epochBoundary": "Abstimmungsfrist"
   },
   "tabs": {
     "liveVoting": "Live-Abstimmung",

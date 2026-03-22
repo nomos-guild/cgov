@@ -25,7 +25,9 @@
   },
   "landing": {
     "title": "卡达诺治理",
-    "subtitle": "跟踪和监测链上治理行动"
+    "subtitle": "跟踪和监测链上治理行动",
+    "tabAllProposals": "所有提案",
+    "tabAnalytics": "分析"
   },
   "dashboard": {
     "title": "仪表板",
@@ -231,10 +233,8 @@
     "days": "天",
     "expired": "已过期",
     "subject": "主题",
-    "submissionDate": "提交日期",
-    "epochBoundary": "纪元边界",
-    "submissionEpoch": "提交纪元",
-    "validUntilEpoch": "有效期至纪元"
+    "submission": "提交",
+    "epochBoundary": "投票截止日期"
   },
   "tabs": {
     "liveVoting": "实时投票",
