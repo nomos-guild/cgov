@@ -97,6 +97,7 @@ function transformGovernanceAction(action: GovernanceAction): GovernanceAction {
     txHash: derivedTxHash,
     title: action.title || "Untitled Proposal",
     type: action.type,
+    withdrawalAmount: action.withdrawalAmount ?? null,
     status: action.status,
     constitutionality: action.constitutionality || "Unspecified",
     drepYesPercent: action.drep?.yesPercent ?? 0,
