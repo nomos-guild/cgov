@@ -44,7 +44,25 @@ import {
   TYPE_LABELS, STATUS_LABELS, SHOWCASE_ORDER,
   mapTypeLabelToProposalType, getStatusColor, getStatusIndicatorColor, getTypeLabel,
 } from "@/lib/proposalLabels";
+import { formatCompactNumber } from "@/lib/drepFormatters";
 import { ProposalThresholdBars } from "@/components/governance/ProposalThresholdBars";
+
+function WithdrawalAmountTag({ amount, isGame }: { amount: string | null | undefined; isGame: boolean }) {
+  if (!amount) return null;
+  const ada = Number(BigInt(amount) / BigInt(1_000_000));
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center shrink-0 px-1.5 py-0.5 text-[10px] font-semibold leading-none border",
+        isGame
+          ? "rounded-none bg-[rgba(20,20,20,0.7)] text-white/70 border-white/15"
+          : "rounded border-gray-300 bg-gray-100 text-gray-700 dark:border-[#0bd1a2]/30 dark:bg-[#0bd1a2]/10 dark:text-[#0bd1a2]"
+      )}
+    >
+      ₳{formatCompactNumber(ada)}
+    </span>
+  );
+}
 
 
 export function GovernanceTable() {
@@ -592,9 +610,12 @@ export function GovernanceTable() {
                     </span>
                   </div>
                 </div>
-                <h3 className={`text-sm font-semibold line-clamp-2 ${isGame ? "text-white" : "dark:text-[#0bd1a2]"}`}>
-                  <TranslatedText text={action.title} />
-                </h3>
+                <div className="flex items-start gap-1.5">
+                  <WithdrawalAmountTag amount={action.withdrawalAmount} isGame={isGame} />
+                  <h3 className={`text-sm font-semibold line-clamp-2 ${isGame ? "text-white" : "dark:text-[#0bd1a2]"}`}>
+                    <TranslatedText text={action.title} />
+                  </h3>
+                </div>
                 <div className="mt-2">
                   <ProposalThresholdBars action={action} isGame={isGame} maxWidth="200px" />
                 </div>
@@ -811,9 +832,12 @@ export function GovernanceTable() {
                       </div>
                     </TableCell>
                     <TableCell className="py-0.5 sm:py-1 md:border-l md:border-border/50 pl-2 sm:pl-4">
-                      <h3 className="text-sm sm:text-base font-semibold line-clamp-1 dark:text-[#0bd1a2]">
-                        <TranslatedText text={action.title} />
-                      </h3>
+                      <div className="flex items-center gap-2">
+                        <WithdrawalAmountTag amount={action.withdrawalAmount} isGame={isGame} />
+                        <h3 className="text-sm sm:text-base font-semibold line-clamp-1 dark:text-[#0bd1a2]">
+                          <TranslatedText text={action.title} />
+                        </h3>
+                      </div>
                       <div className="mt-1">
                         <ProposalThresholdBars action={action} isGame={isGame} maxWidth="280px" />
                       </div>
@@ -930,9 +954,12 @@ export function GovernanceTable() {
                     style={{ animationDelay: `${Math.min(compactIndex, 10) * 50}ms` }}
                   >
                     <TableCell className="py-2 pl-3 sm:pl-4 max-w-[300px]">
-                      <h3 className="text-sm font-medium truncate dark:text-[#0bd1a2]">
-                        <TranslatedText text={action.title} />
-                      </h3>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <WithdrawalAmountTag amount={action.withdrawalAmount} isGame={isGame} />
+                        <h3 className="text-sm font-medium truncate dark:text-[#0bd1a2]">
+                          <TranslatedText text={action.title} />
+                        </h3>
+                      </div>
                     </TableCell>
                     <TableCell className="py-2 whitespace-nowrap">
                       <span className="text-[10px] sm:text-xs uppercase tracking-wide font-semibold text-foreground dark:text-[#0bd1a2]">

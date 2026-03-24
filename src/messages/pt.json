@@ -285,6 +285,7 @@
     "govActionType": "Tipo de ação",
     "status": "Estado",
     "constitutionality": "Constitucionalidade",
+    "budget": "Orçamento",
     "notApplicable": "Não aplicável",
     "infoActionTooltip": "As ações Info são apenas informativas e não requerem revisão constitucional pois não alteram o protocolo.",
     "pending": "Pendente",

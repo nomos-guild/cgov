@@ -285,6 +285,7 @@
     "govActionType": "Gov action type",
     "status": "Status",
     "constitutionality": "Constitutionality",
+    "budget": "Budget",
     "notApplicable": "Not Applicable",
     "infoActionTooltip": "Info Actions are informational only and do not require constitutional review as they don't change the protocol.",
     "pending": "Pending",
