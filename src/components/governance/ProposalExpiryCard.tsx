@@ -6,6 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/lib/theme";
 import { getCurrentEpoch, epochToTimestamp } from "@/lib/epochUtils";
+import { formatCompactNumber } from "@/lib/drepFormatters";
 import type { GovernanceActionDetail } from "@/types/governance";
 
 export function ProposalExpiryCard({
@@ -90,6 +91,21 @@ export function ProposalExpiryCard({
           : action.constitutionality
       ) : null,
     },
+    ...(action.withdrawalAmount ? [{
+      label: tProposal("budget"),
+      value: (
+        <span
+          className={cn(
+            "inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold leading-none border",
+            isGame
+              ? "rounded-none bg-[rgba(20,20,20,0.7)] text-white/70 border-white/15"
+              : "rounded border-gray-300 bg-gray-100 text-gray-700 dark:border-[#0bd1a2]/30 dark:bg-[#0bd1a2]/10 dark:text-[#0bd1a2]"
+          )}
+        >
+          ₳{formatCompactNumber(Number(BigInt(action.withdrawalAmount) / BigInt(1_000_000)))}
+        </span>
+      ),
+    }] : []),
     {
       label: tExpiry("submission"),
       value: `${new Date(submittedAt ?? submissionTimestamp).toLocaleDateString("en-GB", {
@@ -143,7 +159,10 @@ export function ProposalExpiryCard({
         indicatorClassName={isGame ? "bg-white/50" : "bg-black dark:bg-[#0bd1a2]"}
       />
 
-      <div className="mt-4 pt-3 border-t border-border/50 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-6 gap-y-2 text-xs">
+      <div className={cn(
+        "mt-4 pt-3 border-t border-border/50 grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-2 text-xs",
+        rows.length > 5 ? "lg:grid-cols-6" : "lg:grid-cols-5"
+      )}>
         {rows.map((row) => (
           <div key={row.label} className="flex flex-col gap-0.5 py-1">
             <span className={cn(

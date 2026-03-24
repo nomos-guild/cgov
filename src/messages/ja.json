@@ -285,6 +285,7 @@
     "govActionType": "アクションタイプ",
     "status": "ステータス",
     "constitutionality": "合憲性",
+    "budget": "予算",
     "notApplicable": "該当なし",
     "infoActionTooltip": "Infoアクションは情報提供のみを目的としており、プロトコルを変更しないため、憲法上の審査は必要ありません。",
     "pending": "保留中",

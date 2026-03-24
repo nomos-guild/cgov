@@ -285,6 +285,7 @@
     "govActionType": "操作类型",
     "status": "状态",
     "constitutionality": "合宪性",
+    "budget": "预算",
     "notApplicable": "不适用",
     "infoActionTooltip": "Info操作仅供参考，由于不会更改协议，因此不需要宪法审查。",
     "pending": "待处理",

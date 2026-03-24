@@ -285,6 +285,7 @@
     "govActionType": "Aktionstyp",
     "status": "Status",
     "constitutionality": "Verfassungsmäßigkeit",
+    "budget": "Budget",
     "notApplicable": "Nicht zutreffend",
     "infoActionTooltip": "Info-Aktionen sind nur informativ und erfordern keine verfassungsrechtliche Überprüfung, da sie das Protokoll nicht ändern.",
     "pending": "Ausstehend",
