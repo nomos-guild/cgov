@@ -22,6 +22,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { ConnectWalletButton } from "@/components/wallet";
@@ -33,6 +34,7 @@ import {
 } from "lucide-react";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
+import { wrapRationaleAsJson } from "@/lib/rationaleHelpers";
 import { toCip129DRepId } from "@/lib/drepFormatters";
 import type {
   ProposalSurveyResponse,
@@ -379,8 +381,10 @@ export function VoteOnProposal({
   const [selectedVote, setSelectedVote] = useState<VoteChoice | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [anchorUrl, setAnchorUrl] = useState("");
-  const [rationaleMode, setRationaleMode] = useState<"url" | "write">("url");
-  const [rationaleText, setRationaleText] = useState("");
+  const [rationaleMode, setRationaleMode] = useState<"url" | "write" | "json">("url");
+  const [rationaleTitle, setRationaleTitle] = useState("");
+  const [rationaleComment, setRationaleComment] = useState("");
+  const [rationaleJsonText, setRationaleJsonText] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [surveyAnswers, setSurveyAnswers] = useState<Record<string, SurveyDraftAnswer>>({});
   const [voteState, setVoteState] = useState<VoteState>({
@@ -724,10 +728,41 @@ export function VoteOnProposal({
       // Prepare anchor if URL or written rationale provided (optional — skip on failure)
       let anchor = undefined;
 
-      if (rationaleMode === "write" && rationaleText.trim()) {
+      if (rationaleMode === "write" && rationaleComment.trim()) {
         try {
           setIsUploading(true);
-          const rationaleJson = JSON.parse(rationaleText.trim());
+          const rationaleJson = wrapRationaleAsJson(rationaleComment, rationaleTitle);
+
+          const uploadRes = await fetch(API_ENDPOINTS.ipfsUpload, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ json: rationaleJson }),
+          });
+          if (!uploadRes.ok) {
+            throw new Error(`Upload failed: ${uploadRes.status}`);
+          }
+          const { url } = await uploadRes.json();
+
+          const response = await fetch(url);
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          const contentJson = await response.json();
+          const anchorDataHash = hashDrepAnchor(contentJson);
+
+          anchor = {
+            anchorUrl: url,
+            anchorDataHash,
+          };
+        } catch (uploadError) {
+          console.warn("IPFS upload failed, proceeding without rationale:", uploadError);
+        } finally {
+          setIsUploading(false);
+        }
+      } else if (rationaleMode === "json" && rationaleJsonText.trim()) {
+        try {
+          setIsUploading(true);
+          const rationaleJson = JSON.parse(rationaleJsonText.trim());
 
           const uploadRes = await fetch(API_ENDPOINTS.ipfsUpload, {
             method: "POST",
@@ -842,6 +877,10 @@ export function VoteOnProposal({
     txHash,
     certIndex,
     anchorUrl,
+    rationaleMode,
+    rationaleTitle,
+    rationaleComment,
+    rationaleJsonText,
     linkedSurvey,
     drepCanRespond,
     surveyAnswers,
@@ -1160,16 +1199,16 @@ export function VoteOnProposal({
                         onClick={() => setRationaleMode("url")}
                         disabled={voteState.isSubmitting}
                       >
-                        Paste URL
+                        {t("pasteUrl")}
                       </Button>
                       <Button
                         type="button"
-                        variant={rationaleMode === "write" ? "default" : "outline"}
+                        variant={rationaleMode === "write" || rationaleMode === "json" ? "default" : "outline"}
                         size="sm"
                         onClick={() => setRationaleMode("write")}
                         disabled={voteState.isSubmitting}
                       >
-                        Write Rationale
+                        {t("writeRationale")}
                       </Button>
                     </div>
 
@@ -1187,19 +1226,54 @@ export function VoteOnProposal({
                           {t("rationaleUrlHelp")}
                         </p>
                       </>
-                    ) : (
+                    ) : rationaleMode === "write" ? (
                       <>
+                        <Input
+                          id="rationaleTitle"
+                          placeholder={t("rationaleTitlePlaceholder")}
+                          value={rationaleTitle}
+                          onChange={(e) => setRationaleTitle(e.target.value)}
+                          disabled={voteState.isSubmitting || isUploading}
+                        />
                         <Textarea
-                          id="rationaleText"
-                          className="min-h-[160px] font-mono text-sm focus-visible:ring-black/20"
-                          placeholder={'{"body": {"title": "My rationale", "comment": "I vote Yes because..."}}'}
-                          value={rationaleText}
-                          onChange={(e) => setRationaleText(e.target.value)}
+                          id="rationaleComment"
+                          className="min-h-[120px] focus-visible:ring-black/20"
+                          placeholder={t("rationaleCommentPlaceholder")}
+                          value={rationaleComment}
+                          onChange={(e) => setRationaleComment(e.target.value)}
                           disabled={voteState.isSubmitting || isUploading}
                         />
                         <p className="text-xs text-muted-foreground">
-                          Enter valid JSON. It will be uploaded to IPFS when you submit your vote.
+                          {t("rationaleWriteHelp")}
                         </p>
+                        <button
+                          type="button"
+                          className="text-xs text-muted-foreground underline hover:text-foreground"
+                          onClick={() => setRationaleMode("json")}
+                        >
+                          {t("advancedPasteJson")}
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <Textarea
+                          id="rationaleJsonText"
+                          className="min-h-[160px] font-mono text-sm focus-visible:ring-black/20"
+                          placeholder={'{"body": {"title": "My rationale", "comment": "I vote Yes because..."}}'}
+                          value={rationaleJsonText}
+                          onChange={(e) => setRationaleJsonText(e.target.value)}
+                          disabled={voteState.isSubmitting || isUploading}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          {t("rationaleJsonHelp")}
+                        </p>
+                        <button
+                          type="button"
+                          className="text-xs text-muted-foreground underline hover:text-foreground"
+                          onClick={() => setRationaleMode("write")}
+                        >
+                          {t("backToSimpleMode")}
+                        </button>
                       </>
                     )}
                   </div>
