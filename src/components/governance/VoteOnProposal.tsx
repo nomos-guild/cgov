@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
+import { toCip129DRepId } from "@/lib/drepFormatters";
 import type {
   ProposalSurveyResponse,
   SurveyQuestion,
@@ -602,7 +603,8 @@ export function VoteOnProposal({
           return;
         }
 
-        const verification = await verifyDRepRole(drepId);
+        // Use CIP-129 format for backend verification (DB stores CIP-129 from Koios)
+        const verification = await verifyDRepRole(toCip129DRepId(drepId));
         const isVerified = !!verification?.exists && !!verification?.isRegistered;
 
         if (!cancelled) {
@@ -689,7 +691,8 @@ export function VoteOnProposal({
       }
 
       const drepId = dRep.dRepIDCip105;
-      const verifiedRole = await verifyDRepRole(drepId);
+      // Use CIP-129 format for backend verification (DB stores CIP-129 from Koios)
+      const verifiedRole = await verifyDRepRole(toCip129DRepId(drepId));
       if (!verifiedRole?.exists || !verifiedRole.isRegistered) {
         throw new Error(
           "The connected wallet is not currently verifiable as a registered DRep on this network in cgov."
