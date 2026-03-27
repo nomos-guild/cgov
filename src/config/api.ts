@@ -87,4 +87,7 @@ export const API_ENDPOINTS = {
 
   // Analytics endpoints - DRep Concentration
   analyticsConcentrationHistory: "/api/analytics/drep-concentration-history",
+
+  // IPFS upload
+  ipfsUpload: "/api/ipfs/upload",
 } as const;

@@ -10,6 +10,7 @@ import {
   verifyDRepRole,
   type DRepVerificationResult,
 } from "@/services/api";
+import { API_ENDPOINTS } from "@/config/api";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -378,6 +379,9 @@ export function VoteOnProposal({
   const [selectedVote, setSelectedVote] = useState<VoteChoice | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [anchorUrl, setAnchorUrl] = useState("");
+  const [rationaleMode, setRationaleMode] = useState<"url" | "write">("url");
+  const [rationaleText, setRationaleText] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
   const [surveyAnswers, setSurveyAnswers] = useState<Record<string, SurveyDraftAnswer>>({});
   const [voteState, setVoteState] = useState<VoteState>({
     isSubmitting: false,
@@ -717,9 +721,41 @@ export function VoteOnProposal({
         }
       }
 
-      // Prepare anchor if URL provided (optional — skip on failure)
+      // Prepare anchor if URL or written rationale provided (optional — skip on failure)
       let anchor = undefined;
-      if (anchorUrl.trim()) {
+
+      if (rationaleMode === "write" && rationaleText.trim()) {
+        try {
+          setIsUploading(true);
+          const rationaleJson = JSON.parse(rationaleText.trim());
+
+          const uploadRes = await fetch(API_ENDPOINTS.ipfsUpload, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ json: rationaleJson }),
+          });
+          if (!uploadRes.ok) {
+            throw new Error(`Upload failed: ${uploadRes.status}`);
+          }
+          const { url } = await uploadRes.json();
+
+          const response = await fetch(url);
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          const contentJson = await response.json();
+          const anchorDataHash = hashDrepAnchor(contentJson);
+
+          anchor = {
+            anchorUrl: url,
+            anchorDataHash,
+          };
+        } catch (uploadError) {
+          console.warn("IPFS upload failed, proceeding without rationale:", uploadError);
+        } finally {
+          setIsUploading(false);
+        }
+      } else if (rationaleMode === "url" && anchorUrl.trim()) {
         const trimmedUrl = anchorUrl.trim();
         try {
           const response = await fetch(trimmedUrl);
@@ -1115,18 +1151,57 @@ export function VoteOnProposal({
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="anchorUrl">{t("rationaleUrlOptional")}</Label>
-                    <Textarea
-                      id="anchorUrl"
-                      className="min-h-[88px] focus-visible:ring-black/20"
-                      placeholder={t("rationaleUrlPlaceholder")}
-                      value={anchorUrl}
-                      onChange={(e) => setAnchorUrl(e.target.value)}
-                      disabled={voteState.isSubmitting}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      {t("rationaleUrlHelp")}
-                    </p>
+                    <Label>{t("rationaleUrlOptional")}</Label>
+                    <div className="flex gap-2 mb-2">
+                      <Button
+                        type="button"
+                        variant={rationaleMode === "url" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setRationaleMode("url")}
+                        disabled={voteState.isSubmitting}
+                      >
+                        Paste URL
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={rationaleMode === "write" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setRationaleMode("write")}
+                        disabled={voteState.isSubmitting}
+                      >
+                        Write Rationale
+                      </Button>
+                    </div>
+
+                    {rationaleMode === "url" ? (
+                      <>
+                        <Textarea
+                          id="anchorUrl"
+                          className="min-h-[88px] focus-visible:ring-black/20"
+                          placeholder={t("rationaleUrlPlaceholder")}
+                          value={anchorUrl}
+                          onChange={(e) => setAnchorUrl(e.target.value)}
+                          disabled={voteState.isSubmitting}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          {t("rationaleUrlHelp")}
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <Textarea
+                          id="rationaleText"
+                          className="min-h-[160px] font-mono text-sm focus-visible:ring-black/20"
+                          placeholder={'{"body": {"title": "My rationale", "comment": "I vote Yes because..."}}'}
+                          value={rationaleText}
+                          onChange={(e) => setRationaleText(e.target.value)}
+                          disabled={voteState.isSubmitting || isUploading}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Enter valid JSON. It will be uploaded to IPFS when you submit your vote.
+                        </p>
+                      </>
+                    )}
                   </div>
 
                   {isSurveyLoading ? (
