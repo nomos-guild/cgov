@@ -43,13 +43,19 @@
     "returnHome": "返回仪表板"
   },
   "stats": {
-    "total": "总计",
+    "total": "已提交提案总数",
     "active": "活跃",
     "passed": "已通过",
     "passedInfo": "已批准和已实施的提案",
     "failed": "未通过",
     "failedInfo": "已过期和已关闭的提案",
-    "ncl": "{年份｝NCL"
+    "ncl": "{年份｝NCL",
+    "treasury": "当前 ADA 国库余额",
+    "requested": "当前申请资金",
+    "activeWithdrawals": "{count} 个活跃提案",
+    "spent": "总支出",
+    "epochEarnings": "上一纪元收入",
+    "avgEpochEarnings": "每纪元平均"
   },
   "status": {
     "Active": "活跃",

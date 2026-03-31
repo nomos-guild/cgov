@@ -85,7 +85,7 @@ export default function Home({ initialData }: InferGetStaticPropsType<typeof get
           {/* Content - show existing data even while refreshing (stale-while-revalidate) */}
           {(hasData || (!isLoading && !error)) && !showLoadingSpinner && (
             <>
-              <FadeIn delay={120} duration={500} distance={18}>
+              <FadeIn delay={120} duration={500} distance={18} className="relative z-20">
                 <GovernanceStats />
               </FadeIn>
               <ProposalPageLayout>
@@ -109,7 +109,7 @@ export const getStaticProps: GetStaticProps<HomeProps> = async ({ locale }) => {
   const messages = (await import(`@/messages/${locale ?? "en"}.json`)).default;
 
   try {
-    const { actions, overview, nclData } = await fetchAllGovernanceData();
+    const { actions, overview, nclData, treasuryAda } = await fetchAllGovernanceData();
 
     return {
       props: {
@@ -118,6 +118,7 @@ export const getStaticProps: GetStaticProps<HomeProps> = async ({ locale }) => {
           actions,
           overview,
           nclData,
+          treasuryAda,
         },
       },
       // Revalidate every 60 seconds in production

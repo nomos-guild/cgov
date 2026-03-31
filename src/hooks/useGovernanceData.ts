@@ -29,6 +29,9 @@ import {
   setActions,
   setOverview,
   setNCLDataList,
+  setTreasuryAda,
+  setTreasuryHistory,
+  setYearlySpent,
   setSelectedAction,
 } from "@/store/governanceSlice";
 
@@ -161,10 +164,23 @@ const swrConfig = {
 /**
  * Initial data from ISR/SSR for hydration
  */
+export interface TreasuryHistoryPoint {
+  epoch: number;
+  treasuryAda: number;
+}
+
+interface TreasuryResponse {
+  treasuryAda: number;
+  epoch: number | null;
+  history: TreasuryHistoryPoint[];
+  yearlySpent: Record<string, number>;
+}
+
 export interface InitialGovernanceData {
   actions?: GovernanceAction[];
   overview?: OverviewSummary | null;
   nclData?: NCLDisplayData[];
+  treasuryAda?: number | null;
 }
 
 /**
@@ -270,6 +286,42 @@ export function useNCLData(fallbackData?: NCLDisplayData[]) {
 }
 
 /**
+ * Hook for fetching treasury balance with SWR caching
+ * @param fallbackData - Initial data from getStaticProps for instant hydration
+ */
+export function useTreasuryData(fallbackData?: number | null) {
+  const dispatch = useAppDispatch();
+
+  const { data, error, isLoading, mutate } = useSWR<TreasuryResponse>(
+    API_ENDPOINTS.treasury,
+    fetcher,
+    {
+      ...swrConfig,
+      dedupingInterval: 300000, // Treasury data is stable, 5 min deduping
+      revalidateOnMount: true, // Always fetch — ISR only provides the scalar, we need history
+    }
+  );
+
+  useIsomorphicLayoutEffect(() => {
+    if (fallbackData != null && !data) {
+      dispatch(setTreasuryAda(fallbackData));
+    } else if (data) {
+      dispatch(setTreasuryAda(data.treasuryAda));
+      dispatch(setTreasuryHistory(data.history ?? []));
+      dispatch(setYearlySpent(data.yearlySpent ?? {}));
+    }
+  }, [data, fallbackData, dispatch]);
+
+  return {
+    treasuryAda: data?.treasuryAda ?? fallbackData ?? null,
+    history: data?.history ?? [],
+    isLoading: fallbackData == null && isLoading,
+    error: error?.message ?? null,
+    refresh: mutate,
+  };
+}
+
+/**
  * Combined hook that fetches all governance data
  * Use this in pages to ensure data is loaded with SWR caching
  * @param initialData - Pre-fetched data from getStaticProps for instant hydration
@@ -278,17 +330,19 @@ export function useGovernanceDataLoader(initialData?: InitialGovernanceData) {
   const actions = useGovernanceActions(initialData?.actions);
   const overview = useOverviewSummary(initialData?.overview);
   const ncl = useNCLData(initialData?.nclData);
+  const treasury = useTreasuryData(initialData?.treasuryAda);
 
   const hasInitialData = Boolean(initialData?.actions?.length);
 
   return {
-    isLoading: actions.isLoading || overview.isLoading || ncl.isLoading,
-    error: actions.error || overview.error || ncl.error,
+    isLoading: actions.isLoading || overview.isLoading || ncl.isLoading || treasury.isLoading,
+    error: actions.error || overview.error || ncl.error || treasury.error,
     hasData: hasInitialData || actions.actions.length > 0,
     refresh: () => {
       actions.refresh();
       overview.refresh();
       ncl.refresh();
+      treasury.refresh();
     },
   };
 }

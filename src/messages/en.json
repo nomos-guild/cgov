@@ -43,13 +43,19 @@
     "returnHome": "Return to Dashboard"
   },
   "stats": {
-    "total": "Total",
+    "total": "Total Proposals Submitted",
     "active": "Active",
     "passed": "Passed",
     "passedInfo": "Ratified & Enacted proposals",
     "failed": "Failed",
     "failedInfo": "Expired & Closed proposals",
-    "ncl": "{year} NCL"
+    "ncl": "{year} NCL",
+    "treasury": "Current ADA Treasury Balance",
+    "requested": "Currently Requested Funds",
+    "activeWithdrawals": "{count} active {count, plural, one {proposal} other {proposals}}",
+    "spent": "Total Spent",
+    "epochEarnings": "Last Epoch Earnings",
+    "avgEpochEarnings": "Avg per Epoch"
   },
   "status": {
     "Active": "Active",

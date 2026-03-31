@@ -50,6 +50,9 @@ interface GovernanceState {
   selectedAction: GovernanceActionDetail | null;
   overview: OverviewSummary | null;
   nclDataList: NCLDisplayData[];
+  treasuryAda: number | null;
+  treasuryHistory: Array<{ epoch: number; treasuryAda: number }>;
+  yearlySpent: Record<string, number>;
 
   // Filters
   filters: GovernanceFilters;
@@ -72,6 +75,9 @@ const initialState: GovernanceState = {
   selectedAction: null,
   overview: null,
   nclDataList: [],
+  treasuryAda: null,
+  treasuryHistory: [],
+  yearlySpent: {},
   filters: {
     // Keep existing filters used by components
     selectedTypes: PROPOSAL_TYPES,
@@ -183,6 +189,15 @@ const governanceSlice = createSlice({
       state.nclDataList = action.payload;
       state.nclError = null;
     },
+    setTreasuryAda: (state, action: PayloadAction<number | null>) => {
+      state.treasuryAda = action.payload;
+    },
+    setTreasuryHistory: (state, action: PayloadAction<Array<{ epoch: number; treasuryAda: number }>>) => {
+      state.treasuryHistory = action.payload;
+    },
+    setYearlySpent: (state, action: PayloadAction<Record<string, number>>) => {
+      state.yearlySpent = action.payload;
+    },
 
     // Existing table filters
     setSelectedTypes: (state, action: PayloadAction<ProposalType[]>) => {
@@ -285,6 +300,9 @@ export const {
   setSelectedAction,
   setOverview,
   setNCLDataList,
+  setTreasuryAda,
+  setTreasuryHistory,
+  setYearlySpent,
   setSelectedTypes,
   setSelectedStatuses,
   setTypeFilter,

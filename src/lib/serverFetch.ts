@@ -330,16 +330,35 @@ export async function fetchProposalSurveyTallyServer(
 }
 
 /**
+ * Server-side fetch for treasury balance
+ */
+export async function fetchTreasuryServer(): Promise<number | null> {
+  try {
+    const data = await fetchBackend<{ epochs: Array<{ treasury: string | null }> }>(
+      "/analytics/treasury-rate?limit=1"
+    );
+    const treasuryLovelace = data?.epochs?.[0]?.treasury;
+    if (!treasuryLovelace) return null;
+    const ada = Number(treasuryLovelace) / 1_000_000;
+    return Number.isFinite(ada) ? ada : null;
+  } catch (error) {
+    console.error("Failed to fetch treasury server-side:", error);
+    return null;
+  }
+}
+
+/**
  * Fetch all governance data for ISR
  */
 export async function fetchAllGovernanceData() {
-  const [actions, overview, nclData] = await Promise.all([
+  const [actions, overview, nclData, treasuryAda] = await Promise.all([
     fetchGovernanceActionsServer(),
     fetchOverviewSummaryServer(),
     fetchNCLDataServer(),
+    fetchTreasuryServer(),
   ]);
 
-  return { actions, overview, nclData };
+  return { actions, overview, nclData, treasuryAda };
 }
 
 // ── DRep server-side fetching ──────────────────────────────────────
