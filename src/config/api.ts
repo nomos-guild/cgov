@@ -14,6 +14,7 @@ export const API_ENDPOINTS = {
   overview: "/api/overview",
   proposals: "/api/overview/proposals",
   ncl: "/api/overview/ncl",
+  treasury: "/api/overview/treasury",
   nclByYear: (year: number) => `/api/overview/ncl/${year}`,
 
   // Proposal detail endpoint (requires proposal_id parameter)

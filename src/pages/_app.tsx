@@ -13,6 +13,7 @@ import { ThemeProvider } from "@/lib/theme";
 import { MeshProviderWrapper } from "@/components/providers/MeshProviderWrapper";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { isValidLocale } from "@/lib/i18n";
+import { useSmoothScroll } from "@/hooks/useSmoothScroll";
 
 // Import all language files (pre-translated, no API calls needed)
 import enMessages from "@/messages/en.json";
@@ -36,6 +37,8 @@ const allMessages: Record<string, typeof enMessages> = {
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
   const locale = router.locale ?? "en";
+
+  useSmoothScroll();
 
   // Migrate saved locale preference to NEXT_LOCALE cookie.
   // Next.js reads this cookie server-side to route to the correct locale,

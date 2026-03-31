@@ -43,13 +43,19 @@
     "returnHome": "Volver al panel de control"
   },
   "stats": {
-    "total": "Total",
+    "total": "Propuestas enviadas",
     "active": "Activo",
     "passed": "Aprobado",
     "passedInfo": "Propuestas ratificadas y promulgadas",
     "failed": "Fallido",
     "failedInfo": "Propuestas expiradas y cerradas",
-    "ncl": "{año} NCL"
+    "ncl": "{año} NCL",
+    "treasury": "Saldo actual del tesoro ADA",
+    "requested": "Fondos solicitados actualmente",
+    "activeWithdrawals": "{count} {count, plural, one {propuesta} other {propuestas}} activa(s)",
+    "spent": "Total gastado",
+    "epochEarnings": "Ganancias última época",
+    "avgEpochEarnings": "Prom. por época"
   },
   "status": {
     "Active": "Activo",

@@ -43,13 +43,19 @@
     "returnHome": "Zurück zum Dashboard"
   },
   "stats": {
-    "total": "Insgesamt",
+    "total": "Eingereichte Vorschläge",
     "active": "Aktiv",
     "passed": "Angenommen",
     "passedInfo": "Ratifizierte & verabschiedete Vorschläge",
     "failed": "Gescheitert",
     "failedInfo": "Abgelaufene & geschlossene Vorschläge",
-    "ncl": "{Jahr} NCL"
+    "ncl": "{Jahr} NCL",
+    "treasury": "Aktueller ADA-Schatzbestand",
+    "requested": "Aktuell beantragte Mittel",
+    "activeWithdrawals": "{count} aktive {count, plural, one {Antrag} other {Anträge}}",
+    "spent": "Gesamt ausgegeben",
+    "epochEarnings": "Letzte Epoch-Einnahmen",
+    "avgEpochEarnings": "Durchschnitt pro Epoch"
   },
   "status": {
     "Active": "Aktiv",

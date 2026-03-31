@@ -43,13 +43,19 @@
     "returnHome": "Retour au tableau de bord"
   },
   "stats": {
-    "total": "Total",
+    "total": "Propositions soumises",
     "active": "Actif",
     "passed": "Adopté",
     "passedInfo": "Propositions ratifiées et promulguées",
     "failed": "Échoué",
     "failedInfo": "Propositions expirées et clôturées",
-    "ncl": "{année} NCL"
+    "ncl": "{année} NCL",
+    "treasury": "Solde actuel de la trésorerie ADA",
+    "requested": "Fonds actuellement demandés",
+    "activeWithdrawals": "{count} {count, plural, one {proposition} other {propositions}} active(s)",
+    "spent": "Total dépensé",
+    "epochEarnings": "Revenus dernière époque",
+    "avgEpochEarnings": "Moy. par époque"
   },
   "status": {
     "Active": "Actif",

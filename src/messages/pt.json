@@ -43,13 +43,19 @@
     "returnHome": "Regressar ao painel de controlo"
   },
   "stats": {
-    "total": "Total",
+    "total": "Propostas submetidas",
     "active": "Ativo",
     "passed": "Aprovado",
     "passedInfo": "Propostas ratificadas e promulgadas",
     "failed": "Falhado",
     "failedInfo": "Propostas expiradas e encerradas",
-    "ncl": "{ano} NCL"
+    "ncl": "{ano} NCL",
+    "treasury": "Saldo atual da tesouraria ADA",
+    "requested": "Fundos atualmente solicitados",
+    "activeWithdrawals": "{count} {count, plural, one {proposta} other {propostas}} ativa(s)",
+    "spent": "Total gasto",
+    "epochEarnings": "Ganhos última época",
+    "avgEpochEarnings": "Média por época"
   },
   "status": {
     "Active": "Ativo",
