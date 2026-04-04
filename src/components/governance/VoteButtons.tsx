@@ -179,7 +179,7 @@ export function VoteButtons({
         txHash: null,
       });
     }
-  }, [wallet, selectedVote, txHash, certIndex, anchorUrl]);
+  }, [wallet, selectedVote, txHash, certIndex, anchorUrl, t]);
 
   const closeModal = () => {
     setIsModalOpen(false);

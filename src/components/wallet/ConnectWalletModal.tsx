@@ -78,7 +78,7 @@ export function ConnectWalletModal({
         setIsLoading(false);
       }
     },
-    [connect, onClose]
+    [connect, onClose, t]
   );
 
   const handleDisconnect = useCallback(async () => {

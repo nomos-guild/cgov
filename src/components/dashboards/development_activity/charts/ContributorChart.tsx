@@ -3,8 +3,9 @@ import { useAppSelector } from "@/store/hooks";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell,
+  BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Cell,
 } from "recharts";
+import { SafeResponsiveContainer as ResponsiveContainer } from "@/components/ui/safe-responsive-container";
 import { ChartSkeleton } from "@/components/dashboards/shared/ChartSkeleton";
 import {
   getChartColors, chartCardClassName, chartCardGameClassName,
@@ -40,7 +41,7 @@ export function ContributorChart({ isLoading, className }: ChartProps) {
     <div className={cn(chartCardClassName, isGame && chartCardGameClassName, className)}>
       <h3 className="text-sm font-semibold mb-4 dark:text-[#0bd1a2]">Top Contributors</h3>
       <div className="flex-1 min-h-0">
-        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
           <BarChart data={data} margin={{ top: 5, right: 5, left: -10, bottom: 20 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={chartColors.gridLine} />
             <XAxis

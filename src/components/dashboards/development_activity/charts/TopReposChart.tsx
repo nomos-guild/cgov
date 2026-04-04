@@ -3,8 +3,9 @@ import { useAppSelector } from "@/store/hooks";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell,
+  BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Cell,
 } from "recharts";
+import { SafeResponsiveContainer as ResponsiveContainer } from "@/components/ui/safe-responsive-container";
 import { ChartSkeleton } from "@/components/dashboards/shared/ChartSkeleton";
 import {
   getChartColors, chartCardClassName, chartCardGameClassName,
@@ -87,7 +88,7 @@ export function TopReposChart({ isLoading, className }: ChartProps) {
         </div>
       </div>
       <div className="flex-1 min-h-0">
-        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
           <BarChart data={data} layout="vertical" margin={{ top: 5, right: 40, left: 5, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={chartColors.gridLine} horizontal={false} />
             <XAxis type="number" tick={{ fill: chartColors.axisText, fontSize: 11 }} stroke={chartColors.axisLine} />

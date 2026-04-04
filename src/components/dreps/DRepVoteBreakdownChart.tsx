@@ -1,6 +1,7 @@
 import {
-  PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
+  PieChart, Pie, Cell, Tooltip,
 } from "recharts";
+import { SafeResponsiveContainer as ResponsiveContainer } from "@/components/ui/safe-responsive-container";
 import { cn } from "@/lib/utils";
 
 const VOTE_COLORS = {
@@ -51,7 +52,7 @@ export function VoteBreakdownChart({ yes, no, abstain, isGame, isLight, labels }
   return (
     <div className="overflow-visible [&_.recharts-wrapper]:!overflow-visible">
       <div className="h-[200px]">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
           <PieChart style={{ overflow: "visible" }}>
             {isLight && (
               <defs>

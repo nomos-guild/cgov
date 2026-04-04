@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import Image from "next/image";
 import { useTranslations } from "next-intl";
 
 import type { DRepSummary } from "@/types/drep";
@@ -244,10 +245,12 @@ export default function DRepPicker({ initialDreps, initialRationaleStats }: DRep
       <div className="w-full lg:w-[320px] flex-shrink-0 flex flex-col gap-4">
         {/* Match Me card */}
         <div className={`${chartCardClass} p-4 sm:p-6 min-h-[280px] flex flex-col items-center justify-center gap-4`}>
-          <img
+          <Image
             src={isLight ? "/images/Cardano-RGB_Logo-Icon-Black.svg" : "/images/Cardano-RGB_Logo-Icon-White.svg"}
             alt="Cardano"
-            className={`w-24 h-24 ${isLight ? "opacity-10" : isGame ? "opacity-8" : "opacity-10"}`}
+            width={96}
+            height={96}
+            className={`${isLight ? "opacity-10" : isGame ? "opacity-8" : "opacity-10"}`}
           />
           <div className="text-center">
             <p className={cn("text-xs font-semibold mb-1", isGame ? "text-white" : isLight ? "text-black" : "text-[#0bd1a2]")}>

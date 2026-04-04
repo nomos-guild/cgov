@@ -314,6 +314,7 @@ function DRepProfileContent({
                   )}>
                     {/* Avatar */}
                     {drep.iconUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={drep.iconUrl}
                         alt={drep.name || t("anonymousDRep")}

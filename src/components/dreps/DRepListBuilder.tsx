@@ -1,7 +1,8 @@
 import { useState, useMemo, useRef } from "react";
 import { X, Plus, Search } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
+import { PieChart, Pie, Cell } from "recharts";
+import { SafeResponsiveContainer as ResponsiveContainer } from "@/components/ui/safe-responsive-container";
 
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
@@ -338,7 +339,7 @@ export default function DRepListBuilder({ dreps, totalVotingPower }: DRepListBui
 
                 {/* Chart — always rendered so card height never changes */}
                 <div className="relative mx-auto" style={{ width: 130, height: 130 }}>
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                     <PieChart>
                       <Pie
                         data={pieData}
@@ -363,7 +364,7 @@ export default function DRepListBuilder({ dreps, totalVotingPower }: DRepListBui
                         ))}
                       </Pie>
                     </PieChart>
-                  </ResponsiveContainer>
+        </ResponsiveContainer>
                   {/* Center label — shows hovered slice or combined total */}
                   <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                     {hasAny ? (

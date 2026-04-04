@@ -5,9 +5,9 @@ import {
   XAxis,
   YAxis,
   Tooltip,
-  ResponsiveContainer,
   CartesianGrid,
 } from "recharts";
+import { SafeResponsiveContainer as ResponsiveContainer } from "@/components/ui/safe-responsive-container";
 import { useConcentrationHistory } from "@/hooks/useDRepData";
 import { useTranslations } from "next-intl";
 import type { ConcentrationHistoryPoint } from "@/types/drep";
@@ -287,7 +287,7 @@ export function DRepConcentrationChart({
       </div>
 
       {/* Chart */}
-      <ResponsiveContainer width="100%" height={300}>
+      <ResponsiveContainer width="100%" height={300} minWidth={0} minHeight={0}>
         <LineChart data={data} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
           <XAxis
@@ -352,7 +352,7 @@ export function DRepConcentrationChart({
               : false}
           />
         </LineChart>
-      </ResponsiveContainer>
+        </ResponsiveContainer>
     </div>
   );
 }

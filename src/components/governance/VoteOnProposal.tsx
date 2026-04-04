@@ -624,7 +624,7 @@ export function VoteOnProposal({
             anchorUrl: url,
             anchorDataHash,
           };
-        } catch (uploadError) {
+        } catch {
           throw new Error(
             `Failed to upload rationale to IPFS. Your vote was not submitted. Please try again.`
           );
@@ -653,7 +653,7 @@ export function VoteOnProposal({
             anchorUrl: url,
             anchorDataHash,
           };
-        } catch (uploadError) {
+        } catch {
           throw new Error(
             `Failed to upload rationale to IPFS. Your vote was not submitted. Please try again.`
           );
@@ -675,7 +675,7 @@ export function VoteOnProposal({
             anchorUrl: trimmedUrl,
             anchorDataHash,
           };
-        } catch (fetchError) {
+        } catch {
           throw new Error(
             `Failed to fetch rationale from the provided URL. Your vote was not submitted. Please check the URL and try again.`
           );
@@ -782,6 +782,8 @@ export function VoteOnProposal({
     linkedSurvey,
     drepCanRespond,
     surveyAnswers,
+    onVoteSubmitted,
+    proposalId,
     t,
   ]);
 

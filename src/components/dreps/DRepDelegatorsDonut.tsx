@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { PieChart, Pie, Cell, Tooltip } from "recharts";
+import { SafeResponsiveContainer as ResponsiveContainer } from "@/components/ui/safe-responsive-container";
 import { useTranslations } from "next-intl";
 import { useTheme } from "@/lib/theme";
 import type { DRepSummary } from "@/types/drep";
@@ -114,7 +115,7 @@ export function DRepDelegatorsDonut({ dreps, className }: DRepDelegatorsDonutPro
           ))}
         </div>
         <div className="relative flex-1 overflow-visible [&_.recharts-wrapper]:!overflow-visible" style={{ height: 150 }}>
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
           <PieChart style={{ overflow: "visible" }}>
             {isLight && (
               <defs>

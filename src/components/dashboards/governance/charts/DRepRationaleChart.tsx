@@ -1,6 +1,7 @@
 import { useMemo, useCallback } from "react";
 import { useTheme } from "@/lib/theme";
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
+import { PieChart, Pie, Cell, Tooltip } from "recharts";
+import { SafeResponsiveContainer as ResponsiveContainer } from "@/components/ui/safe-responsive-container";
 import { ChartSkeleton } from "./ChartSkeleton";
 import type { ChartProps } from "@/types/dashboard";
 import { getChartColors, ChartTooltip } from "@/components/dashboards/shared/chartTheme";
@@ -135,7 +136,7 @@ export function DRepRationaleChart({ isLoading, className }: ChartProps) {
         ))}
       </div>
       <div className="flex-1 min-h-0" style={{ maxHeight: "50%" }}>
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
           <PieChart>
             <defs>
               <filter id="rationaleSliceShadow" x="-50%" y="-50%" width="200%" height="200%">

@@ -1,5 +1,4 @@
 import {
-  ResponsiveContainer,
   LineChart,
   Line,
   XAxis,
@@ -10,6 +9,7 @@ import {
   ReferenceLine,
 } from "recharts";
 import type { TooltipContentProps } from "recharts";
+import { SafeResponsiveContainer as ResponsiveContainer } from "@/components/ui/safe-responsive-container";
 import { formatAdaValue } from "@/lib/formatters";
 import type { TimelinePoint, VoteColorSet } from "@/lib/voteColors";
 

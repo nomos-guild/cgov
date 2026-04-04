@@ -7,8 +7,8 @@ import {
   XAxis,
   YAxis,
   Tooltip,
-  ResponsiveContainer,
 } from "recharts";
+import { SafeResponsiveContainer as ResponsiveContainer } from "@/components/ui/safe-responsive-container";
 import { ChartSkeleton } from "./ChartSkeleton";
 import type { ChartProps } from "@/types/dashboard";
 import { getChartColors, ChartTooltip } from "@/components/dashboards/shared/chartTheme";
@@ -161,7 +161,7 @@ export function ProposalSubmissionChart({ isLoading, className }: ChartProps) {
         <p className="text-sm text-muted-foreground">No proposal data available</p>
       ) : (
         <div className="flex-1 min-h-0">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
             <LineChart
               data={data}
               margin={{ top: 5, right: 20, left: -10, bottom: 5 }}
@@ -212,7 +212,7 @@ export function ProposalSubmissionChart({ isLoading, className }: ChartProps) {
                 }}
               />
             </LineChart>
-          </ResponsiveContainer>
+        </ResponsiveContainer>
         </div>
       )}
     </ChartCard>
