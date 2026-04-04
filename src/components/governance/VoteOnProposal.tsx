@@ -755,7 +755,9 @@ export function VoteOnProposal({
             anchorDataHash,
           };
         } catch (uploadError) {
-          console.warn("IPFS upload failed, proceeding without rationale:", uploadError);
+          throw new Error(
+            `Failed to upload rationale to IPFS. Your vote was not submitted. Please try again.`
+          );
         } finally {
           setIsUploading(false);
         }
@@ -786,7 +788,9 @@ export function VoteOnProposal({
             anchorDataHash,
           };
         } catch (uploadError) {
-          console.warn("IPFS upload failed, proceeding without rationale:", uploadError);
+          throw new Error(
+            `Failed to upload rationale to IPFS. Your vote was not submitted. Please try again.`
+          );
         } finally {
           setIsUploading(false);
         }
@@ -806,7 +810,9 @@ export function VoteOnProposal({
             anchorDataHash,
           };
         } catch (fetchError) {
-          console.warn("Anchor fetch failed, proceeding without rationale:", fetchError);
+          throw new Error(
+            `Failed to fetch rationale from the provided URL. Your vote was not submitted. Please check the URL and try again.`
+          );
         }
       }
 
