@@ -92,7 +92,8 @@ export function VoteTrendLineChart({
                 : undefined
             }
           />
-          <RechartsTooltip content={renderTooltip} />
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+          <RechartsTooltip content={renderTooltip as any} />
           {showLegend && <Legend iconType="square" />}
           {thresholdReferenceValue != null && (
             <ReferenceLine

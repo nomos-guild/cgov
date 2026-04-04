@@ -338,7 +338,8 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
             >
               {showTooltip && (
                 <Tooltip
-                  content={renderTooltip}
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  content={renderTooltip as any}
                   cursor={false}
                   wrapperClassName="recharts-no-box"
                   wrapperStyle={{ pointerEvents: "none" }}
@@ -461,7 +462,8 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
           >
             {showTooltip && (
               <Tooltip
-                  content={renderTooltip}
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  content={renderTooltip as any}
                 cursor={false}
                 wrapperClassName="recharts-no-box"
                 wrapperStyle={{ pointerEvents: "none" }}

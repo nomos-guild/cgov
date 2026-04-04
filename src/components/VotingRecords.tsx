@@ -826,7 +826,7 @@ export function VotingRecords({
                     {vote.voterType === "DRep" && (vote.voterId || vote.drepId) ? (
                       <Link
                         href={`/drep/${encodeURIComponent(vote.voterId || vote.drepId!)}`}
-                        className={cn("inline-flex items-center h-7 w-[140px] px-2 text-[10px] font-semibold truncate transition-colors", isGame ? "game-nav-btn" : "rounded-md bg-white text-black shadow-[0_8px_16px_rgba(15,23,42,0.2)] transform-gpu transition-transform transition-shadow duration-450 ease-in-out hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] btn-neon")}
+                        className={cn("inline-flex items-center h-7 w-[140px] px-2 text-[10px] font-semibold truncate transition-colors", isGame ? "game-nav-btn" : "rounded-md bg-white text-black shadow-[0_1px_3px_rgba(0,0,0,0.1),0_1px_2px_rgba(0,0,0,0.06)] transform-gpu transition-transform transition-shadow duration-450 ease-in-out hover:scale-[1.015] hover:shadow-[0_3px_8px_rgba(0,0,0,0.12)] btn-neon")}
                       >
                         <span className="truncate">{formatVoterDisplayName(vote)}</span>
                       </Link>
@@ -928,7 +928,7 @@ export function VotingRecords({
                               {vote.voterType === "DRep" && (vote.voterId || vote.drepId) ? (
                                 <Link
                                   href={`/drep/${encodeURIComponent(vote.voterId || vote.drepId!)}`}
-                                  className={cn("inline-flex items-center h-7 sm:h-8 w-[180px] px-2 sm:px-3 text-xs font-semibold truncate transition-colors", isGame ? "game-nav-btn" : "rounded-md bg-white text-black shadow-[0_12px_30px_rgba(15,23,42,0.25)] transform-gpu transition-transform transition-shadow duration-450 ease-in-out hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] btn-neon")}
+                                  className={cn("inline-flex items-center h-7 sm:h-8 w-[180px] px-2 sm:px-3 text-xs font-semibold truncate transition-colors", isGame ? "game-nav-btn" : "rounded-md bg-white text-black shadow-[0_1px_3px_rgba(0,0,0,0.1),0_1px_2px_rgba(0,0,0,0.06)] transform-gpu transition-transform transition-shadow duration-450 ease-in-out hover:scale-[1.015] hover:shadow-[0_3px_8px_rgba(0,0,0,0.12)] btn-neon")}
                                 >
                                   <span className="truncate">{formatVoterDisplayName(vote)}</span>
                                 </Link>
@@ -1078,7 +1078,7 @@ export function VotingRecords({
                   {item.role === "DRep" ? (
                     <Link
                       href={`/drep/${encodeURIComponent(item.id)}`}
-                      className={cn("inline-flex items-center h-7 w-[140px] px-2 text-[10px] font-semibold truncate transition-colors", isGame ? "game-nav-btn" : "rounded-md bg-white text-black shadow-[0_8px_16px_rgba(15,23,42,0.2)] transform-gpu transition-transform transition-shadow duration-450 ease-in-out hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] btn-neon")}
+                      className={cn("inline-flex items-center h-7 w-[140px] px-2 text-[10px] font-semibold truncate transition-colors", isGame ? "game-nav-btn" : "rounded-md bg-white text-black shadow-[0_1px_3px_rgba(0,0,0,0.1),0_1px_2px_rgba(0,0,0,0.06)] transform-gpu transition-transform transition-shadow duration-450 ease-in-out hover:scale-[1.015] hover:shadow-[0_3px_8px_rgba(0,0,0,0.12)] btn-neon")}
                     >
                       <span className="truncate">{item.name || item.id}</span>
                     </Link>
@@ -1155,7 +1155,7 @@ export function VotingRecords({
                             {item.role === "DRep" ? (
                               <Link
                                 href={`/drep/${encodeURIComponent(item.id)}`}
-                                className={cn("inline-flex items-center h-7 sm:h-8 w-[180px] px-2 sm:px-3 text-xs font-semibold truncate transition-colors", isGame ? "game-nav-btn" : "rounded-md bg-white text-black shadow-[0_12px_30px_rgba(15,23,42,0.25)] transform-gpu transition-transform transition-shadow duration-450 ease-in-out hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] btn-neon")}
+                                className={cn("inline-flex items-center h-7 sm:h-8 w-[180px] px-2 sm:px-3 text-xs font-semibold truncate transition-colors", isGame ? "game-nav-btn" : "rounded-md bg-white text-black shadow-[0_1px_3px_rgba(0,0,0,0.1),0_1px_2px_rgba(0,0,0,0.06)] transform-gpu transition-transform transition-shadow duration-450 ease-in-out hover:scale-[1.015] hover:shadow-[0_3px_8px_rgba(0,0,0,0.12)] btn-neon")}
                               >
                                 <span className="truncate">{item.name || item.id}</span>
                               </Link>
