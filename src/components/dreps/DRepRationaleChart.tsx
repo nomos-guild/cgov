@@ -1,6 +1,7 @@
 import {
-  PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
+  PieChart, Pie, Cell, Tooltip,
 } from "recharts";
+import { SafeResponsiveContainer as ResponsiveContainer } from "@/components/ui/safe-responsive-container";
 import { cn } from "@/lib/utils";
 
 const RATIONALE_COLORS = {
@@ -49,7 +50,7 @@ export function RationaleChart({ rationalesProvided, totalVotesCast, isGame, isL
   return (
     <div className="overflow-visible [&_.recharts-wrapper]:!overflow-visible">
       <div className="h-[200px]">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
           <PieChart style={{ overflow: "visible" }}>
             {isLight && (
               <defs>
@@ -94,7 +95,7 @@ export function RationaleChart({ rationalesProvided, totalVotesCast, isGame, isL
                     isGame
                       ? "game-tooltip-card rounded-sm px-3 py-2 text-xs"
                       : isLight
-                      ? "bg-white text-gray-900 border border-gray-200 shadow-[0_4px_12px_rgba(15,23,42,0.15)]"
+                      ? "bg-white text-gray-900 border border-gray-200 shadow-elevation-1"
                       : "bg-[rgba(8,8,8,0.95)] border border-[#0bd1a2]/30 rounded-sm px-3 py-2 text-xs"
                   )}>
                     <p className={cn("font-medium", isGame ? "text-white" : !isLight && "text-[#0bd1a2]")}>{item.name}: {item.value}</p>

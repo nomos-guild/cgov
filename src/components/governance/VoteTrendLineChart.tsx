@@ -1,5 +1,4 @@
 import {
-  ResponsiveContainer,
   LineChart,
   Line,
   XAxis,
@@ -10,6 +9,7 @@ import {
   ReferenceLine,
 } from "recharts";
 import type { TooltipContentProps } from "recharts";
+import { SafeResponsiveContainer as ResponsiveContainer } from "@/components/ui/safe-responsive-container";
 import { formatAdaValue } from "@/lib/formatters";
 import type { TimelinePoint, VoteColorSet } from "@/lib/voteColors";
 
@@ -92,7 +92,8 @@ export function VoteTrendLineChart({
                 : undefined
             }
           />
-          <RechartsTooltip content={renderTooltip} />
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+          <RechartsTooltip content={renderTooltip as any} />
           {showLegend && <Legend iconType="square" />}
           {thresholdReferenceValue != null && (
             <ReferenceLine

@@ -25,6 +25,18 @@ export default {
         strong: "var(--shadow-strong)",
         card: "var(--shadow-card, var(--shadow-soft))",
         popover: "var(--shadow-popover, var(--shadow-strong))",
+        // Elevation system: progressive depth levels
+        "elevation-0": "none",
+        "elevation-1": "0 1px 2px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.06)",
+        "elevation-2": "0 2px 4px rgba(0,0,0,0.04), 0 4px 8px rgba(0,0,0,0.06)",
+        "elevation-3": "0 4px 8px rgba(0,0,0,0.04), 0 8px 16px rgba(0,0,0,0.06)",
+      },
+      fontSize: {
+        "2xs": ["0.625rem", { lineHeight: "0.875rem" }],  // 10px
+        "3xs": ["0.5625rem", { lineHeight: "0.75rem" }],  // 9px
+      },
+      scale: {
+        "101": "1.01",
       },
       colors: {
         border: "hsl(var(--border))",

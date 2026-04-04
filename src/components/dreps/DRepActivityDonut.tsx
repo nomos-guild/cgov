@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { PieChart, Pie, Cell, Tooltip } from "recharts";
+import { SafeResponsiveContainer as ResponsiveContainer } from "@/components/ui/safe-responsive-container";
 import { useTranslations } from "next-intl";
 import { useTheme } from "@/lib/theme";
 import type { DRepSummary } from "@/types/drep";
@@ -68,7 +69,7 @@ export function DRepActivityDonut({ dreps, className }: DRepActivityDonutProps) 
         {t("drep.activityTitle")}
       </h4>
       <div className="relative w-full overflow-visible [&_.recharts-wrapper]:!overflow-visible" style={{ height: 150 }}>
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
           <PieChart style={{ overflow: "visible" }}>
             {isLight && (
               <defs>
@@ -112,7 +113,7 @@ export function DRepActivityDonut({ dreps, className }: DRepActivityDonutProps) 
                     isGame
                       ? "game-tooltip-card rounded-sm px-3 py-2 text-xs"
                       : isLight
-                      ? "rounded-lg p-2 text-sm bg-white text-gray-900 border border-gray-200 shadow-[0_4px_12px_rgba(15,23,42,0.15)]"
+                      ? "rounded-lg p-2 text-sm bg-white text-gray-900 border border-gray-200 shadow-elevation-1"
                       : "bg-[rgba(8,8,8,0.95)] border border-[#0bd1a2]/30 rounded-sm px-3 py-2 text-xs"
                   }>
                     <p className={isGame ? "font-medium text-white" : isDark ? "font-medium text-[#0bd1a2]" : "font-medium"}>
@@ -130,12 +131,12 @@ export function DRepActivityDonut({ dreps, className }: DRepActivityDonutProps) 
       </div>
       {/* Legend */}
       <div className="flex flex-col gap-1.5 mt-3 px-3">
-        <div className="flex items-center justify-between text-[11px]">
+        <div className="flex items-center justify-between text-xs">
           <span className={`font-semibold ${textColor}`}>{t("drep.activityTotal")}</span>
           <span className={`font-bold ${textColor}`}>{total.toLocaleString()}</span>
         </div>
         {data.map((entry) => (
-          <div key={entry.name} className="flex items-center justify-between text-[11px] gap-4">
+          <div key={entry.name} className="flex items-center justify-between text-xs gap-4">
             <div className="flex items-center gap-1.5">
               <div
                 className="w-2.5 h-2.5 rounded-full flex-shrink-0"

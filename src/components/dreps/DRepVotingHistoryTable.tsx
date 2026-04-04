@@ -175,7 +175,7 @@ export function VotingHistoryTable({ items, drepId, drepName, isGame, isLight, i
                           isGame
                             ? "game-nav-btn-sm"
                             : isLight
-                            ? "rounded-md bg-white text-black shadow-[0_4px_12px_rgba(15,23,42,0.15)] hover:bg-black hover:text-white"
+                            ? "rounded-md bg-white text-black shadow-elevation-1 hover:bg-black hover:text-white"
                             : "rounded-none border border-[#0bd1a2]/40 text-[#0bd1a2] hover:bg-[#0bd1a2]/10"
                         )}
                       >

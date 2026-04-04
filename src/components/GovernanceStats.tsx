@@ -49,14 +49,14 @@ export function GovernanceStats() {
 
   const formatAdaFull = (value: number): string => `₳ ${Math.round(value).toLocaleString()}`;
 
-  const cardClass = "rounded-2xl border border-white/8 bg-[#faf9f6] p-2.5 sm:p-3 md:p-4 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-background dark:shadow-none";
+  const cardClass = "rounded-xl border border-border bg-card p-2.5 sm:p-3 md:p-4 shadow-elevation-1 dark:rounded-none dark:border-[#0bd1a2] dark:bg-background dark:shadow-none min-h-[80px] sm:min-h-[90px] flex flex-col justify-center";
 
   return (
     <div className="relative z-20 grid grid-cols-1 md:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-6 game-stats">
       {/* Proposal Counter Box */}
       <div className={cardClass}>
         <div className="flex flex-col gap-0.5">
-          <span className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wide dark:text-[#0bd1a2]">
+          <span className="text-2xs sm:text-xs text-muted-foreground uppercase tracking-wide dark:text-[#0bd1a2]">
             {t("total")}
           </span>
           <span className="text-lg sm:text-xl md:text-2xl font-bold dark:text-[#0bd1a2]">{stats.total}</span>
@@ -64,11 +64,11 @@ export function GovernanceStats() {
         <div className="flex flex-wrap items-center gap-3 sm:gap-4 mt-2 pt-2 border-t border-border/50 dark:border-[#0bd1a2]/20">
           <div className="flex items-baseline gap-1">
             <span className="text-base sm:text-lg font-semibold dark:text-[#0bd1a2]">{stats.active}</span>
-            <span className="text-[10px] sm:text-xs text-muted-foreground dark:text-[#0bd1a2]">{t("active")}</span>
+            <span className="text-2xs sm:text-xs text-muted-foreground dark:text-[#0bd1a2]">{t("active")}</span>
           </div>
           <div className="flex items-baseline gap-1">
             <span className="text-base sm:text-lg font-semibold dark:text-[#0bd1a2]">{stats.passed}</span>
-            <span className="text-[10px] sm:text-xs text-muted-foreground dark:text-[#0bd1a2] inline-flex items-center gap-0.5">
+            <span className="text-2xs sm:text-xs text-muted-foreground dark:text-[#0bd1a2] inline-flex items-center gap-0.5">
               {t("passed")}
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -82,7 +82,7 @@ export function GovernanceStats() {
           </div>
           <div className="flex items-baseline gap-1">
             <span className="text-base sm:text-lg font-semibold dark:text-[#0bd1a2]">{stats.failed}</span>
-            <span className="text-[10px] sm:text-xs text-muted-foreground dark:text-[#0bd1a2] inline-flex items-center gap-0.5">
+            <span className="text-2xs sm:text-xs text-muted-foreground dark:text-[#0bd1a2] inline-flex items-center gap-0.5">
               {t("failed")}
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -100,7 +100,7 @@ export function GovernanceStats() {
       {/* Treasury Balance Box */}
       <div className={`${cardClass} game-stats-ncl`}>
         <div className="flex flex-col gap-0.5">
-          <span className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wide dark:text-[#0bd1a2]">
+          <span className="text-2xs sm:text-xs text-muted-foreground uppercase tracking-wide dark:text-[#0bd1a2]">
             {t("treasury")}
           </span>
           <span className={`text-lg sm:text-xl md:text-2xl font-bold ${isDarkTheme ? "text-[#0bd1a2]" : "text-black"}`}>
@@ -112,7 +112,7 @@ export function GovernanceStats() {
       {/* Requested Withdrawals Box */}
       <div className={cardClass}>
         <div className="flex flex-col gap-0.5">
-          <span className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wide dark:text-[#0bd1a2]">
+          <span className="text-2xs sm:text-xs text-muted-foreground uppercase tracking-wide dark:text-[#0bd1a2]">
             {t("requested")}
           </span>
           <span className={`text-lg sm:text-xl md:text-2xl font-bold ${isDarkTheme ? "text-[#0bd1a2]" : "text-black"}`}>
@@ -124,7 +124,7 @@ export function GovernanceStats() {
       {/* Spent Box */}
       <div className={cardClass}>
         <div className="flex flex-col gap-0.5">
-          <span className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wide dark:text-[#0bd1a2]">
+          <span className="text-2xs sm:text-xs text-muted-foreground uppercase tracking-wide dark:text-[#0bd1a2]">
             {t("spent")} 2026
           </span>
           <div className="flex items-center gap-1">

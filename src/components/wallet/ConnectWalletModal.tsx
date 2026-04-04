@@ -78,7 +78,7 @@ export function ConnectWalletModal({
         setIsLoading(false);
       }
     },
-    [connect, onClose]
+    [connect, onClose, t]
   );
 
   const handleDisconnect = useCallback(async () => {
@@ -135,7 +135,7 @@ export function ConnectWalletModal({
             </div>
             <Button
               variant="outline"
-              className="w-full bg-white border-transparent shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)] hover:bg-gray-50 text-black hover:text-black"
+              className="w-full bg-white border-transparent shadow-elevation-1 hover:shadow-elevation-2 hover:bg-gray-50 text-black hover:text-black"
               onClick={handleDisconnect}
             >
               <LogOut className="h-4 w-4 mr-2" />

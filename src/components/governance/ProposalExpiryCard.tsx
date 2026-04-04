@@ -96,7 +96,7 @@ export function ProposalExpiryCard({
       value: (
         <span
           className={cn(
-            "inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold leading-none border",
+            "inline-flex items-center px-1.5 py-0.5 text-2xs font-semibold leading-none border",
             isGame
               ? "rounded-none bg-[rgba(20,20,20,0.7)] text-white/70 border-white/15"
               : "rounded border-gray-300 bg-gray-100 text-gray-700 dark:border-[#0bd1a2]/30 dark:bg-[#0bd1a2]/10 dark:text-[#0bd1a2]"

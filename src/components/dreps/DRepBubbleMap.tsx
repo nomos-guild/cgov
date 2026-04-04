@@ -156,7 +156,7 @@ export function DRepBubbleMap({ dreps, metric, topN, rationaleMap, highlightedId
         preserveAspectRatio="xMidYMid meet"
       >
         <defs>
-          {/* Light theme shadows — matches card shadow-[0_12px_30px_rgba(15,23,42,0.25)] */}
+          {/* Light theme shadows — matches card shadow-elevation-2 */}
           <filter id="drep-bubble-shadow-light" x="-200%" y="-200%" width="500%" height="500%">
             <feGaussianBlur in="SourceAlpha" stdDeviation="12" result="blur"/>
             <feOffset dx="0" dy="8" in="blur" result="offsetblur"/>
@@ -413,7 +413,7 @@ export function DRepBubbleMap({ dreps, metric, topN, rationaleMap, highlightedId
           className={
             isGame
               ? "absolute z-50 rounded-sm px-4 py-3 text-xs pointer-events-none game-tooltip-card"
-              : "absolute z-50 rounded-2xl border border-white/8 bg-[#faf9f6] px-4 py-3 text-xs shadow-[0_12px_30px_rgba(15,23,42,0.25)] pointer-events-none dark:rounded-none dark:border-[#0bd1a2] dark:bg-background dark:shadow-none"
+              : "absolute z-50 rounded-2xl border border-border bg-card px-4 py-3 text-xs shadow-elevation-2 pointer-events-none dark:rounded-none dark:border-[#0bd1a2] dark:bg-background dark:shadow-none"
           }
           style={{
             left: `${hoveredBubble.x + 15}px`,

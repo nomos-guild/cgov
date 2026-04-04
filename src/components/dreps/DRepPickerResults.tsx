@@ -42,22 +42,22 @@ export default function DRepPickerResults({ dreps }: DRepPickerResultsProps) {
   const hasMore = dreps.length > DEFAULT_DISPLAY_LIMIT;
 
   const cardClass = isLight
-    ? "rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)]"
+    ? "rounded-2xl border border-border bg-card shadow-elevation-2"
     : isGame
     ? "game-detail-card rounded-[2px] border-none bg-[rgba(12,12,12,0.5)] shadow-[0_18px_36px_rgba(0,0,0,0.55),0_6px_18px_rgba(0,0,0,0.4)]"
     : "rounded-none border border-[#0bd1a2] bg-transparent shadow-none";
 
   const headerClass = isLight
-    ? "border-black/10 text-black/60 bg-[#faf9f6]"
+    ? "border-black/10 text-black/60 bg-card"
     : isGame
     ? "border-white/10 text-white/60 bg-[#0c0c0c]"
     : "border-[#0bd1a2]/30 text-[#0bd1a2]/70 bg-background";
 
   const rowClass = isLight
-    ? "bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:scale-[1.01] hover:shadow-[0_6px_20px_rgba(0,0,0,0.15)]"
+    ? "bg-white shadow-elevation-1 hover:scale-101 hover:shadow-elevation-2"
     : isGame
-    ? "bg-white/5 hover:scale-[1.01] hover:bg-white/10 hover:shadow-[0_4px_16px_rgba(0,0,0,0.4)]"
-    : "rounded-none border border-[#0bd1a2]/30 bg-transparent hover:scale-[1.01] hover:border-[#0bd1a2] hover:shadow-[0_4px_16px_rgba(11,209,162,0.15)]";
+    ? "bg-white/5 hover:scale-101 hover:bg-white/10 hover:shadow-[0_4px_16px_rgba(0,0,0,0.4)]"
+    : "rounded-none border border-[#0bd1a2]/30 bg-transparent hover:scale-101 hover:border-[#0bd1a2] hover:shadow-[0_4px_16px_rgba(11,209,162,0.15)]";
 
   if (dreps.length === 0) {
     return (
@@ -77,7 +77,7 @@ export default function DRepPickerResults({ dreps }: DRepPickerResultsProps) {
         }`}>
           <div className="px-4">
             {/* Table Header */}
-            <div className={`flex items-center gap-4 py-2 pl-2 pr-8 text-[10px] font-semibold uppercase tracking-wide border-b sticky top-0 z-20 ${headerClass}`}>
+            <div className={`flex items-center gap-4 py-2 pl-2 pr-8 text-2xs font-semibold uppercase tracking-wide border-b sticky top-0 z-20 ${headerClass}`}>
               <span className="w-7 text-center">#</span>
               <span className="flex-1 min-w-0">{t("columnName")}</span>
               <span className="w-[90px] text-right">{t("columnPower")}</span>
@@ -93,11 +93,11 @@ export default function DRepPickerResults({ dreps }: DRepPickerResultsProps) {
                 <Link
                   key={drep.drepId}
                   href={`/drep/${encodeURIComponent(drep.drepId)}`}
-                  className={`flex items-center gap-4 py-1.5 pl-2 pr-8 rounded-lg text-[11px] transition-all duration-200 ease-out no-underline ${rowClass}`}
+                  className={`flex items-center gap-4 py-1.5 pl-2 pr-8 rounded-lg text-xs transition-all duration-200 ease-out no-underline ${rowClass}`}
                 >
                   {/* Rank */}
                   <span
-                    className={`w-7 h-7 flex items-center justify-center text-[10px] flex-shrink-0 ${
+                    className={`w-7 h-7 flex items-center justify-center text-2xs flex-shrink-0 ${
                       isLight
                         ? "rounded-full bg-black/10 text-black/60 font-medium"
                         : isGame
@@ -143,7 +143,7 @@ export default function DRepPickerResults({ dreps }: DRepPickerResultsProps) {
                 <button
                   onClick={(e) => { e.preventDefault(); setShowAll(!showAll); }}
                   className={cn(
-                    "w-full py-2 mt-1 text-[11px] font-medium transition-colors duration-150",
+                    "w-full py-2 mt-1 text-xs font-medium transition-colors duration-150",
                     isLight
                       ? "rounded-lg text-black/50 hover:text-black hover:bg-black/5"
                       : isGame

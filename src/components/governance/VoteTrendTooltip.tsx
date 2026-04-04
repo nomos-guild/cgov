@@ -61,7 +61,7 @@ export function VoteTrendTooltip({
       "rounded-md bg-background/95 px-3 py-2 text-xs shadow-md",
       !isGame && "border"
     )}>
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+      <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         {point.label}
       </div>
       <div className="mt-2 space-y-1.5">
@@ -79,7 +79,7 @@ export function VoteTrendTooltip({
                 {row.label}
               </span>
             </div>
-            <div className="font-mono text-[11px] text-muted-foreground">
+            <div className="font-mono text-xs text-muted-foreground">
               {row.value}
             </div>
           </div>

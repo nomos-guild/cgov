@@ -53,7 +53,7 @@ function WithdrawalAmountTag({ amount, isGame }: { amount: string | null | undef
   return (
     <span
       className={cn(
-        "inline-flex items-center shrink-0 px-1.5 py-0.5 text-[10px] font-semibold leading-none border",
+        "inline-flex items-center shrink-0 px-1.5 py-0.5 text-2xs font-semibold leading-none border",
         isGame
           ? "rounded-none bg-[rgba(20,20,20,0.7)] text-white/70 border-white/15"
           : "rounded border-gray-300 bg-gray-100 text-gray-700 dark:border-[#0bd1a2]/30 dark:bg-[#0bd1a2]/10 dark:text-[#0bd1a2]"
@@ -306,7 +306,7 @@ export function GovernanceTable() {
           "relative w-full sm:w-auto p-2.5 sm:p-3 md:p-4",
           isGame
             ? "game-filters-card"
-            : "rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+            : "rounded-2xl border border-border bg-card shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
         )}>
           <button
             type="button"
@@ -335,7 +335,7 @@ export function GovernanceTable() {
                 ? "bg-black/90 border border-white/20 text-white"
                 : "bg-white border border-gray-200 dark:bg-black dark:border-[#0bd1a2] dark:text-[#0bd1a2]"
             )}>
-              <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground dark:text-[#0bd1a2]/70">
+              <div className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground dark:text-[#0bd1a2]/70">
                 {tDownload("downloadAllMetrics")}
               </div>
               {(["csv", "json", "markdown"] as const).map((fmt) => (
@@ -376,7 +376,7 @@ export function GovernanceTable() {
         </div>
 
         {/* Filter bar */}
-        <div className="relative overflow-visible flex-1 min-w-0 border-white/8 rounded-2xl border bg-[#faf9f6] p-2.5 sm:p-3 md:p-4 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none game-filters-card">
+        <div className="relative overflow-visible flex-1 min-w-0 border-border rounded-2xl border bg-card p-2.5 sm:p-3 md:p-4 shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none game-filters-card">
         <div className="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-3 items-stretch sm:items-center">
           <div className="relative flex-1 min-w-0 sm:min-w-[200px] sm:max-w-md">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-muted-foreground z-10" />
@@ -419,10 +419,10 @@ export function GovernanceTable() {
                 className={
                   isGame
                     ? "game-filter-dropdown"
-                    : "border-white/8 absolute left-0 sm:left-0 right-0 sm:right-auto z-20 mt-2 w-auto sm:w-64 rounded-2xl border bg-[#faf9f6] p-2 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-black dark:shadow-none"
+                    : "border-border absolute left-0 sm:left-0 right-0 sm:right-auto z-20 mt-2 w-auto sm:w-64 rounded-2xl border bg-card p-2 shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-black dark:shadow-none"
                 }
               >
-                <div className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground dark:bg-transparent dark:text-[#0bd1a2]">
+                <div className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground dark:bg-transparent dark:text-[#0bd1a2]">
                   <span>Action Types</span>
                   <button
                     type="button"
@@ -492,10 +492,10 @@ export function GovernanceTable() {
                   className={
                     isGame
                       ? "game-filter-dropdown"
-                      : "border-white/8 absolute left-0 sm:left-0 right-0 sm:right-auto z-20 mt-2 w-auto sm:w-64 rounded-2xl border bg-[#faf9f6] p-2 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-black dark:shadow-none"
+                      : "border-border absolute left-0 sm:left-0 right-0 sm:right-auto z-20 mt-2 w-auto sm:w-64 rounded-2xl border bg-card p-2 shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-black dark:shadow-none"
                   }
                 >
-                <div className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground dark:bg-transparent dark:text-[#0bd1a2]">
+                <div className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground dark:bg-transparent dark:text-[#0bd1a2]">
                   <span>Status</span>
                   <button
                     type="button"
@@ -564,7 +564,7 @@ export function GovernanceTable() {
       </div>
 
       {filteredActions.length === 0 ? (
-        <div className="border-white/8 rounded-2xl border bg-[#faf9f6] p-6 sm:p-8 md:p-12 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none">
+        <div className="border-border rounded-2xl border bg-card p-6 sm:p-8 md:p-12 shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none">
           <p className="text-center text-muted-foreground text-sm sm:text-base">
             {t("table.noActionsFound")}
           </p>
@@ -584,14 +584,14 @@ export function GovernanceTable() {
                 className={
                   isGame
                     ? "game-detail-card p-3"
-                    : "rounded-xl border border-white/8 bg-[#faf9f6] p-3 shadow-[0_8px_20px_rgba(15,23,42,0.15)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+                    : "rounded-xl border border-border bg-card p-3 shadow-elevation-1 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
                 }
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
-                  <span className="text-[9px] uppercase tracking-wide font-semibold text-muted-foreground dark:text-[#0bd1a2]/70">
+                  <span className="text-3xs uppercase tracking-wide font-semibold text-muted-foreground dark:text-[#0bd1a2]/70">
                     {getTypeLabel(action.type)}
                   </span>
-                  <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide shrink-0">
+                  <div className="flex items-center gap-1.5 text-2xs uppercase tracking-wide shrink-0">
                     {(() => {
                       const indicator = getStatusIndicatorColor(action.status, isGame);
                       if (!indicator) return null;
@@ -629,7 +629,7 @@ export function GovernanceTable() {
               className={
                 isGame
                   ? "game-nav-btn w-full"
-                  : "w-full bg-white text-black hover:bg-black hover:text-white transition-colors shadow-[0_8px_16px_rgba(15,23,42,0.2)] btn-neon"
+                  : "w-full bg-white text-black hover:bg-black hover:text-white transition-colors shadow-elevation-1 btn-neon"
               }
             >
               {t("common.showMoreProposals", { count: remainingProposals })}
@@ -639,7 +639,7 @@ export function GovernanceTable() {
 
         {/* Desktop table layout - Default view */}
         {viewMode === "default" && (
-        <div className="hidden sm:block rounded-2xl border border-white/8 bg-[#faf9f6] overflow-x-auto shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none game-proposals-card">
+        <div className="hidden sm:block rounded-2xl border border-border bg-card overflow-x-auto shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none game-proposals-card">
           <Table className="min-w-[600px]">
             <TableHeader>
               <TableRow className="proposal-header-row hover:bg-transparent">
@@ -692,7 +692,7 @@ export function GovernanceTable() {
                 return (
                   <TableRow
                     key={rowId}
-                    className={`stagger-item proposal-row cursor-pointer transition-all duration-300 ease-out transform-gpu hover:scale-[1.01] hover:bg-transparent border-b-0 ${
+                    className={`stagger-item proposal-row cursor-pointer transition-all duration-normal ease-out transform-gpu hover:scale-101 hover:bg-transparent border-b-0 ${
                       isFirstRow ? "first-row" : ""
                     }`}
                     onClick={() => router.push(`/governance/${action.hash}`)}
@@ -843,19 +843,19 @@ export function GovernanceTable() {
                       </div>
                       {(action.totalYes + action.totalNo + action.totalAbstain) > 0 && (
                         <div className="mt-1">
-                          <span className={cn("text-[10px]", isGame ? "text-white/60" : "text-muted-foreground")}>
+                          <span className={cn("text-2xs", isGame ? "text-white/60" : "text-muted-foreground")}>
                             {(action.totalYes + action.totalNo + action.totalAbstain).toLocaleString()} {t("table.votes").toLowerCase()}
                           </span>
                         </div>
                       )}
                     </TableCell>
                     <TableCell className="hidden sm:table-cell py-1 sm:py-1.5">
-                      <span className="text-[10px] sm:text-xs uppercase tracking-wide font-semibold text-foreground dark:text-[#0bd1a2]">
+                      <span className="text-2xs sm:text-xs uppercase tracking-wide font-semibold text-foreground dark:text-[#0bd1a2]">
                         {getTypeLabel(action.type)}
                       </span>
                     </TableCell>
                     <TableCell className="py-1 sm:py-1.5">
-                      <div className="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs uppercase tracking-wide dark:text-[#0bd1a2]">
+                      <div className="flex items-center gap-1 sm:gap-2 text-2xs sm:text-xs uppercase tracking-wide dark:text-[#0bd1a2]">
                         {(() => {
                           const indicator = getStatusIndicatorColor(action.status, isGame);
                           if (!indicator) return null;
@@ -887,7 +887,7 @@ export function GovernanceTable() {
                 className={
                   isGame
                     ? "game-nav-btn w-full"
-                    : "w-full bg-white text-black hover:bg-black hover:text-white transition-colors shadow-[0_8px_16px_rgba(15,23,42,0.2)] btn-neon"
+                    : "w-full bg-white text-black hover:bg-black hover:text-white transition-colors shadow-elevation-1 btn-neon"
                 }
               >
                 {t("common.showMoreProposals", { count: remainingProposals })}
@@ -899,7 +899,7 @@ export function GovernanceTable() {
 
         {/* Desktop table layout - Compact view */}
         {viewMode === "compact" && (
-        <div className="hidden sm:block rounded-2xl border border-white/8 bg-[#faf9f6] overflow-x-auto shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none game-proposals-card">
+        <div className="hidden sm:block rounded-2xl border border-border bg-card overflow-x-auto shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none game-proposals-card">
           <Table>
             <TableHeader>
               <TableRow className="proposal-header-row hover:bg-transparent">
@@ -962,7 +962,7 @@ export function GovernanceTable() {
                       </div>
                     </TableCell>
                     <TableCell className="py-2 whitespace-nowrap">
-                      <span className="text-[10px] sm:text-xs uppercase tracking-wide font-semibold text-foreground dark:text-[#0bd1a2]">
+                      <span className="text-2xs sm:text-xs uppercase tracking-wide font-semibold text-foreground dark:text-[#0bd1a2]">
                         {getTypeLabel(action.type)}
                       </span>
                     </TableCell>
@@ -973,7 +973,7 @@ export function GovernanceTable() {
                           drepYes >= drepThreshold * 100 ? "text-green-600 dark:text-green-400" : "text-foreground dark:text-[#0bd1a2]"
                         )}>
                           {drepYes.toFixed(1)}%
-                          <span className="text-muted-foreground text-[10px] ml-1">/ {(drepThreshold * 100).toFixed(0)}%</span>
+                          <span className="text-muted-foreground text-2xs ml-1">/ {(drepThreshold * 100).toFixed(0)}%</span>
                         </span>
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>
@@ -986,7 +986,7 @@ export function GovernanceTable() {
                           spoYes >= spoThreshold * 100 ? "text-green-600 dark:text-green-400" : "text-foreground dark:text-[#0bd1a2]"
                         )}>
                           {spoYes.toFixed(1)}%
-                          <span className="text-muted-foreground text-[10px] ml-1">/ {(spoThreshold * 100).toFixed(0)}%</span>
+                          <span className="text-muted-foreground text-2xs ml-1">/ {(spoThreshold * 100).toFixed(0)}%</span>
                         </span>
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>
@@ -999,7 +999,7 @@ export function GovernanceTable() {
                           ccYes >= ccThreshold * 100 ? "text-green-600 dark:text-green-400" : "text-foreground dark:text-[#0bd1a2]"
                         )}>
                           {ccYes.toFixed(1)}%
-                          <span className="text-muted-foreground text-[10px] ml-1">/ {(ccThreshold * 100).toFixed(0)}%</span>
+                          <span className="text-muted-foreground text-2xs ml-1">/ {(ccThreshold * 100).toFixed(0)}%</span>
                         </span>
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>
@@ -1011,7 +1011,7 @@ export function GovernanceTable() {
                       </span>
                     </TableCell>
                     <TableCell className="py-2 whitespace-nowrap">
-                      <div className="flex items-center gap-1.5 text-[10px] sm:text-xs uppercase tracking-wide dark:text-[#0bd1a2]">
+                      <div className="flex items-center gap-1.5 text-2xs sm:text-xs uppercase tracking-wide dark:text-[#0bd1a2]">
                         {(() => {
                           const indicator = getStatusIndicatorColor(action.status, isGame);
                           if (!indicator) return null;
@@ -1043,7 +1043,7 @@ export function GovernanceTable() {
                 className={
                   isGame
                     ? "game-nav-btn w-full"
-                    : "w-full bg-white text-black hover:bg-black hover:text-white transition-colors shadow-[0_8px_16px_rgba(15,23,42,0.2)] btn-neon"
+                    : "w-full bg-white text-black hover:bg-black hover:text-white transition-colors shadow-elevation-1 btn-neon"
                 }
               >
                 {t("common.showMoreProposals", { count: remainingProposals })}

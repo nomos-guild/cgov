@@ -1,7 +1,8 @@
 import { useState, useMemo, useRef } from "react";
 import { X, Plus, Search } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
+import { PieChart, Pie, Cell } from "recharts";
+import { SafeResponsiveContainer as ResponsiveContainer } from "@/components/ui/safe-responsive-container";
 
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
@@ -135,13 +136,13 @@ export default function DRepListBuilder({ dreps, totalVotingPower }: DRepListBui
 
   // ── Theme classes ─────────────────────────────────────────────────────────
   const cardClass = isLight
-    ? "rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)]"
+    ? "rounded-2xl border border-border bg-card shadow-elevation-2"
     : isGame
     ? "game-detail-card rounded-[2px] border-none bg-[rgba(12,12,12,0.5)] shadow-[0_18px_36px_rgba(0,0,0,0.55),0_6px_18px_rgba(0,0,0,0.4)]"
     : "rounded-none border border-[#0bd1a2] bg-transparent shadow-none";
 
   const titleCardClass = isLight
-    ? "rounded-2xl border border-white/8 bg-[#faf9f6] px-4 sm:px-6 py-3 shadow-[0_12px_30px_rgba(15,23,42,0.25)]"
+    ? "rounded-2xl border border-border bg-card px-4 sm:px-6 py-3 shadow-elevation-2"
     : isGame
     ? "game-drep-content rounded-[2px] border-none bg-[rgba(12,12,12,0.5)] px-4 sm:px-6 py-3 shadow-[0_18px_36px_rgba(0,0,0,0.55),0_6px_18px_rgba(0,0,0,0.4)]"
     : "rounded-none border border-[#0bd1a2] bg-transparent px-4 sm:px-6 py-3 shadow-none";
@@ -159,12 +160,12 @@ export default function DRepListBuilder({ dreps, totalVotingPower }: DRepListBui
     : "rounded-none border border-[#0bd1a2] bg-[#0bd1a2]/5 text-[#0bd1a2] placeholder-[#0bd1a2]/50 text-xs px-3 py-2 w-full outline-none focus:bg-[#0bd1a2]/10";
 
   const labelClass = cn(
-    "text-[10px]",
+    "text-2xs",
     isGame ? "text-white/50" : isLight ? "text-black/40" : "text-[#0bd1a2]/50"
   );
 
   const metricLabelClass = cn(
-    "text-[10px]",
+    "text-2xs",
     isGame ? "text-white/70" : isLight ? "text-black/60" : "text-[#0bd1a2]/70"
   );
 
@@ -207,15 +208,15 @@ export default function DRepListBuilder({ dreps, totalVotingPower }: DRepListBui
 
   // Tab styling — fully explicit per theme, no dark: prefix to avoid CSS ordering issues
   const tabBase = isGame
-    ? "game-tab-btn text-[10px] sm:text-xs"
+    ? "game-tab-btn text-2xs sm:text-xs"
     : isLight
     ? cn(
-        "rounded-full border border-white/8 bg-white text-black px-2 sm:px-3 py-1 text-[10px] sm:text-xs font-semibold uppercase tracking-wide whitespace-nowrap",
+        "rounded-full border border-border bg-white text-black px-2 sm:px-3 py-1 text-2xs sm:text-xs font-semibold uppercase tracking-wide whitespace-nowrap",
         "transform-gpu transition-all duration-200",
-        "shadow-[0_12px_30px_rgba(15,23,42,0.25)] hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)]"
+        "shadow-elevation-2 hover:scale-101 hover:shadow-elevation-3"
       )
     : cn(
-        "rounded-none border border-[#0bd1a2] bg-transparent text-[#0bd1a2] px-2 sm:px-3 py-1 text-[10px] sm:text-xs font-semibold uppercase tracking-wide whitespace-nowrap btn-neon",
+        "rounded-none border border-[#0bd1a2] bg-transparent text-[#0bd1a2] px-2 sm:px-3 py-1 text-2xs sm:text-xs font-semibold uppercase tracking-wide whitespace-nowrap btn-neon",
         "transition-all duration-200 hover:bg-[#0bd1a2] hover:text-black"
       );
 
@@ -223,13 +224,13 @@ export default function DRepListBuilder({ dreps, totalVotingPower }: DRepListBui
     ? "game-tab-btn-active"
     : isLight
     ? "bg-black text-white border-black"
-    : "rounded-none border border-[#0bd1a2] bg-[#0bd1a2] text-black px-2 sm:px-3 py-1 text-[10px] sm:text-xs font-semibold uppercase tracking-wide whitespace-nowrap transition-all duration-200";
+    : "rounded-none border border-[#0bd1a2] bg-[#0bd1a2] text-black px-2 sm:px-3 py-1 text-2xs sm:text-xs font-semibold uppercase tracking-wide whitespace-nowrap transition-all duration-200";
 
   const tabRenameInputClass = isLight
-    ? "rounded-full border border-black/20 bg-white text-black text-[10px] font-semibold uppercase tracking-wide px-2 py-1 outline-none w-20"
+    ? "rounded-full border border-black/20 bg-white text-black text-2xs font-semibold uppercase tracking-wide px-2 py-1 outline-none w-20"
     : isGame
-    ? "rounded-[2px] border border-white/30 bg-white/10 text-white text-[10px] font-semibold uppercase tracking-wide px-2 py-1 outline-none w-20"
-    : "rounded-none border border-[#0bd1a2] bg-transparent text-[#0bd1a2] text-[10px] font-semibold uppercase tracking-wide px-2 py-1 outline-none w-20";
+    ? "rounded-[2px] border border-white/30 bg-white/10 text-white text-2xs font-semibold uppercase tracking-wide px-2 py-1 outline-none w-20"
+    : "rounded-none border border-[#0bd1a2] bg-transparent text-[#0bd1a2] text-2xs font-semibold uppercase tracking-wide px-2 py-1 outline-none w-20";
 
   const addGroupBtnClass = cn(tabBase, "flex items-center gap-1");
 
@@ -332,13 +333,13 @@ export default function DRepListBuilder({ dreps, totalVotingPower }: DRepListBui
 
             return (
               <div className={cn(cardClass, "p-4")}>
-                <div className={cn("text-[10px] font-semibold uppercase tracking-widest mb-3", labelClass)}>
+                <div className={cn("text-2xs font-semibold uppercase tracking-widest mb-3", labelClass)}>
                   {t("listBuilderPowerPct")}
                 </div>
 
                 {/* Chart — always rendered so card height never changes */}
                 <div className="relative mx-auto" style={{ width: 130, height: 130 }}>
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                     <PieChart>
                       <Pie
                         data={pieData}
@@ -363,13 +364,13 @@ export default function DRepListBuilder({ dreps, totalVotingPower }: DRepListBui
                         ))}
                       </Pie>
                     </PieChart>
-                  </ResponsiveContainer>
+        </ResponsiveContainer>
                   {/* Center label — shows hovered slice or combined total */}
                   <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                     {hasAny ? (
                       hoveredSlice ? (
                         <>
-                          <span className={cn("text-[11px] font-bold tabular-nums leading-none text-center px-2 truncate w-full text-center", accentClass)}>
+                          <span className={cn("text-xs font-bold tabular-nums leading-none text-center px-2 truncate w-full text-center", accentClass)}>
                             {hoveredSlice.value.toFixed(1)}%
                           </span>
                           <span className={cn("text-[8px] mt-0.5 truncate w-full text-center px-2 leading-tight", labelClass)}>
@@ -381,7 +382,7 @@ export default function DRepListBuilder({ dreps, totalVotingPower }: DRepListBui
                           <span className={cn("text-[13px] font-bold tabular-nums leading-none", accentClass)}>
                             {Math.min(totalPct, 100).toFixed(1)}%
                           </span>
-                          <span className={cn("text-[9px] mt-0.5", labelClass)}>combined</span>
+                          <span className={cn("text-3xs mt-0.5", labelClass)}>combined</span>
                         </>
                       )
                     ) : null}
@@ -397,11 +398,11 @@ export default function DRepListBuilder({ dreps, totalVotingPower }: DRepListBui
                           className="w-2 h-2 rounded-full flex-shrink-0"
                           style={{ backgroundColor: chartColors[i % chartColors.length], opacity: d.count > 0 ? 1 : 0.3 }}
                         />
-                        <span className={cn("text-[10px] truncate max-w-[120px]", d.count > 0 ? accentClass : labelClass)}>
+                        <span className={cn("text-2xs truncate max-w-[120px]", d.count > 0 ? accentClass : labelClass)}>
                           {d.group.name}
                         </span>
                       </div>
-                      <span className={cn("text-[10px] tabular-nums font-medium", d.count > 0 ? accentClass : labelClass)}>
+                      <span className={cn("text-2xs tabular-nums font-medium", d.count > 0 ? accentClass : labelClass)}>
                         {d.count > 0 ? `${d.powerPct.toFixed(2)}%` : "—"}
                       </span>
                     </div>
@@ -460,10 +461,10 @@ export default function DRepListBuilder({ dreps, totalVotingPower }: DRepListBui
                         {isSelected ? <X className="h-2.5 w-2.5" /> : <Plus className="h-2.5 w-2.5" />}
                       </span>
                       <div className="flex-1 min-w-0">
-                        <div className={cn("text-[11px] font-medium truncate", accentClass)}>
+                        <div className={cn("text-xs font-medium truncate", accentClass)}>
                           {drep.name ?? "Anonymous"}
                         </div>
-                        <div className={cn("text-[10px]", isGame ? "text-white/40" : isLight ? "text-black/35" : "text-[#0bd1a2]/45")}>
+                        <div className={cn("text-2xs", isGame ? "text-white/40" : isLight ? "text-black/35" : "text-[#0bd1a2]/45")}>
                           {formatVotingPower(drep.votingPowerAda)} ₳
                           {drep.delegatorCount != null && (
                             <> · {drep.delegatorCount.toLocaleString()} del</>
@@ -476,7 +477,7 @@ export default function DRepListBuilder({ dreps, totalVotingPower }: DRepListBui
                             <span
                               key={g.id}
                               className={cn(
-                                "text-[9px] font-semibold px-1.5 py-0.5 rounded-full leading-none",
+                                "text-3xs font-semibold px-1.5 py-0.5 rounded-full leading-none",
                                 isGame
                                   ? "bg-white/10 text-white/60"
                                   : isLight
@@ -563,7 +564,7 @@ export default function DRepListBuilder({ dreps, totalVotingPower }: DRepListBui
                     )}
                   >
                     {/* Group name */}
-                    <div className={cn("text-[11px] font-semibold truncate mb-3", accentClass)}>
+                    <div className={cn("text-xs font-semibold truncate mb-3", accentClass)}>
                       {group.name}
                     </div>
 
@@ -577,7 +578,7 @@ export default function DRepListBuilder({ dreps, totalVotingPower }: DRepListBui
                         <>
                           <span key={label + "_l"} className={metricLabelClass}>{label}</span>
                           <span key={label + "_v"} className={cn(
-                            "text-[11px] font-bold tabular-nums",
+                            "text-xs font-bold tabular-nums",
                             hasGroupSelection
                               ? accentClass
                               : isGame ? "text-white/20" : isLight ? "text-black/15" : "text-[#0bd1a2]/20"
@@ -594,10 +595,10 @@ export default function DRepListBuilder({ dreps, totalVotingPower }: DRepListBui
                       isLight ? "rounded-xl" : isGame ? "rounded-[2px]" : "rounded-none",
                       isDragTarget
                         ? isGame ? "border-white/30 border-dashed" : isLight ? "border-black/20 border-dashed" : "border-[#0bd1a2]/40 border-dashed"
-                        : isLight ? "border-black/6" : isGame ? "border-white/8" : "border-[#0bd1a2]/15"
+                        : isLight ? "border-black/6" : isGame ? "border-border" : "border-[#0bd1a2]/15"
                     )}>
-                      <span className={cn("text-[10px]", isGame ? "text-white/25" : isLight ? "text-black/20" : "text-[#0bd1a2]/25")}>
-                        {isDragTarget ? "Drop here" : "Empty"}
+                      <span className={cn("text-2xs", isGame ? "text-white/25" : isLight ? "text-black/20" : "text-[#0bd1a2]/25")}>
+                        {isDragTarget ? "Drop here" : "Add DReps from the list"}
                       </span>
                     </div>
                   ) : (
@@ -668,7 +669,7 @@ export default function DRepListBuilder({ dreps, totalVotingPower }: DRepListBui
                             <X className="h-2 w-2" />
                           </button>
 
-                          <div className={cn("text-[10px] font-semibold truncate pr-5 mb-2", accentClass)}>
+                          <div className={cn("text-2xs font-semibold truncate pr-5 mb-2", accentClass)}>
                             {drep.name ?? "Anonymous"}
                           </div>
 
@@ -680,7 +681,7 @@ export default function DRepListBuilder({ dreps, totalVotingPower }: DRepListBui
                             ].map(({ label, value }) => (
                               <>
                                 <span key={label + "_l"} className={metricLabelClass}>{label}</span>
-                                <span key={label + "_v"} className={cn("text-[10px] font-medium tabular-nums", accentClass)}>{value}</span>
+                                <span key={label + "_v"} className={cn("text-2xs font-medium tabular-nums", accentClass)}>{value}</span>
                               </>
                             ))}
                           </div>

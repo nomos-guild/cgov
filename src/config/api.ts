@@ -91,4 +91,7 @@ export const API_ENDPOINTS = {
 
   // IPFS upload
   ipfsUpload: "/api/ipfs/upload",
+
+  // Vote frontload (immediate persistence before chain confirmation)
+  voteFrontload: "/api/vote/frontload",
 } as const;

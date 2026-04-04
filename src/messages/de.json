@@ -117,7 +117,8 @@
     "votingPower": "Wahlkraft",
     "oneMemberOneVote": "Ein Mitglied, eine Stimme",
     "noRationale": "Keine Begründung",
-    "noVotingRecordsFound": "Keine Abstimmungsaufzeichnungen gefunden"
+    "noVotingRecordsFound": "Keine Abstimmungsaufzeichnungen gefunden",
+    "pending": "Ausstehend"
   },
   "charts": {
     "proposalStatus": {

@@ -117,7 +117,8 @@
     "votingPower": "Voting Power",
     "oneMemberOneVote": "One member, one vote",
     "noRationale": "No rationale",
-    "noVotingRecordsFound": "No voting records found"
+    "noVotingRecordsFound": "No voting records found",
+    "pending": "Pending"
   },
   "charts": {
     "proposalStatus": {

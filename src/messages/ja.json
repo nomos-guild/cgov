@@ -117,7 +117,8 @@
     "votingPower": "投票権",
     "oneMemberOneVote": "1会員1票",
     "noRationale": "根拠なし",
-    "noVotingRecordsFound": "投票記録なし"
+    "noVotingRecordsFound": "投票記録なし",
+    "pending": "保留中"
   },
   "charts": {
     "proposalStatus": {

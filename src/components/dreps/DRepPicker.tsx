@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import Image from "next/image";
 import { useTranslations } from "next-intl";
 
 import type { DRepSummary } from "@/types/drep";
@@ -233,7 +234,7 @@ export default function DRepPicker({ initialDreps, initialRationaleStats }: DRep
   }
 
   const chartCardClass = isLight
-    ? "rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)]"
+    ? "rounded-2xl border border-border bg-card shadow-elevation-2"
     : isGame
     ? "game-detail-card rounded-[2px] border-none bg-[rgba(12,12,12,0.5)] shadow-[0_18px_36px_rgba(0,0,0,0.55),0_6px_18px_rgba(0,0,0,0.4)]"
     : "rounded-none border border-[#0bd1a2] bg-transparent shadow-none";
@@ -244,16 +245,18 @@ export default function DRepPicker({ initialDreps, initialRationaleStats }: DRep
       <div className="w-full lg:w-[320px] flex-shrink-0 flex flex-col gap-4">
         {/* Match Me card */}
         <div className={`${chartCardClass} p-4 sm:p-6 min-h-[280px] flex flex-col items-center justify-center gap-4`}>
-          <img
+          <Image
             src={isLight ? "/images/Cardano-RGB_Logo-Icon-Black.svg" : "/images/Cardano-RGB_Logo-Icon-White.svg"}
             alt="Cardano"
-            className={`w-24 h-24 ${isLight ? "opacity-10" : isGame ? "opacity-8" : "opacity-10"}`}
+            width={96}
+            height={96}
+            className={`${isLight ? "opacity-10" : isGame ? "opacity-8" : "opacity-10"}`}
           />
           <div className="text-center">
             <p className={cn("text-xs font-semibold mb-1", isGame ? "text-white" : isLight ? "text-black" : "text-[#0bd1a2]")}>
               Not sure which DRep to pick?
             </p>
-            <p className={cn("text-[10px] mb-3 max-w-[200px]", isGame ? "text-white/40" : isLight ? "text-black/40" : "text-[#0bd1a2]/40")}>
+            <p className={cn("text-2xs mb-3 max-w-[200px]", isGame ? "text-white/40" : isLight ? "text-black/40" : "text-[#0bd1a2]/40")}>
               Vote on 5 proposals and find DReps that match your views
             </p>
             <button
@@ -261,10 +264,10 @@ export default function DRepPicker({ initialDreps, initialRationaleStats }: DRep
               className={cn(
                 "px-5 py-2 text-xs font-bold transition-all duration-200",
                 isLight
-                  ? "rounded-full bg-black text-white hover:bg-black/80 hover:scale-105"
+                  ? "rounded-full bg-black text-white hover:bg-black/80 hover:scale-101"
                   : isGame
-                    ? "rounded-[2px] bg-white text-black hover:bg-white/90 hover:scale-105"
-                    : "rounded-none bg-[#0bd1a2] text-black hover:bg-[#0bd1a2]/80 hover:scale-105"
+                    ? "rounded-[2px] bg-white text-black hover:bg-white/90 hover:scale-101"
+                    : "rounded-none bg-[#0bd1a2] text-black hover:bg-[#0bd1a2]/80 hover:scale-101"
               )}
             >
               Match Me

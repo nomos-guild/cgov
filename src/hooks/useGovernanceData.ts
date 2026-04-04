@@ -374,6 +374,7 @@ function transformVoteRecord(vote: VoteRecord): VoteRecord {
     rationale: vote.rationale,
     votedAt: vote.votedAt,
     txHash: vote.txHash,
+    isPendingConfirmation: vote.isPendingConfirmation === true || vote.votingPower == null,
   };
 }
 

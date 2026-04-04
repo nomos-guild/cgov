@@ -8,6 +8,7 @@ interface VoteOnProposalProps {
   proposalTitle: string;
   status: string;
   proposalId: string;
+  onVoteSubmitted?: () => void;
 }
 
 type VoteLoaderState = "loading" | "ready" | "error";
