@@ -261,14 +261,14 @@ export function DRepSunburstChart({ className, initialDreps, initialRationaleSta
   }
 
   const cardClass = isLight
-    ? "rounded-2xl border border-border/40 bg-card p-4 sm:p-6 shadow-elevation-2"
+    ? "rounded-2xl border border-border bg-card p-4 sm:p-6 shadow-elevation-2"
     : isGame
     ? "game-drep-content rounded-[2px] border-none bg-[rgba(12,12,12,0.5)] p-4 sm:p-6 shadow-[0_18px_36px_rgba(0,0,0,0.55),0_6px_18px_rgba(0,0,0,0.4)]"
     : "rounded-none border border-[#0bd1a2] bg-transparent p-4 sm:p-6 shadow-none";
 
   const tabBtnClass = isGame
     ? "game-tab-btn data-[state=active]:game-tab-btn-active text-2xs sm:text-xs"
-    : "rounded-none border border-border/40 bg-white text-black px-2 sm:px-3 py-1 sm:py-1.5 text-2xs sm:text-xs font-semibold uppercase tracking-wide transform-gpu transition-transform transition-shadow duration-normal ease-in-out shadow-elevation-2 data-[state=active]:bg-black data-[state=active]:text-white hover:scale-101 hover:shadow-elevation-3 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon";
+    : "rounded-none border border-border bg-white text-black px-2 sm:px-3 py-1 sm:py-1.5 text-2xs sm:text-xs font-semibold uppercase tracking-wide transform-gpu transition-transform transition-shadow duration-normal ease-in-out shadow-elevation-2 data-[state=active]:bg-black data-[state=active]:text-white hover:scale-101 hover:shadow-elevation-3 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon";
 
   return (
     <div className={className}>
@@ -503,7 +503,7 @@ export function DRepSunburstChart({ className, initialDreps, initialRationaleSta
             "w-full sm:w-auto sm:min-w-[300px] sm:flex-1 p-2.5 sm:p-3 md:p-4",
             isGame
               ? "game-detail-card"
-              : "rounded-2xl border border-border/40 bg-card shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+              : "rounded-2xl border border-border bg-card shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
           )}>
             <div className="relative">
               <Search className={cn("absolute left-2.5 sm:left-3 top-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 -translate-y-1/2 transform", isGame ? "text-white/50" : "text-muted-foreground")} />
@@ -528,7 +528,7 @@ export function DRepSunburstChart({ className, initialDreps, initialRationaleSta
             "flex-1 min-w-0 p-2.5 sm:p-3 md:p-4",
             isGame
               ? "game-detail-card"
-              : "rounded-2xl border border-border/40 bg-card shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+              : "rounded-2xl border border-border bg-card shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
           )}>
             <div className="flex flex-wrap gap-2 sm:gap-3 md:gap-4">
               {/* Sort by Voting Power */}

@@ -306,7 +306,7 @@ export function GovernanceTable() {
           "relative w-full sm:w-auto p-2.5 sm:p-3 md:p-4",
           isGame
             ? "game-filters-card"
-            : "rounded-2xl border border-border/40 bg-card shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+            : "rounded-2xl border border-border bg-card shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
         )}>
           <button
             type="button"
@@ -376,7 +376,7 @@ export function GovernanceTable() {
         </div>
 
         {/* Filter bar */}
-        <div className="relative overflow-visible flex-1 min-w-0 border-border/40 rounded-2xl border bg-card p-2.5 sm:p-3 md:p-4 shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none game-filters-card">
+        <div className="relative overflow-visible flex-1 min-w-0 border-border rounded-2xl border bg-card p-2.5 sm:p-3 md:p-4 shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none game-filters-card">
         <div className="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-3 items-stretch sm:items-center">
           <div className="relative flex-1 min-w-0 sm:min-w-[200px] sm:max-w-md">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-muted-foreground z-10" />
@@ -419,7 +419,7 @@ export function GovernanceTable() {
                 className={
                   isGame
                     ? "game-filter-dropdown"
-                    : "border-border/40 absolute left-0 sm:left-0 right-0 sm:right-auto z-20 mt-2 w-auto sm:w-64 rounded-2xl border bg-card p-2 shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-black dark:shadow-none"
+                    : "border-border absolute left-0 sm:left-0 right-0 sm:right-auto z-20 mt-2 w-auto sm:w-64 rounded-2xl border bg-card p-2 shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-black dark:shadow-none"
                 }
               >
                 <div className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground dark:bg-transparent dark:text-[#0bd1a2]">
@@ -492,7 +492,7 @@ export function GovernanceTable() {
                   className={
                     isGame
                       ? "game-filter-dropdown"
-                      : "border-border/40 absolute left-0 sm:left-0 right-0 sm:right-auto z-20 mt-2 w-auto sm:w-64 rounded-2xl border bg-card p-2 shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-black dark:shadow-none"
+                      : "border-border absolute left-0 sm:left-0 right-0 sm:right-auto z-20 mt-2 w-auto sm:w-64 rounded-2xl border bg-card p-2 shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-black dark:shadow-none"
                   }
                 >
                 <div className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground dark:bg-transparent dark:text-[#0bd1a2]">
@@ -564,7 +564,7 @@ export function GovernanceTable() {
       </div>
 
       {filteredActions.length === 0 ? (
-        <div className="border-border/40 rounded-2xl border bg-card p-6 sm:p-8 md:p-12 shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none">
+        <div className="border-border rounded-2xl border bg-card p-6 sm:p-8 md:p-12 shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none">
           <p className="text-center text-muted-foreground text-sm sm:text-base">
             {t("table.noActionsFound")}
           </p>
@@ -584,7 +584,7 @@ export function GovernanceTable() {
                 className={
                   isGame
                     ? "game-detail-card p-3"
-                    : "rounded-xl border border-border/40 bg-card p-3 shadow-elevation-1 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+                    : "rounded-xl border border-border bg-card p-3 shadow-elevation-1 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
                 }
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
@@ -639,7 +639,7 @@ export function GovernanceTable() {
 
         {/* Desktop table layout - Default view */}
         {viewMode === "default" && (
-        <div className="hidden sm:block rounded-2xl border border-border/40 bg-card overflow-x-auto shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none game-proposals-card">
+        <div className="hidden sm:block rounded-2xl border border-border bg-card overflow-x-auto shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none game-proposals-card">
           <Table className="min-w-[600px]">
             <TableHeader>
               <TableRow className="proposal-header-row hover:bg-transparent">
@@ -899,7 +899,7 @@ export function GovernanceTable() {
 
         {/* Desktop table layout - Compact view */}
         {viewMode === "compact" && (
-        <div className="hidden sm:block rounded-2xl border border-border/40 bg-card overflow-x-auto shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none game-proposals-card">
+        <div className="hidden sm:block rounded-2xl border border-border bg-card overflow-x-auto shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none game-proposals-card">
           <Table>
             <TableHeader>
               <TableRow className="proposal-header-row hover:bg-transparent">

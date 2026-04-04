@@ -523,7 +523,7 @@ export function VotingRecords({
             "relative w-full sm:w-auto p-2.5 sm:p-3 md:p-4",
             isGame
               ? "game-detail-card"
-              : "rounded-2xl border border-border/40 bg-card shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+              : "rounded-2xl border border-border bg-card shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
           )}>
             <button
               type="button"
@@ -653,7 +653,7 @@ export function VotingRecords({
           "flex-1 min-w-0 p-2.5 sm:p-3 md:p-4",
           isGame
             ? "game-detail-card"
-            : "rounded-2xl border border-border/40 bg-card shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+            : "rounded-2xl border border-border bg-card shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
         )}>
           <div className="flex flex-wrap gap-2 sm:gap-3 md:gap-4">
             <div className="flex-1 min-w-[120px]">
@@ -794,7 +794,7 @@ export function VotingRecords({
         "p-2.5 sm:p-3 md:p-4",
         isGame
           ? "game-detail-card"
-          : "rounded-2xl border border-border/40 bg-card shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+          : "rounded-2xl border border-border bg-card shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
       )}>
         <div className="relative">
           <Search className={cn("absolute left-2.5 sm:left-3 top-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 -translate-y-1/2 transform", isGame ? "text-white/50" : "text-muted-foreground")} />
@@ -818,7 +818,7 @@ export function VotingRecords({
         {filteredVotes.length === 0 ? (
           <div className={cn(
             "py-12 text-center text-muted-foreground",
-            isGame ? "game-detail-card" : "rounded-2xl border border-border/40 bg-card shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+            isGame ? "game-detail-card" : "rounded-2xl border border-border bg-card shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
           )}>
             {tVoting("noVotingRecordsFound")}
           </div>
@@ -835,7 +835,7 @@ export function VotingRecords({
                   "p-3 transition-transform duration-normal ease-out transform-gpu active:scale-[0.99]",
                   isGame
                     ? "game-detail-card"
-                    : "rounded-xl border border-border/40 bg-card shadow-elevation-1 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none",
+                    : "rounded-xl border border-border bg-card shadow-elevation-1 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none",
                   isMyVoteMobile && (isGame
                     ? "ring-1 ring-white/30"
                     : "ring-1 ring-primary/30 bg-primary/5 dark:ring-[#0bd1a2]/30 dark:bg-[#0bd1a2]/5"),
@@ -915,7 +915,7 @@ export function VotingRecords({
       {/* Desktop table layout */}
       <div
         className={cn(
-          "hidden sm:block rounded-2xl border border-border/40 bg-card shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none voting-records-container min-h-[400px]",
+          "hidden sm:block rounded-2xl border border-border bg-card shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none voting-records-container min-h-[400px]",
           isGame && "game-detail-card"
         )}
       >
@@ -1097,14 +1097,14 @@ export function VotingRecords({
         {notVotedLoading ? (
           <div className={cn(
             "py-12 text-center text-muted-foreground",
-            isGame ? "game-detail-card" : "rounded-2xl border border-border/40 bg-card shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+            isGame ? "game-detail-card" : "rounded-2xl border border-border bg-card shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
           )}>
             {tCommon("loading")}
           </div>
         ) : notVotedItems.length === 0 ? (
           <div className={cn(
             "py-12 text-center text-muted-foreground",
-            isGame ? "game-detail-card" : "rounded-2xl border border-border/40 bg-card shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+            isGame ? "game-detail-card" : "rounded-2xl border border-border bg-card shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
           )}>
             {tVoting("noVotingRecordsFound")}
           </div>
@@ -1116,7 +1116,7 @@ export function VotingRecords({
                 "p-3 transition-transform duration-normal ease-out transform-gpu active:scale-[0.99]",
                 isGame
                   ? "game-detail-card"
-                  : "rounded-xl border border-border/40 bg-card shadow-elevation-1 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+                  : "rounded-xl border border-border bg-card shadow-elevation-1 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
               )}
             >
               <div className="flex items-start justify-between gap-2">
@@ -1170,7 +1170,7 @@ export function VotingRecords({
       {/* Not-voted desktop table layout */}
       <div
         className={cn(
-          "hidden sm:block rounded-2xl border border-border/40 bg-card shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none voting-records-container min-h-[400px]",
+          "hidden sm:block rounded-2xl border border-border bg-card shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none voting-records-container min-h-[400px]",
           isGame && "game-detail-card"
         )}
       >

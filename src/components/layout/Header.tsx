@@ -41,7 +41,9 @@ function LazyWalletButton() {
         className="flex items-center gap-2 rounded-none"
       >
         <Wallet className="h-4 w-4" />
-        {state === "error" ? "Wallet unavailable" : "Loading wallet..."}
+        <span className="hidden sm:inline">
+          {state === "error" ? "Wallet unavailable" : "Loading..."}
+        </span>
       </Button>
     );
   }
@@ -71,22 +73,59 @@ export function Header() {
   const Brand = components?.HeaderBrand ?? DefaultBrand;
 
   return (
-    <>
     <header
       className={cn(
-        "relative z-10",
+        "sticky top-0 z-10",
         isGame
           ? "border-b border-transparent game-detail-card !rounded-none"
           : "border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
       )}
     >
       <div className="container mx-auto px-3 sm:px-4">
-        <div className="flex h-14 sm:h-16 items-center justify-between">
-          <Link href="/" className="flex items-center space-x-2">
-            <Brand />
-          </Link>
+        <div className="flex h-14 sm:h-16 items-center justify-between gap-4">
+          {/* Left: brand + nav */}
+          <div className="flex items-center gap-1 sm:gap-6">
+            <Link href="/" className="flex items-center space-x-2 shrink-0">
+              <Brand />
+            </Link>
 
-          <div className="flex items-center gap-2 sm:gap-6">
+            <nav className="flex items-center gap-1">
+              {NAV_LINKS.map(({ href, label }) => {
+                const isActive = href === "/"
+                  ? router.pathname === "/"
+                  : router.pathname.startsWith(href);
+
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    className={cn(
+                      isGame
+                        ? cn(
+                            "game-nav-btn !h-7 !min-h-[28px] !px-3 !text-xs",
+                            isActive && "!bg-white/10"
+                          )
+                        : cn(
+                            "px-3 py-1.5 text-sm font-medium rounded-md transition-colors duration-normal",
+                            isActive
+                              ? isLight
+                                ? "bg-foreground text-background"
+                                : "bg-[#0bd1a2] text-black"
+                              : isLight
+                                ? "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                                : "text-[#0bd1a2]/60 hover:text-[#0bd1a2]"
+                          )
+                    )}
+                  >
+                    {label}
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
+
+          {/* Right: controls */}
+          <div className="flex items-center gap-2 sm:gap-4">
             <div className="flex items-center gap-2">
               <ThemeToggle />
               <LanguageSelector />
@@ -95,54 +134,6 @@ export function Header() {
           </div>
         </div>
       </div>
-
     </header>
-
-      {/* Navigation bar */}
-      <div className={cn(
-        "mt-2",
-        isGame
-          ? "game-detail-card !rounded-none border-b border-transparent"
-          : "border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
-      )}>
-        <div className="container mx-auto px-3 sm:px-4">
-          <nav className="flex items-center gap-2 py-2">
-            {NAV_LINKS.map(({ href, label }) => {
-              const isActive = href === "/"
-                ? router.pathname === "/"
-                : router.pathname.startsWith(href);
-
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  className={cn(
-                    isGame
-                      ? cn(
-                          "game-nav-btn !h-7 !min-h-[28px] !px-3 !text-xs",
-                          isActive && "!bg-white/10"
-                        )
-                      : cn(
-                          "h-10 px-4 text-sm font-medium transition-colors border inline-flex items-center btn-neon",
-                          isLight ? "rounded-md" : "rounded-none",
-                          isActive
-                            ? isLight
-                              ? "bg-black text-white border-black shadow-elevation-2"
-                              : "bg-[#0bd1a2] text-black border-[#0bd1a2]"
-                            : isLight
-                              ? "bg-background/80 text-foreground border-input shadow-soft hover:bg-black hover:text-white"
-                              : "bg-transparent text-[#0bd1a2]/60 border-[#0bd1a2]/20 hover:text-[#0bd1a2] hover:border-[#0bd1a2]/50"
-                        )
-                  )}
-                >
-                  {label}
-                </Link>
-              );
-            })}
-
-          </nav>
-        </div>
-      </div>
-    </>
   );
 }

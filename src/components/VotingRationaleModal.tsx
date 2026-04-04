@@ -133,7 +133,7 @@ export function VotingRationaleModal({
           "max-w-4xl max-h-[85vh] sm:max-h-[90vh] overflow-hidden flex flex-col w-[calc(100vw-2rem)] sm:w-auto",
           isGame 
             ? "game-modal-card" 
-            : "rounded-2xl border border-border/40 bg-card shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-black dark:bg-opacity-90 dark:shadow-none",
+            : "rounded-2xl border border-border bg-card shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-black dark:bg-opacity-90 dark:shadow-none",
           isNoVote && "no-vote"
         )}
       >
@@ -227,7 +227,7 @@ export function VotingRationaleModal({
           ) : (
             <>
               {/* Compact voter info on mobile */}
-              <div className="rounded-xl sm:rounded-2xl border border-border/40 bg-card p-3 sm:p-5 shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none space-y-2 sm:space-y-3">
+              <div className="rounded-xl sm:rounded-2xl border border-border bg-card p-3 sm:p-5 shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none space-y-2 sm:space-y-3">
                 <div className="flex flex-wrap items-center gap-2 text-sm dark:text-[#0bd1a2]">
                   <span className="font-semibold">{vote.voterName ?? vote.drepName ?? vote.voterId ?? vote.drepId ?? t("unknownVoter")}</span>
                   <span className="text-xs px-1.5 py-0.5 rounded border border-current">{vote.vote}</span>

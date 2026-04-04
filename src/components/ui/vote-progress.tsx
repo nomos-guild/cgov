@@ -264,7 +264,7 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
         <div
           ref={ref}
           className={cn(
-            "border-border/40 flex flex-col items-center gap-0 border bg-card shadow-elevation-2 rounded-3xl px-[14px] pt-0 pb-0 sm:gap-2 sm:pt-[12px] sm:pb-[14px] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none",
+            "border-border flex flex-col items-center gap-0 border bg-card shadow-elevation-2 rounded-3xl px-[14px] pt-0 pb-0 sm:gap-2 sm:pt-[12px] sm:pb-[14px] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none",
             className
           )}
           style={cardStyle}
@@ -391,7 +391,7 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
       <div
         ref={ref}
         className={cn(
-          "vote-progress-card border-border/40 flex flex-col items-center gap-0 border bg-card shadow-elevation-2 rounded-3xl px-[14px] pt-0 pb-0 sm:gap-2 sm:pt-[12px] sm:pb-[14px] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none",
+          "vote-progress-card border-border flex flex-col items-center gap-0 border bg-card shadow-elevation-2 rounded-3xl px-[14px] pt-0 pb-0 sm:gap-2 sm:pt-[12px] sm:pb-[14px] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none",
           className
         )}
         {...props}

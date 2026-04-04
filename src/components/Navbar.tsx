@@ -23,7 +23,7 @@ export function Navbar() {
             {isGovernancePage && (
               <Link
                 href="/"
-                className="rounded-2xl border border-border/40 bg-card px-3 sm:px-4 py-2 text-sm font-medium transition-all whitespace-nowrap shadow-elevation-2 hover:shadow-elevation-3 flex items-center gap-2 text-foreground hover:text-foreground"
+                className="rounded-2xl border border-border bg-card px-3 sm:px-4 py-2 text-sm font-medium transition-all whitespace-nowrap shadow-elevation-2 hover:shadow-elevation-3 flex items-center gap-2 text-foreground hover:text-foreground"
               >
                 <ArrowLeft className="h-4 w-4" />
                 <span className="hidden sm:inline">Back to Proposals</span>

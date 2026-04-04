@@ -226,7 +226,7 @@ function DRepProfileContent({
   const cardClass = isGame
     ? "rounded-[2px] border-none bg-[rgba(12,12,12,0.5)] p-4 sm:p-6 shadow-[0_18px_36px_rgba(0,0,0,0.55),0_6px_18px_rgba(0,0,0,0.4)]"
     : isLight
-    ? "rounded-2xl border border-border/40 bg-card p-4 sm:p-6 shadow-elevation-2"
+    ? "rounded-2xl border border-border bg-card p-4 sm:p-6 shadow-elevation-2"
     : "rounded-none border border-[#0bd1a2] bg-transparent p-4 sm:p-6 shadow-none";
 
   return (
@@ -609,7 +609,7 @@ function DRepProfileContent({
                 isGame
                   ? "game-drep-content rounded-[2px] border-none bg-[rgba(12,12,12,0.5)] shadow-[0_18px_36px_rgba(0,0,0,0.55),0_6px_18px_rgba(0,0,0,0.4)]"
                   : isLight
-                  ? "rounded-2xl border border-border/40 bg-card shadow-elevation-2"
+                  ? "rounded-2xl border border-border bg-card shadow-elevation-2"
                   : "rounded-none border border-[#0bd1a2] bg-transparent shadow-none"
               )}>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -639,7 +639,7 @@ function DRepProfileContent({
                               ? cn("game-tab-btn", isActive && "game-tab-btn-active")
                               : isLight
                               ? cn(
-                                  "rounded-full border border-border/40 bg-white text-black shadow-elevation-2",
+                                  "rounded-full border border-border bg-white text-black shadow-elevation-2",
                                   isActive ? "bg-black text-white" : "hover:scale-101 hover:shadow-elevation-3"
                                 )
                               : cn(

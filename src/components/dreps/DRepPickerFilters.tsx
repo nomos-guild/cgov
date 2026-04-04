@@ -41,7 +41,7 @@ export default function DRepPickerFilters({
   const isLight = activeTheme.id === "light" || activeTheme.id === "neural";
 
   const cardClass = isLight
-    ? "rounded-2xl border border-border/40 bg-card p-4 sm:p-5 shadow-elevation-2"
+    ? "rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-elevation-2"
     : isGame
     ? "game-detail-card rounded-[2px] border-none bg-[rgba(12,12,12,0.5)] p-4 sm:p-5 shadow-[0_18px_36px_rgba(0,0,0,0.55),0_6px_18px_rgba(0,0,0,0.4)]"
     : "rounded-none border border-[#0bd1a2] bg-transparent p-4 sm:p-5 shadow-none";

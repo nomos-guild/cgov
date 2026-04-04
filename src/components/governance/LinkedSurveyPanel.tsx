@@ -325,7 +325,7 @@ function SummaryCard({
         "w-full rounded-3xl border px-4 py-4 shadow-elevation-2",
         isGame
           ? "game-detail-card"
-          : "border-border/40 bg-card dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+          : "border-border bg-card dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
       )}
     >
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -550,7 +550,7 @@ export function LinkedSurveyPanel({
     "overflow-hidden p-6",
     isGame
       ? "game-detail-card"
-      : "rounded-2xl border border-border/40 bg-card shadow-elevation-2 dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+      : "rounded-2xl border border-border bg-card shadow-elevation-2 dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
   );
 
   const applicableRoles = getApplicableRoles(survey, tally);
@@ -648,7 +648,7 @@ export function LinkedSurveyPanel({
                   className={cn(
                     isGame
                       ? "game-tab-btn data-[state=active]:game-tab-btn-active text-2xs sm:text-xs"
-                      : "rounded-md border border-border/40 bg-white px-2 py-1 text-2xs font-semibold uppercase tracking-wide text-black shadow-elevation-2 transition-transform transition-shadow duration-normal ease-in-out hover:scale-101 hover:shadow-elevation-3 data-[state=active]:bg-black data-[state=active]:text-white sm:px-3 sm:py-1.5 sm:text-xs dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon"
+                      : "rounded-md border border-border bg-white px-2 py-1 text-2xs font-semibold uppercase tracking-wide text-black shadow-elevation-2 transition-transform transition-shadow duration-normal ease-in-out hover:scale-101 hover:shadow-elevation-3 data-[state=active]:bg-black data-[state=active]:text-white sm:px-3 sm:py-1.5 sm:text-xs dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon"
                   )}
                 >
                   Question {index + 1}

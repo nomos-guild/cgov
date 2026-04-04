@@ -135,13 +135,13 @@ export default function DRepListBuilder({ dreps, totalVotingPower }: DRepListBui
 
   // ── Theme classes ─────────────────────────────────────────────────────────
   const cardClass = isLight
-    ? "rounded-2xl border border-border/40 bg-card shadow-elevation-2"
+    ? "rounded-2xl border border-border bg-card shadow-elevation-2"
     : isGame
     ? "game-detail-card rounded-[2px] border-none bg-[rgba(12,12,12,0.5)] shadow-[0_18px_36px_rgba(0,0,0,0.55),0_6px_18px_rgba(0,0,0,0.4)]"
     : "rounded-none border border-[#0bd1a2] bg-transparent shadow-none";
 
   const titleCardClass = isLight
-    ? "rounded-2xl border border-border/40 bg-card px-4 sm:px-6 py-3 shadow-elevation-2"
+    ? "rounded-2xl border border-border bg-card px-4 sm:px-6 py-3 shadow-elevation-2"
     : isGame
     ? "game-drep-content rounded-[2px] border-none bg-[rgba(12,12,12,0.5)] px-4 sm:px-6 py-3 shadow-[0_18px_36px_rgba(0,0,0,0.55),0_6px_18px_rgba(0,0,0,0.4)]"
     : "rounded-none border border-[#0bd1a2] bg-transparent px-4 sm:px-6 py-3 shadow-none";
@@ -210,7 +210,7 @@ export default function DRepListBuilder({ dreps, totalVotingPower }: DRepListBui
     ? "game-tab-btn text-2xs sm:text-xs"
     : isLight
     ? cn(
-        "rounded-full border border-border/40 bg-white text-black px-2 sm:px-3 py-1 text-2xs sm:text-xs font-semibold uppercase tracking-wide whitespace-nowrap",
+        "rounded-full border border-border bg-white text-black px-2 sm:px-3 py-1 text-2xs sm:text-xs font-semibold uppercase tracking-wide whitespace-nowrap",
         "transform-gpu transition-all duration-200",
         "shadow-elevation-2 hover:scale-101 hover:shadow-elevation-3"
       )
@@ -594,10 +594,10 @@ export default function DRepListBuilder({ dreps, totalVotingPower }: DRepListBui
                       isLight ? "rounded-xl" : isGame ? "rounded-[2px]" : "rounded-none",
                       isDragTarget
                         ? isGame ? "border-white/30 border-dashed" : isLight ? "border-black/20 border-dashed" : "border-[#0bd1a2]/40 border-dashed"
-                        : isLight ? "border-black/6" : isGame ? "border-border/40" : "border-[#0bd1a2]/15"
+                        : isLight ? "border-black/6" : isGame ? "border-border" : "border-[#0bd1a2]/15"
                     )}>
                       <span className={cn("text-2xs", isGame ? "text-white/25" : isLight ? "text-black/20" : "text-[#0bd1a2]/25")}>
-                        {isDragTarget ? "Drop here" : "Empty"}
+                        {isDragTarget ? "Drop here" : "Add DReps from the list"}
                       </span>
                     </div>
                   ) : (

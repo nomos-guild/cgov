@@ -79,7 +79,7 @@ export function ZoomLens({
   const btnH = 34;
   const btnClass = isGame
     ? "game-tab-btn data-[state=active]:game-tab-btn-active text-xs"
-    : "rounded-full border border-border/40 bg-white text-black px-3 py-1.5 text-xs font-semibold uppercase tracking-wide shadow-elevation-2 hover:scale-101 hover:shadow-elevation-3 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:hover:bg-[#0bd1a2] dark:hover:text-black btn-neon";
+    : "rounded-full border border-border bg-white text-black px-3 py-1.5 text-xs font-semibold uppercase tracking-wide shadow-elevation-2 hover:scale-101 hover:shadow-elevation-3 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:hover:bg-[#0bd1a2] dark:hover:text-black btn-neon";
 
   const clipId = `${idPrefix}-zoom-lens-clip`;
 

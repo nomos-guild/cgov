@@ -50,7 +50,7 @@ export function ExcludedBreakdownDisplay({
       "hidden sm:block w-full max-w-[200px] sm:max-w-none text-xs mt-1 sm:mt-2",
       isGame
         ? "sm:w-[180px] border-none bg-transparent"
-        : "sm:w-[240px] rounded-xl border border-dashed border-border/40 bg-card/20 dark:rounded-none dark:border-[#0bd1a2]/50 dark:bg-transparent"
+        : "sm:w-[240px] rounded-xl border border-dashed border-border bg-card/20 dark:rounded-none dark:border-[#0bd1a2]/50 dark:bg-transparent"
     )}>
       {/* Header with total - always visible */}
       <div

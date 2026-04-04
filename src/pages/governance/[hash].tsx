@@ -1029,7 +1029,7 @@ function GovernanceDetailContent({ initialDetail }: GovernanceDetailProps) {
                           className={
                             isGame
                               ? "game-tab-btn data-[state=active]:game-tab-btn-active text-2xs sm:text-xs"
-                              : "rounded-md border border-border/40 bg-white text-black px-2 sm:px-3 py-1 sm:py-1.5 text-2xs sm:text-xs font-semibold uppercase tracking-wide transform-gpu transition-transform transition-shadow duration-normal ease-in-out shadow-elevation-2 data-[state=active]:bg-black data-[state=active]:text-white hover:scale-101 hover:shadow-elevation-3 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon"
+                              : "rounded-md border border-border bg-white text-black px-2 sm:px-3 py-1 sm:py-1.5 text-2xs sm:text-xs font-semibold uppercase tracking-wide transform-gpu transition-transform transition-shadow duration-normal ease-in-out shadow-elevation-2 data-[state=active]:bg-black data-[state=active]:text-white hover:scale-101 hover:shadow-elevation-3 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon"
                           }
                         >
                           {tTabs("liveVoting")}
@@ -1039,7 +1039,7 @@ function GovernanceDetailContent({ initialDetail }: GovernanceDetailProps) {
                           className={
                             isGame
                               ? "game-tab-btn data-[state=active]:game-tab-btn-active text-2xs sm:text-xs"
-                              : "rounded-md border border-border/40 bg-white text-black px-2 sm:px-3 py-1 sm:py-1.5 text-2xs sm:text-xs font-semibold uppercase tracking-wide transform-gpu transition-transform transition-shadow duration-normal ease-in-out shadow-elevation-2 data-[state=active]:bg-black data-[state=active]:text-white hover:scale-101 hover:shadow-elevation-3 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon"
+                              : "rounded-md border border-border bg-white text-black px-2 sm:px-3 py-1 sm:py-1.5 text-2xs sm:text-xs font-semibold uppercase tracking-wide transform-gpu transition-transform transition-shadow duration-normal ease-in-out shadow-elevation-2 data-[state=active]:bg-black data-[state=active]:text-white hover:scale-101 hover:shadow-elevation-3 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon"
                           }
                         >
                           {tTabs("thresholds")}
@@ -1049,7 +1049,7 @@ function GovernanceDetailContent({ initialDetail }: GovernanceDetailProps) {
                           className={
                             isGame
                               ? "game-tab-btn data-[state=active]:game-tab-btn-active text-2xs sm:text-xs"
-                              : "rounded-md border border-border/40 bg-white text-black px-2 sm:px-3 py-1 sm:py-1.5 text-2xs sm:text-xs font-semibold uppercase tracking-wide transform-gpu transition-transform transition-shadow duration-normal ease-in-out shadow-elevation-2 data-[state=active]:bg-black data-[state=active]:text-white hover:scale-101 hover:shadow-elevation-3 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon"
+                              : "rounded-md border border-border bg-white text-black px-2 sm:px-3 py-1 sm:py-1.5 text-2xs sm:text-xs font-semibold uppercase tracking-wide transform-gpu transition-transform transition-shadow duration-normal ease-in-out shadow-elevation-2 data-[state=active]:bg-black data-[state=active]:text-white hover:scale-101 hover:shadow-elevation-3 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon"
                           }
                         >
                           {tTabs("bubbleMap")}
@@ -1059,7 +1059,7 @@ function GovernanceDetailContent({ initialDetail }: GovernanceDetailProps) {
                           className={
                             isGame
                               ? "game-tab-btn data-[state=active]:game-tab-btn-active text-2xs sm:text-xs"
-                              : "rounded-md border border-border/40 bg-white text-black px-2 sm:px-3 py-1 sm:py-1.5 text-2xs sm:text-xs font-semibold uppercase tracking-wide transform-gpu transition-transform transition-shadow duration-normal ease-in-out shadow-elevation-2 data-[state=active]:bg-black data-[state=active]:text-white hover:scale-101 hover:shadow-elevation-3 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon"
+                              : "rounded-md border border-border bg-white text-black px-2 sm:px-3 py-1 sm:py-1.5 text-2xs sm:text-xs font-semibold uppercase tracking-wide transform-gpu transition-transform transition-shadow duration-normal ease-in-out shadow-elevation-2 data-[state=active]:bg-black data-[state=active]:text-white hover:scale-101 hover:shadow-elevation-3 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon"
                           }
                         >
                           {tTabs("curves")}
@@ -1069,7 +1069,7 @@ function GovernanceDetailContent({ initialDetail }: GovernanceDetailProps) {
                           className={
                             isGame
                               ? "game-tab-btn data-[state=active]:game-tab-btn-active text-2xs sm:text-xs"
-                              : "rounded-md border border-border/40 bg-white text-black px-2 sm:px-3 py-1 sm:py-1.5 text-2xs sm:text-xs font-semibold uppercase tracking-wide transform-gpu transition-transform transition-shadow duration-normal ease-in-out shadow-elevation-2 data-[state=active]:bg-black data-[state=active]:text-white hover:scale-101 hover:shadow-elevation-3 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon"
+                              : "rounded-md border border-border bg-white text-black px-2 sm:px-3 py-1 sm:py-1.5 text-2xs sm:text-xs font-semibold uppercase tracking-wide transform-gpu transition-transform transition-shadow duration-normal ease-in-out shadow-elevation-2 data-[state=active]:bg-black data-[state=active]:text-white hover:scale-101 hover:shadow-elevation-3 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon"
                           }
                         >
                           {tTabs("details")}

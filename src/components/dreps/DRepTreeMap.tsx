@@ -416,7 +416,7 @@ export function DRepTreeMap({ dreps, metric, topN, rationaleMap, highlightedIds 
           className={
             isGame
               ? "absolute z-50 rounded-sm px-4 py-3 text-xs pointer-events-none game-tooltip-card"
-              : "absolute z-50 rounded-2xl border border-border/40 bg-card px-4 py-3 text-xs shadow-elevation-2 pointer-events-none dark:rounded-none dark:border-[#0bd1a2] dark:bg-background dark:shadow-none"
+              : "absolute z-50 rounded-2xl border border-border bg-card px-4 py-3 text-xs shadow-elevation-2 pointer-events-none dark:rounded-none dark:border-[#0bd1a2] dark:bg-background dark:shadow-none"
           }
           style={{
             left: `${hoveredTile.x + 15}px`,

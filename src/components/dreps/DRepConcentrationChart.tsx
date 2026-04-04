@@ -241,7 +241,7 @@ export function DRepConcentrationChart({
                   px-2.5 py-1 text-2xs font-semibold uppercase tracking-wide
                   transition-all duration-200
                   ${isGame
-                    ? `${localMetric === item.key ? "bg-white/10 text-white border border-white/20" : "bg-transparent text-white/40 border border-border/40 hover:bg-white/5"}`
+                    ? `${localMetric === item.key ? "bg-white/10 text-white border border-white/20" : "bg-transparent text-white/40 border border-border hover:bg-white/5"}`
                     : isLight
                       ? `${localMetric === item.key ? "bg-black text-white border border-black" : "bg-transparent text-slate-400 border border-slate-200 hover:bg-slate-50"}`
                       : `${localMetric === item.key ? "bg-[#0bd1a2] text-black border border-[#0bd1a2]" : "bg-transparent text-[#0bd1a2]/40 border border-[#0bd1a2]/20 hover:bg-[#0bd1a2]/5"}`

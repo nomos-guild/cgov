@@ -116,7 +116,7 @@ export default function DRepPageLayout({
                       key={label}
                       className={
                         isLight
-                          ? "rounded-2xl border border-border/40 bg-card p-4 shadow-elevation-2"
+                          ? "rounded-2xl border border-border bg-card p-4 shadow-elevation-2"
                           : isGame
                           ? "rounded-[2px] border-none bg-[rgba(12,12,12,0.5)] p-4 shadow-[0_12px_28px_rgba(0,0,0,0.5),0_4px_12px_rgba(0,0,0,0.35)]"
                           : "rounded-none border border-[#0bd1a2] bg-transparent p-4 shadow-none"
@@ -148,7 +148,7 @@ export default function DRepPageLayout({
               <FadeIn delay={260} duration={500} distance={24} routeKey="/drep">
                 <div className={
                   isLight
-                    ? "rounded-2xl border border-border/40 bg-card px-4 sm:px-6 pt-3 pb-4 shadow-elevation-2 mb-4 overflow-visible"
+                    ? "rounded-2xl border border-border bg-card px-4 sm:px-6 pt-3 pb-4 shadow-elevation-2 mb-4 overflow-visible"
                     : isGame
                     ? "game-drep-content rounded-[2px] border-none bg-[rgba(12,12,12,0.5)] px-4 sm:px-6 py-3 shadow-[0_18px_36px_rgba(0,0,0,0.55),0_6px_18px_rgba(0,0,0,0.4)] mb-4"
                     : "rounded-none border border-[#0bd1a2] bg-transparent px-4 sm:px-6 py-3 shadow-none mb-4"
@@ -168,8 +168,10 @@ export default function DRepPageLayout({
                                   isActive && "game-tab-btn-active"
                                 )
                               : cn(
-                                  "rounded-full border border-border/40 bg-white text-black px-2 sm:px-3 py-1 sm:py-1.5 text-2xs sm:text-xs font-semibold uppercase tracking-wide transform-gpu transition-transform transition-shadow duration-normal ease-in-out shadow-elevation-2 hover:scale-101 hover:shadow-elevation-3 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon",
-                                  isActive && "bg-black text-white dark:bg-[#0bd1a2] dark:text-black"
+                                  "px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-normal whitespace-nowrap dark:rounded-none dark:text-[#0bd1a2]/60 dark:hover:text-[#0bd1a2]",
+                                  isActive
+                                    ? "bg-foreground text-background dark:bg-[#0bd1a2] dark:text-black"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
                                 )
                           )}
                         >

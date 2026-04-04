@@ -49,7 +49,7 @@ export function GovernanceStats() {
 
   const formatAdaFull = (value: number): string => `₳ ${Math.round(value).toLocaleString()}`;
 
-  const cardClass = "rounded-2xl border border-border/40 bg-card p-2.5 sm:p-3 md:p-4 shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-background dark:shadow-none";
+  const cardClass = "rounded-xl border border-border bg-card p-2.5 sm:p-3 md:p-4 shadow-elevation-1 dark:rounded-none dark:border-[#0bd1a2] dark:bg-background dark:shadow-none min-h-[80px] sm:min-h-[90px] flex flex-col justify-center";
 
   return (
     <div className="relative z-20 grid grid-cols-1 md:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-6 game-stats">
