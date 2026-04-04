@@ -76,7 +76,7 @@ function hullPath(points: [number, number][], pad: number): string {
 function PanelSection({ title, children, isDark }: { title: string; children: React.ReactNode; isDark: boolean }) {
   return (
     <div className={cn("border-t pt-3 mt-3", isDark ? "border-white/10" : "border-gray-100")}>
-      <p className="font-semibold text-[11px] uppercase tracking-wide mb-2 opacity-60">{title}</p>
+      <p className="font-semibold text-xs uppercase tracking-wide mb-2 opacity-60">{title}</p>
       {children}
     </div>
   );
@@ -113,7 +113,7 @@ function NodeInfoPanel({
       )}
     >
       <span className="truncate">{n.label}</span>
-      {extra && <span className="text-[10px] opacity-50 flex-shrink-0 ml-2">{extra}</span>}
+      {extra && <span className="text-2xs opacity-50 flex-shrink-0 ml-2">{extra}</span>}
     </button>
   );
 
@@ -130,7 +130,7 @@ function NodeInfoPanel({
             <img src={node.meta.avatarUrl} alt={node.label} className="w-14 h-14 rounded-full mb-2 border-2 border-current/20" />
           )}
           <h4 className="font-bold text-base truncate">{node.label}</h4>
-          <p className="text-[11px] opacity-50 truncate">{fullId}</p>
+          <p className="text-xs opacity-50 truncate">{fullId}</p>
         </div>
         <button onClick={onClose} className="p-1 rounded hover:bg-muted/20 flex-shrink-0 mt-1"><X className="w-4 h-4" /></button>
       </div>
@@ -138,7 +138,7 @@ function NodeInfoPanel({
       {/* Type badge + status badges */}
       <div className="flex flex-wrap gap-1.5 mb-3">
         <span className={cn(
-          "text-[10px] px-2 py-0.5 rounded-full font-medium",
+          "text-2xs px-2 py-0.5 rounded-full font-medium",
           node.type === "org" ? "bg-blue-500/15 text-blue-400" :
           node.type === "repo" ? "bg-green-500/15 text-green-400" :
           "bg-purple-500/15 text-purple-400"
@@ -146,18 +146,18 @@ function NodeInfoPanel({
           {node.type === "org" ? "Organization" : node.type === "repo" ? "Repository" : "Developer"}
         </span>
         {isDevMeta(node) && node.meta.isBridge && (
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 font-medium">Bridge</span>
+          <span className="text-2xs px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 font-medium">Bridge</span>
         )}
         {isDevMeta(node) && (
-          <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-medium",
+          <span className={cn("text-2xs px-2 py-0.5 rounded-full font-medium",
             node.meta.isActive ? "bg-emerald-500/15 text-emerald-400" : "bg-gray-500/15 text-gray-400"
           )}>{node.meta.isActive ? "Active" : "Inactive"}</span>
         )}
         {isRepoMeta(node) && node.meta.isArchived && (
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-500/15 text-gray-400 font-medium">Archived</span>
+          <span className="text-2xs px-2 py-0.5 rounded-full bg-gray-500/15 text-gray-400 font-medium">Archived</span>
         )}
         {isRepoMeta(node) && isRecentlyActive(node) && (
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-medium">Active</span>
+          <span className="text-2xs px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-medium">Active</span>
         )}
       </div>
 
@@ -169,19 +169,19 @@ function NodeInfoPanel({
           )}
           <div className="grid grid-cols-2 gap-2 text-xs mb-1">
             <div className={cn("rounded-lg p-2", isDark ? "bg-white/5" : "bg-gray-50")}>
-              <p className="text-[10px] opacity-50">Stars</p>
+              <p className="text-2xs opacity-50">Stars</p>
               <p className="font-semibold flex items-center gap-1"><Star className="w-3 h-3" />{node.meta.stars.toLocaleString()}</p>
             </div>
             <div className={cn("rounded-lg p-2", isDark ? "bg-white/5" : "bg-gray-50")}>
-              <p className="text-[10px] opacity-50">Forks</p>
+              <p className="text-2xs opacity-50">Forks</p>
               <p className="font-semibold flex items-center gap-1"><GitFork className="w-3 h-3" />{node.meta.forks.toLocaleString()}</p>
             </div>
             <div className={cn("rounded-lg p-2", isDark ? "bg-white/5" : "bg-gray-50")}>
-              <p className="text-[10px] opacity-50">Commits</p>
+              <p className="text-2xs opacity-50">Commits</p>
               <p className="font-semibold">{node.meta.commitCount.toLocaleString()}</p>
             </div>
             <div className={cn("rounded-lg p-2", isDark ? "bg-white/5" : "bg-gray-50")}>
-              <p className="text-[10px] opacity-50">Sync tier</p>
+              <p className="text-2xs opacity-50">Sync tier</p>
               <p className="font-semibold capitalize">{node.meta.syncTier}</p>
             </div>
           </div>
@@ -191,7 +191,7 @@ function NodeInfoPanel({
               <span className="font-medium">{node.meta.language}</span>
             </div>
           )}
-          <p className="text-[11px] opacity-50 mt-2">Last activity: {formatDate(node.meta.lastActivityAt)}</p>
+          <p className="text-xs opacity-50 mt-2">Last activity: {formatDate(node.meta.lastActivityAt)}</p>
 
           {connectedByType("developer").length > 0 && (
             <PanelSection title={`Contributors (${connectedByType("developer").length})`} isDark={isDark}>
@@ -213,23 +213,23 @@ function NodeInfoPanel({
         <>
           <div className="grid grid-cols-2 gap-2 text-xs mb-1">
             <div className={cn("rounded-lg p-2", isDark ? "bg-white/5" : "bg-gray-50")}>
-              <p className="text-[10px] opacity-50">Commits</p>
+              <p className="text-2xs opacity-50">Commits</p>
               <p className="font-semibold">{node.meta.totalCommits.toLocaleString()}</p>
             </div>
             <div className={cn("rounded-lg p-2", isDark ? "bg-white/5" : "bg-gray-50")}>
-              <p className="text-[10px] opacity-50">Pull requests</p>
+              <p className="text-2xs opacity-50">Pull requests</p>
               <p className="font-semibold">{node.meta.totalPRs.toLocaleString()}</p>
             </div>
             <div className={cn("rounded-lg p-2", isDark ? "bg-white/5" : "bg-gray-50")}>
-              <p className="text-[10px] opacity-50">Repositories</p>
+              <p className="text-2xs opacity-50">Repositories</p>
               <p className="font-semibold">{node.meta.repoCount}</p>
             </div>
             <div className={cn("rounded-lg p-2", isDark ? "bg-white/5" : "bg-gray-50")}>
-              <p className="text-[10px] opacity-50">Organizations</p>
+              <p className="text-2xs opacity-50">Organizations</p>
               <p className="font-semibold">{node.meta.orgCount}</p>
             </div>
           </div>
-          <p className="text-[11px] opacity-50 mt-2">Last seen: {formatDate(node.meta.lastSeenAt)}</p>
+          <p className="text-xs opacity-50 mt-2">Last seen: {formatDate(node.meta.lastSeenAt)}</p>
 
           {connectedByType("repo").length > 0 && (
             <PanelSection title={`Repos (${connectedByType("repo").length})`} isDark={isDark}>
@@ -247,7 +247,7 @@ function NodeInfoPanel({
                     >
                       {lang && <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: getLanguageColor(lang) }} />}
                       <span className="truncate">{c.node.label}</span>
-                      <span className="text-[10px] opacity-50 flex-shrink-0 ml-auto">{c.weight} events</span>
+                      <span className="text-2xs opacity-50 flex-shrink-0 ml-auto">{c.weight} events</span>
                     </button>
                   );
                 })}
@@ -278,27 +278,27 @@ function NodeInfoPanel({
         <>
           <div className="grid grid-cols-2 gap-2 text-xs mb-1">
             <div className={cn("rounded-lg p-2", isDark ? "bg-white/5" : "bg-gray-50")}>
-              <p className="text-[10px] opacity-50">Stars</p>
+              <p className="text-2xs opacity-50">Stars</p>
               <p className="font-semibold flex items-center gap-1"><Star className="w-3 h-3" />{totalStars.toLocaleString()}</p>
             </div>
             <div className={cn("rounded-lg p-2", isDark ? "bg-white/5" : "bg-gray-50")}>
-              <p className="text-[10px] opacity-50">Forks</p>
+              <p className="text-2xs opacity-50">Forks</p>
               <p className="font-semibold flex items-center gap-1"><GitFork className="w-3 h-3" />{totalForks.toLocaleString()}</p>
             </div>
             <div className={cn("rounded-lg p-2", isDark ? "bg-white/5" : "bg-gray-50")}>
-              <p className="text-[10px] opacity-50">Repositories</p>
+              <p className="text-2xs opacity-50">Repositories</p>
               <p className="font-semibold">{node.meta.repoCount}</p>
             </div>
             <div className={cn("rounded-lg p-2", isDark ? "bg-white/5" : "bg-gray-50")}>
-              <p className="text-[10px] opacity-50">Total commits</p>
+              <p className="text-2xs opacity-50">Total commits</p>
               <p className="font-semibold">{node.meta.commitCount.toLocaleString()}</p>
             </div>
             <div className={cn("rounded-lg p-2", isDark ? "bg-white/5" : "bg-gray-50")}>
-              <p className="text-[10px] opacity-50">Active devs</p>
+              <p className="text-2xs opacity-50">Active devs</p>
               <p className="font-semibold">{activeDevs} / {connDevs.length}</p>
             </div>
             <div className={cn("rounded-lg p-2", isDark ? "bg-white/5" : "bg-gray-50")}>
-              <p className="text-[10px] opacity-50">Top language</p>
+              <p className="text-2xs opacity-50">Top language</p>
               <p className="font-semibold flex items-center gap-1">
                 {topLanguage ? (
                   <><span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: getLanguageColor(topLanguage[0]) }} />{topLanguage[0]}</>
@@ -325,7 +325,7 @@ function NodeInfoPanel({
                       {lang && <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: getLanguageColor(lang) }} />}
                       <span className="truncate">{c.node.label}</span>
                       {stars > 0 && (
-                        <span className="text-[10px] opacity-50 flex-shrink-0 ml-auto flex items-center gap-0.5">
+                        <span className="text-2xs opacity-50 flex-shrink-0 ml-auto flex items-center gap-0.5">
                           <Star className="w-2.5 h-2.5" />{stars}
                         </span>
                       )}
@@ -384,12 +384,12 @@ function GraphTooltip({
         <p className="font-bold text-[13px]">{node.label}</p>
         {active && <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" title="Active in last 14 days" />}
       </div>
-      <p className="text-[10px] opacity-40 mb-1.5">{fullId}</p>
+      <p className="text-2xs opacity-40 mb-1.5">{fullId}</p>
 
       {isRepoMeta(node) && (
         <div className="space-y-1">
-          {node.meta.description && <p className="text-[11px] opacity-70 leading-snug line-clamp-2">{node.meta.description}</p>}
-          <div className="flex items-center gap-3 text-[11px]">
+          {node.meta.description && <p className="text-xs opacity-70 leading-snug line-clamp-2">{node.meta.description}</p>}
+          <div className="flex items-center gap-3 text-xs">
             {node.meta.language && (
               <span className="flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full" style={{ backgroundColor: getLanguageColor(node.meta.language) }} />
@@ -399,40 +399,40 @@ function GraphTooltip({
             <span className="flex items-center gap-1"><Star className="w-3 h-3" />{node.meta.stars.toLocaleString()}</span>
             <span className="flex items-center gap-1"><GitFork className="w-3 h-3" />{node.meta.forks.toLocaleString()}</span>
           </div>
-          <div className="flex items-center gap-3 text-[11px] opacity-70">
+          <div className="flex items-center gap-3 text-xs opacity-70">
             <span>{node.meta.commitCount.toLocaleString()} commits</span>
             <span>Tier: {node.meta.syncTier}</span>
             {node.meta.isArchived && <span className="text-amber-400">Archived</span>}
           </div>
-          <p className="text-[10px] opacity-50">Last activity: {formatDate(node.meta.lastActivityAt)}</p>
+          <p className="text-2xs opacity-50">Last activity: {formatDate(node.meta.lastActivityAt)}</p>
         </div>
       )}
 
       {isDevMeta(node) && (
         <div className="space-y-1">
-          <div className="flex items-center gap-3 text-[11px]">
+          <div className="flex items-center gap-3 text-xs">
             <span>{node.meta.totalCommits.toLocaleString()} commits</span>
             <span>{node.meta.totalPRs.toLocaleString()} PRs</span>
           </div>
-          <div className="flex items-center gap-3 text-[11px] opacity-70">
+          <div className="flex items-center gap-3 text-xs opacity-70">
             <span>{node.meta.repoCount} repos</span>
             <span>{node.meta.orgCount} orgs</span>
             <span>{node.meta.isActive ? "Active" : "Inactive"}</span>
           </div>
           {node.meta.isBridge && (
-            <p className="text-amber-400 font-medium text-[11px]">Cross-org bridge developer</p>
+            <p className="text-amber-400 font-medium text-xs">Cross-org bridge developer</p>
           )}
-          <p className="text-[10px] opacity-50">Last seen: {formatDate(node.meta.lastSeenAt)}</p>
+          <p className="text-2xs opacity-50">Last seen: {formatDate(node.meta.lastSeenAt)}</p>
         </div>
       )}
 
       {isOrgMeta(node) && (
         <div className="space-y-1">
-          <div className="flex items-center gap-3 text-[11px]">
+          <div className="flex items-center gap-3 text-xs">
             <span>{node.meta.repoCount} repositories</span>
             <span>{node.meta.commitCount.toLocaleString()} commits</span>
           </div>
-          <p className="text-[11px] opacity-70">Activity score: {node.size.toLocaleString()}</p>
+          <p className="text-xs opacity-70">Activity score: {node.size.toLocaleString()}</p>
         </div>
       )}
     </div>
@@ -1081,7 +1081,7 @@ export function EcosystemNetworkGraph({ isLoading, className }: ChartProps) {
                     />
                     <span className="truncate flex-1">{n.label}</span>
                     <span className={cn(
-                      "text-[10px] px-1.5 py-0.5 rounded font-medium flex-shrink-0",
+                      "text-2xs px-1.5 py-0.5 rounded font-medium flex-shrink-0",
                       n.type === "org" ? "bg-blue-500/15 text-blue-400" :
                       n.type === "repo" ? "bg-green-500/15 text-green-400" :
                       "bg-purple-500/15 text-purple-400"
@@ -1103,7 +1103,7 @@ export function EcosystemNetworkGraph({ isLoading, className }: ChartProps) {
                   key={t}
                   onClick={() => setFilterTypes((p) => ({ ...p, [t]: !p[t] }))}
                   className={cn(
-                    "px-2 py-0.5 rounded text-[10px] font-medium transition-colors flex items-center gap-1.5",
+                    "px-2 py-0.5 rounded text-2xs font-medium transition-colors flex items-center gap-1.5",
                     !filterTypes[t] && (isDark ? "opacity-30" : "opacity-40"),
                   )}
                   style={{

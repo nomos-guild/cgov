@@ -190,6 +190,8 @@ export interface VoteRecord {
   votedAt: string;
   // Transaction hash of the vote transaction
   txHash?: string;
+  // True when the vote was frontloaded and chain has not yet confirmed it
+  isPendingConfirmation?: boolean;
 }
 
 /**

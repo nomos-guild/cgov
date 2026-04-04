@@ -133,7 +133,7 @@ export function VotingRationaleModal({
           "max-w-4xl max-h-[85vh] sm:max-h-[90vh] overflow-hidden flex flex-col w-[calc(100vw-2rem)] sm:w-auto",
           isGame 
             ? "game-modal-card" 
-            : "rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-black dark:bg-opacity-90 dark:shadow-none",
+            : "rounded-2xl border border-border/40 bg-card shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-black dark:bg-opacity-90 dark:shadow-none",
           isNoVote && "no-vote"
         )}
       >
@@ -156,7 +156,7 @@ export function VotingRationaleModal({
                   )}
                 </div>
                 {voterId && (
-                  <div className="flex items-center gap-1.5 text-[10px] sm:text-xs font-mono break-all text-white/50 hidden sm:block">
+                  <div className="flex items-center gap-1.5 text-2xs sm:text-xs font-mono break-all text-white/50 hidden sm:block">
                     <span className="flex-1">{voterId}</span>
                     <button onClick={() => handleCopy(voterId, "id")} className="hover:text-white/80 transition-colors shrink-0" title="Copy">
                       {copiedField === "id" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
@@ -164,7 +164,7 @@ export function VotingRationaleModal({
                   </div>
                 )}
                 {vote.txHash && (
-                  <div className="flex items-center gap-1.5 text-[10px] sm:text-xs text-white/50">
+                  <div className="flex items-center gap-1.5 text-2xs sm:text-xs text-white/50">
                     <span className="text-white/40 shrink-0">{t("txHash")}:</span>
                     <a
                       href={`https://adastat.net/transactions/${vote.txHash}`}
@@ -180,7 +180,7 @@ export function VotingRationaleModal({
                   </div>
                 )}
                 {formattedDate && (
-                  <div className="text-[10px] sm:text-xs text-white/50">
+                  <div className="text-2xs sm:text-xs text-white/50">
                     <span className="text-white/40">{t("votedOn")}:</span>{" "}
                     {formattedDate}
                   </div>
@@ -227,7 +227,7 @@ export function VotingRationaleModal({
           ) : (
             <>
               {/* Compact voter info on mobile */}
-              <div className="rounded-xl sm:rounded-2xl border border-white/8 bg-[#faf9f6] p-3 sm:p-5 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none space-y-2 sm:space-y-3">
+              <div className="rounded-xl sm:rounded-2xl border border-border/40 bg-card p-3 sm:p-5 shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none space-y-2 sm:space-y-3">
                 <div className="flex flex-wrap items-center gap-2 text-sm dark:text-[#0bd1a2]">
                   <span className="font-semibold">{vote.voterName ?? vote.drepName ?? vote.voterId ?? vote.drepId ?? t("unknownVoter")}</span>
                   <span className="text-xs px-1.5 py-0.5 rounded border border-current">{vote.vote}</span>
@@ -236,7 +236,7 @@ export function VotingRationaleModal({
                   )}
                 </div>
                 {voterId && (
-                  <div className="flex items-center gap-1.5 text-[10px] sm:text-xs text-muted-foreground font-mono break-all dark:text-[#0bd1a2] hidden sm:block">
+                  <div className="flex items-center gap-1.5 text-2xs sm:text-xs text-muted-foreground font-mono break-all dark:text-[#0bd1a2] hidden sm:block">
                     <span className="flex-1">{voterId}</span>
                     <button onClick={() => handleCopy(voterId, "id")} className="hover:opacity-80 transition-opacity shrink-0" title="Copy">
                       {copiedField === "id" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
@@ -244,7 +244,7 @@ export function VotingRationaleModal({
                   </div>
                 )}
                 {vote.txHash && (
-                  <div className="flex items-center gap-1.5 text-[10px] sm:text-xs text-muted-foreground dark:text-[#0bd1a2]/60">
+                  <div className="flex items-center gap-1.5 text-2xs sm:text-xs text-muted-foreground dark:text-[#0bd1a2]/60">
                     <span className="opacity-70 shrink-0">{t("txHash")}:</span>
                     <a
                       href={`https://adastat.net/transactions/${vote.txHash}`}
@@ -260,7 +260,7 @@ export function VotingRationaleModal({
                   </div>
                 )}
                 {formattedDate && (
-                  <div className="text-[10px] sm:text-xs text-muted-foreground dark:text-[#0bd1a2]/60">
+                  <div className="text-2xs sm:text-xs text-muted-foreground dark:text-[#0bd1a2]/60">
                     <span className="opacity-70">{t("votedOn")}:</span>{" "}
                     {formattedDate}
                   </div>

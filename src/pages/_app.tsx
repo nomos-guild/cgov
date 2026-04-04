@@ -12,6 +12,8 @@ import { Footer } from "@/components/Footer";
 import { ThemeProvider } from "@/lib/theme";
 import { MeshProviderWrapper } from "@/components/providers/MeshProviderWrapper";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { PageLoadingBar } from "@/components/PageLoadingBar";
+import { PageTransition } from "@/components/PageTransition";
 import { isValidLocale } from "@/lib/i18n";
 import { useSmoothScroll } from "@/hooks/useSmoothScroll";
 
@@ -65,11 +67,14 @@ export default function App({ Component, pageProps }: AppProps) {
             <Head>
               <link rel="icon" href="/favicon.ico?v=2" />
             </Head>
+            <PageLoadingBar />
             <div id="app-brightness-wrapper" className="min-h-screen flex flex-col">
               <MeshProviderWrapper>
                 <Header />
                 <main className="main-content">
-                  <Component {...pageProps} />
+                  <PageTransition>
+                    <Component {...pageProps} />
+                  </PageTransition>
                 </main>
                 <Footer />
               </MeshProviderWrapper>

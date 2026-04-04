@@ -238,10 +238,10 @@ export function DRepConcentrationChart({
                 key={item.key}
                 onClick={() => setLocalMetric(item.key)}
                 className={`
-                  px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide
+                  px-2.5 py-1 text-2xs font-semibold uppercase tracking-wide
                   transition-all duration-200
                   ${isGame
-                    ? `${localMetric === item.key ? "bg-white/10 text-white border border-white/20" : "bg-transparent text-white/40 border border-white/8 hover:bg-white/5"}`
+                    ? `${localMetric === item.key ? "bg-white/10 text-white border border-white/20" : "bg-transparent text-white/40 border border-border/40 hover:bg-white/5"}`
                     : isLight
                       ? `${localMetric === item.key ? "bg-black text-white border border-black" : "bg-transparent text-slate-400 border border-slate-200 hover:bg-slate-50"}`
                       : `${localMetric === item.key ? "bg-[#0bd1a2] text-black border border-[#0bd1a2]" : "bg-transparent text-[#0bd1a2]/40 border border-[#0bd1a2]/20 hover:bg-[#0bd1a2]/5"}`
@@ -267,7 +267,7 @@ export function DRepConcentrationChart({
                 key={item.key}
                 onClick={() => setHighlightedLine(isSelected ? null : item.key)}
                 className={`
-                  px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide
+                  px-2.5 py-1 text-2xs font-semibold uppercase tracking-wide
                   transition-all duration-200 border-l-2
                   ${isGame
                     ? `${isSelected ? "bg-white/10 text-white" : isDimmed ? "bg-transparent text-white/30" : "bg-transparent text-white/60 hover:bg-white/5"}`

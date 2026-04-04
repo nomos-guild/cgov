@@ -68,7 +68,7 @@ export default function Analytics({ initialData }: InferGetStaticPropsType<typeo
     return `${value}`;
   };
 
-  const cardClass = "rounded-2xl border border-white/8 bg-[#faf9f6] p-4 sm:p-5 md:p-6 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-background dark:shadow-none";
+  const cardClass = "rounded-2xl border border-border/40 bg-card p-4 sm:p-5 md:p-6 shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-background dark:shadow-none";
 
   return (
     <>

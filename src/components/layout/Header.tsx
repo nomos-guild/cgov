@@ -127,7 +127,7 @@ export function Header() {
                           isLight ? "rounded-md" : "rounded-none",
                           isActive
                             ? isLight
-                              ? "bg-black text-white border-black shadow-[0_12px_30px_rgba(15,23,42,0.25)]"
+                              ? "bg-black text-white border-black shadow-elevation-2"
                               : "bg-[#0bd1a2] text-black border-[#0bd1a2]"
                             : isLight
                               ? "bg-background/80 text-foreground border-input shadow-soft hover:bg-black hover:text-white"

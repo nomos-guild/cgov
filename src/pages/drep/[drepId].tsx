@@ -40,7 +40,45 @@ interface DRepProfilePageProps {
 }
 
 
-export default function DRepProfile({
+function SkeletonBlock({ className }: { className?: string }) {
+  return <div className={cn("animate-pulse rounded-lg bg-muted/60", className)} />;
+}
+
+function DRepSkeleton() {
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-3 pt-8 pb-4 sm:px-4 sm:pt-10 md:px-6 md:pt-12">
+        <SkeletonBlock className="h-5 w-24 mb-6" />
+        <div className="flex items-center gap-4 mb-8">
+          <SkeletonBlock className="h-16 w-16 rounded-full" />
+          <div className="space-y-2 flex-1">
+            <SkeletonBlock className="h-7 w-48" />
+            <SkeletonBlock className="h-4 w-64" />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+          <SkeletonBlock className="h-20" />
+          <SkeletonBlock className="h-20" />
+          <SkeletonBlock className="h-20" />
+          <SkeletonBlock className="h-20" />
+        </div>
+        <SkeletonBlock className="h-64 w-full" />
+      </div>
+    </div>
+  );
+}
+
+export default function DRepProfile(props: DRepProfilePageProps) {
+  const router = useRouter();
+
+  if (router.isFallback) {
+    return <DRepSkeleton />;
+  }
+
+  return <DRepProfileContent {...props} />;
+}
+
+function DRepProfileContent({
   initialDrep,
   initialVotes,
   initialHistory,
@@ -188,7 +226,7 @@ export default function DRepProfile({
   const cardClass = isGame
     ? "rounded-[2px] border-none bg-[rgba(12,12,12,0.5)] p-4 sm:p-6 shadow-[0_18px_36px_rgba(0,0,0,0.55),0_6px_18px_rgba(0,0,0,0.4)]"
     : isLight
-    ? "rounded-2xl border border-white/8 bg-[#faf9f6] p-4 sm:p-6 shadow-[0_12px_30px_rgba(15,23,42,0.25)]"
+    ? "rounded-2xl border border-border/40 bg-card p-4 sm:p-6 shadow-elevation-2"
     : "rounded-none border border-[#0bd1a2] bg-transparent p-4 sm:p-6 shadow-none";
 
   return (
@@ -212,7 +250,7 @@ export default function DRepProfile({
                   isGame
                     ? "game-nav-btn"
                     : isLight
-                    ? "bg-white text-black shadow-[0_12px_30px_rgba(15,23,42,0.25)] hover:bg-black hover:text-white"
+                    ? "bg-white text-black shadow-elevation-2 hover:bg-black hover:text-white"
                     : "rounded-none border border-[#0bd1a2] bg-transparent text-[#0bd1a2] shadow-none hover:bg-[#0bd1a2] hover:text-black"
                 )}
               >
@@ -571,7 +609,7 @@ export default function DRepProfile({
                 isGame
                   ? "game-drep-content rounded-[2px] border-none bg-[rgba(12,12,12,0.5)] shadow-[0_18px_36px_rgba(0,0,0,0.55),0_6px_18px_rgba(0,0,0,0.4)]"
                   : isLight
-                  ? "rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)]"
+                  ? "rounded-2xl border border-border/40 bg-card shadow-elevation-2"
                   : "rounded-none border border-[#0bd1a2] bg-transparent shadow-none"
               )}>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -601,8 +639,8 @@ export default function DRepProfile({
                               ? cn("game-tab-btn", isActive && "game-tab-btn-active")
                               : isLight
                               ? cn(
-                                  "rounded-full border border-white/8 bg-white text-black shadow-[0_12px_30px_rgba(15,23,42,0.25)]",
-                                  isActive ? "bg-black text-white" : "hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)]"
+                                  "rounded-full border border-border/40 bg-white text-black shadow-elevation-2",
+                                  isActive ? "bg-black text-white" : "hover:scale-101 hover:shadow-elevation-3"
                                 )
                               : cn(
                                   "rounded-none border border-[#0bd1a2] bg-transparent text-[#0bd1a2] btn-neon",
@@ -658,7 +696,7 @@ export default function DRepProfile({
 
 export const getStaticPaths: GetStaticPaths = () => ({
   paths: [],
-  fallback: "blocking",
+  fallback: true,
 });
 
 export const getStaticProps: GetStaticProps<DRepProfilePageProps> = async ({

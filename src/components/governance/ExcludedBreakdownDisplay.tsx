@@ -60,19 +60,19 @@ export function ExcludedBreakdownDisplay({
         )}
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <div className="text-[10px] uppercase tracking-wide">
+        <div className="text-2xs uppercase tracking-wide">
           {isInfoAction ? tProposal("excluded") : tProposal("excludedFromRatification")}
         </div>
         <div className="flex items-center gap-2">
           <span className={cn(
-            "font-mono text-[10px]",
+            "font-mono text-2xs",
             isGame ? "text-white/60" : "text-muted-foreground/80 dark:text-[#0bd1a2]/70"
           )}>
             {isCC ? `${totalValue}` : formatAdaValue(totalValue)}
           </span>
           <svg
             className={cn(
-              "h-3 w-3 transition-transform duration-300",
+              "h-3 w-3 transition-transform duration-normal",
               isExpanded ? "rotate-180" : "",
               isGame ? "text-white/60" : "text-foreground dark:text-[#0bd1a2]"
             )}
@@ -87,7 +87,7 @@ export function ExcludedBreakdownDisplay({
 
       {/* Expandable breakdown details */}
       <div className={cn(
-        "overflow-hidden transition-all duration-300 ease-in-out",
+        "overflow-hidden transition-all duration-normal ease-in-out",
         isExpanded ? "max-h-[200px] opacity-100" : "max-h-0 opacity-0"
       )}>
         <div className={cn(
@@ -106,13 +106,13 @@ export function ExcludedBreakdownDisplay({
               )}
             >
               <span className={cn(
-                "text-[10px]",
+                "text-2xs",
                 isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]/80"
               )}>
                 {item.label}
               </span>
               <span className={cn(
-                "font-mono text-[10px]",
+                "font-mono text-2xs",
                 isGame ? "text-white/60" : "text-muted-foreground/80 dark:text-[#0bd1a2]/70"
               )}>
                 {isCC ? `${item.value}` : formatAdaValue(item.value)}

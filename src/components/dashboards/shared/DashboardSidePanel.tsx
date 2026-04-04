@@ -171,7 +171,7 @@ export function DashboardSidePanel() {
       <div
         data-side-panel
         className={cn(
-          "fixed top-0 right-0 h-full w-[400px] max-w-[90vw] z-[100] shadow-2xl transition-transform duration-300 ease-out",
+          "fixed top-0 right-0 h-full w-[400px] max-w-[90vw] z-[100] shadow-2xl transition-transform duration-normal ease-out",
           isGame
             ? "bg-black border-l border-white/20"
             : isDark

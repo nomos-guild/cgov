@@ -188,7 +188,7 @@ export function DRepRationaleChart({ isLoading, className }: ChartProps) {
         </div>
         <div className="w-full h-1.5 rounded-full overflow-hidden bg-muted/40">
           <div
-            className="h-full rounded-full bg-primary transition-all duration-300"
+            className="h-full rounded-full bg-primary transition-all duration-normal"
             style={{ width: `${rationalePercent}%` }}
           />
         </div>

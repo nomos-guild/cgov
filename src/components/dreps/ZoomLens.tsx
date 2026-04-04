@@ -78,8 +78,8 @@ export function ZoomLens({
   const btnW = LENS_W - 20;
   const btnH = 34;
   const btnClass = isGame
-    ? "game-tab-btn data-[state=active]:game-tab-btn-active text-[11px]"
-    : "rounded-full border border-white/8 bg-white text-black px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide shadow-[0_12px_30px_rgba(15,23,42,0.25)] hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:hover:bg-[#0bd1a2] dark:hover:text-black btn-neon";
+    ? "game-tab-btn data-[state=active]:game-tab-btn-active text-xs"
+    : "rounded-full border border-border/40 bg-white text-black px-3 py-1.5 text-xs font-semibold uppercase tracking-wide shadow-elevation-2 hover:scale-101 hover:shadow-elevation-3 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:hover:bg-[#0bd1a2] dark:hover:text-black btn-neon";
 
   const clipId = `${idPrefix}-zoom-lens-clip`;
 

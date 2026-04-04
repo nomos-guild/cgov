@@ -887,7 +887,7 @@
   background-color: transparent !important;
 }
 
-[data-theme="game"] .bg-\[\#faf9f6\] {
+[data-theme="game"] .bg-card {
   background-color: hsla(var(--surface), 0.78) !important;
   backdrop-filter: blur(10px);
 }

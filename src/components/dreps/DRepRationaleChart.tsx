@@ -94,7 +94,7 @@ export function RationaleChart({ rationalesProvided, totalVotesCast, isGame, isL
                     isGame
                       ? "game-tooltip-card rounded-sm px-3 py-2 text-xs"
                       : isLight
-                      ? "bg-white text-gray-900 border border-gray-200 shadow-[0_4px_12px_rgba(15,23,42,0.15)]"
+                      ? "bg-white text-gray-900 border border-gray-200 shadow-elevation-1"
                       : "bg-[rgba(8,8,8,0.95)] border border-[#0bd1a2]/30 rounded-sm px-3 py-2 text-xs"
                   )}>
                     <p className={cn("font-medium", isGame ? "text-white" : !isLight && "text-[#0bd1a2]")}>{item.name}: {item.value}</p>

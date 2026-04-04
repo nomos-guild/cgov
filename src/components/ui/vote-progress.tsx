@@ -235,7 +235,7 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
 
         return (
           <div className="rounded-md border bg-background/95 px-3 py-2 text-xs shadow-md pointer-events-none">
-            <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               {title || "Votes"}
             </div>
             <div className="font-semibold text-foreground">
@@ -264,7 +264,7 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
         <div
           ref={ref}
           className={cn(
-            "border-white/8 flex flex-col items-center gap-0 border bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] rounded-3xl px-[14px] pt-0 pb-0 sm:gap-2 sm:pt-[12px] sm:pb-[14px] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none",
+            "border-border/40 flex flex-col items-center gap-0 border bg-card shadow-elevation-2 rounded-3xl px-[14px] pt-0 pb-0 sm:gap-2 sm:pt-[12px] sm:pb-[14px] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none",
             className
           )}
           style={cardStyle}
@@ -316,7 +316,7 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
               </span>
             ) : showYesPercent ? (
               <span className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-white" style={{ cursor: 'inherit' }}>
-                <span className="text-[10px] font-medium uppercase tracking-wide opacity-80">Yes</span>
+                <span className="text-2xs font-medium uppercase tracking-wide opacity-80">Yes</span>
                 <span className="text-lg font-bold leading-tight">{calculatedYesPercent.toFixed(1)}%</span>
               </span>
             ) : title && titlePosition === "center" ? (
@@ -391,7 +391,7 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
       <div
         ref={ref}
         className={cn(
-          "vote-progress-card border-white/8 flex flex-col items-center gap-0 border bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] rounded-3xl px-[14px] pt-0 pb-0 sm:gap-2 sm:pt-[12px] sm:pb-[14px] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none",
+          "vote-progress-card border-border/40 flex flex-col items-center gap-0 border bg-card shadow-elevation-2 rounded-3xl px-[14px] pt-0 pb-0 sm:gap-2 sm:pt-[12px] sm:pb-[14px] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none",
           className
         )}
         {...props}
@@ -440,7 +440,7 @@ export const VoteProgress = React.forwardRef<HTMLDivElement, VoteProgressProps>(
               "pointer-events-none absolute inset-0 flex flex-col items-center justify-center",
               isDark ? "text-[#0bd1a2]" : "text-foreground"
             )} style={{ cursor: 'inherit' }}>
-              <span className="text-[10px] font-medium uppercase tracking-wide opacity-70">Yes</span>
+              <span className="text-2xs font-medium uppercase tracking-wide opacity-70">Yes</span>
               <span className="text-lg font-bold leading-tight">{calculatedYesPercent.toFixed(1)}%</span>
             </span>
           ) : title && titlePosition === "center" ? (

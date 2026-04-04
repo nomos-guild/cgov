@@ -1,10 +1,7 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useWallet } from "@meshsdk/react";
 import { MeshTxBuilder, hashDrepAnchor } from "@meshsdk/core";
-import { useDispatch, useSelector } from "react-redux";
 import { useTranslations } from "next-intl";
-import type { AppDispatch, RootState } from "@/store";
-import { loadGovernanceActionDetail } from "@/store/governanceSlice";
 import { useProposalSurvey } from "@/hooks/useGovernanceData";
 import {
   verifyDRepRole,
@@ -30,7 +27,6 @@ import {
   Loader2,
   CheckCircle,
   AlertCircle,
-  RefreshCw,
 } from "lucide-react";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
@@ -56,7 +52,8 @@ interface VoteOnProposalProps {
   certIndex: number;
   proposalTitle: string;
   status: string;
-  proposalId: string; // governance action ID for polling
+  proposalId: string;
+  onVoteSubmitted?: () => void;
 }
 
 interface VoteState {
@@ -66,12 +63,6 @@ interface VoteState {
   txHash: string | null;
 }
 
-interface SyncState {
-  isPolling: boolean;
-  isSynced: boolean;
-  pollCount: number;
-  maxPolls: number;
-}
 
 interface WalletRoleState {
   isChecking: boolean;
@@ -324,7 +315,7 @@ function SurveyQuestionInput({
             }
           }}
         />
-        <div className="flex items-center justify-between gap-3 text-[11px] text-muted-foreground">
+        <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
           <span>{constraints.minValue}</span>
           <span>{constraints.maxValue}</span>
         </div>
@@ -356,8 +347,8 @@ export function VoteOnProposal({
   proposalTitle,
   status,
   proposalId,
+  onVoteSubmitted,
 }: VoteOnProposalProps) {
-  const dispatch = useDispatch<AppDispatch>();
   const { connected, wallet } = useWallet();
   const { activeTheme } = useTheme();
   const t = useTranslations("voteAction");
@@ -393,12 +384,6 @@ export function VoteOnProposal({
     error: null,
     txHash: null,
   });
-  const [syncState, setSyncState] = useState<SyncState>({
-    isPolling: false,
-    isSynced: false,
-    pollCount: 0,
-    maxPolls: 15, // 15 polls * 20 seconds = 5 minutes timeout
-  });
   const [walletRoleState, setWalletRoleState] = useState<WalletRoleState>({
     isChecking: false,
     drepId: null,
@@ -409,12 +394,6 @@ export function VoteOnProposal({
   });
   const [walletRoleRefreshNonce, setWalletRoleRefreshNonce] = useState(0);
 
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Get current votes from Redux store to check if our vote has synced
-  const selectedAction = useSelector(
-    (state: RootState) => state.governance.selectedAction
-  );
   const linkedSurvey =
     proposalSurvey?.linked &&
     proposalSurvey.linkValidation.valid &&
@@ -433,111 +412,6 @@ export function VoteOnProposal({
 
   const isActive = status === "Active";
 
-  // Store initial vote count when polling starts
-  const initialVoteCountRef = useRef<number>(0);
-
-  // Start polling after successful vote submission
-  const startPolling = useCallback(() => {
-    // Store current vote count to detect changes
-    const currentCount = selectedAction?.votes?.length || 0;
-    initialVoteCountRef.current = currentCount;
-    console.log(
-      `[Vote Sync] Starting polling. Initial vote count: ${currentCount}`
-    );
-
-    setSyncState({
-      isPolling: true,
-      isSynced: false,
-      pollCount: 0,
-      maxPolls: 15,
-    });
-
-    // Clear any existing interval
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current);
-    }
-
-    // Track poll count locally to avoid stale closure issues
-    let localPollCount = 0;
-
-    pollingIntervalRef.current = setInterval(() => {
-      localPollCount += 1;
-      console.log(`[Vote Sync] Poll #${localPollCount} starting...`);
-
-      // Check if we've exceeded max polls (timeout)
-      if (localPollCount >= 15) {
-        console.log(`[Vote Sync] Timeout reached at poll #${localPollCount}`);
-        if (pollingIntervalRef.current) {
-          clearInterval(pollingIntervalRef.current);
-          pollingIntervalRef.current = null;
-        }
-        setSyncState((prev) => ({
-          ...prev,
-          isPolling: false,
-          pollCount: localPollCount,
-        }));
-        return;
-      }
-
-      // Update poll count in state for UI
-      setSyncState((prev) => ({
-        ...prev,
-        pollCount: localPollCount,
-      }));
-
-      // Dispatch action to refresh proposal data (triggers backend sync-on-read)
-      console.log(
-        `[Vote Sync] Dispatching loadGovernanceActionDetail for ${proposalId}`
-      );
-      dispatch(loadGovernanceActionDetail(proposalId));
-    }, 20000); // Poll every 20 seconds
-    // Note: We intentionally exclude selectedAction?.votes?.length from deps
-    // because we capture the initial count inside the function, and we don't
-    // want the callback to be recreated when votes change (which would break polling)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dispatch, proposalId]);
-
-  // Check if vote is synced (vote count increased)
-  useEffect(() => {
-    const currentVoteCount = selectedAction?.votes?.length || 0;
-    console.log(
-      `[Vote Sync] Sync check effect - isPolling: ${syncState.isPolling}, pollCount: ${syncState.pollCount}, initialCount: ${initialVoteCountRef.current}, currentCount: ${currentVoteCount}`
-    );
-
-    if (syncState.isPolling && voteState.txHash && syncState.pollCount > 1) {
-      // Check if vote count increased (works even when initial count is 0)
-      if (currentVoteCount > initialVoteCountRef.current) {
-        // Vote synced - stop polling
-        console.log(
-          `[Vote Sync] Vote synced! Initial: ${initialVoteCountRef.current}, Current: ${currentVoteCount}`
-        );
-        if (pollingIntervalRef.current) {
-          clearInterval(pollingIntervalRef.current);
-          pollingIntervalRef.current = null;
-        }
-        setSyncState((prev) => ({
-          ...prev,
-          isPolling: false,
-          isSynced: true,
-        }));
-      }
-    }
-  }, [
-    syncState.isPolling,
-    syncState.pollCount,
-    selectedAction?.votes?.length,
-    voteState.txHash,
-  ]);
-
-  // Cleanup interval on unmount only
-  useEffect(() => {
-    return () => {
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-        pollingIntervalRef.current = null;
-      }
-    };
-  }, []);
 
   useEffect(() => {
     if (!isModalOpen) {
@@ -743,12 +617,8 @@ export function VoteOnProposal({
           }
           const { url } = await uploadRes.json();
 
-          const response = await fetch(url);
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-          }
-          const contentJson = await response.json();
-          const anchorDataHash = hashDrepAnchor(contentJson);
+          // Hash the local JSON directly — no need to fetch back from IPFS gateway
+          const anchorDataHash = hashDrepAnchor(rationaleJson);
 
           anchor = {
             anchorUrl: url,
@@ -776,12 +646,8 @@ export function VoteOnProposal({
           }
           const { url } = await uploadRes.json();
 
-          const response = await fetch(url);
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-          }
-          const contentJson = await response.json();
-          const anchorDataHash = hashDrepAnchor(contentJson);
+          // Hash the local JSON directly — no need to fetch back from IPFS gateway
+          const anchorDataHash = hashDrepAnchor(rationaleJson);
 
           anchor = {
             anchorUrl: url,
@@ -858,8 +724,34 @@ export function VoteOnProposal({
         txHash: submittedTxHash,
       });
 
-      // Start polling to sync the vote
-      startPolling();
+      // Frontload vote to backend for immediate visibility, then refresh page data
+      try {
+        await fetch(API_ENDPOINTS.voteFrontload, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            txHash: submittedTxHash,
+            proposalId,
+            vote: selectedVote.toUpperCase(),
+            voterType: "DREP",
+            voterId: toCip129DRepId(drepId),
+            anchorUrl: anchor?.anchorUrl,
+            anchorHash: anchor?.anchorDataHash,
+            rationale: anchor ? JSON.stringify(
+              rationaleMode === "write"
+                ? wrapRationaleAsJson(rationaleComment, rationaleTitle)
+                : rationaleMode === "json"
+                  ? JSON.parse(rationaleJsonText.trim())
+                  : undefined
+            ) : undefined,
+          }),
+        });
+        // Small delay to ensure DB write is committed before read
+        await new Promise((r) => setTimeout(r, 1000));
+        onVoteSubmitted?.();
+      } catch {
+        // Non-critical — cron will pick up the vote eventually
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : t("failedToSubmitVote");
 
@@ -890,16 +782,10 @@ export function VoteOnProposal({
     linkedSurvey,
     drepCanRespond,
     surveyAnswers,
-    startPolling,
     t,
   ]);
 
   const closeModal = () => {
-    // Stop polling if still running
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current);
-      pollingIntervalRef.current = null;
-    }
     setIsModalOpen(false);
     setSelectedVote(null);
     setAnchorUrl("");
@@ -909,12 +795,6 @@ export function VoteOnProposal({
       isSuccess: false,
       error: null,
       txHash: null,
-    });
-    setSyncState({
-      isPolling: false,
-      isSynced: false,
-      pollCount: 0,
-      maxPolls: 15,
     });
   };
 
@@ -934,14 +814,14 @@ export function VoteOnProposal({
     }
 
     // Light theme: white card-style buttons with shadow
-    const cardBase = "bg-white border-transparent shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)] hover:bg-gray-50 hover:text-black";
+    const cardBase = "bg-white border-transparent shadow-elevation-1 hover:shadow-elevation-2 hover:bg-gray-50 hover:text-black";
     switch (vote) {
       case "Yes":
         return cn(
           baseClass,
           voteTypeClass,
           isSelected
-            ? "bg-emerald-600 hover:bg-emerald-700 text-white border-transparent shadow-[0_4px_12px_rgba(0,0,0,0.12)]"
+            ? "bg-emerald-600 hover:bg-emerald-700 text-white border-transparent shadow-elevation-2"
             : `${cardBase} text-black`
         );
       case "No":
@@ -949,7 +829,7 @@ export function VoteOnProposal({
           baseClass,
           voteTypeClass,
           isSelected
-            ? "bg-red-600 hover:bg-red-700 text-white border-transparent shadow-[0_4px_12px_rgba(0,0,0,0.12)]"
+            ? "bg-red-600 hover:bg-red-700 text-white border-transparent shadow-elevation-2"
             : `${cardBase} text-black`
         );
       case "Abstain":
@@ -957,7 +837,7 @@ export function VoteOnProposal({
           baseClass,
           voteTypeClass,
           isSelected
-            ? "bg-gray-500 hover:bg-gray-600 text-white border-transparent shadow-[0_4px_12px_rgba(0,0,0,0.12)]"
+            ? "bg-gray-500 hover:bg-gray-600 text-white border-transparent shadow-elevation-2"
             : `${cardBase} text-black`
         );
     }
@@ -1095,10 +975,6 @@ export function VoteOnProposal({
       <Dialog
         open={isModalOpen}
         onOpenChange={(open: boolean) => {
-          console.log(
-            `[Vote Sync] Dialog onOpenChange called with: ${open}, isPolling: ${syncState.isPolling}, isSuccess: ${voteState.isSuccess}`
-          );
-          // Only close if explicitly requested (not from re-renders)
           if (!open) {
             closeModal();
           }
@@ -1120,11 +996,7 @@ export function VoteOnProposal({
           {voteState.isSuccess ? (
             <div className="space-y-4 px-4 pb-4 sm:px-6 sm:pb-6">
               <div className="flex items-center justify-center py-6">
-                {syncState.isSynced ? (
-                  <CheckCircle className="h-16 w-16 text-success" />
-                ) : (
-                  <CheckCircle className="h-16 w-16 text-success" />
-                )}
+                <CheckCircle className="h-16 w-16 text-success" />
               </div>
               <div className="text-center space-y-2">
                 <p className="font-semibold text-success">
@@ -1135,39 +1007,8 @@ export function VoteOnProposal({
                 </p>
               </div>
 
-              {/* Sync Status Indicator */}
-              <div className="bg-secondary/50 p-4 rounded-lg">
-                {syncState.isPolling ? (
-                  <div className="flex items-center justify-center gap-2 text-sm">
-                    <RefreshCw className="h-4 w-4 animate-spin text-primary" />
-                    <span className="text-muted-foreground">
-                      {t("syncingVote", { current: syncState.pollCount, max: syncState.maxPolls })}
-                    </span>
-                  </div>
-                ) : syncState.isSynced ? (
-                  <div className="flex items-center justify-center gap-2 text-sm text-success">
-                    <CheckCircle className="h-4 w-4" />
-                    <span>
-                      {t("voteSynced")}
-                    </span>
-                  </div>
-                ) : syncState.pollCount >= syncState.maxPolls ? (
-                  <div className="text-center text-sm text-muted-foreground">
-                    <p>{t("syncTimedOut")}</p>
-                    <p className="text-xs mt-1">
-                      {t("syncTimedOutDetail")}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>{t("preparingToSync")}</span>
-                  </div>
-                )}
-              </div>
-
               <Button className="w-full" onClick={closeModal}>
-                {syncState.isSynced ? t("viewUpdatedRecords") : t("close")}
+                {t("close")}
               </Button>
             </div>
           ) : (
@@ -1322,7 +1163,7 @@ export function VoteOnProposal({
                             >
                               <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
                                 <div className="min-w-0">
-                                  <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                                  <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                                     Question {index + 1}
                                   </div>
                                   <div className="mt-1 text-sm font-medium">
@@ -1330,7 +1171,7 @@ export function VoteOnProposal({
                                   </div>
                                 </div>
                                 {!isCustomSurveyMethod(question.methodType) ? (
-                                  <div className="text-[11px] text-muted-foreground">
+                                  <div className="text-xs text-muted-foreground">
                                     {question.methodType}
                                   </div>
                                 ) : null}

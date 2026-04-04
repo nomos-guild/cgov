@@ -37,7 +37,7 @@ export function ThresholdsTab({
       "p-4 sm:p-5 space-y-6",
       isGame
         ? "game-detail-card"
-        : "rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+        : "rounded-2xl border border-border/40 bg-card shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
     )}>
       {/* Total Voting Power Section */}
       <div className="space-y-3">

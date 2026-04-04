@@ -117,7 +117,8 @@
     "votingPower": "投票权",
     "oneMemberOneVote": "一个成员一票",
     "noRationale": "没有理由",
-    "noVotingRecordsFound": "未找到投票记录"
+    "noVotingRecordsFound": "未找到投票记录",
+    "pending": "待确认"
   },
   "charts": {
     "proposalStatus": {

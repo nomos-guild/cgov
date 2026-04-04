@@ -112,7 +112,7 @@ export function DRepActivityDonut({ dreps, className }: DRepActivityDonutProps) 
                     isGame
                       ? "game-tooltip-card rounded-sm px-3 py-2 text-xs"
                       : isLight
-                      ? "rounded-lg p-2 text-sm bg-white text-gray-900 border border-gray-200 shadow-[0_4px_12px_rgba(15,23,42,0.15)]"
+                      ? "rounded-lg p-2 text-sm bg-white text-gray-900 border border-gray-200 shadow-elevation-1"
                       : "bg-[rgba(8,8,8,0.95)] border border-[#0bd1a2]/30 rounded-sm px-3 py-2 text-xs"
                   }>
                     <p className={isGame ? "font-medium text-white" : isDark ? "font-medium text-[#0bd1a2]" : "font-medium"}>
@@ -130,12 +130,12 @@ export function DRepActivityDonut({ dreps, className }: DRepActivityDonutProps) 
       </div>
       {/* Legend */}
       <div className="flex flex-col gap-1.5 mt-3 px-3">
-        <div className="flex items-center justify-between text-[11px]">
+        <div className="flex items-center justify-between text-xs">
           <span className={`font-semibold ${textColor}`}>{t("drep.activityTotal")}</span>
           <span className={`font-bold ${textColor}`}>{total.toLocaleString()}</span>
         </div>
         {data.map((entry) => (
-          <div key={entry.name} className="flex items-center justify-between text-[11px] gap-4">
+          <div key={entry.name} className="flex items-center justify-between text-xs gap-4">
             <div className="flex items-center gap-1.5">
               <div
                 className="w-2.5 h-2.5 rounded-full flex-shrink-0"

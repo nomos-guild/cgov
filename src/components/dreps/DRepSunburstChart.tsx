@@ -261,14 +261,14 @@ export function DRepSunburstChart({ className, initialDreps, initialRationaleSta
   }
 
   const cardClass = isLight
-    ? "rounded-2xl border border-white/8 bg-[#faf9f6] p-4 sm:p-6 shadow-[0_12px_30px_rgba(15,23,42,0.25)]"
+    ? "rounded-2xl border border-border/40 bg-card p-4 sm:p-6 shadow-elevation-2"
     : isGame
     ? "game-drep-content rounded-[2px] border-none bg-[rgba(12,12,12,0.5)] p-4 sm:p-6 shadow-[0_18px_36px_rgba(0,0,0,0.55),0_6px_18px_rgba(0,0,0,0.4)]"
     : "rounded-none border border-[#0bd1a2] bg-transparent p-4 sm:p-6 shadow-none";
 
   const tabBtnClass = isGame
-    ? "game-tab-btn data-[state=active]:game-tab-btn-active text-[10px] sm:text-xs"
-    : "rounded-none border border-white/8 bg-white text-black px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold uppercase tracking-wide transform-gpu transition-transform transition-shadow duration-450 ease-in-out shadow-[0_12px_30px_rgba(15,23,42,0.25)] data-[state=active]:bg-black data-[state=active]:text-white hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon";
+    ? "game-tab-btn data-[state=active]:game-tab-btn-active text-2xs sm:text-xs"
+    : "rounded-none border border-border/40 bg-white text-black px-2 sm:px-3 py-1 sm:py-1.5 text-2xs sm:text-xs font-semibold uppercase tracking-wide transform-gpu transition-transform transition-shadow duration-normal ease-in-out shadow-elevation-2 data-[state=active]:bg-black data-[state=active]:text-white hover:scale-101 hover:shadow-elevation-3 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon";
 
   return (
     <div className={className}>
@@ -278,7 +278,7 @@ export function DRepSunburstChart({ className, initialDreps, initialRationaleSta
         <div className="flex flex-col gap-4 sm:w-[230px] sm:flex-shrink-0">
         {/* Search card */}
         <div className={`${cardClass} flex flex-col gap-2`}>
-          <p className={`text-[10px] font-semibold uppercase tracking-wide ${isGame ? "text-white/50" : "text-muted-foreground"}`}>
+          <p className={`text-2xs font-semibold uppercase tracking-wide ${isGame ? "text-white/50" : "text-muted-foreground"}`}>
             {tCommon("search")}
           </p>
           <div className="relative">
@@ -313,7 +313,7 @@ export function DRepSunburstChart({ className, initialDreps, initialRationaleSta
           </div>
           {/* Chart type tabs */}
           <div>
-            <p className={`text-[10px] font-semibold uppercase tracking-wide mb-1.5 ${isGame ? "text-white/50" : "text-muted-foreground"}`}>
+            <p className={`text-2xs font-semibold uppercase tracking-wide mb-1.5 ${isGame ? "text-white/50" : "text-muted-foreground"}`}>
               {t("drep.chartType")}
             </p>
             <div className="flex sm:flex-col flex-wrap gap-1.5">
@@ -336,7 +336,7 @@ export function DRepSunburstChart({ className, initialDreps, initialRationaleSta
           </div>
           {/* Metric tabs */}
           <div>
-            <p className={`text-[10px] font-semibold uppercase tracking-wide mb-1.5 ${isGame ? "text-white/50" : "text-muted-foreground"}`}>
+            <p className={`text-2xs font-semibold uppercase tracking-wide mb-1.5 ${isGame ? "text-white/50" : "text-muted-foreground"}`}>
               {t("drep.metric")}
             </p>
             <div className="flex sm:flex-col flex-wrap gap-1.5">
@@ -357,7 +357,7 @@ export function DRepSunburstChart({ className, initialDreps, initialRationaleSta
           </div>
           {/* Top N filter */}
           <div>
-            <p className={`text-[10px] font-semibold uppercase tracking-wide mb-1.5 ${isGame ? "text-white/50" : "text-muted-foreground"}`}>
+            <p className={`text-2xs font-semibold uppercase tracking-wide mb-1.5 ${isGame ? "text-white/50" : "text-muted-foreground"}`}>
               {t("drep.show")}
             </p>
             <div className="flex sm:flex-col flex-wrap gap-1.5">
@@ -382,7 +382,7 @@ export function DRepSunburstChart({ className, initialDreps, initialRationaleSta
 
         {/* Selection summary card */}
         <div className={cardClass}>
-          <p className={`text-[10px] font-semibold uppercase tracking-wide mb-2 ${isGame ? "text-white/50" : "text-muted-foreground"}`}>
+          <p className={`text-2xs font-semibold uppercase tracking-wide mb-2 ${isGame ? "text-white/50" : "text-muted-foreground"}`}>
             {topN !== null ? t("drep.topSummary", { count: topN }) : t("drep.summary")}
           </p>
           <table className="w-full table-fixed">
@@ -393,9 +393,9 @@ export function DRepSunburstChart({ className, initialDreps, initialRationaleSta
             </colgroup>
             <thead>
               <tr>
-                <th className={`text-left text-[10px] font-medium pb-1 ${isGame ? "text-white/40" : "text-muted-foreground"}`}>{t("drep.metricLabel")}</th>
-                <th className={`text-right text-[10px] font-medium pb-1 ${isGame ? "text-white/40" : "text-muted-foreground"}`}>{t("drep.value")}</th>
-                <th className={`text-right text-[10px] font-medium pb-1 ${isGame ? "text-white/40" : "text-muted-foreground"}`}>{t("drep.percent")}</th>
+                <th className={`text-left text-2xs font-medium pb-1 ${isGame ? "text-white/40" : "text-muted-foreground"}`}>{t("drep.metricLabel")}</th>
+                <th className={`text-right text-2xs font-medium pb-1 ${isGame ? "text-white/40" : "text-muted-foreground"}`}>{t("drep.value")}</th>
+                <th className={`text-right text-2xs font-medium pb-1 ${isGame ? "text-white/40" : "text-muted-foreground"}`}>{t("drep.percent")}</th>
               </tr>
             </thead>
             <tbody>
@@ -422,7 +422,7 @@ export function DRepSunburstChart({ className, initialDreps, initialRationaleSta
         {/* Chart area card */}
         <div className={`${cardClass} flex-1 min-w-0 relative`}>
           <div
-            className="transition-opacity duration-300 ease-in-out"
+            className="transition-opacity duration-normal ease-in-out"
             style={{ opacity: chartVisible ? 1 : 0 }}
           >
             {chartType === "bubble" && (
@@ -503,7 +503,7 @@ export function DRepSunburstChart({ className, initialDreps, initialRationaleSta
             "w-full sm:w-auto sm:min-w-[300px] sm:flex-1 p-2.5 sm:p-3 md:p-4",
             isGame
               ? "game-detail-card"
-              : "rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+              : "rounded-2xl border border-border/40 bg-card shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
           )}>
             <div className="relative">
               <Search className={cn("absolute left-2.5 sm:left-3 top-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 -translate-y-1/2 transform", isGame ? "text-white/50" : "text-muted-foreground")} />
@@ -528,7 +528,7 @@ export function DRepSunburstChart({ className, initialDreps, initialRationaleSta
             "flex-1 min-w-0 p-2.5 sm:p-3 md:p-4",
             isGame
               ? "game-detail-card"
-              : "rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+              : "rounded-2xl border border-border/40 bg-card shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
           )}>
             <div className="flex flex-wrap gap-2 sm:gap-3 md:gap-4">
               {/* Sort by Voting Power */}
@@ -669,9 +669,9 @@ export function DRepSunburstChart({ className, initialDreps, initialRationaleSta
           >
             <div className="px-4">
               {/* Table Header */}
-              <div className={`flex items-center gap-6 py-2 px-2 text-[10px] font-semibold uppercase tracking-wide border-b sticky top-0 z-20 ${
+              <div className={`flex items-center gap-6 py-2 px-2 text-2xs font-semibold uppercase tracking-wide border-b sticky top-0 z-20 ${
                 isLight
-                  ? "border-black/10 text-black/60 bg-[#faf9f6]"
+                  ? "border-black/10 text-black/60 bg-card"
                   : isGame
                   ? "border-white/10 text-white/60 bg-[#0c0c0c]"
                   : "border-[#0bd1a2]/30 text-[#0bd1a2]/70 bg-background"
@@ -695,17 +695,17 @@ export function DRepSunburstChart({ className, initialDreps, initialRationaleSta
                     <Link
                       key={drep.drepId}
                       href={`/drep/${encodeURIComponent(drep.drepId)}`}
-                      className={`flex items-center gap-6 py-1.5 px-2 rounded-lg text-[11px] transition-all duration-200 ease-out no-underline ${
+                      className={`flex items-center gap-6 py-1.5 px-2 rounded-lg text-xs transition-all duration-200 ease-out no-underline ${
                         isLight
-                          ? "bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:scale-[1.02] hover:shadow-[0_6px_20px_rgba(0,0,0,0.15)]"
+                          ? "bg-white shadow-elevation-1 hover:scale-101 hover:shadow-elevation-2"
                           : isGame
-                          ? "bg-white/5 hover:scale-[1.02] hover:bg-white/10 hover:shadow-[0_4px_16px_rgba(0,0,0,0.4)]"
-                          : "rounded-none border border-[#0bd1a2]/30 bg-transparent hover:scale-[1.02] hover:border-[#0bd1a2] hover:shadow-[0_4px_16px_rgba(11,209,162,0.15)]"
+                          ? "bg-white/5 hover:scale-101 hover:bg-white/10 hover:shadow-[0_4px_16px_rgba(0,0,0,0.4)]"
+                          : "rounded-none border border-[#0bd1a2]/30 bg-transparent hover:scale-101 hover:border-[#0bd1a2] hover:shadow-[0_4px_16px_rgba(11,209,162,0.15)]"
                       }`}
                     >
                       {/* Rank with color indicator */}
                       <span
-                        className={`w-7 h-7 flex items-center justify-center text-[10px] flex-shrink-0 ${
+                        className={`w-7 h-7 flex items-center justify-center text-2xs flex-shrink-0 ${
                           isLight
                             ? "rounded-full bg-black/10 text-black/60 font-medium"
                             : isGame

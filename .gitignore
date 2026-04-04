@@ -47,3 +47,4 @@ package-lock.json
 # Claude Code temporary files
 .claude/settings.local.json
 tmpclaude-*
+.gstack/

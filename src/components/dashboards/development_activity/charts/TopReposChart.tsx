@@ -65,7 +65,7 @@ export function TopReposChart({ isLoading, className }: ChartProps) {
           <button
             onClick={() => setSortMode("active")}
             className={cn(
-              "px-2 py-0.5 text-[10px] rounded transition-colors",
+              "px-2 py-0.5 text-2xs rounded transition-colors",
               sortMode === "active"
                 ? "bg-primary/10 text-primary dark:bg-[#0bd1a2]/20 dark:text-[#0bd1a2]"
                 : "text-muted-foreground hover:bg-muted/50"
@@ -76,7 +76,7 @@ export function TopReposChart({ isLoading, className }: ChartProps) {
           <button
             onClick={() => setSortMode("trending")}
             className={cn(
-              "px-2 py-0.5 text-[10px] rounded transition-colors",
+              "px-2 py-0.5 text-2xs rounded transition-colors",
               sortMode === "trending"
                 ? "bg-primary/10 text-primary dark:bg-[#0bd1a2]/20 dark:text-[#0bd1a2]"
                 : "text-muted-foreground hover:bg-muted/50"

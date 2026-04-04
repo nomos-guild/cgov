@@ -117,7 +117,8 @@
     "votingPower": "Pouvoir de vote",
     "oneMemberOneVote": "Un membre, une voix",
     "noRationale": "Pas de justification",
-    "noVotingRecordsFound": "Aucun dossier de vote n'a été trouvé"
+    "noVotingRecordsFound": "Aucun dossier de vote n'a été trouvé",
+    "pending": "En attente"
   },
   "charts": {
     "proposalStatus": {

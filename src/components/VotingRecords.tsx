@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { useTranslations } from "next-intl";
+import { useWallet } from "@meshsdk/react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +10,7 @@ import { GameDropdown } from "@/components/ui/game-dropdown";
 import { VotingRationaleModal } from "@/components/VotingRationaleModal";
 import type { VoteRecord } from "@/types/governance";
 import { useAllDReps } from "@/hooks/useDRepData";
+import { toCip129DRepId } from "@/lib/drepFormatters";
 import useSWR from "swr";
 import { Search, ChevronDown, ChevronRight, Copy, Check, Download } from "lucide-react";
 import Link from "next/link";
@@ -211,7 +213,7 @@ function MultiSelectDropdown({
         <ChevronDown className={cn("h-4 w-4 opacity-50 transition-transform shrink-0", isOpen && "rotate-180")} />
       </button>
       {isOpen && (
-        <div className="absolute left-0 z-50 mt-1 w-full min-w-[180px] rounded-md border border-input bg-[#faf9f6] p-1 shadow-md dark:border-[#0bd1a2] dark:bg-black">
+        <div className="absolute left-0 z-50 mt-1 w-full min-w-[180px] rounded-md border border-input bg-card p-1 shadow-md dark:border-[#0bd1a2] dark:bg-black">
           <label className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-black/10 dark:hover:bg-[#0bd1a2]/10">
             <input
               type="checkbox"
@@ -250,6 +252,21 @@ export function VotingRecords({
 }: VotingRecordsProps) {
   const { activeTheme } = useTheme();
   const isGame = activeTheme.id === "game";
+  const { connected, wallet } = useWallet();
+  const [connectedDrepId, setConnectedDrepId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!connected || !wallet) {
+      setConnectedDrepId(null);
+      return;
+    }
+    wallet.getDRep().then((dRep) => {
+      if (dRep?.dRepIDCip105) {
+        setConnectedDrepId(toCip129DRepId(dRep.dRepIDCip105));
+      }
+    }).catch(() => setConnectedDrepId(null));
+  }, [connected, wallet]);
+
   const tCommon = useTranslations("common");
   const tFilters = useTranslations("filters");
   const tTable = useTranslations("table");
@@ -393,8 +410,19 @@ export function VotingRecords({
       filtered = sortByTime(filtered);
     }
 
+    // Pin connected wallet's vote to the top
+    if (connectedDrepId) {
+      const myIndex = filtered.findIndex(
+        (v) => (v.voterId || v.drepId) === connectedDrepId
+      );
+      if (myIndex > 0) {
+        const [myVote] = filtered.splice(myIndex, 1);
+        filtered.unshift(myVote);
+      }
+    }
+
     return filtered;
-  }, [votes, searchQuery, selectedVotes, selectedRoles, rationaleFilter, timeSort, powerSort]);
+  }, [votes, searchQuery, selectedVotes, selectedRoles, rationaleFilter, timeSort, powerSort, connectedDrepId]);
 
   const displayedVotes = useMemo(() => {
     if (showAllVotes) return filteredVotes;
@@ -495,7 +523,7 @@ export function VotingRecords({
             "relative w-full sm:w-auto p-2.5 sm:p-3 md:p-4",
             isGame
               ? "game-detail-card"
-              : "rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+              : "rounded-2xl border border-border/40 bg-card shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
           )}>
             <button
               type="button"
@@ -625,7 +653,7 @@ export function VotingRecords({
           "flex-1 min-w-0 p-2.5 sm:p-3 md:p-4",
           isGame
             ? "game-detail-card"
-            : "rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+            : "rounded-2xl border border-border/40 bg-card shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
         )}>
           <div className="flex flex-wrap gap-2 sm:gap-3 md:gap-4">
             <div className="flex-1 min-w-[120px]">
@@ -766,7 +794,7 @@ export function VotingRecords({
         "p-2.5 sm:p-3 md:p-4",
         isGame
           ? "game-detail-card"
-          : "rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+          : "rounded-2xl border border-border/40 bg-card shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
       )}>
         <div className="relative">
           <Search className={cn("absolute left-2.5 sm:left-3 top-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 -translate-y-1/2 transform", isGame ? "text-white/50" : "text-muted-foreground")} />
@@ -790,7 +818,7 @@ export function VotingRecords({
         {filteredVotes.length === 0 ? (
           <div className={cn(
             "py-12 text-center text-muted-foreground",
-            isGame ? "game-detail-card" : "rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+            isGame ? "game-detail-card" : "rounded-2xl border border-border/40 bg-card shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
           )}>
             {tVoting("noVotingRecordsFound")}
           </div>
@@ -798,35 +826,43 @@ export function VotingRecords({
           displayedVotes.map((vote) => {
             const voteId = getVoteId(vote);
             const hasRationale = Boolean(vote.rationale && vote.rationale.trim().length > 0);
+            const isMyVoteMobile = connectedDrepId != null && (vote.voterId || vote.drepId) === connectedDrepId;
+            const isUnconfirmedMobile = !!vote.isPendingConfirmation;
             return (
               <div
                 key={voteId}
                 className={cn(
-                  "p-3 transition-transform duration-300 ease-out transform-gpu active:scale-[0.99]",
-                  isGame 
-                    ? "game-detail-card" 
-                    : "rounded-xl border border-white/8 bg-[#faf9f6] shadow-[0_8px_20px_rgba(15,23,42,0.15)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+                  "p-3 transition-transform duration-normal ease-out transform-gpu active:scale-[0.99]",
+                  isGame
+                    ? "game-detail-card"
+                    : "rounded-xl border border-border/40 bg-card shadow-elevation-1 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none",
+                  isMyVoteMobile && (isGame
+                    ? "ring-1 ring-white/30"
+                    : "ring-1 ring-primary/30 bg-primary/5 dark:ring-[#0bd1a2]/30 dark:bg-[#0bd1a2]/5"),
+                  isUnconfirmedMobile && "animate-pulse"
                 )}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 mb-1">
-                      <Badge variant="outline" className={cn("px-1.5 py-0 text-[10px] shrink-0", isGame ? "border-white/30 bg-transparent text-white/70" : "border-foreground/20 bg-transparent dark:text-[#0bd1a2] dark:border-[#0bd1a2] dark:bg-transparent")}>
+                      <Badge variant="outline" className={cn("px-1.5 py-0 text-2xs shrink-0", isGame ? "border-white/30 bg-transparent text-white/70" : "border-foreground/20 bg-transparent dark:text-[#0bd1a2] dark:border-[#0bd1a2] dark:bg-transparent")}>
                         {vote.voterType}
                       </Badge>
-                      <Badge variant="outline" className={cn("text-[10px] px-1.5 shrink-0", isGame ? getGameVoteBadgeClasses(vote.vote) : getVoteBadgeClasses(vote.vote))}>
+                      <Badge variant="outline" className={cn("text-2xs px-1.5 shrink-0", isGame ? getGameVoteBadgeClasses(vote.vote) : getVoteBadgeClasses(vote.vote))}>
                         {translateVote(vote.vote)}
                       </Badge>
                       {vote.voterType !== "CC" && (
-                        <span className={cn("text-[10px] font-medium shrink-0", isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]")}>
-                          {formatAda(vote.votingPowerAda || 0)} ADA
+                        <span className={cn("text-2xs font-medium shrink-0", isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]")}>
+                          {isUnconfirmedMobile
+                            ? tVoting("pending")
+                            : `${formatAda(vote.votingPowerAda || 0)} ADA`}
                         </span>
                       )}
                     </div>
                     {vote.voterType === "DRep" && (vote.voterId || vote.drepId) ? (
                       <Link
                         href={`/drep/${encodeURIComponent(vote.voterId || vote.drepId!)}`}
-                        className={cn("inline-flex items-center h-7 w-[140px] px-2 text-[10px] font-semibold truncate transition-colors", isGame ? "game-nav-btn" : "rounded-md bg-white text-black shadow-[0_1px_3px_rgba(0,0,0,0.1),0_1px_2px_rgba(0,0,0,0.06)] transform-gpu transition-transform transition-shadow duration-450 ease-in-out hover:scale-[1.015] hover:shadow-[0_3px_8px_rgba(0,0,0,0.12)] btn-neon")}
+                        className={cn("inline-flex items-center h-7 w-[140px] px-2 text-2xs font-semibold truncate transition-colors", isGame ? "game-nav-btn" : "rounded-md bg-white text-black shadow-elevation-1 transform-gpu transition-transform transition-shadow duration-normal ease-in-out hover:scale-101 hover:shadow-elevation-2 btn-neon")}
                       >
                         <span className="truncate">{formatVoterDisplayName(vote)}</span>
                       </Link>
@@ -835,7 +871,7 @@ export function VotingRecords({
                         {formatVoterDisplayName(vote)}
                       </div>
                     )}
-                    <div className={cn("font-mono text-[9px] truncate", isGame ? "text-white/40" : "text-muted-foreground/70 dark:text-[#0bd1a2]/70")}>
+                    <div className={cn("font-mono text-3xs truncate", isGame ? "text-white/40" : "text-muted-foreground/70 dark:text-[#0bd1a2]/70")}>
                       {vote.voterId || vote.drepId || "—"}
                     </div>
                   </div>
@@ -845,12 +881,12 @@ export function VotingRecords({
                         size="sm"
                         variant="default"
                         onClick={() => handleOpenRationale(vote)}
-                        className={cn("h-7 px-2 text-[10px]", isGame ? "game-nav-btn" : "bg-white text-black hover:bg-black hover:text-white transition-colors shadow-[0_8px_16px_rgba(15,23,42,0.2)] btn-neon")}
+                        className={cn("h-7 px-2 text-2xs", isGame ? "game-nav-btn" : "bg-white text-black hover:bg-black hover:text-white transition-colors shadow-elevation-1 btn-neon")}
                       >
                         {tCommon("view")}
                       </Button>
                     ) : (
-                      <span className={cn("text-[9px]", isGame ? "text-white/40" : "text-muted-foreground/60 dark:text-[#0bd1a2]/60")}>
+                      <span className={cn("text-3xs", isGame ? "text-white/40" : "text-muted-foreground/60 dark:text-[#0bd1a2]/60")}>
                         {tVoting("noRationale")}
                       </span>
                     )}
@@ -868,7 +904,7 @@ export function VotingRecords({
               "w-full mt-3",
               isGame
                 ? "game-nav-btn"
-                : "bg-white text-black hover:bg-black hover:text-white transition-colors shadow-[0_8px_16px_rgba(15,23,42,0.2)] btn-neon"
+                : "bg-white text-black hover:bg-black hover:text-white transition-colors shadow-elevation-1 btn-neon"
             )}
           >
             {tCommon("showMoreVotes", { count: remainingVotes })}
@@ -879,7 +915,7 @@ export function VotingRecords({
       {/* Desktop table layout */}
       <div
         className={cn(
-          "hidden sm:block rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none voting-records-container min-h-[400px]",
+          "hidden sm:block rounded-2xl border border-border/40 bg-card shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none voting-records-container min-h-[400px]",
           isGame && "game-detail-card"
         )}
       >
@@ -912,14 +948,20 @@ export function VotingRecords({
                     const isFirstRow = index === 0;
                     const voteLower = vote.vote.toLowerCase();
                     const isNoVote = voteLower === "no";
+                    const isMyVote = connectedDrepId != null && (vote.voterId || vote.drepId) === connectedDrepId;
+                    const isUnconfirmed = !!vote.isPendingConfirmation;
                     return (
                   <TableRow
                     key={voteId}
                     className={cn(
-                      "voting-record-row hover:bg-transparent transition-transform duration-300 ease-out transform-gpu hover:scale-[1.01]",
+                      "voting-record-row hover:bg-transparent transition-transform duration-normal ease-out transform-gpu hover:scale-101",
                       isFirstRow && "first-row",
                       isNoVote && "vote-no-row",
-                      isGame && "border-b border-white/10"
+                      isGame && "border-b border-white/10",
+                      isMyVote && (isGame
+                        ? "bg-white/5 border-l-2 border-l-white/40"
+                        : "bg-primary/5 border-l-2 border-l-primary dark:bg-[#0bd1a2]/5 dark:border-l-[#0bd1a2]"),
+                      isUnconfirmed && "opacity-75"
                     )}
                   >
                         <TableCell className="py-2 sm:py-3">
@@ -928,7 +970,7 @@ export function VotingRecords({
                               {vote.voterType === "DRep" && (vote.voterId || vote.drepId) ? (
                                 <Link
                                   href={`/drep/${encodeURIComponent(vote.voterId || vote.drepId!)}`}
-                                  className={cn("inline-flex items-center h-7 sm:h-8 w-[180px] px-2 sm:px-3 text-xs font-semibold truncate transition-colors", isGame ? "game-nav-btn" : "rounded-md bg-white text-black shadow-[0_1px_3px_rgba(0,0,0,0.1),0_1px_2px_rgba(0,0,0,0.06)] transform-gpu transition-transform transition-shadow duration-450 ease-in-out hover:scale-[1.015] hover:shadow-[0_3px_8px_rgba(0,0,0,0.12)] btn-neon")}
+                                  className={cn("inline-flex items-center h-7 sm:h-8 w-[180px] px-2 sm:px-3 text-xs font-semibold truncate transition-colors", isGame ? "game-nav-btn" : "rounded-md bg-white text-black shadow-elevation-1 transform-gpu transition-transform transition-shadow duration-normal ease-in-out hover:scale-101 hover:shadow-elevation-2 btn-neon")}
                                 >
                                   <span className="truncate">{formatVoterDisplayName(vote)}</span>
                                 </Link>
@@ -937,11 +979,11 @@ export function VotingRecords({
                                   {formatVoterDisplayName(vote)}
                                 </span>
                               )}
-                              <Badge variant="outline" className={cn("px-1 sm:px-1.5 py-0 text-[10px] sm:text-xs", isGame ? "border-white/30 bg-transparent text-white/70" : "border-foreground/20 bg-transparent dark:text-[#0bd1a2] dark:border-[#0bd1a2] dark:bg-transparent")}>
+                              <Badge variant="outline" className={cn("px-1 sm:px-1.5 py-0 text-2xs sm:text-xs", isGame ? "border-white/30 bg-transparent text-white/70" : "border-foreground/20 bg-transparent dark:text-[#0bd1a2] dark:border-[#0bd1a2] dark:bg-transparent")}>
                                 {vote.voterType}
                               </Badge>
                             </div>
-                            <div className={cn("font-mono text-[10px] sm:text-xs break-all line-clamp-1", isGame ? "text-white/50" : "text-muted-foreground dark:text-[#0bd1a2]")}>
+                            <div className={cn("font-mono text-2xs sm:text-xs break-all line-clamp-1", isGame ? "text-white/50" : "text-muted-foreground dark:text-[#0bd1a2]")}>
                               {vote.voterId || vote.drepId || "—"}
                             </div>
                           </div>
@@ -950,7 +992,7 @@ export function VotingRecords({
                           <TableCell className="hidden md:table-cell py-2 sm:py-3">
                             {vote.txHash ? (
                               <div className="flex items-center gap-2">
-                                <code className={cn("font-mono text-[10px] sm:text-xs", isGame ? "text-white/50" : "text-muted-foreground dark:text-[#0bd1a2]")}>
+                                <code className={cn("font-mono text-2xs sm:text-xs", isGame ? "text-white/50" : "text-muted-foreground dark:text-[#0bd1a2]")}>
                                   {vote.txHash.slice(0, 16)}...
                                 </code>
                                 <button
@@ -971,26 +1013,40 @@ export function VotingRecords({
                                 </button>
                               </div>
                             ) : (
-                              <span className={cn("text-[10px] sm:text-xs", isGame ? "text-white/50" : "text-muted-foreground dark:text-[#0bd1a2]")}>—</span>
+                              <span className={cn("text-2xs sm:text-xs", isGame ? "text-white/50" : "text-muted-foreground dark:text-[#0bd1a2]")}>—</span>
                             )}
                           </TableCell>
                         )}
                         <TableCell className="py-2 sm:py-3">
-                          <Badge variant="outline" className={cn("text-[10px] sm:text-xs px-1.5 sm:px-2", isGame ? getGameVoteBadgeClasses(vote.vote) : getVoteBadgeClasses(vote.vote))}>
+                          <Badge variant="outline" className={cn("text-2xs sm:text-xs px-1.5 sm:px-2", isGame ? getGameVoteBadgeClasses(vote.vote) : getVoteBadgeClasses(vote.vote))}>
                             {translateVote(vote.vote)}
                           </Badge>
                         </TableCell>
                         <TableCell className="py-2 sm:py-3">
                           {vote.voterType !== "CC" ? (
-                            <div className={cn("font-semibold text-xs sm:text-sm", isGame && "text-white")}>
-                              {formatAda(vote.votingPowerAda || 0)} ADA
-                            </div>
+                            isUnconfirmed ? (
+                              <div className={cn("flex items-center gap-1.5 text-2xs sm:text-xs italic", isGame ? "text-white/40" : "text-muted-foreground")}>
+                                <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
+                                {tVoting("pending")}
+                              </div>
+                            ) : (
+                              <div className={cn("font-semibold text-xs sm:text-sm", isGame && "text-white")}>
+                                {formatAda(vote.votingPowerAda || 0)} ADA
+                              </div>
+                            )
                           ) : (
-                            <div className={cn("text-[10px] sm:text-xs", isGame ? "text-white/50" : "text-muted-foreground dark:text-[#0bd1a2]")}>{tVoting("oneMemberOneVote")}</div>
+                            <div className={cn("text-2xs sm:text-xs", isGame ? "text-white/50" : "text-muted-foreground dark:text-[#0bd1a2]")}>{tVoting("oneMemberOneVote")}</div>
                           )}
                         </TableCell>
                         <TableCell className={cn("hidden md:table-cell py-2 sm:py-3 text-xs sm:text-sm", isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]")}>
-                          {vote.votedAt ? new Date(vote.votedAt).toLocaleDateString() : "—"}
+                          {isUnconfirmed ? (
+                            <span className={cn("flex items-center gap-1.5 italic text-2xs sm:text-xs", isGame ? "text-white/40" : "text-muted-foreground")}>
+                              <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
+                              {tVoting("pending")}
+                            </span>
+                          ) : (
+                            vote.votedAt ? new Date(vote.votedAt).toLocaleDateString() : "—"
+                          )}
                         </TableCell>
                         <TableCell className="text-right py-2 sm:py-3">
                           {hasRationale ? (
@@ -998,12 +1054,12 @@ export function VotingRecords({
                               size="sm"
                               variant="default"
                               onClick={() => handleOpenRationale(vote)}
-                              className={cn("h-7 sm:h-8 px-2 sm:px-3 text-xs", isGame ? "game-nav-btn" : "bg-white text-black hover:bg-black hover:text-white transition-colors shadow-[0_12px_30px_rgba(15,23,42,0.25)] btn-neon")}
+                              className={cn("h-7 sm:h-8 px-2 sm:px-3 text-xs", isGame ? "game-nav-btn" : "bg-white text-black hover:bg-black hover:text-white transition-colors shadow-elevation-2 btn-neon")}
                             >
                               {tCommon("view")}
                             </Button>
                           ) : (
-                            <span className={cn("text-[10px] sm:text-xs", isGame ? "text-white/50" : "text-muted-foreground dark:text-[#0bd1a2]")}>
+                            <span className={cn("text-2xs sm:text-xs", isGame ? "text-white/50" : "text-muted-foreground dark:text-[#0bd1a2]")}>
                               {tVoting("noRationale")}
                             </span>
                           )}
@@ -1025,7 +1081,7 @@ export function VotingRecords({
                 "w-full",
                 isGame
                   ? "game-nav-btn"
-                  : "bg-white text-black hover:bg-black hover:text-white transition-colors shadow-[0_8px_16px_rgba(15,23,42,0.2)] btn-neon"
+                  : "bg-white text-black hover:bg-black hover:text-white transition-colors shadow-elevation-1 btn-neon"
               )}
             >
               {tCommon("showMoreVotes", { count: remainingVotes })}
@@ -1041,14 +1097,14 @@ export function VotingRecords({
         {notVotedLoading ? (
           <div className={cn(
             "py-12 text-center text-muted-foreground",
-            isGame ? "game-detail-card" : "rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+            isGame ? "game-detail-card" : "rounded-2xl border border-border/40 bg-card shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
           )}>
             {tCommon("loading")}
           </div>
         ) : notVotedItems.length === 0 ? (
           <div className={cn(
             "py-12 text-center text-muted-foreground",
-            isGame ? "game-detail-card" : "rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+            isGame ? "game-detail-card" : "rounded-2xl border border-border/40 bg-card shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
           )}>
             {tVoting("noVotingRecordsFound")}
           </div>
@@ -1057,20 +1113,20 @@ export function VotingRecords({
             <div
               key={item.id}
               className={cn(
-                "p-3 transition-transform duration-300 ease-out transform-gpu active:scale-[0.99]",
+                "p-3 transition-transform duration-normal ease-out transform-gpu active:scale-[0.99]",
                 isGame
                   ? "game-detail-card"
-                  : "rounded-xl border border-white/8 bg-[#faf9f6] shadow-[0_8px_20px_rgba(15,23,42,0.15)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+                  : "rounded-xl border border-border/40 bg-card shadow-elevation-1 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
               )}
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 mb-1">
-                    <Badge variant="outline" className={cn("px-1.5 py-0 text-[10px] shrink-0", isGame ? "border-white/30 bg-transparent text-white/70" : "border-foreground/20 bg-transparent dark:text-[#0bd1a2] dark:border-[#0bd1a2] dark:bg-transparent")}>
+                    <Badge variant="outline" className={cn("px-1.5 py-0 text-2xs shrink-0", isGame ? "border-white/30 bg-transparent text-white/70" : "border-foreground/20 bg-transparent dark:text-[#0bd1a2] dark:border-[#0bd1a2] dark:bg-transparent")}>
                       {item.role}
                     </Badge>
                     {item.role !== "CC" && (
-                      <span className={cn("text-[10px] font-medium shrink-0", isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]")}>
+                      <span className={cn("text-2xs font-medium shrink-0", isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]")}>
                         {formatAda(item.votingPowerAda || 0)} ADA
                       </span>
                     )}
@@ -1078,7 +1134,7 @@ export function VotingRecords({
                   {item.role === "DRep" ? (
                     <Link
                       href={`/drep/${encodeURIComponent(item.id)}`}
-                      className={cn("inline-flex items-center h-7 w-[140px] px-2 text-[10px] font-semibold truncate transition-colors", isGame ? "game-nav-btn" : "rounded-md bg-white text-black shadow-[0_1px_3px_rgba(0,0,0,0.1),0_1px_2px_rgba(0,0,0,0.06)] transform-gpu transition-transform transition-shadow duration-450 ease-in-out hover:scale-[1.015] hover:shadow-[0_3px_8px_rgba(0,0,0,0.12)] btn-neon")}
+                      className={cn("inline-flex items-center h-7 w-[140px] px-2 text-2xs font-semibold truncate transition-colors", isGame ? "game-nav-btn" : "rounded-md bg-white text-black shadow-elevation-1 transform-gpu transition-transform transition-shadow duration-normal ease-in-out hover:scale-101 hover:shadow-elevation-2 btn-neon")}
                     >
                       <span className="truncate">{item.name || item.id}</span>
                     </Link>
@@ -1087,7 +1143,7 @@ export function VotingRecords({
                       {item.name || item.id}
                     </div>
                   )}
-                  <div className={cn("font-mono text-[9px] truncate", isGame ? "text-white/40" : "text-muted-foreground/70 dark:text-[#0bd1a2]/70")}>
+                  <div className={cn("font-mono text-3xs truncate", isGame ? "text-white/40" : "text-muted-foreground/70 dark:text-[#0bd1a2]/70")}>
                     {item.id}
                   </div>
                 </div>
@@ -1103,7 +1159,7 @@ export function VotingRecords({
               "w-full mt-3",
               isGame
                 ? "game-nav-btn"
-                : "bg-white text-black hover:bg-black hover:text-white transition-colors shadow-[0_8px_16px_rgba(15,23,42,0.2)] btn-neon"
+                : "bg-white text-black hover:bg-black hover:text-white transition-colors shadow-elevation-1 btn-neon"
             )}
           >
             {tCommon("showMoreVotes", { count: remainingNotVoted })}
@@ -1114,7 +1170,7 @@ export function VotingRecords({
       {/* Not-voted desktop table layout */}
       <div
         className={cn(
-          "hidden sm:block rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none voting-records-container min-h-[400px]",
+          "hidden sm:block rounded-2xl border border-border/40 bg-card shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none voting-records-container min-h-[400px]",
           isGame && "game-detail-card"
         )}
       >
@@ -1145,7 +1201,7 @@ export function VotingRecords({
                     <TableRow
                       key={item.id}
                       className={cn(
-                        "voting-record-row hover:bg-transparent transition-transform duration-300 ease-out transform-gpu hover:scale-[1.01]",
+                        "voting-record-row hover:bg-transparent transition-transform duration-normal ease-out transform-gpu hover:scale-101",
                         isGame && "border-b border-white/10"
                       )}
                     >
@@ -1155,7 +1211,7 @@ export function VotingRecords({
                             {item.role === "DRep" ? (
                               <Link
                                 href={`/drep/${encodeURIComponent(item.id)}`}
-                                className={cn("inline-flex items-center h-7 sm:h-8 w-[180px] px-2 sm:px-3 text-xs font-semibold truncate transition-colors", isGame ? "game-nav-btn" : "rounded-md bg-white text-black shadow-[0_1px_3px_rgba(0,0,0,0.1),0_1px_2px_rgba(0,0,0,0.06)] transform-gpu transition-transform transition-shadow duration-450 ease-in-out hover:scale-[1.015] hover:shadow-[0_3px_8px_rgba(0,0,0,0.12)] btn-neon")}
+                                className={cn("inline-flex items-center h-7 sm:h-8 w-[180px] px-2 sm:px-3 text-xs font-semibold truncate transition-colors", isGame ? "game-nav-btn" : "rounded-md bg-white text-black shadow-elevation-1 transform-gpu transition-transform transition-shadow duration-normal ease-in-out hover:scale-101 hover:shadow-elevation-2 btn-neon")}
                               >
                                 <span className="truncate">{item.name || item.id}</span>
                               </Link>
@@ -1164,11 +1220,11 @@ export function VotingRecords({
                                 {item.name || item.id}
                               </span>
                             )}
-                            <Badge variant="outline" className={cn("px-1 sm:px-1.5 py-0 text-[10px] sm:text-xs", isGame ? "border-white/30 bg-transparent text-white/70" : "border-foreground/20 bg-transparent dark:text-[#0bd1a2] dark:border-[#0bd1a2] dark:bg-transparent")}>
+                            <Badge variant="outline" className={cn("px-1 sm:px-1.5 py-0 text-2xs sm:text-xs", isGame ? "border-white/30 bg-transparent text-white/70" : "border-foreground/20 bg-transparent dark:text-[#0bd1a2] dark:border-[#0bd1a2] dark:bg-transparent")}>
                               {item.role}
                             </Badge>
                           </div>
-                          <div className={cn("font-mono text-[10px] sm:text-xs break-all line-clamp-1", isGame ? "text-white/50" : "text-muted-foreground dark:text-[#0bd1a2]")}>
+                          <div className={cn("font-mono text-2xs sm:text-xs break-all line-clamp-1", isGame ? "text-white/50" : "text-muted-foreground dark:text-[#0bd1a2]")}>
                             {item.id}
                           </div>
                         </div>
@@ -1179,7 +1235,7 @@ export function VotingRecords({
                             {formatAda(item.votingPowerAda || 0)} ADA
                           </div>
                         ) : (
-                          <div className={cn("text-[10px] sm:text-xs", isGame ? "text-white/50" : "text-muted-foreground dark:text-[#0bd1a2]")}>{tVoting("oneMemberOneVote")}</div>
+                          <div className={cn("text-2xs sm:text-xs", isGame ? "text-white/50" : "text-muted-foreground dark:text-[#0bd1a2]")}>{tVoting("oneMemberOneVote")}</div>
                         )}
                       </TableCell>
                     </TableRow>
@@ -1198,7 +1254,7 @@ export function VotingRecords({
                 "w-full",
                 isGame
                   ? "game-nav-btn"
-                  : "bg-white text-black hover:bg-black hover:text-white transition-colors shadow-[0_8px_16px_rgba(15,23,42,0.2)] btn-neon"
+                  : "bg-white text-black hover:bg-black hover:text-white transition-colors shadow-elevation-1 btn-neon"
               )}
             >
               {tCommon("showMoreVotes", { count: remainingNotVoted })}

@@ -20,7 +20,7 @@ export function InfoTooltip({ metricKey, children }: InfoTooltipProps) {
       <TooltipContent side="top" className="max-w-[280px] p-3 leading-relaxed">
         <p className="text-xs">{info.description}</p>
         {info.formula && (
-          <p className="mt-1.5 text-[10px] font-mono opacity-70 border-t border-current/10 pt-1.5">
+          <p className="mt-1.5 text-2xs font-mono opacity-70 border-t border-current/10 pt-1.5">
             {info.formula}
           </p>
         )}
