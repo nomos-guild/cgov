@@ -106,14 +106,14 @@ export function Header() {
                             isActive && "!bg-white/10"
                           )
                         : cn(
-                            "px-3 py-1.5 text-sm font-medium rounded-md transition-colors duration-normal",
+                            "relative px-3 py-1.5 text-sm font-medium transition-all duration-200 inline-flex items-center",
                             isActive
                               ? isLight
-                                ? "bg-foreground text-background"
-                                : "bg-[#0bd1a2] text-black"
+                                ? "text-foreground after:absolute after:bottom-0 after:left-1/2 after:-translate-x-1/2 after:w-3/5 after:h-[2px] after:bg-foreground after:rounded-full"
+                                : "text-[#0bd1a2] after:absolute after:bottom-0 after:left-1/2 after:-translate-x-1/2 after:w-3/5 after:h-[2px] after:bg-[#0bd1a2] after:rounded-full"
                               : isLight
-                                ? "text-muted-foreground hover:text-foreground hover:bg-secondary"
-                                : "text-[#0bd1a2]/60 hover:text-[#0bd1a2]"
+                                ? "text-muted-foreground hover:text-foreground active:text-foreground/70"
+                                : "text-[#0bd1a2]/50 hover:text-[#0bd1a2] active:text-[#0bd1a2]/70"
                           )
                     )}
                   >
