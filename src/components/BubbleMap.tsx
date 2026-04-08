@@ -277,7 +277,7 @@ export function BubbleMap({ votes }: BubbleMapProps) {
 
   if (votes.length === 0) {
     return (
-      <div className="rounded-2xl border border-white/8 bg-[#faf9f6] p-12 shadow-[0_12px_30px_rgba(15,23,42,0.25)] flex h-96 items-center justify-center text-muted-foreground">
+      <div className="rounded-2xl border border-border bg-card p-12 shadow-elevation-2 flex h-96 items-center justify-center text-muted-foreground">
         No votes available
       </div>
     );
@@ -287,7 +287,7 @@ export function BubbleMap({ votes }: BubbleMapProps) {
     <div className={
       isGame
         ? "game-detail-card p-2 sm:p-3 overflow-visible"
-        : "rounded-2xl border border-white/8 bg-[#faf9f6] p-2 sm:p-3 shadow-[0_12px_30px_rgba(15,23,42,0.25)] overflow-visible dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+        : "rounded-2xl border border-border bg-card p-2 sm:p-3 shadow-elevation-2 overflow-visible dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
     }>
       <div className="mb-2 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 px-2 sm:px-4 py-2 pb-2 sm:pb-4 text-sm overflow-visible">
         <div className="flex flex-wrap items-center justify-center gap-2">
@@ -298,7 +298,7 @@ export function BubbleMap({ votes }: BubbleMapProps) {
             className={
               isGame
                 ? "game-nav-btn h-8 sm:h-9"
-                : "h-8 sm:h-9 rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none"
+                : "h-8 sm:h-9 rounded-2xl border border-border bg-card shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none"
             }
           >
             {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
@@ -311,7 +311,7 @@ export function BubbleMap({ votes }: BubbleMapProps) {
               className={
                 isGame
                   ? "game-nav-btn h-8 sm:h-9 text-xs"
-                  : "h-8 sm:h-9 rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] text-xs dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none"
+                  : "h-8 sm:h-9 rounded-2xl border border-border bg-card shadow-elevation-2 text-xs dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none"
               }
             >
               Reset
@@ -330,7 +330,7 @@ export function BubbleMap({ votes }: BubbleMapProps) {
                       ? isActive
                         ? "game-tab-btn-active-inline"
                         : "game-tab-btn-inline"
-                      : `role-filter-button rounded-2xl px-3 sm:px-4 py-1.5 sm:py-2 shadow-[0_12px_30px_rgba(15,23,42,0.25)] cursor-pointer transition-colors text-[10px] sm:text-xs font-semibold uppercase tracking-wide dark:rounded-none dark:border dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none ${
+                      : `role-filter-button rounded-2xl px-3 sm:px-4 py-1.5 sm:py-2 shadow-elevation-2 cursor-pointer transition-colors text-2xs sm:text-xs font-semibold uppercase tracking-wide dark:rounded-none dark:border dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none ${
                           isActive
                             ? "bg-black text-white dark:bg-[#0bd1a2] dark:text-black active"
                             : "bg-white text-black hover:bg-black hover:text-white dark:hover:bg-[#0bd1a2] dark:hover:text-black"
@@ -573,7 +573,7 @@ export function BubbleMap({ votes }: BubbleMapProps) {
                   stroke={strokeColor}
                   strokeWidth={strokeWidth}
                   filter={filters}
-                  className="cursor-pointer transition-all duration-300"
+                  className="cursor-pointer transition-all duration-normal"
                   onMouseEnter={(e) => {
                     setHoveredBubbleId(`${bubble.vote.voterId}-${index}`);
                     handleMouseEnter(bubble, e);
@@ -611,7 +611,7 @@ export function BubbleMap({ votes }: BubbleMapProps) {
             className={
               isGame
                 ? "absolute z-50 rounded-sm px-4 py-3 text-xs pointer-events-none game-tooltip-card"
-                : "absolute z-50 rounded-2xl border border-white/8 bg-[#faf9f6] px-4 py-3 text-xs shadow-[0_12px_30px_rgba(15,23,42,0.25)] pointer-events-none"
+                : "absolute z-50 rounded-2xl border border-border bg-card px-4 py-3 text-xs shadow-elevation-2 pointer-events-none"
             }
             style={{
               left: `${hoveredBubble.x + 15}px`,

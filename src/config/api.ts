@@ -88,4 +88,10 @@ export const API_ENDPOINTS = {
 
   // Analytics endpoints - DRep Concentration
   analyticsConcentrationHistory: "/api/analytics/drep-concentration-history",
+
+  // IPFS upload
+  ipfsUpload: "/api/ipfs/upload",
+
+  // Vote frontload (immediate persistence before chain confirmation)
+  voteFrontload: "/api/vote/frontload",
 } as const;

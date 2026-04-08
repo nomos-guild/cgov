@@ -23,11 +23,11 @@ export function Footer() {
 
   return (
     <footer className="border-t border-border glass mt-auto">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-semibold mb-1">CGOV</h3>
-            <p className="text-sm text-muted-foreground">
+            <h3 className="text-sm font-semibold">CGOV</h3>
+            <p className="text-xs text-muted-foreground">
               {t("builtBy")}
             </p>
           </div>

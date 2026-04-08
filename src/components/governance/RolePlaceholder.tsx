@@ -35,7 +35,7 @@ export function RolePlaceholder({ role, message, notEligible }: { role: string; 
             : "rounded-xl border border-border/60 bg-card/40 shadow-sm dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
         )}>
           <div className={cn(
-            "mb-2 flex items-center justify-between text-[11px] uppercase tracking-wide",
+            "mb-2 flex items-center justify-between text-xs uppercase tracking-wide",
             isGame ? "text-white" : "text-muted-foreground dark:text-[#0bd1a2]"
           )}>
             <span className={cn("font-semibold", isGame ? "text-white" : "dark:text-[#0bd1a2]")}>{role}</span>
@@ -67,7 +67,7 @@ export function RolePlaceholder({ role, message, notEligible }: { role: string; 
                   </span>
                 </div>
                 <span className={cn(
-                  "font-mono text-[11px] shrink-0 text-right italic",
+                  "font-mono text-xs shrink-0 text-right italic",
                   isGame ? "text-white/60" : "text-muted-foreground/60 dark:text-[#0bd1a2]/60"
                 )}>
                   {tVoting("notEligible")}

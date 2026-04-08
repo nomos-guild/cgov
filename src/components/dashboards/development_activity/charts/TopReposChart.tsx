@@ -3,8 +3,9 @@ import { useAppSelector } from "@/store/hooks";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell,
+  BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Cell,
 } from "recharts";
+import { SafeResponsiveContainer as ResponsiveContainer } from "@/components/ui/safe-responsive-container";
 import { ChartSkeleton } from "@/components/dashboards/shared/ChartSkeleton";
 import {
   getChartColors, chartCardClassName, chartCardGameClassName,
@@ -65,7 +66,7 @@ export function TopReposChart({ isLoading, className }: ChartProps) {
           <button
             onClick={() => setSortMode("active")}
             className={cn(
-              "px-2 py-0.5 text-[10px] rounded transition-colors",
+              "px-2 py-0.5 text-2xs rounded transition-colors",
               sortMode === "active"
                 ? "bg-primary/10 text-primary dark:bg-[#0bd1a2]/20 dark:text-[#0bd1a2]"
                 : "text-muted-foreground hover:bg-muted/50"
@@ -76,7 +77,7 @@ export function TopReposChart({ isLoading, className }: ChartProps) {
           <button
             onClick={() => setSortMode("trending")}
             className={cn(
-              "px-2 py-0.5 text-[10px] rounded transition-colors",
+              "px-2 py-0.5 text-2xs rounded transition-colors",
               sortMode === "trending"
                 ? "bg-primary/10 text-primary dark:bg-[#0bd1a2]/20 dark:text-[#0bd1a2]"
                 : "text-muted-foreground hover:bg-muted/50"
@@ -87,7 +88,7 @@ export function TopReposChart({ isLoading, className }: ChartProps) {
         </div>
       </div>
       <div className="flex-1 min-h-0">
-        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
           <BarChart data={data} layout="vertical" margin={{ top: 5, right: 40, left: 5, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={chartColors.gridLine} horizontal={false} />
             <XAxis type="number" tick={{ fill: chartColors.axisText, fontSize: 11 }} stroke={chartColors.axisLine} />

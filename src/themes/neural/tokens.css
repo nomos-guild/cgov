@@ -215,13 +215,13 @@
   background-color: hsl(var(--card)) !important;
 }
 
-[data-theme="neural"] .bg-\[\#faf9f6\] {
+[data-theme="neural"] .bg-card {
   background-color: hsl(var(--card)) !important;
   border-radius: 0 !important;
   box-shadow: none !important;
 }
 
-[data-theme="neural"] .rounded-2xl.border.bg-\[\#faf9f6\] {
+[data-theme="neural"] .rounded-2xl.border.bg-card {
   border-radius: 0 !important;
   box-shadow: none !important;
   border: 1px solid hsl(var(--border)) !important;

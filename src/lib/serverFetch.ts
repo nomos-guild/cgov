@@ -158,6 +158,7 @@ function transformVoteRecord(vote: VoteRecord): VoteRecord {
     rationale: vote.rationale,
     votedAt: vote.votedAt,
     txHash: vote.txHash,
+    isPendingConfirmation: vote.isPendingConfirmation === true || vote.votingPower == null,
   };
 }
 
@@ -294,6 +295,7 @@ export async function fetchGovernanceActionDetailServer(
     const data = await fetchBackend<GovernanceActionDetail>(
       `/proposal/${encodeURIComponent(proposalId)}`
     );
+
     const transformed = transformGovernanceActionDetail(data);
     return sanitizeForJson(transformed);
   } catch (error) {

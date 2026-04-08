@@ -117,7 +117,8 @@
     "votingPower": "Wahlkraft",
     "oneMemberOneVote": "Ein Mitglied, eine Stimme",
     "noRationale": "Keine Begründung",
-    "noVotingRecordsFound": "Keine Abstimmungsaufzeichnungen gefunden"
+    "noVotingRecordsFound": "Keine Abstimmungsaufzeichnungen gefunden",
+    "pending": "Ausstehend"
   },
   "charts": {
     "proposalStatus": {
@@ -353,9 +354,17 @@
     "viewUpdatedRecords": "Aktualisierte Aufzeichnungen anzeigen",
     "close": "Schließen",
     "proposal": "Vorschlag",
-    "rationaleUrlOptional": "Begründungs-URL (Optional)",
+    "rationaleUrlOptional": "Begründung (Optional)",
+    "pasteUrl": "URL einfügen",
+    "writeRationale": "Begründung schreiben",
     "rationaleUrlPlaceholder": "https://... oder ipfs://...",
     "rationaleUrlHelp": "Geben Sie eine URL zu Ihrer Abstimmungsbegründung an (z.B. IPFS-Link zu einem JSON-Dokument).",
+    "rationaleTitlePlaceholder": "Kurzer Titel für Ihre Begründung",
+    "rationaleCommentPlaceholder": "Erklären Sie, warum Sie so abstimmen...",
+    "rationaleWriteHelp": "Ihre Begründung wird formatiert und beim Absenden auf IPFS hochgeladen.",
+    "rationaleJsonHelp": "Geben Sie gültiges JSON ein. Es wird beim Absenden Ihrer Stimme auf IPFS hochgeladen.",
+    "advancedPasteJson": "Erweitert: JSON einfügen",
+    "backToSimpleMode": "Zurück zum einfachen Modus",
     "cancel": "Abbrechen",
     "confirmVote": "Stimme bestätigen",
     "submitting": "Wird eingereicht...",

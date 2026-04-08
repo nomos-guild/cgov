@@ -116,7 +116,7 @@ export function ConnectWalletButton() {
             : `flex items-center gap-2 transition-colors btn-neon ${
                 connected
                   ? "hover:bg-black hover:text-white"
-                  : "bg-white text-black hover:bg-black hover:text-white shadow-[0_12px_30px_rgba(15,23,42,0.25)]"
+                  : "bg-white text-black hover:bg-black hover:text-white shadow-elevation-2"
               }`
         }
       >

@@ -32,14 +32,14 @@ export function ProposalDetailsTab({
     "p-4 sm:p-5",
     isGame
       ? "game-detail-card"
-      : "rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+      : "rounded-2xl border border-border bg-card shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
   );
 
   const copyBtnClass = cn(
     "flex h-7 w-7 shrink-0 items-center justify-center transition-colors",
     isGame
       ? "game-nav-btn !p-0 !min-w-0 !min-h-0"
-      : "rounded-full bg-white text-black hover:bg-black hover:text-white shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:hover:bg-[#0bd1a2] dark:hover:text-black dark:shadow-none"
+      : "rounded-full bg-white text-black hover:bg-black hover:text-white shadow-elevation-2 dark:rounded-none dark:border dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:hover:bg-[#0bd1a2] dark:hover:text-black dark:shadow-none"
   );
 
   const codeClass = cn(

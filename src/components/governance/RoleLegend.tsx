@@ -79,13 +79,13 @@ export function RoleLegend({
 
   return (
     <div className={cn(
-      "w-full max-w-none px-2 py-0 text-[10px] sm:text-xs",
+      "w-full max-w-none px-2 py-0 text-2xs sm:text-xs",
       isGame
         ? "sm:w-[180px] border-none bg-transparent"
         : "sm:w-[240px] sm:px-3 sm:py-2 rounded-xl border border-border/60 bg-card/40 shadow-sm dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
     )}>
       <div className={cn(
-        "mb-0.5 sm:mb-2 flex items-center justify-between text-[10px] sm:text-[11px] uppercase tracking-wide",
+        "mb-0.5 sm:mb-2 flex items-center justify-between text-2xs sm:text-xs uppercase tracking-wide",
         isGame ? "text-white" : "text-muted-foreground dark:text-[#0bd1a2]"
       )}>
         <span className={cn("font-semibold", isGame ? "text-white" : "dark:text-[#0bd1a2]")}>{role}</span>
@@ -125,7 +125,7 @@ export function RoleLegend({
                       isGame ? "text-white/60" : "text-muted-foreground dark:text-[#0bd1a2]/60"
                     )} />
                     <div className={cn(
-                      "absolute left-0 bottom-full mb-1 hidden group-hover:block z-50 w-max max-w-[200px] rounded px-2 py-1 text-[10px] shadow-lg",
+                      "absolute left-0 bottom-full mb-1 hidden group-hover:block z-50 w-max max-w-[200px] rounded px-2 py-1 text-2xs shadow-lg",
                       isGame
                         ? "bg-black/90 text-white border border-white/20"
                         : "bg-popover text-popover-foreground border border-border"
@@ -137,7 +137,7 @@ export function RoleLegend({
               </div>
             </div>
             <span className={cn(
-              "font-mono text-[11px] shrink-0 text-right",
+              "font-mono text-xs shrink-0 text-right",
               isGame ? "text-white/80" : "text-muted-foreground dark:text-[#0bd1a2]"
             )}>
               {item.value}

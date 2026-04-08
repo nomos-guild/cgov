@@ -38,13 +38,9 @@ export function ThemeToggle() {
 
   useEffect(() => {
     setMounted(true);
-    // Load saved brightness
-    const saved = localStorage.getItem(BRIGHTNESS_KEY);
-    if (saved) {
-      const value = parseInt(saved, 10);
-      setBrightness(value);
-      applyBrightness(value);
-    }
+    // Clear any stale brightness value — the feature is light-theme-only
+    // and leftover values caused a white mist on dark themes
+    localStorage.removeItem(BRIGHTNESS_KEY);
   }, []);
 
   const applyBrightness = (value: number) => {
@@ -111,12 +107,15 @@ export function ThemeToggle() {
     }
   };
 
-  // Apply brightness when it changes
+  // Apply brightness when it changes — only on light theme
   useEffect(() => {
     if (!mounted) return;
-    applyBrightness(brightness);
-    localStorage.setItem(BRIGHTNESS_KEY, String(brightness));
-  }, [brightness, mounted]);
+    const isLight = resolvedTheme === "light" && !isGame;
+    applyBrightness(isLight ? brightness : DEFAULT_BRIGHTNESS);
+    if (isLight) {
+      localStorage.setItem(BRIGHTNESS_KEY, String(brightness));
+    }
+  }, [brightness, mounted, resolvedTheme, isGame]);
 
   // Close brightness popover when clicking outside
   useEffect(() => {

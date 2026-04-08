@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { PieChart, Pie, Cell, Tooltip } from "recharts";
+import { SafeResponsiveContainer as ResponsiveContainer } from "@/components/ui/safe-responsive-container";
 import { useTranslations } from "next-intl";
 import { useTheme } from "@/lib/theme";
 import type { DRepSummary } from "@/types/drep";
@@ -95,7 +96,7 @@ export function DRepDelegatorsDonut({ dreps, className }: DRepDelegatorsDonutPro
             <button
               key={n}
               onClick={() => setTopN(n)}
-              className={`px-1.5 py-0.5 text-[9px] font-medium rounded transition-colors ${
+              className={`px-1.5 py-0.5 text-3xs font-medium rounded transition-colors ${
                 topN === n
                   ? isLight
                     ? "bg-black/10 text-black"
@@ -114,7 +115,7 @@ export function DRepDelegatorsDonut({ dreps, className }: DRepDelegatorsDonutPro
           ))}
         </div>
         <div className="relative flex-1 overflow-visible [&_.recharts-wrapper]:!overflow-visible" style={{ height: 150 }}>
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
           <PieChart style={{ overflow: "visible" }}>
             {isLight && (
               <defs>
@@ -158,7 +159,7 @@ export function DRepDelegatorsDonut({ dreps, className }: DRepDelegatorsDonutPro
                     isGame
                       ? "game-tooltip-card rounded-sm px-3 py-2 text-xs"
                       : isLight
-                      ? "rounded-lg p-2 text-sm bg-white text-gray-900 border border-gray-200 shadow-[0_4px_12px_rgba(15,23,42,0.15)]"
+                      ? "rounded-lg p-2 text-sm bg-white text-gray-900 border border-gray-200 shadow-elevation-1"
                       : "bg-[rgba(8,8,8,0.95)] border border-[#0bd1a2]/30 rounded-sm px-3 py-2 text-xs"
                   }>
                     <p className={isGame ? "font-medium text-white" : isDark ? "font-medium text-[#0bd1a2]" : "font-medium"}>
@@ -187,7 +188,7 @@ export function DRepDelegatorsDonut({ dreps, className }: DRepDelegatorsDonutPro
           ].map(({ label, value, pct, n }) => {
             const isActive = n === topN;
             return (
-              <div key={label} className={`flex items-center gap-3 text-[11px] rounded px-1 -mx-1 transition-colors ${
+              <div key={label} className={`flex items-center gap-3 text-xs rounded px-1 -mx-1 transition-colors ${
                 isActive
                   ? isLight
                     ? "bg-black/8"

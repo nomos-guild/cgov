@@ -227,7 +227,7 @@ export function getChartColors(themeId: string): ChartThemeColors {
 }
 
 export const chartCardClassName =
-  "rounded-xl border-none bg-white p-4 shadow-[0_8px_24px_rgba(45,41,38,0.12)] " +
+  "rounded-xl border-none bg-white p-4 shadow-elevation-2 " +
   "dark:rounded-none dark:border dark:border-[rgba(11,209,162,0.4)] dark:bg-[rgba(19,19,32,0.6)] dark:shadow-[0_4px_20px_rgba(11,209,162,0.1)] " +
   "h-full flex flex-col";
 

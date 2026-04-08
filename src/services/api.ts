@@ -471,6 +471,9 @@ function transformVoteRecord(vote: VoteRecord): VoteRecord {
     rationale: vote.rationale,
     votedAt: vote.votedAt,
     txHash: vote.txHash,
+    // votingPower is only set by the backend when chain data is available;
+    // if missing, the vote was frontloaded and awaits confirmation
+    isPendingConfirmation: vote.isPendingConfirmation === true || vote.votingPower == null,
   };
 }
 

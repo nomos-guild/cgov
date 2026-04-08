@@ -1,5 +1,6 @@
 import type { VoteRecord } from "@/types/governance";
 import type { DRepVoteRecord } from "@/types/drep";
+import { getDRepIds } from "@meshsdk/core-cst";
 
 /**
  * Format large numbers with appropriate suffix (K, M, B)
@@ -78,6 +79,15 @@ export function getVoteBadgeClass(vote: "Yes" | "No" | "Abstain", isGame: boolea
     case "Abstain":
       return "text-foreground/60 border border-foreground/20 bg-transparent";
   }
+}
+
+/**
+ * Convert a CIP-105 DRep ID to CIP-129 format.
+ * CIP-129 is the format used by chain indexers (Koios, Cardanoscan)
+ * and stored in the cgov backend database.
+ */
+export function toCip129DRepId(cip105Id: string): string {
+  return getDRepIds(cip105Id).cip129;
 }
 
 /** Convert a DRepVoteRecord to the VoteRecord shape the rationale modal expects */

@@ -4,9 +4,9 @@ import {
   XAxis,
   YAxis,
   Tooltip,
-  ResponsiveContainer,
   CartesianGrid,
 } from "recharts";
+import { SafeResponsiveContainer as ResponsiveContainer } from "@/components/ui/safe-responsive-container";
 import type { DRepHistoryDataPoint } from "@/types/drep";
 
 interface DRepDelegationChartProps {
@@ -154,7 +154,7 @@ export function DRepDelegationChart({
 
   return (
     <div style={{ width: "100%", height: 220 }}>
-    <ResponsiveContainer width="100%" height="100%">
+    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
       <AreaChart data={data} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
         <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
         <XAxis
@@ -220,7 +220,7 @@ export function DRepDelegationChart({
           }}
         />
       </AreaChart>
-    </ResponsiveContainer>
+        </ResponsiveContainer>
     </div>
   );
 }

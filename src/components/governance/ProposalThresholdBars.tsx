@@ -75,8 +75,8 @@ function ThresholdBarRow({ label, currentPercent, thresholdPercent, isGame }: {
   return (
     <div className="space-y-0.5">
       <div className="flex justify-between items-center">
-        <span className={cn("text-[10px] font-medium", isGame ? "text-white/80" : "text-muted-foreground")}>{label}</span>
-        <span className={cn("text-[10px]", isGame ? "text-white/60" : "text-muted-foreground")}>{currentPercent.toFixed(1)}% / {thresholdPercent.toFixed(1)}%</span>
+        <span className={cn("text-2xs font-medium", isGame ? "text-white/80" : "text-muted-foreground")}>{label}</span>
+        <span className={cn("text-2xs", isGame ? "text-white/60" : "text-muted-foreground")}>{currentPercent.toFixed(1)}% / {thresholdPercent.toFixed(1)}%</span>
       </div>
       <div className="relative">
         <Progress value={Math.min(currentPercent, 100)} className={cn("h-1.5", isGame ? "bg-white/20" : "bg-gray-200 dark:bg-gray-700")} indicatorClassName={isGame ? "bg-gray-400" : "bg-black dark:bg-[#0bd1a2]"} />

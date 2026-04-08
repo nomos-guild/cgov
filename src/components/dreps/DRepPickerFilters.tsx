@@ -41,7 +41,7 @@ export default function DRepPickerFilters({
   const isLight = activeTheme.id === "light" || activeTheme.id === "neural";
 
   const cardClass = isLight
-    ? "rounded-2xl border border-white/8 bg-[#faf9f6] p-4 sm:p-5 shadow-[0_12px_30px_rgba(15,23,42,0.25)]"
+    ? "rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-elevation-2"
     : isGame
     ? "game-detail-card rounded-[2px] border-none bg-[rgba(12,12,12,0.5)] p-4 sm:p-5 shadow-[0_18px_36px_rgba(0,0,0,0.55),0_6px_18px_rgba(0,0,0,0.4)]"
     : "rounded-none border border-[#0bd1a2] bg-transparent p-4 sm:p-5 shadow-none";
@@ -53,10 +53,10 @@ export default function DRepPickerFilters({
     : "text-[#0bd1a2] font-semibold text-xs";
 
   const rangeTextClass = isGame
-    ? "text-white/70 text-[10px] tabular-nums"
+    ? "text-white/70 text-2xs tabular-nums"
     : isLight
-    ? "text-black/60 text-[10px] tabular-nums"
-    : "text-[#0bd1a2]/70 text-[10px] tabular-nums";
+    ? "text-black/60 text-2xs tabular-nums"
+    : "text-[#0bd1a2]/70 text-2xs tabular-nums";
 
   return (
     <div className={cardClass}>
@@ -65,7 +65,7 @@ export default function DRepPickerFilters({
         <h3 className={`text-sm font-bold ${isGame ? "text-white" : isLight ? "text-black" : "text-[#0bd1a2]"}`}>
           {t("pickerTitle")}
         </h3>
-        <p className={`mt-1 text-[10px] leading-relaxed ${isGame ? "text-white/50" : "text-muted-foreground"}`}>
+        <p className={`mt-1 text-2xs leading-relaxed ${isGame ? "text-white/50" : "text-muted-foreground"}`}>
           {t("pickerDescription")}
         </p>
       </div>
@@ -89,7 +89,7 @@ export default function DRepPickerFilters({
                       isGame ? "text-white/40" : isLight ? "text-black/30" : "text-[#0bd1a2]/50"
                     )} />
                     <span className={cn(
-                      "pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 w-44 rounded px-2.5 py-1.5 text-[10px] font-normal leading-snug opacity-0 transition-opacity group-hover:opacity-100 z-50 text-center",
+                      "pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 w-44 rounded px-2.5 py-1.5 text-2xs font-normal leading-snug opacity-0 transition-opacity group-hover:opacity-100 z-50 text-center",
                       isGame
                         ? "bg-black/90 text-white border border-white/20"
                         : isLight
@@ -113,7 +113,7 @@ export default function DRepPickerFilters({
                     <button
                       key={preset.label}
                       onClick={() => filter.onCommit(preset.range)}
-                      className={`text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 transition-all duration-150 ${
+                      className={`text-3xs font-semibold uppercase tracking-wider px-2 py-0.5 transition-all duration-150 ${
                         isLight
                           ? isActive
                             ? "rounded-full bg-black text-white"
@@ -154,7 +154,7 @@ export default function DRepPickerFilters({
         </span>
         <button
           onClick={onReset}
-          className={`text-[10px] font-semibold uppercase tracking-wide px-3 py-1.5 transition-all duration-200 ${
+          className={`text-2xs font-semibold uppercase tracking-wide px-3 py-1.5 transition-all duration-200 ${
             isLight
               ? "rounded-full border border-black/20 text-black/60 hover:bg-black hover:text-white"
               : isGame

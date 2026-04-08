@@ -274,7 +274,7 @@ export function DashboardChartCard({
             ? "rounded-sm border-none bg-transparent"
             : isDark
               ? "rounded-2xl border border-[#0bd1a2] bg-transparent"
-              : "rounded-2xl border-none bg-white shadow-[0_12px_30px_rgba(15,23,42,0.25)]"
+              : "rounded-2xl border-none bg-white shadow-elevation-2"
         )}
       >
         <ChartComponent isLoading={isLoading} className="h-full w-full" />

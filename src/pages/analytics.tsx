@@ -2,7 +2,8 @@ import { useMemo } from "react";
 import type { GetStaticProps, InferGetStaticPropsType } from "next";
 import Head from "next/head";
 import { useTranslations } from "next-intl";
-import { ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, CartesianGrid } from "recharts";
+import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, CartesianGrid } from "recharts";
+import { SafeResponsiveContainer as ResponsiveContainer } from "@/components/ui/safe-responsive-container";
 import { GovernanceStats } from "@/components/GovernanceStats";
 import { useGovernanceDataLoader, type InitialGovernanceData } from "@/hooks/useGovernanceData";
 import { fetchAllGovernanceData } from "@/lib/serverFetch";
@@ -68,7 +69,7 @@ export default function Analytics({ initialData }: InferGetStaticPropsType<typeo
     return `${value}`;
   };
 
-  const cardClass = "rounded-2xl border border-white/8 bg-[#faf9f6] p-4 sm:p-5 md:p-6 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-background dark:shadow-none";
+  const cardClass = "rounded-2xl border border-border bg-card p-4 sm:p-5 md:p-6 shadow-elevation-2 dark:rounded-none dark:border-[#0bd1a2] dark:bg-background dark:shadow-none";
 
   return (
     <>
@@ -134,7 +135,7 @@ export default function Analytics({ initialData }: InferGetStaticPropsType<typeo
                     </h3>
                     {treasuryHistory.length > 1 ? (
                       <div className="w-full h-64 sm:h-80">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                           <AreaChart data={treasuryHistory} margin={{ top: 8, right: 8, bottom: 4, left: 0 }}>
                             <defs>
                               <linearGradient id="treasuryFillLg" x1="0" y1="0" x2="0" y2="1">
@@ -194,7 +195,7 @@ export default function Analytics({ initialData }: InferGetStaticPropsType<typeo
                     </h3>
                     {earningsHistory.length > 1 ? (
                       <div className="w-full h-64 sm:h-80">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                           <BarChart data={earningsHistory} margin={{ top: 8, right: 8, bottom: 4, left: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
                             <XAxis

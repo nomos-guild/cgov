@@ -89,7 +89,44 @@ interface GovernanceDetailProps {
   initialDetail?: GovernanceActionDetail | null;
 }
 
+function SkeletonBlock({ className }: { className?: string }) {
+  return <div className={cn("animate-pulse rounded-lg bg-muted/60", className)} />;
+}
+
+function ProposalSkeleton() {
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-3 pt-8 pb-4 sm:px-4 sm:pt-10 md:px-6 md:pt-12">
+        <SkeletonBlock className="h-5 w-32 mb-6" />
+        <SkeletonBlock className="h-8 w-3/4 mb-3" />
+        <SkeletonBlock className="h-4 w-1/2 mb-8" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-4">
+            <SkeletonBlock className="h-48 w-full" />
+            <SkeletonBlock className="h-32 w-full" />
+          </div>
+          <div className="space-y-4">
+            <SkeletonBlock className="h-24 w-full" />
+            <SkeletonBlock className="h-24 w-full" />
+            <SkeletonBlock className="h-24 w-full" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function GovernanceDetail({ initialDetail }: GovernanceDetailProps) {
+  const router = useRouter();
+
+  if (router.isFallback) {
+    return <ProposalSkeleton />;
+  }
+
+  return <GovernanceDetailContent initialDetail={initialDetail} />;
+}
+
+function GovernanceDetailContent({ initialDetail }: GovernanceDetailProps) {
   const router = useRouter();
   const { hash } = router.query;
   const { theme, activeTheme } = useTheme();
@@ -181,6 +218,29 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
       ...(selectedAction.ccVotes || []),
     ];
   }, [selectedAction]);
+
+  // Frontloaded votes pending chain confirmation (no votingPower from chain yet)
+  const unconfirmedVoterIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const v of allVotes) {
+      if (v.isPendingConfirmation) {
+        const id = v.voterId || v.drepId;
+        if (id) ids.add(id);
+      }
+    }
+    return ids;
+  }, [allVotes]);
+
+  // Background polling: refresh proposal data while unconfirmed votes exist
+  useEffect(() => {
+    if (unconfirmedVoterIds.size === 0) return;
+
+    const interval = setInterval(() => {
+      refresh();
+    }, 30_000);
+
+    return () => clearInterval(interval);
+  }, [unconfirmedVoterIds.size, refresh]);
 
   // Aggregate voting data (breakdowns, CC counts) may be available even when
   // individual vote records haven't been indexed yet. The Live Voting donuts
@@ -645,7 +705,7 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
       <div className="min-h-screen bg-background">
         <div className="container mx-auto py-8 px-4">
           <Link href="/">
-            <Button variant="default" className={isGame ? "game-nav-btn mb-6" : "mb-6 bg-white text-black hover:bg-black hover:text-white shadow-[0_12px_30px_rgba(15,23,42,0.25)]"}>
+            <Button variant="default" className={isGame ? "game-nav-btn mb-6" : "mb-6 bg-white text-black hover:bg-black hover:text-white shadow-elevation-2"}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Dashboard
             </Button>
@@ -675,7 +735,7 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
       <div className="min-h-screen bg-background">
         <div className="container mx-auto py-8 px-4">
           <Link href="/">
-            <Button variant="default" className="mb-6 bg-white text-black hover:bg-black hover:text-white shadow-[0_12px_30px_rgba(15,23,42,0.25)]">
+            <Button variant="default" className="mb-6 bg-white text-black hover:bg-black hover:text-white shadow-elevation-2">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Dashboard
             </Button>
@@ -705,7 +765,7 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
       <div className="min-h-screen bg-background">
         <div className="container mx-auto py-8 px-4">
           <Link href="/">
-            <Button variant="default" className="mb-6 bg-white text-black hover:bg-black hover:text-white shadow-[0_12px_30px_rgba(15,23,42,0.25)]">
+            <Button variant="default" className="mb-6 bg-white text-black hover:bg-black hover:text-white shadow-elevation-2">
               <ArrowLeft className="mr-2 h-4 w-4" />
               {tProposal("backToDashboard")}
             </Button>
@@ -918,16 +978,16 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
                   <div className="flex justify-center items-center pt-3 mt-auto">
                     <div
                       className={cn(
-                        "flex w-full items-center justify-center px-3 py-1.5 cursor-pointer transition-all duration-300",
+                        "flex w-full items-center justify-center px-3 py-1.5 cursor-pointer transition-all duration-normal",
                         isGame
                           ? "game-expand-btn rounded-lg"
-                          : "rounded-lg border border-border/50 bg-card/50 hover:bg-white hover:shadow-lg hover:scale-[1.02] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:hover:bg-[#0bd1a2]/10 dark:hover:shadow-none"
+                          : "rounded-lg border border-border/50 bg-card/50 hover:bg-white hover:shadow-lg hover:scale-101 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:hover:bg-[#0bd1a2]/10 dark:hover:shadow-none"
                       )}
                       onClick={() => setIsContentExpanded((prev) => !prev)}
                     >
                       <svg
                         className={cn(
-                          "h-4 w-4 transition-transform duration-300",
+                          "h-4 w-4 transition-transform duration-normal",
                           isContentExpanded ? "rotate-180" : "",
                           isGame ? "text-white" : "text-foreground dark:text-[#0bd1a2]"
                         )}
@@ -968,8 +1028,8 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
                           value="live-voting"
                           className={
                             isGame
-                              ? "game-tab-btn data-[state=active]:game-tab-btn-active text-[10px] sm:text-xs"
-                              : "rounded-md border border-white/8 bg-white text-black px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold uppercase tracking-wide transform-gpu transition-transform transition-shadow duration-450 ease-in-out shadow-[0_12px_30px_rgba(15,23,42,0.25)] data-[state=active]:bg-black data-[state=active]:text-white hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon"
+                              ? "game-tab-btn data-[state=active]:game-tab-btn-active text-2xs sm:text-xs"
+                              : "rounded-md border border-border bg-white text-black px-2 sm:px-3 py-1 sm:py-1.5 text-2xs sm:text-xs font-semibold uppercase tracking-wide transform-gpu transition-transform transition-shadow duration-normal ease-in-out shadow-elevation-2 data-[state=active]:bg-black data-[state=active]:text-white hover:scale-101 hover:shadow-elevation-3 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon"
                           }
                         >
                           {tTabs("liveVoting")}
@@ -978,8 +1038,8 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
                           value="thresholds"
                           className={
                             isGame
-                              ? "game-tab-btn data-[state=active]:game-tab-btn-active text-[10px] sm:text-xs"
-                              : "rounded-md border border-white/8 bg-white text-black px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold uppercase tracking-wide transform-gpu transition-transform transition-shadow duration-450 ease-in-out shadow-[0_12px_30px_rgba(15,23,42,0.25)] data-[state=active]:bg-black data-[state=active]:text-white hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon"
+                              ? "game-tab-btn data-[state=active]:game-tab-btn-active text-2xs sm:text-xs"
+                              : "rounded-md border border-border bg-white text-black px-2 sm:px-3 py-1 sm:py-1.5 text-2xs sm:text-xs font-semibold uppercase tracking-wide transform-gpu transition-transform transition-shadow duration-normal ease-in-out shadow-elevation-2 data-[state=active]:bg-black data-[state=active]:text-white hover:scale-101 hover:shadow-elevation-3 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon"
                           }
                         >
                           {tTabs("thresholds")}
@@ -988,8 +1048,8 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
                           value="bubble-map"
                           className={
                             isGame
-                              ? "game-tab-btn data-[state=active]:game-tab-btn-active text-[10px] sm:text-xs"
-                              : "rounded-md border border-white/8 bg-white text-black px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold uppercase tracking-wide transform-gpu transition-transform transition-shadow duration-450 ease-in-out shadow-[0_12px_30px_rgba(15,23,42,0.25)] data-[state=active]:bg-black data-[state=active]:text-white hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon"
+                              ? "game-tab-btn data-[state=active]:game-tab-btn-active text-2xs sm:text-xs"
+                              : "rounded-md border border-border bg-white text-black px-2 sm:px-3 py-1 sm:py-1.5 text-2xs sm:text-xs font-semibold uppercase tracking-wide transform-gpu transition-transform transition-shadow duration-normal ease-in-out shadow-elevation-2 data-[state=active]:bg-black data-[state=active]:text-white hover:scale-101 hover:shadow-elevation-3 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon"
                           }
                         >
                           {tTabs("bubbleMap")}
@@ -998,8 +1058,8 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
                           value="curves"
                           className={
                             isGame
-                              ? "game-tab-btn data-[state=active]:game-tab-btn-active text-[10px] sm:text-xs"
-                              : "rounded-md border border-white/8 bg-white text-black px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold uppercase tracking-wide transform-gpu transition-transform transition-shadow duration-450 ease-in-out shadow-[0_12px_30px_rgba(15,23,42,0.25)] data-[state=active]:bg-black data-[state=active]:text-white hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon"
+                              ? "game-tab-btn data-[state=active]:game-tab-btn-active text-2xs sm:text-xs"
+                              : "rounded-md border border-border bg-white text-black px-2 sm:px-3 py-1 sm:py-1.5 text-2xs sm:text-xs font-semibold uppercase tracking-wide transform-gpu transition-transform transition-shadow duration-normal ease-in-out shadow-elevation-2 data-[state=active]:bg-black data-[state=active]:text-white hover:scale-101 hover:shadow-elevation-3 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon"
                           }
                         >
                           {tTabs("curves")}
@@ -1008,8 +1068,8 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
                           value="details"
                           className={
                             isGame
-                              ? "game-tab-btn data-[state=active]:game-tab-btn-active text-[10px] sm:text-xs"
-                              : "rounded-md border border-white/8 bg-white text-black px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold uppercase tracking-wide transform-gpu transition-transform transition-shadow duration-450 ease-in-out shadow-[0_12px_30px_rgba(15,23,42,0.25)] data-[state=active]:bg-black data-[state=active]:text-white hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon"
+                              ? "game-tab-btn data-[state=active]:game-tab-btn-active text-2xs sm:text-xs"
+                              : "rounded-md border border-border bg-white text-black px-2 sm:px-3 py-1 sm:py-1.5 text-2xs sm:text-xs font-semibold uppercase tracking-wide transform-gpu transition-transform transition-shadow duration-normal ease-in-out shadow-elevation-2 data-[state=active]:bg-black data-[state=active]:text-white hover:scale-101 hover:shadow-elevation-3 dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon"
                           }
                         >
                           {tTabs("details")}
@@ -1059,7 +1119,7 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
                         {/* Curves */}
                         <TabsContent value="curves" className="mt-0">
                           <Card className={cn(
-                            "p-4 sm:p-6 shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none dark:rounded-none",
+                            "p-4 sm:p-6 shadow-elevation-2 dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none dark:rounded-none",
                             isGame && "game-detail-card"
                           )}>
                             <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -1224,14 +1284,14 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
                           value={chartMode}
                           onValueChange={(value: string) => setChartMode(value as ChartMode)}
                         >
-                          <SelectTrigger className="w-[100px] h-7 text-[10px] btn-neon ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:ring-offset-0 focus:border-black data-[state=open]:ring-0 data-[state=open]:ring-transparent data-[state=open]:ring-offset-0 data-[state=open]:border-black dark:focus:border-[#0bd1a2] dark:data-[state=open]:border-[#0bd1a2]">
+                          <SelectTrigger className="w-[100px] h-7 text-2xs btn-neon ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:ring-offset-0 focus:border-black data-[state=open]:ring-0 data-[state=open]:ring-transparent data-[state=open]:ring-offset-0 data-[state=open]:border-black dark:focus:border-[#0bd1a2] dark:data-[state=open]:border-[#0bd1a2]">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="rounded-none dark:border dark:border-[#0bd1a2] dark:bg-black dark:text-[#0bd1a2] dark:rounded-none">
-                            <SelectItem value="live" className="text-[10px] cursor-pointer dark:focus:bg-[#0bd1a2]/20 dark:focus:text-[#0bd1a2]">
+                            <SelectItem value="live" className="text-2xs cursor-pointer dark:focus:bg-[#0bd1a2]/20 dark:focus:text-[#0bd1a2]">
                               {tProposal("liveMode")}
                             </SelectItem>
-                            <SelectItem value="projected" className="text-[10px] cursor-pointer dark:focus:bg-[#0bd1a2]/20 dark:focus:text-[#0bd1a2]">
+                            <SelectItem value="projected" className="text-2xs cursor-pointer dark:focus:bg-[#0bd1a2]/20 dark:focus:text-[#0bd1a2]">
                               {tProposal("projectedMode")}
                             </SelectItem>
                           </SelectContent>
@@ -1254,7 +1314,7 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
                             value={curveRoleFilter}
                             onValueChange={(value: string) => setCurveRoleFilter(value as RoleFilter)}
                           >
-                            <SelectTrigger className="w-[100px] h-7 text-[10px] btn-neon ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:ring-offset-0 focus:border-black data-[state=open]:ring-0 data-[state=open]:ring-transparent data-[state=open]:ring-offset-0 data-[state=open]:border-black dark:focus:border-[#0bd1a2] dark:data-[state=open]:border-[#0bd1a2]">
+                            <SelectTrigger className="w-[100px] h-7 text-2xs btn-neon ring-0 ring-offset-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:ring-offset-0 focus:border-black data-[state=open]:ring-0 data-[state=open]:ring-transparent data-[state=open]:ring-offset-0 data-[state=open]:border-black dark:focus:border-[#0bd1a2] dark:data-[state=open]:border-[#0bd1a2]">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="rounded-none dark:border dark:border-[#0bd1a2] dark:bg-black dark:text-[#0bd1a2] dark:rounded-none">
@@ -1262,7 +1322,7 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
                                 <SelectItem
                                   key={role}
                                   value={role}
-                                  className="text-[10px] cursor-pointer dark:focus:bg-[#0bd1a2]/20 dark:focus:text-[#0bd1a2]"
+                                  className="text-2xs cursor-pointer dark:focus:bg-[#0bd1a2]/20 dark:focus:text-[#0bd1a2]"
                                 >
                                   {role === "All" ? tVoting("allRoles") : role}
                                 </SelectItem>
@@ -1305,6 +1365,7 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
                   proposalTitle={selectedAction.title}
                   status={selectedAction.status}
                   proposalId={selectedAction.proposalId || selectedAction.hash}
+                  onVoteSubmitted={refresh}
                 />
               )}
 
@@ -1337,7 +1398,7 @@ export default function GovernanceDetail({ initialDetail }: GovernanceDetailProp
 export const getStaticPaths: GetStaticPaths = async () => {
   return {
     paths: [],
-    fallback: "blocking",
+    fallback: true,
   };
 };
 

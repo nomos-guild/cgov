@@ -117,7 +117,8 @@
     "votingPower": "Poder de voto",
     "oneMemberOneVote": "Un miembro, un voto",
     "noRationale": "Sin fundamento",
-    "noVotingRecordsFound": "No se ha encontrado ningún registro de votación"
+    "noVotingRecordsFound": "No se ha encontrado ningún registro de votación",
+    "pending": "Pendiente"
   },
   "charts": {
     "proposalStatus": {
@@ -353,9 +354,17 @@
     "viewUpdatedRecords": "Ver registros actualizados",
     "close": "Cerrar",
     "proposal": "Propuesta",
-    "rationaleUrlOptional": "URL de justificación (Opcional)",
+    "rationaleUrlOptional": "Justificación (Opcional)",
+    "pasteUrl": "Pegar URL",
+    "writeRationale": "Escribir justificación",
     "rationaleUrlPlaceholder": "https://... o ipfs://...",
     "rationaleUrlHelp": "Proporciona una URL a tu justificación de voto (ej. enlace IPFS a un documento JSON).",
+    "rationaleTitlePlaceholder": "Título breve para tu justificación",
+    "rationaleCommentPlaceholder": "Explica por qué estás votando de esta manera...",
+    "rationaleWriteHelp": "Tu justificación será formateada y subida a IPFS al enviar.",
+    "rationaleJsonHelp": "Introduce JSON válido. Se subirá a IPFS al enviar tu voto.",
+    "advancedPasteJson": "Avanzado: pegar JSON sin formato",
+    "backToSimpleMode": "Volver al modo simple",
     "cancel": "Cancelar",
     "confirmVote": "Confirmar voto",
     "submitting": "Enviando...",

@@ -322,10 +322,10 @@ function SummaryCard({
   return (
     <div
       className={cn(
-        "w-full rounded-3xl border px-4 py-4 shadow-[0_12px_30px_rgba(15,23,42,0.25)]",
+        "w-full rounded-3xl border px-4 py-4 shadow-elevation-2",
         isGame
           ? "game-detail-card"
-          : "border-white/8 bg-[#faf9f6] dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+          : "border-border bg-card dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
       )}
     >
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -352,7 +352,7 @@ function SummaryCard({
         {weightingMode ? (
           <Badge
             variant="outline"
-            className="max-w-full whitespace-normal break-words rounded-none px-2 py-1 text-[10px] leading-tight"
+            className="max-w-full whitespace-normal break-words rounded-none px-2 py-1 text-2xs leading-tight"
           >
             {weightingMode}
           </Badge>
@@ -519,7 +519,7 @@ function NumericRangeRoleCard({
               }}
             />
           </div>
-          <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>{formatNumericValue(constraints.minValue)}</span>
             <span
               className={cn(
@@ -550,7 +550,7 @@ export function LinkedSurveyPanel({
     "overflow-hidden p-6",
     isGame
       ? "game-detail-card"
-      : "rounded-2xl border border-white/8 bg-[#faf9f6] shadow-[0_12px_30px_rgba(15,23,42,0.25)] dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
+      : "rounded-2xl border border-border bg-card shadow-elevation-2 dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none"
   );
 
   const applicableRoles = getApplicableRoles(survey, tally);
@@ -588,7 +588,7 @@ export function LinkedSurveyPanel({
           ) : null}
         </div>
         {survey?.surveyTxId ? (
-          <Badge variant="outline" className="rounded-none font-mono text-[10px]">
+          <Badge variant="outline" className="rounded-none font-mono text-2xs">
             {survey.surveyTxId.slice(0, 10)}...
           </Badge>
         ) : null}
@@ -647,8 +647,8 @@ export function LinkedSurveyPanel({
                   value={question.questionId}
                   className={cn(
                     isGame
-                      ? "game-tab-btn data-[state=active]:game-tab-btn-active text-[10px] sm:text-xs"
-                      : "rounded-md border border-white/8 bg-white px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-black shadow-[0_12px_30px_rgba(15,23,42,0.25)] transition-transform transition-shadow duration-450 ease-in-out hover:scale-[1.015] hover:shadow-[0_18px_46px_rgba(15,23,42,0.32)] data-[state=active]:bg-black data-[state=active]:text-white sm:px-3 sm:py-1.5 sm:text-xs dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon"
+                      ? "game-tab-btn data-[state=active]:game-tab-btn-active text-2xs sm:text-xs"
+                      : "rounded-md border border-border bg-white px-2 py-1 text-2xs font-semibold uppercase tracking-wide text-black shadow-elevation-2 transition-transform transition-shadow duration-normal ease-in-out hover:scale-101 hover:shadow-elevation-3 data-[state=active]:bg-black data-[state=active]:text-white sm:px-3 sm:py-1.5 sm:text-xs dark:rounded-none dark:border-[#0bd1a2] dark:bg-transparent dark:text-[#0bd1a2] dark:shadow-none dark:data-[state=active]:bg-[#0bd1a2] dark:data-[state=active]:text-black dark:hover:bg-[#0bd1a2] dark:hover:text-black whitespace-nowrap btn-neon"
                   )}
                 >
                   Question {index + 1}

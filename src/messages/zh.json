@@ -117,7 +117,8 @@
     "votingPower": "投票权",
     "oneMemberOneVote": "一个成员一票",
     "noRationale": "没有理由",
-    "noVotingRecordsFound": "未找到投票记录"
+    "noVotingRecordsFound": "未找到投票记录",
+    "pending": "待确认"
   },
   "charts": {
     "proposalStatus": {
@@ -353,9 +354,17 @@
     "viewUpdatedRecords": "查看更新记录",
     "close": "关闭",
     "proposal": "提案",
-    "rationaleUrlOptional": "理由URL（可选）",
+    "rationaleUrlOptional": "投票理由（可选）",
+    "pasteUrl": "粘贴URL",
+    "writeRationale": "撰写理由",
     "rationaleUrlPlaceholder": "https://... 或 ipfs://...",
     "rationaleUrlHelp": "提供您投票理由的URL（例如，指向JSON文档的IPFS链接）。",
+    "rationaleTitlePlaceholder": "为您的理由写一个简短的标题",
+    "rationaleCommentPlaceholder": "解释您为什么这样投票...",
+    "rationaleWriteHelp": "您的理由将在提交时格式化并上传到IPFS。",
+    "rationaleJsonHelp": "输入有效的JSON。提交投票时将上传到IPFS。",
+    "advancedPasteJson": "高级：粘贴原始JSON",
+    "backToSimpleMode": "返回简单模式",
     "cancel": "取消",
     "confirmVote": "确认投票",
     "submitting": "提交中...",

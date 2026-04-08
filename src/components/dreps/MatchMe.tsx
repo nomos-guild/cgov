@@ -176,7 +176,7 @@ export default function MatchMe({
           isGame
             ? "game-detail-card !rounded-[2px] border-none bg-[rgba(12,12,12,0.95)]"
             : isLight
-              ? "rounded-2xl bg-[#faf9f6]"
+              ? "rounded-2xl bg-card"
               : "rounded-none border-[#0bd1a2] bg-[#0a0a0a]"
         )}
       >
@@ -208,7 +208,7 @@ export default function MatchMe({
                       <div className="flex items-start gap-2 mb-2">
                         <span
                           className={cn(
-                            "flex-shrink-0 text-[10px] font-bold w-5 h-5 flex items-center justify-center",
+                            "flex-shrink-0 text-2xs font-bold w-5 h-5 flex items-center justify-center",
                             isLight
                               ? "bg-black text-white rounded-full"
                               : isGame
@@ -229,7 +229,7 @@ export default function MatchMe({
                           </p>
                           <span
                             className={cn(
-                              "text-[10px] mt-0.5 inline-block",
+                              "text-2xs mt-0.5 inline-block",
                               subtextClass
                             )}
                           >
@@ -243,7 +243,7 @@ export default function MatchMe({
                         type="button"
                         onClick={() => toggleExpand(proposal.hash)}
                         className={cn(
-                          "flex items-center gap-1 text-[10px] mb-2 transition-colors",
+                          "flex items-center gap-1 text-2xs mb-2 transition-colors",
                           subtextClass,
                           isLight ? "hover:text-black/70" : isGame ? "hover:text-white/70" : "hover:text-[#0bd1a2]/80"
                         )}
@@ -256,7 +256,7 @@ export default function MatchMe({
                       </button>
                       {expandedHash === proposal.hash && (
                         <div className={cn(
-                          "mb-2 text-[11px] leading-relaxed max-h-[120px] overflow-y-auto",
+                          "mb-2 text-xs leading-relaxed max-h-[120px] overflow-y-auto",
                           isLight
                             ? "bg-black/[0.03] text-black/60 rounded-lg p-2.5"
                             : isGame
@@ -328,7 +328,7 @@ export default function MatchMe({
 
             {/* Find Matches button */}
             <div className="flex items-center justify-between mt-2">
-              <span className={cn("text-[10px]", subtextClass)}>
+              <span className={cn("text-2xs", subtextClass)}>
                 {userVotes.size}/{proposals.length} voted
               </span>
               <button
@@ -397,16 +397,16 @@ export default function MatchMe({
                       className={cn(
                         "flex items-center gap-3 p-3 no-underline transition-all duration-200 ease-out",
                         isLight
-                          ? "rounded-xl bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:scale-[1.01] hover:shadow-[0_6px_20px_rgba(0,0,0,0.15)]"
+                          ? "rounded-xl bg-white shadow-elevation-1 hover:scale-101 hover:shadow-elevation-2"
                           : isGame
-                            ? "rounded-[2px] bg-white/5 hover:scale-[1.01] hover:bg-white/10 hover:shadow-[0_4px_16px_rgba(0,0,0,0.4)]"
-                            : "rounded-none border border-[#0bd1a2]/30 bg-transparent hover:scale-[1.01] hover:border-[#0bd1a2] hover:shadow-[0_4px_16px_rgba(11,209,162,0.15)]"
+                            ? "rounded-[2px] bg-white/5 hover:scale-101 hover:bg-white/10 hover:shadow-[0_4px_16px_rgba(0,0,0,0.4)]"
+                            : "rounded-none border border-[#0bd1a2]/30 bg-transparent hover:scale-101 hover:border-[#0bd1a2] hover:shadow-[0_4px_16px_rgba(11,209,162,0.15)]"
                       )}
                     >
                       {/* Rank */}
                       <span
                         className={cn(
-                          "flex-shrink-0 text-[10px] font-bold w-5 h-5 flex items-center justify-center",
+                          "flex-shrink-0 text-2xs font-bold w-5 h-5 flex items-center justify-center",
                           isLight
                             ? "bg-black/5 text-black/40 rounded-full"
                             : isGame
@@ -437,7 +437,7 @@ export default function MatchMe({
                         >
                           {match.drepName || shortId(match.drepId)}
                         </p>
-                        <p className={cn("text-[10px]", subtextClass)}>
+                        <p className={cn("text-2xs", subtextClass)}>
                           {match.matchedCount}/{match.totalProposals} same votes
                         </p>
                       </div>

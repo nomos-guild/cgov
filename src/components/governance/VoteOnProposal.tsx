@@ -1,15 +1,13 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useWallet } from "@meshsdk/react";
 import { MeshTxBuilder, hashDrepAnchor } from "@meshsdk/core";
-import { useDispatch, useSelector } from "react-redux";
 import { useTranslations } from "next-intl";
-import type { AppDispatch, RootState } from "@/store";
-import { loadGovernanceActionDetail } from "@/store/governanceSlice";
 import { useProposalSurvey } from "@/hooks/useGovernanceData";
 import {
   verifyDRepRole,
   type DRepVerificationResult,
 } from "@/services/api";
+import { API_ENDPOINTS } from "@/config/api";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +19,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { ConnectWalletButton } from "@/components/wallet";
@@ -28,10 +27,11 @@ import {
   Loader2,
   CheckCircle,
   AlertCircle,
-  RefreshCw,
 } from "lucide-react";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
+import { wrapRationaleAsJson } from "@/lib/rationaleHelpers";
+import { toCip129DRepId } from "@/lib/drepFormatters";
 import type {
   ProposalSurveyResponse,
   SurveyQuestion,
@@ -52,7 +52,8 @@ interface VoteOnProposalProps {
   certIndex: number;
   proposalTitle: string;
   status: string;
-  proposalId: string; // governance action ID for polling
+  proposalId: string;
+  onVoteSubmitted?: () => void;
 }
 
 interface VoteState {
@@ -62,12 +63,6 @@ interface VoteState {
   txHash: string | null;
 }
 
-interface SyncState {
-  isPolling: boolean;
-  isSynced: boolean;
-  pollCount: number;
-  maxPolls: number;
-}
 
 interface WalletRoleState {
   isChecking: boolean;
@@ -320,7 +315,7 @@ function SurveyQuestionInput({
             }
           }}
         />
-        <div className="flex items-center justify-between gap-3 text-[11px] text-muted-foreground">
+        <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
           <span>{constraints.minValue}</span>
           <span>{constraints.maxValue}</span>
         </div>
@@ -352,8 +347,8 @@ export function VoteOnProposal({
   proposalTitle,
   status,
   proposalId,
+  onVoteSubmitted,
 }: VoteOnProposalProps) {
-  const dispatch = useDispatch<AppDispatch>();
   const { connected, wallet } = useWallet();
   const { activeTheme } = useTheme();
   const t = useTranslations("voteAction");
@@ -377,18 +372,17 @@ export function VoteOnProposal({
   const [selectedVote, setSelectedVote] = useState<VoteChoice | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [anchorUrl, setAnchorUrl] = useState("");
+  const [rationaleMode, setRationaleMode] = useState<"url" | "write" | "json">("url");
+  const [rationaleTitle, setRationaleTitle] = useState("");
+  const [rationaleComment, setRationaleComment] = useState("");
+  const [rationaleJsonText, setRationaleJsonText] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
   const [surveyAnswers, setSurveyAnswers] = useState<Record<string, SurveyDraftAnswer>>({});
   const [voteState, setVoteState] = useState<VoteState>({
     isSubmitting: false,
     isSuccess: false,
     error: null,
     txHash: null,
-  });
-  const [syncState, setSyncState] = useState<SyncState>({
-    isPolling: false,
-    isSynced: false,
-    pollCount: 0,
-    maxPolls: 15, // 15 polls * 20 seconds = 5 minutes timeout
   });
   const [walletRoleState, setWalletRoleState] = useState<WalletRoleState>({
     isChecking: false,
@@ -400,12 +394,6 @@ export function VoteOnProposal({
   });
   const [walletRoleRefreshNonce, setWalletRoleRefreshNonce] = useState(0);
 
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Get current votes from Redux store to check if our vote has synced
-  const selectedAction = useSelector(
-    (state: RootState) => state.governance.selectedAction
-  );
   const linkedSurvey =
     proposalSurvey?.linked &&
     proposalSurvey.linkValidation.valid &&
@@ -424,111 +412,6 @@ export function VoteOnProposal({
 
   const isActive = status === "Active";
 
-  // Store initial vote count when polling starts
-  const initialVoteCountRef = useRef<number>(0);
-
-  // Start polling after successful vote submission
-  const startPolling = useCallback(() => {
-    // Store current vote count to detect changes
-    const currentCount = selectedAction?.votes?.length || 0;
-    initialVoteCountRef.current = currentCount;
-    console.log(
-      `[Vote Sync] Starting polling. Initial vote count: ${currentCount}`
-    );
-
-    setSyncState({
-      isPolling: true,
-      isSynced: false,
-      pollCount: 0,
-      maxPolls: 15,
-    });
-
-    // Clear any existing interval
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current);
-    }
-
-    // Track poll count locally to avoid stale closure issues
-    let localPollCount = 0;
-
-    pollingIntervalRef.current = setInterval(() => {
-      localPollCount += 1;
-      console.log(`[Vote Sync] Poll #${localPollCount} starting...`);
-
-      // Check if we've exceeded max polls (timeout)
-      if (localPollCount >= 15) {
-        console.log(`[Vote Sync] Timeout reached at poll #${localPollCount}`);
-        if (pollingIntervalRef.current) {
-          clearInterval(pollingIntervalRef.current);
-          pollingIntervalRef.current = null;
-        }
-        setSyncState((prev) => ({
-          ...prev,
-          isPolling: false,
-          pollCount: localPollCount,
-        }));
-        return;
-      }
-
-      // Update poll count in state for UI
-      setSyncState((prev) => ({
-        ...prev,
-        pollCount: localPollCount,
-      }));
-
-      // Dispatch action to refresh proposal data (triggers backend sync-on-read)
-      console.log(
-        `[Vote Sync] Dispatching loadGovernanceActionDetail for ${proposalId}`
-      );
-      dispatch(loadGovernanceActionDetail(proposalId));
-    }, 20000); // Poll every 20 seconds
-    // Note: We intentionally exclude selectedAction?.votes?.length from deps
-    // because we capture the initial count inside the function, and we don't
-    // want the callback to be recreated when votes change (which would break polling)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dispatch, proposalId]);
-
-  // Check if vote is synced (vote count increased)
-  useEffect(() => {
-    const currentVoteCount = selectedAction?.votes?.length || 0;
-    console.log(
-      `[Vote Sync] Sync check effect - isPolling: ${syncState.isPolling}, pollCount: ${syncState.pollCount}, initialCount: ${initialVoteCountRef.current}, currentCount: ${currentVoteCount}`
-    );
-
-    if (syncState.isPolling && voteState.txHash && syncState.pollCount > 1) {
-      // Check if vote count increased (works even when initial count is 0)
-      if (currentVoteCount > initialVoteCountRef.current) {
-        // Vote synced - stop polling
-        console.log(
-          `[Vote Sync] Vote synced! Initial: ${initialVoteCountRef.current}, Current: ${currentVoteCount}`
-        );
-        if (pollingIntervalRef.current) {
-          clearInterval(pollingIntervalRef.current);
-          pollingIntervalRef.current = null;
-        }
-        setSyncState((prev) => ({
-          ...prev,
-          isPolling: false,
-          isSynced: true,
-        }));
-      }
-    }
-  }, [
-    syncState.isPolling,
-    syncState.pollCount,
-    selectedAction?.votes?.length,
-    voteState.txHash,
-  ]);
-
-  // Cleanup interval on unmount only
-  useEffect(() => {
-    return () => {
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-        pollingIntervalRef.current = null;
-      }
-    };
-  }, []);
 
   useEffect(() => {
     if (!isModalOpen) {
@@ -602,7 +485,8 @@ export function VoteOnProposal({
           return;
         }
 
-        const verification = await verifyDRepRole(drepId);
+        // Use CIP-129 format for backend verification (DB stores CIP-129 from Koios)
+        const verification = await verifyDRepRole(toCip129DRepId(drepId));
         const isVerified = !!verification?.exists && !!verification?.isRegistered;
 
         if (!cancelled) {
@@ -689,7 +573,8 @@ export function VoteOnProposal({
       }
 
       const drepId = dRep.dRepIDCip105;
-      const verifiedRole = await verifyDRepRole(drepId);
+      // Use CIP-129 format for backend verification (DB stores CIP-129 from Koios)
+      const verifiedRole = await verifyDRepRole(toCip129DRepId(drepId));
       if (!verifiedRole?.exists || !verifiedRole.isRegistered) {
         throw new Error(
           "The connected wallet is not currently verifiable as a registered DRep on this network in cgov."
@@ -714,9 +599,68 @@ export function VoteOnProposal({
         }
       }
 
-      // Prepare anchor if URL provided (optional — skip on failure)
+      // Prepare anchor if URL or written rationale provided (optional — skip on failure)
       let anchor = undefined;
-      if (anchorUrl.trim()) {
+
+      if (rationaleMode === "write" && rationaleComment.trim()) {
+        try {
+          setIsUploading(true);
+          const rationaleJson = wrapRationaleAsJson(rationaleComment, rationaleTitle);
+
+          const uploadRes = await fetch(API_ENDPOINTS.ipfsUpload, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ json: rationaleJson }),
+          });
+          if (!uploadRes.ok) {
+            throw new Error(`Upload failed: ${uploadRes.status}`);
+          }
+          const { url } = await uploadRes.json();
+
+          // Hash the local JSON directly — no need to fetch back from IPFS gateway
+          const anchorDataHash = hashDrepAnchor(rationaleJson);
+
+          anchor = {
+            anchorUrl: url,
+            anchorDataHash,
+          };
+        } catch {
+          throw new Error(
+            `Failed to upload rationale to IPFS. Your vote was not submitted. Please try again.`
+          );
+        } finally {
+          setIsUploading(false);
+        }
+      } else if (rationaleMode === "json" && rationaleJsonText.trim()) {
+        try {
+          setIsUploading(true);
+          const rationaleJson = JSON.parse(rationaleJsonText.trim());
+
+          const uploadRes = await fetch(API_ENDPOINTS.ipfsUpload, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ json: rationaleJson }),
+          });
+          if (!uploadRes.ok) {
+            throw new Error(`Upload failed: ${uploadRes.status}`);
+          }
+          const { url } = await uploadRes.json();
+
+          // Hash the local JSON directly — no need to fetch back from IPFS gateway
+          const anchorDataHash = hashDrepAnchor(rationaleJson);
+
+          anchor = {
+            anchorUrl: url,
+            anchorDataHash,
+          };
+        } catch {
+          throw new Error(
+            `Failed to upload rationale to IPFS. Your vote was not submitted. Please try again.`
+          );
+        } finally {
+          setIsUploading(false);
+        }
+      } else if (rationaleMode === "url" && anchorUrl.trim()) {
         const trimmedUrl = anchorUrl.trim();
         try {
           const response = await fetch(trimmedUrl);
@@ -731,8 +675,10 @@ export function VoteOnProposal({
             anchorUrl: trimmedUrl,
             anchorDataHash,
           };
-        } catch (fetchError) {
-          console.warn("Anchor fetch failed, proceeding without rationale:", fetchError);
+        } catch {
+          throw new Error(
+            `Failed to fetch rationale from the provided URL. Your vote was not submitted. Please check the URL and try again.`
+          );
         }
       }
 
@@ -778,8 +724,34 @@ export function VoteOnProposal({
         txHash: submittedTxHash,
       });
 
-      // Start polling to sync the vote
-      startPolling();
+      // Frontload vote to backend for immediate visibility, then refresh page data
+      try {
+        await fetch(API_ENDPOINTS.voteFrontload, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            txHash: submittedTxHash,
+            proposalId,
+            vote: selectedVote.toUpperCase(),
+            voterType: "DREP",
+            voterId: toCip129DRepId(drepId),
+            anchorUrl: anchor?.anchorUrl,
+            anchorHash: anchor?.anchorDataHash,
+            rationale: anchor ? JSON.stringify(
+              rationaleMode === "write"
+                ? wrapRationaleAsJson(rationaleComment, rationaleTitle)
+                : rationaleMode === "json"
+                  ? JSON.parse(rationaleJsonText.trim())
+                  : undefined
+            ) : undefined,
+          }),
+        });
+        // Small delay to ensure DB write is committed before read
+        await new Promise((r) => setTimeout(r, 1000));
+        onVoteSubmitted?.();
+      } catch {
+        // Non-critical — cron will pick up the vote eventually
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : t("failedToSubmitVote");
 
@@ -803,19 +775,19 @@ export function VoteOnProposal({
     txHash,
     certIndex,
     anchorUrl,
+    rationaleMode,
+    rationaleTitle,
+    rationaleComment,
+    rationaleJsonText,
     linkedSurvey,
     drepCanRespond,
     surveyAnswers,
-    startPolling,
+    onVoteSubmitted,
+    proposalId,
     t,
   ]);
 
   const closeModal = () => {
-    // Stop polling if still running
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current);
-      pollingIntervalRef.current = null;
-    }
     setIsModalOpen(false);
     setSelectedVote(null);
     setAnchorUrl("");
@@ -825,12 +797,6 @@ export function VoteOnProposal({
       isSuccess: false,
       error: null,
       txHash: null,
-    });
-    setSyncState({
-      isPolling: false,
-      isSynced: false,
-      pollCount: 0,
-      maxPolls: 15,
     });
   };
 
@@ -850,14 +816,14 @@ export function VoteOnProposal({
     }
 
     // Light theme: white card-style buttons with shadow
-    const cardBase = "bg-white border-transparent shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)] hover:bg-gray-50 hover:text-black";
+    const cardBase = "bg-white border-transparent shadow-elevation-1 hover:shadow-elevation-2 hover:bg-gray-50 hover:text-black";
     switch (vote) {
       case "Yes":
         return cn(
           baseClass,
           voteTypeClass,
           isSelected
-            ? "bg-emerald-600 hover:bg-emerald-700 text-white border-transparent shadow-[0_4px_12px_rgba(0,0,0,0.12)]"
+            ? "bg-emerald-600 hover:bg-emerald-700 text-white border-transparent shadow-elevation-2"
             : `${cardBase} text-black`
         );
       case "No":
@@ -865,7 +831,7 @@ export function VoteOnProposal({
           baseClass,
           voteTypeClass,
           isSelected
-            ? "bg-red-600 hover:bg-red-700 text-white border-transparent shadow-[0_4px_12px_rgba(0,0,0,0.12)]"
+            ? "bg-red-600 hover:bg-red-700 text-white border-transparent shadow-elevation-2"
             : `${cardBase} text-black`
         );
       case "Abstain":
@@ -873,7 +839,7 @@ export function VoteOnProposal({
           baseClass,
           voteTypeClass,
           isSelected
-            ? "bg-gray-500 hover:bg-gray-600 text-white border-transparent shadow-[0_4px_12px_rgba(0,0,0,0.12)]"
+            ? "bg-gray-500 hover:bg-gray-600 text-white border-transparent shadow-elevation-2"
             : `${cardBase} text-black`
         );
     }
@@ -1011,10 +977,6 @@ export function VoteOnProposal({
       <Dialog
         open={isModalOpen}
         onOpenChange={(open: boolean) => {
-          console.log(
-            `[Vote Sync] Dialog onOpenChange called with: ${open}, isPolling: ${syncState.isPolling}, isSuccess: ${voteState.isSuccess}`
-          );
-          // Only close if explicitly requested (not from re-renders)
           if (!open) {
             closeModal();
           }
@@ -1036,11 +998,7 @@ export function VoteOnProposal({
           {voteState.isSuccess ? (
             <div className="space-y-4 px-4 pb-4 sm:px-6 sm:pb-6">
               <div className="flex items-center justify-center py-6">
-                {syncState.isSynced ? (
-                  <CheckCircle className="h-16 w-16 text-success" />
-                ) : (
-                  <CheckCircle className="h-16 w-16 text-success" />
-                )}
+                <CheckCircle className="h-16 w-16 text-success" />
               </div>
               <div className="text-center space-y-2">
                 <p className="font-semibold text-success">
@@ -1051,39 +1009,8 @@ export function VoteOnProposal({
                 </p>
               </div>
 
-              {/* Sync Status Indicator */}
-              <div className="bg-secondary/50 p-4 rounded-lg">
-                {syncState.isPolling ? (
-                  <div className="flex items-center justify-center gap-2 text-sm">
-                    <RefreshCw className="h-4 w-4 animate-spin text-primary" />
-                    <span className="text-muted-foreground">
-                      {t("syncingVote", { current: syncState.pollCount, max: syncState.maxPolls })}
-                    </span>
-                  </div>
-                ) : syncState.isSynced ? (
-                  <div className="flex items-center justify-center gap-2 text-sm text-success">
-                    <CheckCircle className="h-4 w-4" />
-                    <span>
-                      {t("voteSynced")}
-                    </span>
-                  </div>
-                ) : syncState.pollCount >= syncState.maxPolls ? (
-                  <div className="text-center text-sm text-muted-foreground">
-                    <p>{t("syncTimedOut")}</p>
-                    <p className="text-xs mt-1">
-                      {t("syncTimedOutDetail")}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>{t("preparingToSync")}</span>
-                  </div>
-                )}
-              </div>
-
               <Button className="w-full" onClick={closeModal}>
-                {syncState.isSynced ? t("viewUpdatedRecords") : t("close")}
+                {t("close")}
               </Button>
             </div>
           ) : (
@@ -1112,18 +1039,92 @@ export function VoteOnProposal({
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="anchorUrl">{t("rationaleUrlOptional")}</Label>
-                    <Textarea
-                      id="anchorUrl"
-                      className="min-h-[88px] focus-visible:ring-black/20"
-                      placeholder={t("rationaleUrlPlaceholder")}
-                      value={anchorUrl}
-                      onChange={(e) => setAnchorUrl(e.target.value)}
-                      disabled={voteState.isSubmitting}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      {t("rationaleUrlHelp")}
-                    </p>
+                    <Label>{t("rationaleUrlOptional")}</Label>
+                    <div className="flex gap-2 mb-2">
+                      <Button
+                        type="button"
+                        variant={rationaleMode === "url" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setRationaleMode("url")}
+                        disabled={voteState.isSubmitting}
+                      >
+                        {t("pasteUrl")}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={rationaleMode === "write" || rationaleMode === "json" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setRationaleMode("write")}
+                        disabled={voteState.isSubmitting}
+                      >
+                        {t("writeRationale")}
+                      </Button>
+                    </div>
+
+                    {rationaleMode === "url" ? (
+                      <>
+                        <Textarea
+                          id="anchorUrl"
+                          className="min-h-[88px] focus-visible:ring-black/20"
+                          placeholder={t("rationaleUrlPlaceholder")}
+                          value={anchorUrl}
+                          onChange={(e) => setAnchorUrl(e.target.value)}
+                          disabled={voteState.isSubmitting}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          {t("rationaleUrlHelp")}
+                        </p>
+                      </>
+                    ) : rationaleMode === "write" ? (
+                      <>
+                        <Input
+                          id="rationaleTitle"
+                          placeholder={t("rationaleTitlePlaceholder")}
+                          value={rationaleTitle}
+                          onChange={(e) => setRationaleTitle(e.target.value)}
+                          disabled={voteState.isSubmitting || isUploading}
+                        />
+                        <Textarea
+                          id="rationaleComment"
+                          className="min-h-[120px] focus-visible:ring-black/20"
+                          placeholder={t("rationaleCommentPlaceholder")}
+                          value={rationaleComment}
+                          onChange={(e) => setRationaleComment(e.target.value)}
+                          disabled={voteState.isSubmitting || isUploading}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          {t("rationaleWriteHelp")}
+                        </p>
+                        <button
+                          type="button"
+                          className="text-xs text-muted-foreground underline hover:text-foreground"
+                          onClick={() => setRationaleMode("json")}
+                        >
+                          {t("advancedPasteJson")}
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <Textarea
+                          id="rationaleJsonText"
+                          className="min-h-[160px] font-mono text-sm focus-visible:ring-black/20"
+                          placeholder={'{"body": {"title": "My rationale", "comment": "I vote Yes because..."}}'}
+                          value={rationaleJsonText}
+                          onChange={(e) => setRationaleJsonText(e.target.value)}
+                          disabled={voteState.isSubmitting || isUploading}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          {t("rationaleJsonHelp")}
+                        </p>
+                        <button
+                          type="button"
+                          className="text-xs text-muted-foreground underline hover:text-foreground"
+                          onClick={() => setRationaleMode("write")}
+                        >
+                          {t("backToSimpleMode")}
+                        </button>
+                      </>
+                    )}
                   </div>
 
                   {isSurveyLoading ? (
@@ -1164,7 +1165,7 @@ export function VoteOnProposal({
                             >
                               <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
                                 <div className="min-w-0">
-                                  <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                                  <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                                     Question {index + 1}
                                   </div>
                                   <div className="mt-1 text-sm font-medium">
@@ -1172,7 +1173,7 @@ export function VoteOnProposal({
                                   </div>
                                 </div>
                                 {!isCustomSurveyMethod(question.methodType) ? (
-                                  <div className="text-[11px] text-muted-foreground">
+                                  <div className="text-xs text-muted-foreground">
                                     {question.methodType}
                                   </div>
                                 ) : null}
