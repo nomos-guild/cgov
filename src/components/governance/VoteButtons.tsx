@@ -255,7 +255,7 @@ export function VoteButtons({
             onClick={(e: MouseEvent) => e.stopPropagation()}
           >
             <DialogHeader>
-              <DialogTitle>{t("confirmYourVote")}</DialogTitle>
+              <DialogTitle>{t("castYourVote")}</DialogTitle>
               <DialogDescription>
                 {t.rich("aboutToVote", {
                   vote: selectedVote ? translateVote(selectedVote) : "",
