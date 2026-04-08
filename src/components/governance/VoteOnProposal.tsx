@@ -19,14 +19,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ConnectWalletButton } from "@/components/wallet";
 import {
   Loader2,
   CheckCircle,
   AlertCircle,
+  ChevronDown,
+  Info,
 } from "lucide-react";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
@@ -196,7 +198,7 @@ function SurveyQuestionInput({
               <Button
                 key={`${question.questionId}-${option}`}
                 type="button"
-                variant={isSelected ? "default" : "outline"}
+                variant={isSelected ? "secondary" : "outline"}
                 className="h-8 rounded-none text-xs"
                 disabled={disabled}
                 onClick={() =>
@@ -217,8 +219,8 @@ function SurveyQuestionInput({
         {answer?.selection?.length ? (
           <Button
             type="button"
-            variant="link"
-            className="h-auto p-0 text-xs"
+            variant="ghost"
+            className="h-auto p-0 text-xs text-muted-foreground hover:text-foreground"
             disabled={disabled}
             onClick={() => setAnswer(undefined)}
           >
@@ -268,8 +270,8 @@ function SurveyQuestionInput({
         {currentSelection.length ? (
           <Button
             type="button"
-            variant="link"
-            className="h-auto p-0 text-xs"
+            variant="ghost"
+            className="h-auto p-0 text-xs text-muted-foreground hover:text-foreground"
             disabled={disabled}
             onClick={() => setAnswer(undefined)}
           >
@@ -322,8 +324,8 @@ function SurveyQuestionInput({
         {currentValue !== undefined ? (
           <Button
             type="button"
-            variant="link"
-            className="h-auto p-0 text-xs"
+            variant="ghost"
+            className="h-auto p-0 text-xs text-muted-foreground hover:text-foreground"
             disabled={disabled}
             onClick={() => setAnswer(undefined)}
           >
@@ -370,13 +372,15 @@ export function VoteOnProposal({
     }
   };
   const [selectedVote, setSelectedVote] = useState<VoteChoice | null>(null);
+  const [isVoteDropdownOpen, setIsVoteDropdownOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [anchorUrl, setAnchorUrl] = useState("");
-  const [rationaleMode, setRationaleMode] = useState<"url" | "write" | "json">("url");
+  const [rationaleMode, setRationaleMode] = useState<"url" | "write" | "json">("write");
   const [rationaleTitle, setRationaleTitle] = useState("");
   const [rationaleComment, setRationaleComment] = useState("");
   const [rationaleJsonText, setRationaleJsonText] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
   const [surveyAnswers, setSurveyAnswers] = useState<Record<string, SurveyDraftAnswer>>({});
   const [voteState, setVoteState] = useState<VoteState>({
     isSubmitting: false,
@@ -392,7 +396,7 @@ export function VoteOnProposal({
     source: null,
     detail: null,
   });
-  const [walletRoleRefreshNonce, setWalletRoleRefreshNonce] = useState(0);
+  const [walletRoleRefreshNonce] = useState(0);
 
   const linkedSurvey =
     proposalSurvey?.linked &&
@@ -410,7 +414,7 @@ export function VoteOnProposal({
     0
   ) ?? 0;
 
-  const isActive = status === "Active";
+  const isVotingOpen = status === "Active";
 
 
   useEffect(() => {
@@ -523,24 +527,21 @@ export function VoteOnProposal({
     };
   }, [connected, wallet, walletRoleRefreshNonce]);
 
-  const formatDRepId = (value: string | null) => {
-    if (!value) return null;
-    return value.length > 24
-      ? `${value.slice(0, 16)}...${value.slice(-8)}`
-      : value;
-  };
-
   const canOpenVoteModal =
     connected &&
     !walletRoleState.isChecking &&
     walletRoleState.isVerified === true &&
     !!walletRoleState.drepId;
-  const isWalletRoleReady =
-    walletRoleState.isVerified === true && walletRoleState.isActive !== false;
 
   const handleVoteClick = (vote: VoteChoice) => {
     if (!canOpenVoteModal) return;
     setSelectedVote(vote);
+    setRationaleMode("write");
+    setRationaleTitle("");
+    setRationaleComment("");
+    setRationaleJsonText("");
+    setAnchorUrl("");
+    setIsAdvancedOpen(false);
     setIsModalOpen(true);
     setVoteState({
       isSubmitting: false,
@@ -791,6 +792,11 @@ export function VoteOnProposal({
     setIsModalOpen(false);
     setSelectedVote(null);
     setAnchorUrl("");
+    setRationaleMode("write");
+    setRationaleTitle("");
+    setRationaleComment("");
+    setRationaleJsonText("");
+    setIsAdvancedOpen(false);
     setSurveyAnswers({});
     setVoteState({
       isSubmitting: false,
@@ -800,7 +806,7 @@ export function VoteOnProposal({
     });
   };
 
-  const getVoteButtonClass = (vote: VoteChoice) => {
+  const getVoteButtonStyle = (vote: VoteChoice) => {
     const baseClass = "flex-1 h-10 text-sm font-semibold transition-all";
     const isSelected = selectedVote === vote;
     const voteTypeClass =
@@ -812,40 +818,22 @@ export function VoteOnProposal({
 
     // Game & Dark themes: CSS token overrides handle all visual styling
     if (isGame || isDark) {
-      return cn(baseClass, voteTypeClass, isSelected && "selected");
+      return {
+        variant: "outline" as const,
+        className: cn(baseClass, voteTypeClass, isSelected && "selected"),
+      };
     }
 
-    // Light theme: white card-style buttons with shadow
-    const cardBase = "bg-white border-transparent shadow-elevation-1 hover:shadow-elevation-2 hover:bg-gray-50 hover:text-black";
-    switch (vote) {
-      case "Yes":
-        return cn(
-          baseClass,
-          voteTypeClass,
-          isSelected
-            ? "bg-emerald-600 hover:bg-emerald-700 text-white border-transparent shadow-elevation-2"
-            : `${cardBase} text-black`
-        );
-      case "No":
-        return cn(
-          baseClass,
-          voteTypeClass,
-          isSelected
-            ? "bg-red-600 hover:bg-red-700 text-white border-transparent shadow-elevation-2"
-            : `${cardBase} text-black`
-        );
-      case "Abstain":
-        return cn(
-          baseClass,
-          voteTypeClass,
-          isSelected
-            ? "bg-gray-500 hover:bg-gray-600 text-white border-transparent shadow-elevation-2"
-            : `${cardBase} text-black`
-        );
-    }
+    // Light theme: white buttons, black on hover — same as modal action buttons
+    const cardBase = "bg-white text-black border border-input shadow-elevation-1 hover:bg-black hover:text-white hover:border-black";
+
+    return {
+      variant: undefined,
+      className: cn(baseClass, voteTypeClass, cardBase, isSelected && "bg-black text-white border-black"),
+    };
   };
 
-  if (!isActive) {
+  if (!isVotingOpen) {
     return (
       <Card className={cn(
         "p-6 vote-on-proposal-card",
@@ -872,100 +860,42 @@ export function VoteOnProposal({
   return (
     <>
       <Card className={cn(
-        "p-6 vote-on-proposal-card",
+        "px-7 py-8 vote-on-proposal-card",
         isGame && "game-detail-card"
       )}>
-        <h3 className={cn("font-semibold mb-4", isGame && "text-white")}>{t("castYourVote")}</h3>
+        <h3 className={cn("text-lg font-semibold", isGame && "text-white")}>{t("castYourVote")}</h3>
 
         {!connected ? (
-          <div className="py-6 space-y-4">
+          <div className="mt-6 space-y-5">
             <p className={isGame ? "text-white/70" : "text-muted-foreground"}>
               {t("connectWalletToVote")}
             </p>
             <ConnectWalletButton />
           </div>
         ) : (
-          <div className="space-y-4">
-            <div
-              className={cn(
-                "rounded-lg border p-3 text-sm",
-                isWalletRoleReady
-                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                    : walletRoleState.detail
-                    ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300"
-                    : "border-border/50 text-muted-foreground dark:border-[#0bd1a2]/30"
-              )}
-            >
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-start gap-2">
-                  {walletRoleState.isChecking ? (
-                    <Loader2 className="mt-0.5 h-4 w-4 animate-spin" />
-                  ) : isWalletRoleReady ? (
-                    <CheckCircle className="mt-0.5 h-4 w-4" />
-                  ) : (
-                    <AlertCircle className="mt-0.5 h-4 w-4" />
-                  )}
-                  <div className="space-y-1">
-                    <div className="font-medium">
-                      {walletRoleState.isChecking
-                        ? "Checking connected wallet for DRep voting…"
-                        : isWalletRoleReady
-                          ? "Connected wallet is ready for DRep voting."
-                          : walletRoleState.isVerified
-                            ? "Connected wallet is registered, but needs review before voting."
-                          : "Connected wallet needs attention before voting."}
-                    </div>
-                    {walletRoleState.drepId && (
-                      <div className="text-xs font-mono">
-                        DRep ID: {formatDRepId(walletRoleState.drepId)}
-                      </div>
-                    )}
-                    {walletRoleState.detail && (
-                      <div className="text-xs">{walletRoleState.detail}</div>
-                    )}
-                  </div>
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-8 rounded-none text-xs"
-                  onClick={() =>
-                    setWalletRoleRefreshNonce((previous) => previous + 1)
-                  }
-                >
-                  Re-check Wallet Role
-                </Button>
+          <div className="mt-6 space-y-6">
+            <div className="space-y-3">
+              <p className={cn("text-sm", isGame ? "text-white/70" : "text-muted-foreground")}>
+                {t("selectVoteChoice")}
+              </p>
+              <div className="flex gap-3">
+                {(["Yes", "No", "Abstain"] as VoteChoice[]).map((choice) => {
+                  const style = getVoteButtonStyle(choice);
+                  return (
+                    <Button
+                      key={choice}
+                      variant={style.variant}
+                      className={style.className}
+                      disabled={!canOpenVoteModal}
+                      onClick={() => handleVoteClick(choice)}
+                    >
+                      {translateVote(choice)}
+                    </Button>
+                  );
+                })}
               </div>
             </div>
-            <p className={cn("text-sm", isGame ? "text-white/70" : "text-muted-foreground")}>
-              {t("selectVoteChoice")}
-            </p>
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                className={getVoteButtonClass("Yes")}
-                disabled={!canOpenVoteModal}
-                onClick={() => handleVoteClick("Yes")}
-              >
-                {tv("yes")}
-              </Button>
-              <Button
-                variant="outline"
-                className={getVoteButtonClass("No")}
-                disabled={!canOpenVoteModal}
-                onClick={() => handleVoteClick("No")}
-              >
-                {tv("no")}
-              </Button>
-              <Button
-                variant="outline"
-                className={getVoteButtonClass("Abstain")}
-                disabled={!canOpenVoteModal}
-                onClick={() => handleVoteClick("Abstain")}
-              >
-                {tv("abstain")}
-              </Button>
-            </div>
+
             <p className={cn("text-xs", isGame ? "text-white/70" : "text-muted-foreground")}>
               {t("voteSubmittedOnChain")}
             </p>
@@ -985,7 +915,7 @@ export function VoteOnProposal({
         <DialogContent className="flex max-h-[90vh] w-[calc(100vw-2rem)] max-w-3xl flex-col overflow-hidden p-0 sm:w-auto">
           <DialogHeader>
             <DialogTitle className="px-4 pt-4 sm:px-6 sm:pt-6">
-              {t("confirmYourVote")}
+              {t("castYourVote")}
             </DialogTitle>
             <DialogDescription className="px-4 pb-3 sm:px-6">
               {t.rich("aboutToVote", {
@@ -1009,15 +939,15 @@ export function VoteOnProposal({
                 </p>
               </div>
 
-              <Button className="w-full" onClick={closeModal}>
+              <Button variant="secondary" className="w-full" onClick={closeModal}>
                 {t("close")}
               </Button>
             </div>
           ) : (
             <>
-              <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 sm:px-6">
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4 sm:px-6">
                 <div className="space-y-4">
-                  <div className="rounded-md border border-border/60 bg-muted/30 p-3">
+                  <div className={cn("border p-3", isDark ? "rounded-none border-[#0bd1a2]/40 bg-transparent" : "rounded-md border-border/60 bg-muted/30")}>
                     <div className="grid gap-3 text-sm sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
                       <div className="min-w-0">
                         <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -1027,104 +957,137 @@ export function VoteOnProposal({
                           {proposalTitle}
                         </div>
                       </div>
-                      <div className="sm:text-right">
-                        <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      <div className="relative text-right">
+                        <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground pr-0.5">
                           {tTable("vote")}
                         </div>
-                        <div className="mt-1 font-semibold">
+                        <button
+                          type="button"
+                          className="mt-1 inline-flex items-center gap-1 font-semibold rounded-md py-0.5 hover:bg-muted transition-colors disabled:opacity-50"
+                          disabled={voteState.isSubmitting}
+                          onClick={() => setIsVoteDropdownOpen((prev) => !prev)}
+                          onBlur={() => setTimeout(() => setIsVoteDropdownOpen(false), 150)}
+                        >
                           {selectedVote ? translateVote(selectedVote) : ""}
-                        </div>
+                          <ChevronDown className={cn("h-3.5 w-3.5 text-muted-foreground transition-transform", isVoteDropdownOpen && "rotate-180")} />
+                        </button>
+                        {isVoteDropdownOpen && (
+                          <div className="absolute right-0 z-50 mt-1 min-w-[120px] rounded-md border border-border bg-popover p-1 shadow-md">
+                            {(["Yes", "No", "Abstain"] as VoteChoice[]).map((choice) => (
+                              <button
+                                key={choice}
+                                type="button"
+                                className={cn(
+                                  "flex w-full items-center rounded-sm px-3 py-1.5 text-sm transition-colors hover:bg-muted",
+                                  selectedVote === choice && "font-semibold bg-muted"
+                                )}
+                                onClick={() => {
+                                  setSelectedVote(choice);
+                                  setIsVoteDropdownOpen(false);
+                                }}
+                              >
+                                {translateVote(choice)}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>{t("rationaleUrlOptional")}</Label>
-                    <div className="flex gap-2 mb-2">
-                      <Button
-                        type="button"
-                        variant={rationaleMode === "url" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setRationaleMode("url")}
-                        disabled={voteState.isSubmitting}
-                      >
-                        {t("pasteUrl")}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant={rationaleMode === "write" || rationaleMode === "json" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setRationaleMode("write")}
-                        disabled={voteState.isSubmitting}
-                      >
-                        {t("writeRationale")}
-                      </Button>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-1.5">
+                      <Label>{t("rationaleUrlOptional")}</Label>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="max-w-[250px] text-xs">
+                          {rationaleMode === "url"
+                            ? t("rationaleUrlHelp")
+                            : rationaleMode === "json"
+                              ? t("rationaleJsonHelp")
+                              : t("rationaleWriteHelp")}
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
 
-                    {rationaleMode === "url" ? (
-                      <>
-                        <Textarea
-                          id="anchorUrl"
-                          className="min-h-[88px] focus-visible:ring-black/20"
-                          placeholder={t("rationaleUrlPlaceholder")}
-                          value={anchorUrl}
-                          onChange={(e) => setAnchorUrl(e.target.value)}
-                          disabled={voteState.isSubmitting}
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          {t("rationaleUrlHelp")}
-                        </p>
-                      </>
-                    ) : rationaleMode === "write" ? (
-                      <>
-                        <Input
-                          id="rationaleTitle"
-                          placeholder={t("rationaleTitlePlaceholder")}
-                          value={rationaleTitle}
-                          onChange={(e) => setRationaleTitle(e.target.value)}
-                          disabled={voteState.isSubmitting || isUploading}
-                        />
-                        <Textarea
-                          id="rationaleComment"
-                          className="min-h-[120px] focus-visible:ring-black/20"
-                          placeholder={t("rationaleCommentPlaceholder")}
-                          value={rationaleComment}
-                          onChange={(e) => setRationaleComment(e.target.value)}
-                          disabled={voteState.isSubmitting || isUploading}
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          {t("rationaleWriteHelp")}
-                        </p>
-                        <button
-                          type="button"
-                          className="text-xs text-muted-foreground underline hover:text-foreground"
-                          onClick={() => setRationaleMode("json")}
-                        >
-                          {t("advancedPasteJson")}
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <Textarea
-                          id="rationaleJsonText"
-                          className="min-h-[160px] font-mono text-sm focus-visible:ring-black/20"
-                          placeholder={'{"body": {"title": "My rationale", "comment": "I vote Yes because..."}}'}
-                          value={rationaleJsonText}
-                          onChange={(e) => setRationaleJsonText(e.target.value)}
-                          disabled={voteState.isSubmitting || isUploading}
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          {t("rationaleJsonHelp")}
-                        </p>
-                        <button
-                          type="button"
-                          className="text-xs text-muted-foreground underline hover:text-foreground"
-                          onClick={() => setRationaleMode("write")}
-                        >
-                          {t("backToSimpleMode")}
-                        </button>
-                      </>
+                    {rationaleMode === "write" && (
+                      <Textarea
+                        id="rationaleComment"
+                        className="min-h-[120px] focus-visible:ring-black/20"
+                        placeholder=""
+                        value={rationaleComment}
+                        onChange={(e) => setRationaleComment(e.target.value)}
+                        disabled={voteState.isSubmitting || isUploading}
+                      />
                     )}
+
+                    {rationaleMode === "url" && (
+                      <Textarea
+                        id="anchorUrl"
+                        className="min-h-[88px] focus-visible:ring-black/20"
+                        placeholder={t("rationaleUrlPlaceholder")}
+                        value={anchorUrl}
+                        onChange={(e) => setAnchorUrl(e.target.value)}
+                        disabled={voteState.isSubmitting}
+                      />
+                    )}
+
+                    {rationaleMode === "json" && (
+                      <Textarea
+                        id="rationaleJsonText"
+                        className="min-h-[160px] font-mono text-sm focus-visible:ring-black/20"
+                        placeholder={'{"body": {"title": "My rationale", "comment": "I vote Yes because..."}}'}
+                        value={rationaleJsonText}
+                        onChange={(e) => setRationaleJsonText(e.target.value)}
+                        disabled={voteState.isSubmitting || isUploading}
+                      />
+                    )}
+
+                    <div className="border-t border-border/60 pt-3">
+                      <button
+                        type="button"
+                        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        onClick={() => setIsAdvancedOpen((prev) => !prev)}
+                      >
+                        <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", isAdvancedOpen && "rotate-180")} />
+                        Advanced
+                      </button>
+                      {isAdvancedOpen && (
+                        <div className="mt-3 flex gap-2">
+                          <Button
+                            type="button"
+                            variant={rationaleMode === "url" ? "secondary" : "outline"}
+                            size="sm"
+                            onClick={() => setRationaleMode("url")}
+                            disabled={voteState.isSubmitting}
+                          >
+                            {t("pasteUrl")}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant={rationaleMode === "json" ? "secondary" : "outline"}
+                            size="sm"
+                            onClick={() => setRationaleMode("json")}
+                            disabled={voteState.isSubmitting}
+                          >
+                            {t("advancedPasteJson")}
+                          </Button>
+                          {rationaleMode !== "write" && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setRationaleMode("write")}
+                              disabled={voteState.isSubmitting}
+                            >
+                              {t("writeRationale")}
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {isSurveyLoading ? (
@@ -1220,17 +1183,24 @@ export function VoteOnProposal({
                     </div>
                   )}
 
-                  <div className="flex gap-3">
+                  <div className={cn("flex gap-3", isGame && "justify-end gap-2")}>
                     <Button
                       variant="outline"
-                      className="flex-1"
+                      className={cn(
+                        "flex-1",
+                        !isDark && !isGame && "bg-white hover:bg-black hover:text-white hover:border-black"
+                      )}
                       onClick={closeModal}
                       disabled={voteState.isSubmitting}
                     >
                       {t("cancel")}
                     </Button>
                     <Button
-                      className="flex-1"
+                      variant={isDark || isGame ? "secondary" : "outline"}
+                      className={cn(
+                        "flex-1",
+                        !isDark && !isGame && "bg-white hover:bg-black hover:text-white hover:border-black"
+                      )}
                       onClick={submitVote}
                       disabled={voteState.isSubmitting}
                     >
@@ -1245,9 +1215,6 @@ export function VoteOnProposal({
                     </Button>
                   </div>
 
-                  <p className="text-center text-xs text-muted-foreground">
-                    {t("onChainTransactionNote")}
-                  </p>
                 </div>
               </div>
             </>

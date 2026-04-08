@@ -70,6 +70,9 @@ export function useSmoothScroll() {
     function onWheel(e: WheelEvent) {
       if (e.ctrlKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
 
+      // If any dialog/modal is open, only allow scrolling inside it — never the page
+      const dialogOpen = !!document.querySelector("[role='dialog']");
+
       const delta = e.deltaMode === 1 ? e.deltaY * 40 : e.deltaY;
       const scrollable = findScrollable(e.target as HTMLElement);
 
@@ -97,6 +100,12 @@ export function useSmoothScroll() {
           }
           return;
         }
+      }
+
+      // Dialog is open — block window scroll entirely
+      if (dialogOpen) {
+        e.preventDefault();
+        return;
       }
 
       // Window scroll

@@ -17,8 +17,8 @@
   --secondary-foreground: 220 30% 92%;
   --muted: 230 12% 26%;
   --muted-foreground: 220 15% 65%;
-  --accent: 280 75% 70%;
-  --accent-foreground: 230 35% 12%;
+  --accent: 230 14% 26%;
+  --accent-foreground: 220 30% 92%;
   --destructive: 0 70% 58%;
   --destructive-foreground: 0 0% 100%;
   --success: 150 60% 50%;
@@ -174,6 +174,19 @@
 }
 [data-theme="dark"] [role="dialog"] .flex.gap-3 button[class*="flex-1"]:last-child:hover {
   background: #09b88e !important;
+}
+/* Small buttons (Paste URL, Paste JSON, Write Rationale) */
+[data-theme="dark"] [role="dialog"] button[class*="h-9"] {
+  border: 1px solid rgba(11, 209, 162, 0.4) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: #0bd1a2 !important;
+  transition: all 0.15s ease !important;
+}
+[data-theme="dark"] [role="dialog"] button[class*="h-9"]:hover {
+  background: rgba(11, 209, 162, 0.15) !important;
+  border-color: #0bd1a2 !important;
+  color: #0bd1a2 !important;
 }
 /* Textarea */
 [data-theme="dark"] [role="dialog"] textarea {

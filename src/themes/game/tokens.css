@@ -23,11 +23,11 @@
   --primary: 150 80% 55%;
   --primary-foreground: 230 25% 10%;
   --secondary: 210 70% 58%;
-  --secondary-foreground: 230 25% 10%;
+  --secondary-foreground: 0 0% 100%;
   --muted: 230 16% 18%;
   --muted-foreground: 210 18% 72%;
   --accent: 190 88% 60%;
-  --accent-foreground: 230 25% 10%;
+  --accent-foreground: 0 0% 100%;
   --destructive: 0 72% 56%;
   --destructive-foreground: 0 0% 100%;
   --success: 150 72% 46%;
@@ -1153,6 +1153,10 @@
   text-transform: uppercase !important;
   letter-spacing: 0.05em !important;
   transition: all 0.2s ease !important;
+  flex: none !important;
+  height: 2rem !important;
+  padding: 0 1.25rem !important;
+  font-size: 0.75rem !important;
 }
 [data-theme="game"] [role="dialog"] button[class*="flex-1"]:first-child {
   background: linear-gradient(to bottom, #171717, #242424) !important;
