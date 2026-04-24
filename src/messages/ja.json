@@ -25,9 +25,15 @@
   },
   "landing": {
     "title": "カルダノ・ガバナンス",
+    "treasuryTitle": "カルダノ・トレジャリー",
     "subtitle": "オン・チェーン・ガバナンス活動の追跡と監視",
     "tabAllProposals": "すべての提案",
     "tabAnalytics": "分析"
+  },
+  "treasury": {
+    "flowChartTitle": "2025年トレジャリーの流れ",
+    "flowApprovedOnly": "承認済みのみ",
+    "flowIncludingRejected": "却下を含む"
   },
   "dashboard": {
     "title": "ダッシュボード",
@@ -118,7 +124,9 @@
     "oneMemberOneVote": "1会員1票",
     "noRationale": "根拠なし",
     "noVotingRecordsFound": "投票記録なし",
-    "pending": "保留中"
+    "pending": "保留中",
+    "superseded": "置換済み",
+    "supersededTooltip": "この投票は後に{vote}に置き換えられました"
   },
   "charts": {
     "proposalStatus": {

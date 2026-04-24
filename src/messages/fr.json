@@ -25,9 +25,15 @@
   },
   "landing": {
     "title": "Gouvernance de Cardano",
+    "treasuryTitle": "Trésorerie de Cardano",
     "subtitle": "Suivre et contrôler les actions de gouvernance de la chaîne",
     "tabAllProposals": "Toutes les propositions",
     "tabAnalytics": "Analytique"
+  },
+  "treasury": {
+    "flowChartTitle": "Flux de trésorerie 2025",
+    "flowApprovedOnly": "Approuvés uniquement",
+    "flowIncludingRejected": "Avec les rejetés"
   },
   "dashboard": {
     "title": "Tableau de bord",
@@ -118,7 +124,9 @@
     "oneMemberOneVote": "Un membre, une voix",
     "noRationale": "Pas de justification",
     "noVotingRecordsFound": "Aucun dossier de vote n'a été trouvé",
-    "pending": "En attente"
+    "pending": "En attente",
+    "superseded": "Remplacé",
+    "supersededTooltip": "Ce vote a ensuite été remplacé par {vote}"
   },
   "charts": {
     "proposalStatus": {

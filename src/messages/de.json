@@ -25,9 +25,15 @@
   },
   "landing": {
     "title": "Cardano-Governance",
+    "treasuryTitle": "Cardano-Treasury",
     "subtitle": "Verfolgung und Überwachung von Governance-Maßnahmen in der Kette",
     "tabAllProposals": "Alle Vorschläge",
     "tabAnalytics": "Analytik"
+  },
+  "treasury": {
+    "flowChartTitle": "Treasury-Fluss 2025",
+    "flowApprovedOnly": "Nur genehmigt",
+    "flowIncludingRejected": "Einschließlich abgelehnt"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -118,7 +124,9 @@
     "oneMemberOneVote": "Ein Mitglied, eine Stimme",
     "noRationale": "Keine Begründung",
     "noVotingRecordsFound": "Keine Abstimmungsaufzeichnungen gefunden",
-    "pending": "Ausstehend"
+    "pending": "Ausstehend",
+    "superseded": "Ersetzt",
+    "supersededTooltip": "Diese Stimme wurde später durch {vote} ersetzt"
   },
   "charts": {
     "proposalStatus": {

@@ -25,9 +25,15 @@
   },
   "landing": {
     "title": "Cardano Governance",
+    "treasuryTitle": "Cardano Treasury",
     "subtitle": "Track and monitor on-chain governance actions",
     "tabAllProposals": "All Proposals",
     "tabAnalytics": "Analytics"
+  },
+  "treasury": {
+    "flowChartTitle": "2025 Treasury flow",
+    "flowApprovedOnly": "Approved only",
+    "flowIncludingRejected": "Including rejected"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -118,7 +124,9 @@
     "oneMemberOneVote": "One member, one vote",
     "noRationale": "No rationale",
     "noVotingRecordsFound": "No voting records found",
-    "pending": "Pending"
+    "pending": "Pending",
+    "superseded": "Superseded",
+    "supersededTooltip": "This vote was later replaced with {vote}"
   },
   "charts": {
     "proposalStatus": {
