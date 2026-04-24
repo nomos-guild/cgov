@@ -25,9 +25,15 @@
   },
   "landing": {
     "title": "Governação de Cardano",
+    "treasuryTitle": "Tesouraria de Cardano",
     "subtitle": "Acompanhar e monitorizar as acções de governação na cadeia",
     "tabAllProposals": "Todas as propostas",
     "tabAnalytics": "Analítica"
+  },
+  "treasury": {
+    "flowChartTitle": "Fluxo da tesouraria 2025",
+    "flowApprovedOnly": "Apenas aprovados",
+    "flowIncludingRejected": "Incluindo rejeitados"
   },
   "dashboard": {
     "title": "Painel de controlo",
@@ -118,7 +124,9 @@
     "oneMemberOneVote": "Um membro, um voto",
     "noRationale": "Sem justificação",
     "noVotingRecordsFound": "Não foram encontrados registos de votação",
-    "pending": "Pendente"
+    "pending": "Pendente",
+    "superseded": "Substituído",
+    "supersededTooltip": "Este voto foi posteriormente substituído por {vote}"
   },
   "charts": {
     "proposalStatus": {

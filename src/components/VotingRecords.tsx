@@ -334,6 +334,42 @@ export function VotingRecords({
     return map;
   }, [votes]);
 
+  // Map each superseded vote → info about the replacement vote.
+  // A voter can submit multiple vote transactions for the same proposal;
+  // only the latest counts on-chain, so older records are stale.
+  const staleness = useMemo(() => {
+    const byVoter = new Map<string, VoteRecord[]>();
+    for (const v of votes) {
+      const id = v.voterId || v.drepId;
+      if (!id) continue;
+      const list = byVoter.get(id);
+      if (list) list.push(v);
+      else byVoter.set(id, [v]);
+    }
+    const result = new Map<
+      VoteRecord,
+      { supersededByVote: VoteRecord["vote"]; supersededByVotedAt?: string }
+    >();
+    for (const records of byVoter.values()) {
+      if (records.length < 2) continue;
+      const sorted = [...records].sort((a, b) => {
+        const at = a.votedAt ? new Date(a.votedAt).getTime() : 0;
+        const bt = b.votedAt ? new Date(b.votedAt).getTime() : 0;
+        return at - bt;
+      });
+      const latest = sorted[sorted.length - 1];
+      for (const r of sorted) {
+        if (r !== latest) {
+          result.set(r, {
+            supersededByVote: latest.vote,
+            supersededByVotedAt: latest.votedAt,
+          });
+        }
+      }
+    }
+    return result;
+  }, [votes]);
+
   const getVoteId = (vote: VoteRecord): string => {
     const index = voteIdMap.get(vote);
     return index !== undefined ? index.toString() : "0";
@@ -828,6 +864,8 @@ export function VotingRecords({
             const hasRationale = Boolean(vote.rationale && vote.rationale.trim().length > 0);
             const isMyVoteMobile = connectedDrepId != null && (vote.voterId || vote.drepId) === connectedDrepId;
             const isUnconfirmedMobile = !!vote.isPendingConfirmation;
+            const staleInfo = staleness.get(vote);
+            const isStale = !!staleInfo;
             return (
               <div
                 key={voteId}
@@ -839,18 +877,33 @@ export function VotingRecords({
                   isMyVoteMobile && (isGame
                     ? "ring-1 ring-white/30"
                     : "ring-1 ring-primary/30 bg-primary/5 dark:ring-[#0bd1a2]/30 dark:bg-[#0bd1a2]/5"),
-                  isUnconfirmedMobile && "animate-pulse"
+                  isUnconfirmedMobile && "animate-pulse",
+                  isStale && "opacity-60"
                 )}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 mb-1">
+                    <div className="flex items-center gap-1.5 mb-1 flex-wrap">
                       <Badge variant="outline" className={cn("px-1.5 py-0 text-2xs shrink-0", isGame ? "border-white/30 bg-transparent text-white/70" : "border-foreground/20 bg-transparent dark:text-[#0bd1a2] dark:border-[#0bd1a2] dark:bg-transparent")}>
                         {vote.voterType}
                       </Badge>
-                      <Badge variant="outline" className={cn("text-2xs px-1.5 shrink-0", isGame ? getGameVoteBadgeClasses(vote.vote) : getVoteBadgeClasses(vote.vote))}>
+                      <Badge variant="outline" className={cn("text-2xs px-1.5 shrink-0", isStale && "line-through", isGame ? getGameVoteBadgeClasses(vote.vote) : getVoteBadgeClasses(vote.vote))}>
                         {translateVote(vote.vote)}
                       </Badge>
+                      {isStale && (
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "px-1.5 py-0 text-2xs shrink-0",
+                            isGame
+                              ? "border-white/30 bg-transparent text-white/70"
+                              : "border-foreground/20 bg-transparent text-muted-foreground dark:text-[#0bd1a2] dark:border-[#0bd1a2] dark:bg-transparent"
+                          )}
+                          title={tVoting("supersededTooltip", { vote: translateVote(staleInfo!.supersededByVote) })}
+                        >
+                          {tVoting("superseded")} → {translateVote(staleInfo!.supersededByVote)}
+                        </Badge>
+                      )}
                       {vote.voterType !== "CC" && (
                         <span className={cn("text-2xs font-medium shrink-0", isGame ? "text-white/70" : "text-muted-foreground dark:text-[#0bd1a2]")}>
                           {isUnconfirmedMobile
@@ -950,6 +1003,8 @@ export function VotingRecords({
                     const isNoVote = voteLower === "no";
                     const isMyVote = connectedDrepId != null && (vote.voterId || vote.drepId) === connectedDrepId;
                     const isUnconfirmed = !!vote.isPendingConfirmation;
+                    const staleInfo = staleness.get(vote);
+                    const isStale = !!staleInfo;
                     return (
                   <TableRow
                     key={voteId}
@@ -961,7 +1016,8 @@ export function VotingRecords({
                       isMyVote && (isGame
                         ? "bg-white/5 border-l-2 border-l-white/40"
                         : "bg-primary/5 border-l-2 border-l-primary dark:bg-[#0bd1a2]/5 dark:border-l-[#0bd1a2]"),
-                      isUnconfirmed && "opacity-75"
+                      isUnconfirmed && "opacity-75",
+                      isStale && "opacity-60"
                     )}
                   >
                         <TableCell className="py-2 sm:py-3">
@@ -1018,9 +1074,25 @@ export function VotingRecords({
                           </TableCell>
                         )}
                         <TableCell className="py-2 sm:py-3">
-                          <Badge variant="outline" className={cn("text-2xs sm:text-xs px-1.5 sm:px-2", isGame ? getGameVoteBadgeClasses(vote.vote) : getVoteBadgeClasses(vote.vote))}>
-                            {translateVote(vote.vote)}
-                          </Badge>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <Badge variant="outline" className={cn("text-2xs sm:text-xs px-1.5 sm:px-2", isStale && "line-through", isGame ? getGameVoteBadgeClasses(vote.vote) : getVoteBadgeClasses(vote.vote))}>
+                              {translateVote(vote.vote)}
+                            </Badge>
+                            {isStale && (
+                              <Badge
+                                variant="outline"
+                                className={cn(
+                                  "px-1.5 py-0 text-2xs",
+                                  isGame
+                                    ? "border-white/30 bg-transparent text-white/70"
+                                    : "border-foreground/20 bg-transparent text-muted-foreground dark:text-[#0bd1a2] dark:border-[#0bd1a2] dark:bg-transparent"
+                                )}
+                                title={tVoting("supersededTooltip", { vote: translateVote(staleInfo!.supersededByVote) })}
+                              >
+                                {tVoting("superseded")} → {translateVote(staleInfo!.supersededByVote)}
+                              </Badge>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="py-2 sm:py-3">
                           {vote.voterType !== "CC" ? (

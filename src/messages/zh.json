@@ -25,9 +25,15 @@
   },
   "landing": {
     "title": "卡达诺治理",
+    "treasuryTitle": "卡达诺金库",
     "subtitle": "跟踪和监测链上治理行动",
     "tabAllProposals": "所有提案",
     "tabAnalytics": "分析"
+  },
+  "treasury": {
+    "flowChartTitle": "2025年金库流向",
+    "flowApprovedOnly": "仅已批准",
+    "flowIncludingRejected": "包括已拒绝"
   },
   "dashboard": {
     "title": "仪表板",
@@ -118,7 +124,9 @@
     "oneMemberOneVote": "一个成员一票",
     "noRationale": "没有理由",
     "noVotingRecordsFound": "未找到投票记录",
-    "pending": "待确认"
+    "pending": "待确认",
+    "superseded": "已被替换",
+    "supersededTooltip": "此投票后来被替换为{vote}"
   },
   "charts": {
     "proposalStatus": {

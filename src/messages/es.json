@@ -25,9 +25,15 @@
   },
   "landing": {
     "title": "Gobernanza de Cardano",
+    "treasuryTitle": "Tesorería de Cardano",
     "subtitle": "Seguimiento y control de las acciones de gobernanza en la cadena",
     "tabAllProposals": "Todas las propuestas",
     "tabAnalytics": "Analítica"
+  },
+  "treasury": {
+    "flowChartTitle": "Flujo de tesorería 2025",
+    "flowApprovedOnly": "Sólo aprobados",
+    "flowIncludingRejected": "Incluyendo rechazados"
   },
   "dashboard": {
     "title": "Cuadro de mandos",
@@ -118,7 +124,9 @@
     "oneMemberOneVote": "Un miembro, un voto",
     "noRationale": "Sin fundamento",
     "noVotingRecordsFound": "No se ha encontrado ningún registro de votación",
-    "pending": "Pendiente"
+    "pending": "Pendiente",
+    "superseded": "Reemplazado",
+    "supersededTooltip": "Este voto fue posteriormente reemplazado por {vote}"
   },
   "charts": {
     "proposalStatus": {
