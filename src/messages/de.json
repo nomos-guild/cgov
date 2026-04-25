@@ -33,7 +33,31 @@
   "treasury": {
     "flowChartTitle": "Treasury-Fluss 2025",
     "flowApprovedOnly": "Nur genehmigt",
-    "flowIncludingRejected": "Einschließlich abgelehnt"
+    "flowIncludingRejected": "Alle anzeigen",
+    "tabSpending": "Treasury-Ausgaben",
+    "tabFundedEntities": "Geförderte Entitäten",
+    "entitiesIntro": "Organisationen und Projekte, die Mittel aus dem Treasury erhalten haben. Klicke auf eine Karte, um die vollständige Förderhistorie anzuzeigen.",
+    "noFundedEntities": "Noch keine geförderten Entitäten.",
+    "profile": {
+      "pageTitle": "{name} — Treasury-Förderung",
+      "pageDescription": "Treasury-Auszahlungen an {name}",
+      "backToTreasury": "Zurück zum Treasury",
+      "totalReceived": "Insgesamt erhalten",
+      "totalRequested": "Insgesamt beantragt",
+      "proposalsCount": "Anträge",
+      "proposalsTitle": "Geförderte Anträge",
+      "byYearTitle": "Nach Jahr",
+      "approved": "Genehmigt",
+      "pending": "Ausstehend",
+      "rejected": "Abgelehnt",
+      "year": "Jahr",
+      "status": "Status",
+      "amount": "Betrag",
+      "proposal": "Antrag",
+      "noProposals": "Für diese Entität sind noch keine Anträge vorhanden.",
+      "website": "Website",
+      "viewProposal": "Antrag ansehen"
+    }
   },
   "dashboard": {
     "title": "Dashboard",

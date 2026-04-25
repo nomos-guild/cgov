@@ -33,7 +33,31 @@
   "treasury": {
     "flowChartTitle": "2025年金库流向",
     "flowApprovedOnly": "仅已批准",
-    "flowIncludingRejected": "包括已拒绝"
+    "flowIncludingRejected": "显示全部",
+    "tabSpending": "金库支出",
+    "tabFundedEntities": "受资助实体",
+    "entitiesIntro": "已获得金库资助的组织和项目。点击卡片查看完整的资助历史。",
+    "noFundedEntities": "尚无受资助实体。",
+    "profile": {
+      "pageTitle": "{name} — 金库资助",
+      "pageDescription": "{name} 收到的金库提款",
+      "backToTreasury": "返回金库",
+      "totalReceived": "收到总额",
+      "totalRequested": "申请总额",
+      "proposalsCount": "提案数",
+      "proposalsTitle": "已资助的提案",
+      "byYearTitle": "按年份",
+      "approved": "已批准",
+      "pending": "待定",
+      "rejected": "已拒绝",
+      "year": "年份",
+      "status": "状态",
+      "amount": "金额",
+      "proposal": "提案",
+      "noProposals": "该实体暂无相关提案。",
+      "website": "网站",
+      "viewProposal": "查看提案"
+    }
   },
   "dashboard": {
     "title": "仪表板",

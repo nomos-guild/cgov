@@ -33,7 +33,31 @@
   "treasury": {
     "flowChartTitle": "Flujo de tesorería 2025",
     "flowApprovedOnly": "Sólo aprobados",
-    "flowIncludingRejected": "Incluyendo rechazados"
+    "flowIncludingRejected": "Mostrar todo",
+    "tabSpending": "Gasto de tesorería",
+    "tabFundedEntities": "Entidades financiadas",
+    "entitiesIntro": "Organizaciones y proyectos que han recibido financiación de la tesorería. Haz clic en una tarjeta para ver su historial completo de financiación.",
+    "noFundedEntities": "Aún no hay entidades financiadas.",
+    "profile": {
+      "pageTitle": "{name} — Financiación de la tesorería",
+      "pageDescription": "Retiros de tesorería recibidos por {name}",
+      "backToTreasury": "Volver a la tesorería",
+      "totalReceived": "Total recibido",
+      "totalRequested": "Total solicitado",
+      "proposalsCount": "Propuestas",
+      "proposalsTitle": "Propuestas financiadas",
+      "byYearTitle": "Por año",
+      "approved": "Aprobada",
+      "pending": "Pendiente",
+      "rejected": "Rechazada",
+      "year": "Año",
+      "status": "Estado",
+      "amount": "Importe",
+      "proposal": "Propuesta",
+      "noProposals": "Aún no hay propuestas para esta entidad.",
+      "website": "Sitio web",
+      "viewProposal": "Ver propuesta"
+    }
   },
   "dashboard": {
     "title": "Cuadro de mandos",

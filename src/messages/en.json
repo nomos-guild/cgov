@@ -33,7 +33,31 @@
   "treasury": {
     "flowChartTitle": "2025 Treasury flow",
     "flowApprovedOnly": "Approved only",
-    "flowIncludingRejected": "Including rejected"
+    "flowIncludingRejected": "Show all",
+    "tabSpending": "Treasury Spending",
+    "tabFundedEntities": "Funded Entities",
+    "entitiesIntro": "Organizations and projects that have received Treasury funding. Click a card to view their full funding history.",
+    "noFundedEntities": "No funded entities yet.",
+    "profile": {
+      "pageTitle": "{name} — Treasury Funding",
+      "pageDescription": "Treasury withdrawals received by {name}",
+      "backToTreasury": "Back to Treasury",
+      "totalReceived": "Total Received",
+      "totalRequested": "Total Requested",
+      "proposalsCount": "Proposals",
+      "proposalsTitle": "Funded Proposals",
+      "byYearTitle": "By Year",
+      "approved": "Approved",
+      "pending": "Pending",
+      "rejected": "Rejected",
+      "year": "Year",
+      "status": "Status",
+      "amount": "Amount",
+      "proposal": "Proposal",
+      "noProposals": "No proposals found for this entity yet.",
+      "website": "Website",
+      "viewProposal": "View proposal"
+    }
   },
   "dashboard": {
     "title": "Dashboard",

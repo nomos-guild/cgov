@@ -33,7 +33,31 @@
   "treasury": {
     "flowChartTitle": "Fluxo da tesouraria 2025",
     "flowApprovedOnly": "Apenas aprovados",
-    "flowIncludingRejected": "Incluindo rejeitados"
+    "flowIncludingRejected": "Mostrar tudo",
+    "tabSpending": "Gastos da tesouraria",
+    "tabFundedEntities": "Entidades financiadas",
+    "entitiesIntro": "Organizações e projetos que receberam financiamento da tesouraria. Clica num cartão para ver o histórico completo de financiamento.",
+    "noFundedEntities": "Ainda não há entidades financiadas.",
+    "profile": {
+      "pageTitle": "{name} — Financiamento da tesouraria",
+      "pageDescription": "Levantamentos da tesouraria recebidos por {name}",
+      "backToTreasury": "Voltar à tesouraria",
+      "totalReceived": "Total recebido",
+      "totalRequested": "Total solicitado",
+      "proposalsCount": "Propostas",
+      "proposalsTitle": "Propostas financiadas",
+      "byYearTitle": "Por ano",
+      "approved": "Aprovada",
+      "pending": "Pendente",
+      "rejected": "Rejeitada",
+      "year": "Ano",
+      "status": "Estado",
+      "amount": "Valor",
+      "proposal": "Proposta",
+      "noProposals": "Ainda não há propostas para esta entidade.",
+      "website": "Site",
+      "viewProposal": "Ver proposta"
+    }
   },
   "dashboard": {
     "title": "Painel de controlo",
