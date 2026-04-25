@@ -33,7 +33,31 @@
   "treasury": {
     "flowChartTitle": "2025年トレジャリーの流れ",
     "flowApprovedOnly": "承認済みのみ",
-    "flowIncludingRejected": "却下を含む"
+    "flowIncludingRejected": "すべて表示",
+    "tabSpending": "トレジャリー支出",
+    "tabFundedEntities": "資金提供エンティティ",
+    "entitiesIntro": "トレジャリー資金を受領した組織やプロジェクト。カードをクリックすると、資金提供の履歴をすべて表示できます。",
+    "noFundedEntities": "資金提供を受けたエンティティはまだありません。",
+    "profile": {
+      "pageTitle": "{name} — トレジャリー資金提供",
+      "pageDescription": "{name} が受領したトレジャリー出金",
+      "backToTreasury": "トレジャリーに戻る",
+      "totalReceived": "受領総額",
+      "totalRequested": "申請総額",
+      "proposalsCount": "提案数",
+      "proposalsTitle": "資金提供された提案",
+      "byYearTitle": "年別",
+      "approved": "承認済み",
+      "pending": "保留中",
+      "rejected": "却下",
+      "year": "年",
+      "status": "ステータス",
+      "amount": "金額",
+      "proposal": "提案",
+      "noProposals": "このエンティティに関連する提案はまだありません。",
+      "website": "ウェブサイト",
+      "viewProposal": "提案を見る"
+    }
   },
   "dashboard": {
     "title": "ダッシュボード",

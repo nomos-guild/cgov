@@ -11,9 +11,10 @@ import {
 import { useAppSelector } from "@/store/hooks";
 import { useTheme } from "@/lib/theme";
 import {
-  PROPOSAL_ENTITY_MAP,
   SUPPORTED_YEARS,
+  getFundedEntityIds,
   getTreasuryEntity,
+  resolveProposalEntity,
   type TreasuryYear,
 } from "@/lib/treasuryEntities";
 import { cn } from "@/lib/utils";
@@ -32,8 +33,10 @@ interface ChartNode extends SankeyNodeMinimal<ChartNode, ChartLink> {
   parentEntityId?: string;
 }
 
+type LinkVariant = "approved" | "active" | "rejected";
+
 interface ChartLink extends SankeyLinkMinimal<ChartNode, ChartLink> {
-  variant: "approved" | "rejected";
+  variant: LinkVariant;
   value: number;
 }
 
@@ -41,6 +44,7 @@ type FilterMode = "approved" | "all";
 
 const APPROVED_STATUSES = new Set(["Enacted", "Ratified"]);
 const REJECTED_STATUSES = new Set(["Expired", "Closed"]);
+const ACTIVE_STATUS = "Active";
 
 const CHART_WIDTH = 1400;
 const CHART_HEIGHT = 1400;
@@ -73,23 +77,6 @@ function cleanProposalTitle(title: string): string {
   return title.replace(/^(?:Withdraw|Loan)\s+\S+\s+(?:for|to)\s+/i, "").trim();
 }
 
-// Cardano Shelley era started at epoch 208 on 2020-07-29 21:44:51 UTC with
-// 5-day epochs. This lets us map a submissionEpoch to a calendar year without
-// needing the backend to expose startTime per epoch.
-const SHELLEY_EPOCH = 208;
-const SHELLEY_EPOCH_START_MS = Date.UTC(2020, 6, 29, 21, 44, 51);
-const EPOCH_LENGTH_MS = 5 * 24 * 60 * 60 * 1000;
-function epochToYear(epoch: number): TreasuryYear | null {
-  if (!Number.isFinite(epoch) || epoch < SHELLEY_EPOCH) return null;
-  const ms = SHELLEY_EPOCH_START_MS + (epoch - SHELLEY_EPOCH) * EPOCH_LENGTH_MS;
-  const year = new Date(ms).getUTCFullYear();
-  return (SUPPORTED_YEARS as readonly number[]).includes(year)
-    ? (year as TreasuryYear)
-    : null;
-}
-
-const UNKNOWN_ENTITY_ID = "unknown";
-
 export function TreasuryFlowSankey() {
   const t = useTranslations("treasury");
   const router = useRouter();
@@ -97,8 +84,8 @@ export function TreasuryFlowSankey() {
   const isDark = activeTheme.isDark;
   const actions = useAppSelector((s) => s.governance.actions);
 
-  const [mode, setMode] = useState<FilterMode>("approved");
-  const [year, setYear] = useState<TreasuryYear | "all">(2025);
+  const [mode, setMode] = useState<FilterMode>("all");
+  const [year, setYear] = useState<TreasuryYear | "all">("all");
   const [hover, setHover] = useState<
     | { kind: "node"; nodeId: string }
     | { kind: "link"; index: number }
@@ -106,6 +93,7 @@ export function TreasuryFlowSankey() {
   >(null);
 
   const approvedColor = isDark ? "#0bd1a2" : "#16a34a";
+  const activeColor = isDark ? "#fbbf24" : "#d97706";
   const rejectedColor = isDark ? "#f87171" : "#dc2626";
   const textColor = isDark ? "#e2e8f0" : "#0f172a";
   const mutedTextColor = isDark ? "rgba(226,232,240,0.6)" : "rgba(15,23,42,0.55)";
@@ -114,34 +102,36 @@ export function TreasuryFlowSankey() {
     const activeYears: TreasuryYear[] =
       year === "all" ? [...SUPPORTED_YEARS] : [year];
     const activeYearSet = new Set<TreasuryYear>(activeYears);
-    const combinedMap: Record<string, (typeof PROPOSAL_ENTITY_MAP)[TreasuryYear][string]> = {};
-    for (const y of activeYears) Object.assign(combinedMap, PROPOSAL_ENTITY_MAP[y]);
 
-    // Drive the chart from live `actions`, not from the static map. That way
-    // a newly enacted/expired Treasury Withdrawal appears automatically — it
-    // just lands in "Unclassified" until a human curates it into the map.
+    // Drive the chart from live `actions` via the shared resolver — curated
+    // mappings win, title heuristic fills gaps, anything else lands in
+    // "Unclassified". Active proposals are included so newly submitted
+    // requests appear in the chart immediately.
     const filteredEntries = actions
       .map((action) => {
-        if (action.type !== "Treasury Withdrawals") return null;
-        const proposalYear = epochToYear(action.submissionEpoch);
-        if (!proposalYear || !activeYearSet.has(proposalYear)) return null;
+        const resolved = resolveProposalEntity(action);
+        if (!resolved) return null;
+        if (!resolved.year || !activeYearSet.has(resolved.year)) return null;
         const amountAda = action.withdrawalAmount
           ? Number(action.withdrawalAmount) / 1_000_000
           : 0;
         if (amountAda <= 0) return null;
         const isApproved = APPROVED_STATUSES.has(action.status);
+        const isActive = action.status === ACTIVE_STATUS;
         const isRejected = REJECTED_STATUSES.has(action.status);
-        if (!isApproved && !isRejected) return null;
+        if (!isApproved && !isActive && !isRejected) return null;
         if (mode === "approved" && !isApproved) return null;
         const proposalId = action.proposalId ?? action.hash;
-        const mapping = action.proposalId
-          ? combinedMap[action.proposalId]
-          : undefined;
+        const variant: LinkVariant = isApproved
+          ? "approved"
+          : isActive
+          ? "active"
+          : "rejected";
         return {
           proposalId,
-          entityId: mapping?.entityId ?? UNKNOWN_ENTITY_ID,
+          entityId: resolved.entityId,
           amountAda,
-          variant: isApproved ? ("approved" as const) : ("rejected" as const),
+          variant,
           action,
         };
       })
@@ -212,15 +202,17 @@ export function TreasuryFlowSankey() {
     const links: ChartLink[] = [];
 
     for (const [entityId] of sortedEntities) {
+      const entityProposals = sortedProposals.filter((p) => p.entityId === entityId);
+      const dominantVariant: LinkVariant = entityProposals.some((p) => p.variant === "approved")
+        ? "approved"
+        : entityProposals.some((p) => p.variant === "active")
+        ? "active"
+        : "rejected";
       links.push({
         source: `treasury:${treasuryKey}`,
         target: `entity:${entityId}`,
         value: entityVisualTotals.get(entityId) ?? 0,
-        variant: sortedProposals.some(
-          (p) => p.entityId === entityId && p.variant === "approved"
-        )
-          ? "approved"
-          : "rejected",
+        variant: dominantVariant,
       });
     }
 
@@ -305,14 +297,30 @@ export function TreasuryFlowSankey() {
   const linkPath = sankeyLinkHorizontal<ChartNode, ChartLink>();
 
   const colorForLink = (l: ChartLink) =>
-    l.variant === "approved" ? approvedColor : rejectedColor;
+    l.variant === "approved"
+      ? approvedColor
+      : l.variant === "active"
+      ? activeColor
+      : rejectedColor;
 
   const toggleButtonBase =
     "px-3 py-1.5 text-xs sm:text-sm rounded-md font-medium transition-colors";
 
-  const handleProposalClick = (n: ChartNode) => {
-    if (n.kind !== "proposal" || !n.hash) return;
-    router.push(`/governance/${n.hash}`);
+  // Entity ids that have a profile page — proposals routed to "unknown" or
+  // any other un-mapped bucket stay non-clickable.
+  const fundedEntitySet = useMemo(() => new Set(getFundedEntityIds()), []);
+
+  const handleNodeClick = (n: ChartNode) => {
+    if (n.kind === "proposal" && n.hash) {
+      router.push(`/governance/${n.hash}`);
+      return;
+    }
+    if (n.kind === "entity") {
+      const entityId = n.nodeId.replace(/^entity:/, "");
+      if (fundedEntitySet.has(entityId)) {
+        router.push(`/treasury/${entityId}`);
+      }
+    }
   };
 
   // Hovering a Treasury → Entity ribbon behaves like hovering the entity
@@ -486,6 +494,10 @@ export function TreasuryFlowSankey() {
               const w = (n.x1 ?? 0) - x;
               const h = (n.y1 ?? 0) - y;
               const isProposal = n.kind === "proposal";
+              const isClickableEntity =
+                n.kind === "entity" &&
+                fundedEntitySet.has(n.nodeId.replace(/^entity:/, ""));
+              const isClickable = isProposal || isClickableEntity;
               const labelOnRight = n.kind !== "treasury";
               const labelX = labelOnRight ? x + w + 6 : x - 6;
               const maxLabelChars = n.kind === "proposal" ? 48 : 28;
@@ -494,8 +506,8 @@ export function TreasuryFlowSankey() {
                   key={n.nodeId}
                   onMouseEnter={() => setHover({ kind: "node", nodeId: n.nodeId })}
                   onMouseLeave={onLeave}
-                  onClick={() => handleProposalClick(n)}
-                  style={{ cursor: isProposal ? "pointer" : "default" }}
+                  onClick={() => handleNodeClick(n)}
+                  style={{ cursor: isClickable ? "pointer" : "default" }}
                 >
                   {n.kind === "entity" ? (() => {
                     const label = truncate(n.label, maxLabelChars);

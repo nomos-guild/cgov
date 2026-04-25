@@ -3,8 +3,10 @@
  * by calendar year.
  *
  * Scope: Treasury Withdrawal governance actions inside a given year's epoch
- * window with status Enacted, Ratified, Expired, or Closed. Active proposals
- * are excluded.
+ * window. Both resolved (Enacted/Ratified/Expired/Closed) and Active proposals
+ * may be mapped — the chart and entity pages classify them by current
+ * `status` at render time, so an Active mapping promotes itself to Approved
+ * automatically once the action is enacted on chain.
  *
  * Date field used: `submissionEpoch` (buffered ±2 epochs around each year's
  * boundary). The backend does not currently expose an enactment/ratification
@@ -20,6 +22,12 @@
 export interface TreasuryEntity {
   entityId: string;
   label: string;
+  /** Optional curated metadata. The entity profile page falls back to a
+   *  label-only header when these are absent, so adding/removing them is
+   *  always safe. */
+  website?: string;
+  description?: string;
+  iconUrl?: string;
 }
 
 export interface TreasuryProposalMapping {
@@ -454,6 +462,29 @@ export const PROPOSAL_ENTITY_MAP: Record<
       evidence:
         "Description: '500,000 ADA from the Cardano Treasury to establish the legal framework and smart contract infrastructure… All funds will be initially received by an Amaru contract administered by the 9-person Interim Committee with a 5-of-9 multisignature requirement'. References: same github.com/theeldermillenial/2025-liquidity-budget repo as the Ratified withdrawal.",
     },
+
+    // Cardano Foundation 2026 — user-curated. Title was not auto-matched by
+    // the heuristic (no "cardano foundation" substring in the proposal title).
+    // app.cgov.io/governance/bd91fa7ea9b4e09f76cbde3abb0b564ffc60b27e18af464ccec9bef9c718d087:0
+    "gov_action1hkgl5l4fknsf7aktmcatkz6kfl7xpvn7rzh5vnxwexl0n3cc6zrsqt5459v": {
+      entityId: "cardano-foundation",
+      evidence:
+        "Curated by maintainer as a Cardano Foundation proposal — title did not include a CF-distinctive keyword so the heuristic missed it.",
+    },
+
+    // IO — Blockfrost-led proposals. Blockfrost has been an Input Output
+    // subsidiary since the acquisition, so attribution rolls up to IO. The
+    // "blockfrost" keyword in ENTITY_KEYWORDS would also catch these by
+    // title; the explicit mapping is kept as a belt-and-suspenders so the
+    // attribution survives any future title rename.
+    "gov_action1w0shrfxqwv95kk0v4cn34wylz25a2cmqkq5jpc0e2yrahhqava3qsuae57l": {
+      entityId: "input-output",
+      evidence: "Blockfrost-led proposal — Blockfrost is an IO subsidiary post-acquisition. Curated by maintainer.",
+    },
+    "gov_action1w0shrfxqwv95kk0v4cn34wylz25a2cmqkq5jpc0e2yrahhqava3qwt8k9fx": {
+      entityId: "input-output",
+      evidence: "Blockfrost-led proposal — Blockfrost is an IO subsidiary post-acquisition. Curated by maintainer.",
+    },
   },
 };
 
@@ -464,4 +495,167 @@ export function getTreasuryEntity(entityId: string): TreasuryEntity {
   return (
     TREASURY_ENTITIES[entityId] ?? { entityId, label: entityId }
   );
+}
+
+export const UNCLASSIFIED_ENTITY_ID = "unknown";
+
+/**
+ * Walk PROPOSAL_ENTITY_MAP across all years and return the set of entityIds
+ * that have at least one mapped proposal. The "unknown" bucket is excluded —
+ * it is a catch-all for un-curated proposals and not a real entity.
+ *
+ * Used by `getStaticPaths` for the entity profile route so new mappings
+ * automatically generate a profile page on the next ISR rebuild.
+ */
+export function getFundedEntityIds(): string[] {
+  const ids = new Set<string>();
+  for (const year of SUPPORTED_YEARS) {
+    for (const m of Object.values(PROPOSAL_ENTITY_MAP[year])) {
+      if (m.entityId !== UNCLASSIFIED_ENTITY_ID) ids.add(m.entityId);
+    }
+  }
+  return [...ids];
+}
+
+/**
+ * Return every (proposalId, year) pair currently mapped to `entityId`.
+ * Order is not guaranteed — callers should sort/group as needed.
+ */
+export function getEntityProposalIds(
+  entityId: string
+): Array<{ proposalId: string; year: TreasuryYear }> {
+  const result: Array<{ proposalId: string; year: TreasuryYear }> = [];
+  for (const year of SUPPORTED_YEARS) {
+    for (const [proposalId, m] of Object.entries(PROPOSAL_ENTITY_MAP[year])) {
+      if (m.entityId === entityId) result.push({ proposalId, year });
+    }
+  }
+  return result;
+}
+
+// ── Submission epoch → year ─────────────────────────────────────────────
+// Cardano Shelley era started at epoch 208 on 2020-07-29 21:44:51 UTC with
+// 5-day epochs. Lets us bucket a submissionEpoch into a calendar year without
+// the backend exposing per-epoch start times.
+const SHELLEY_EPOCH = 208;
+const SHELLEY_EPOCH_START_MS = Date.UTC(2020, 6, 29, 21, 44, 51);
+const EPOCH_LENGTH_MS = 5 * 24 * 60 * 60 * 1000;
+
+export function epochToYear(epoch: number | null | undefined): TreasuryYear | null {
+  if (epoch == null || !Number.isFinite(epoch) || epoch < SHELLEY_EPOCH) return null;
+  const ms = SHELLEY_EPOCH_START_MS + (epoch - SHELLEY_EPOCH) * EPOCH_LENGTH_MS;
+  const year = new Date(ms).getUTCFullYear();
+  return (SUPPORTED_YEARS as readonly number[]).includes(year)
+    ? (year as TreasuryYear)
+    : null;
+}
+
+// ── Title-based heuristic ───────────────────────────────────────────────
+/**
+ * Distinctive title keywords used as a fallback when a proposalId isn't in
+ * PROPOSAL_ENTITY_MAP — primarily for Active proposals before someone curates
+ * them with evidence. Keywords must be specific (multi-word phrases or unique
+ * brand names); failures fall through to "unknown", same as before.
+ *
+ * Curated map entries always take precedence in `resolveProposalEntity`.
+ */
+const ENTITY_KEYWORDS: Record<string, readonly string[]> = {
+  intersect: ["intersect"],
+  "input-output": [
+    "io",
+    "input output",
+    "input-output",
+    "input | output",
+    "iohk",
+    "iog",
+    "ior",
+    "ioe",
+    "input output global",
+    "input output research",
+    "input output engineering",
+    // Blockfrost has been an IO subsidiary since the acquisition — any
+    // Blockfrost-led proposal rolls up to IO for entity attribution.
+    "blockfrost",
+  ],
+  "cardano-foundation": ["cardano foundation"],
+  mlabs: ["mlabs"],
+  txpipe: ["txpipe"],
+  "anastasia-labs": ["anastasia labs"],
+  vacuumlabs: ["vacuumlabs", "vacuum labs"],
+  tweag: ["tweag"],
+  "harmonic-labs": ["harmonic labs", "hlabs", "gerolamo"],
+  "snek-foundation": ["snek foundation"],
+  pragma: ["pragma", "amaru treasury"],
+  eryx: ["eryx"],
+  socious: ["socious"],
+  maestro: ["maestro"],
+  flowdesk: ["flowdesk"],
+  nftcdn: ["nftcdn"],
+  eternl: ["eternl"],
+  adastat: ["adastat"],
+  cexplorer: ["cexplorer"],
+  bloxbean: ["bloxbean"],
+  scalus: ["scalus"],
+  opshin: ["opshin"],
+  pycardano: ["pycardano"],
+  zkfold: ["zkfold"],
+  anzens: ["anzens"],
+  supplyoneers: ["supplyoneers"],
+  "cardano-builder-dao": ["cardano builder dao"],
+  "draper-dragon": ["draper dragon", "orion fund"],
+  "blink-labs": ["blink labs"],
+  "defi-liquidity-committee": ["defi liquidity", "stablecoin defi liquidity"],
+  // "haus" omitted — too short and generic, prone to false positives.
+};
+
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+export function inferEntityIdFromTitle(title: string | null | undefined): string {
+  if (!title) return UNCLASSIFIED_ENTITY_ID;
+  const lower = title.toLowerCase();
+  for (const [entityId, keywords] of Object.entries(ENTITY_KEYWORDS)) {
+    for (const k of keywords) {
+      // Word-boundary match so short tokens like "iog" don't match inside
+      // unrelated words. Multi-word phrases still match across spaces.
+      const re = new RegExp(`\\b${escapeRegex(k)}\\b`);
+      if (re.test(lower)) return entityId;
+    }
+  }
+  return UNCLASSIFIED_ENTITY_ID;
+}
+
+export interface ResolvedProposalEntity {
+  entityId: string;
+  year: TreasuryYear | null;
+  source: "curated" | "heuristic" | "fallback";
+}
+
+/**
+ * Resolve a Treasury Withdrawal action to its entity. Curated PROPOSAL_ENTITY_MAP
+ * wins; if the proposalId isn't in the map, fall back to title keyword heuristic;
+ * otherwise return the "unknown" bucket. Returns null for non-Treasury-Withdrawal
+ * actions so callers can pass any GovernanceAction.
+ */
+export function resolveProposalEntity(action: {
+  proposalId?: string;
+  title?: string;
+  submissionEpoch?: number;
+  type?: string;
+}): ResolvedProposalEntity | null {
+  if (action.type !== "Treasury Withdrawals") return null;
+  const year = epochToYear(action.submissionEpoch);
+
+  if (action.proposalId) {
+    for (const y of SUPPORTED_YEARS) {
+      const m = PROPOSAL_ENTITY_MAP[y][action.proposalId];
+      if (m) return { entityId: m.entityId, year, source: "curated" };
+    }
+  }
+  const inferred = inferEntityIdFromTitle(action.title);
+  if (inferred !== UNCLASSIFIED_ENTITY_ID) {
+    return { entityId: inferred, year, source: "heuristic" };
+  }
+  return { entityId: UNCLASSIFIED_ENTITY_ID, year, source: "fallback" };
 }
