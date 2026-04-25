@@ -1,6 +1,6 @@
 import type { GetStaticProps } from "next";
-import Head from "next/head";
 import { useTranslations } from "next-intl";
+import { SeoHead } from "@/components/SeoHead";
 import { useGovernanceDataLoader } from "@/hooks/useGovernanceData";
 import { Card } from "@/components/ui/card";
 import { GameLoader } from "@/components/ui/game-loader";
@@ -73,13 +73,10 @@ function GovernanceDashboardPage() {
 
   return (
     <>
-      <Head>
-        <title>{t("meta.governanceDashboardTitle")}</title>
-        <meta
-          name="description"
-          content={t("meta.governanceDashboardDescription")}
-        />
-      </Head>
+      <SeoHead
+        title={t("meta.governanceDashboardTitle")}
+        description={t("meta.governanceDashboardDescription")}
+      />
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 md:px-6 md:py-8">
           <DashboardProvider

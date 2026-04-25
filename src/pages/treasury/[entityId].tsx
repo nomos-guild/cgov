@@ -1,9 +1,9 @@
 import { useEffect, useMemo } from "react";
 import type { GetStaticProps, GetStaticPaths, InferGetStaticPropsType } from "next";
-import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useTranslations } from "next-intl";
+import { SeoHead } from "@/components/SeoHead";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FadeIn } from "@/components/ui/fade-in";
@@ -150,13 +150,11 @@ export default function EntityProfilePage({
 
   return (
     <>
-      <Head>
-        <title>{t("pageTitle", { name: entity.label })}</title>
-        <meta
-          name="description"
-          content={t("pageDescription", { name: entity.label })}
-        />
-      </Head>
+      <SeoHead
+        title={t("pageTitle", { name: entity.label })}
+        description={t("pageDescription", { name: entity.label })}
+        type="article"
+      />
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-3 pt-8 pb-28 sm:px-4 sm:pt-10 sm:pb-36 md:px-6 md:pt-12 md:pb-44">
           <FadeIn delay={0} duration={400} distance={12}>

@@ -1,7 +1,7 @@
 import type { GetStaticProps, InferGetStaticPropsType } from "next";
 import dynamic from "next/dynamic";
-import Head from "next/head";
 import { useTranslations } from "next-intl";
+import { SeoHead } from "@/components/SeoHead";
 import TreasuryPageLayout from "@/components/treasury/TreasuryPageLayout";
 import { type InitialGovernanceData } from "@/hooks/useGovernanceData";
 import { fetchAllGovernanceData } from "@/lib/serverFetch";
@@ -30,10 +30,10 @@ export default function Treasury({ initialData }: InferGetStaticPropsType<typeof
 
   return (
     <>
-      <Head>
-        <title>{t("meta.homeTitle")}</title>
-        <meta name="description" content={t("meta.homeDescription")} />
-      </Head>
+      <SeoHead
+        title={t("meta.homeTitle")}
+        description={t("meta.homeDescription")}
+      />
       <TreasuryPageLayout initialData={initialData}>
         <TreasuryFlowSankey />
       </TreasuryPageLayout>

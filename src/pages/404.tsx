@@ -1,7 +1,7 @@
 import type { GetStaticProps } from "next";
-import Head from "next/head";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { SeoHead } from "@/components/SeoHead";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -16,10 +16,11 @@ export default function NotFound() {
 
   return (
     <>
-      <Head>
-        <title>{t("meta.notFoundTitle")}</title>
-        <meta name="description" content={t("meta.notFoundDescription")} />
-      </Head>
+      <SeoHead
+        title={t("meta.notFoundTitle")}
+        description={t("meta.notFoundDescription")}
+        noindex
+      />
       <div className="container mx-auto py-8 px-4">
         <div className="flex items-center justify-center min-h-[80vh]">
           <Card className="max-w-md w-full">

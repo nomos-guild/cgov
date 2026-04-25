@@ -7,7 +7,10 @@ export default function Document({ __NEXT_DATA__ }: DocumentProps) {
     <Html lang={locale}>
       <Head>
         <meta charSet="utf-8" />
-        <link rel="icon" href="https://meshjs.dev/favicon/favicon-32x32.png" />
+        <link rel="icon" href="/favicon.ico?v=2" sizes="any" />
+        <link rel="icon" type="image/svg+xml" href="/nomos.svg" />
+        <link rel="apple-touch-icon" href="/nomos.png" />
+        <meta name="theme-color" content="#0bd1a2" />
       </Head>
       <body>
         {/* Blocking script: apply saved theme before first paint to prevent flash */}

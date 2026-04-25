@@ -1,9 +1,9 @@
 import { useMemo, type ReactNode } from "react";
 import { Info } from "lucide-react";
-import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useTranslations } from "next-intl";
+import { SeoHead } from "@/components/SeoHead";
 import { Card } from "@/components/ui/card";
 import { GameLoader } from "@/components/ui/game-loader";
 import { useTheme } from "@/lib/theme";
@@ -64,10 +64,10 @@ export default function DRepPageLayout({
 
   return (
     <>
-      <Head>
-        <title>{t("pageTitle")}</title>
-        <meta name="description" content={t("pageDescription")} />
-      </Head>
+      <SeoHead
+        title={t("pageTitle")}
+        description={t("pageDescription")}
+      />
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-3 pt-8 pb-28 sm:px-4 sm:pt-10 sm:pb-36 md:px-6 md:pt-12 md:pb-44">
           {/* Header */}
