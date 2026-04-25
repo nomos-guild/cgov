@@ -10,8 +10,8 @@ import {
 import type { GetStaticProps, GetStaticPaths } from "next";
 import { useRouter } from "next/router";
 import { useTranslations } from "next-intl";
-import Head from "next/head";
 import Link from "next/link";
+import { SeoHead } from "@/components/SeoHead";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { VotingRecords } from "@/components/VotingRecords";
@@ -880,13 +880,11 @@ function GovernanceDetailContent({ initialDetail }: GovernanceDetailProps) {
 
   return (
     <>
-      <Head>
-        <title>{selectedAction.title} - Cardano Governance</title>
-        <meta
-          name="description"
-          content={selectedAction.description || selectedAction.title}
-        />
-      </Head>
+      <SeoHead
+        title={`${selectedAction.title} - Cardano Governance`}
+        description={selectedAction.description || selectedAction.title}
+        type="article"
+      />
       <div className="min-h-screen bg-background">
         <div
           className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 md:px-6 md:py-8"

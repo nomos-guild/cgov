@@ -1,9 +1,9 @@
 import { useState, useMemo } from "react";
 import { useRouter } from "next/router";
 import type { GetStaticProps, GetStaticPaths } from "next";
-import Head from "next/head";
 import Link from "next/link";
 import { useTranslations, useLocale } from "next-intl";
+import { SeoHead } from "@/components/SeoHead";
 import { Info } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -231,13 +231,11 @@ function DRepProfileContent({
 
   return (
     <>
-      <Head>
-        <title>{drep?.name ? t("pageTitle", { name: drep.name }) : t("pageTitleFallback")}</title>
-        <meta
-          name="description"
-          content={drep?.name ? t("pageDescription", { name: drep.name }) : t("pageDescriptionFallback")}
-        />
-      </Head>
+      <SeoHead
+        title={drep?.name ? t("pageTitle", { name: drep.name }) : t("pageTitleFallback")}
+        description={drep?.name ? t("pageDescription", { name: drep.name }) : t("pageDescriptionFallback")}
+        type="article"
+      />
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-3 pt-8 pb-28 sm:px-4 sm:pt-10 sm:pb-36 md:px-6 md:pt-12 md:pb-44">
           {/* Back link */}

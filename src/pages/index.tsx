@@ -1,6 +1,6 @@
 import type { GetStaticProps, InferGetStaticPropsType } from "next";
-import Head from "next/head";
 import { useTranslations } from "next-intl";
+import { SeoHead } from "@/components/SeoHead";
 import { GovernanceStats } from "@/components/GovernanceStats";
 import { GovernanceTable } from "@/components/GovernanceTable";
 import { useGovernanceDataLoader, type InitialGovernanceData } from "@/hooks/useGovernanceData";
@@ -29,13 +29,10 @@ export default function Home({ initialData }: InferGetStaticPropsType<typeof get
 
   return (
     <>
-      <Head>
-        <title>{t("meta.homeTitle")}</title>
-        <meta
-          name="description"
-          content={t("meta.homeDescription")}
-        />
-      </Head>
+      <SeoHead
+        title={t("meta.homeTitle")}
+        description={t("meta.homeDescription")}
+      />
       <div className="min-h-screen bg-background overflow-visible">
         <div className="container mx-auto px-3 pt-8 pb-4 sm:px-4 sm:pt-10 sm:pb-6 md:px-6 md:pt-12 md:pb-8 overflow-visible">
           <FadeIn delay={0} duration={400} distance={12}>

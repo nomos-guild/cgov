@@ -6,7 +6,6 @@ import { useRouter } from "next/router";
 import { Provider } from "react-redux";
 import { NextIntlClientProvider } from "next-intl";
 import { store } from "@/store";
-import Head from "next/head";
 import { Header } from "@/components/layout";
 import { Footer } from "@/components/Footer";
 import { ThemeProvider } from "@/lib/theme";
@@ -64,9 +63,6 @@ export default function App({ Component, pageProps }: AppProps) {
       <ThemeProvider>
         <Provider store={store}>
           <TooltipProvider delayDuration={300}>
-            <Head>
-              <link rel="icon" href="/favicon.ico?v=2" />
-            </Head>
             <PageLoadingBar />
             <div id="app-brightness-wrapper" className="min-h-screen flex flex-col">
               <MeshProviderWrapper>

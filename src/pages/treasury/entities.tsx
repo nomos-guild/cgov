@@ -1,8 +1,8 @@
 import { useEffect, useMemo } from "react";
 import type { GetStaticProps, InferGetStaticPropsType } from "next";
-import Head from "next/head";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { SeoHead } from "@/components/SeoHead";
 import TreasuryPageLayout from "@/components/treasury/TreasuryPageLayout";
 import {
   useGovernanceActions,
@@ -129,10 +129,10 @@ export default function FundedEntitiesPage({
 
   return (
     <>
-      <Head>
-        <title>{t("tabFundedEntities")}</title>
-        <meta name="description" content={t("entitiesIntro")} />
-      </Head>
+      <SeoHead
+        title={t("tabFundedEntities")}
+        description={t("entitiesIntro")}
+      />
       <TreasuryPageLayout initialData={initialData}>
         <div className={cn(
           "mb-4 text-sm",

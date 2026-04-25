@@ -1,6 +1,6 @@
 import type { GetStaticProps } from "next";
-import Head from "next/head";
 import { useTranslations } from "next-intl";
+import { SeoHead } from "@/components/SeoHead";
 import { useDevelopmentDataLoader } from "@/hooks/useDevelopmentData";
 import { Card } from "@/components/ui/card";
 import { GameLoader } from "@/components/ui/game-loader";
@@ -74,10 +74,10 @@ function DashboardPage() {
 
   return (
     <>
-      <Head>
-        <title>{t("meta.dashboardTitle")}</title>
-        <meta name="description" content={t("meta.dashboardDescription")} />
-      </Head>
+      <SeoHead
+        title={t("meta.dashboardTitle")}
+        description={t("meta.dashboardDescription")}
+      />
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 md:px-6 md:py-8">
           <DashboardProvider

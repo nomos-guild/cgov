@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /analytics-test
+
+Sitemap: https://app.cgov.io/sitemap.xml

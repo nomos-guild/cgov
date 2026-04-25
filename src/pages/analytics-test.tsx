@@ -1,5 +1,5 @@
 import type { GetStaticProps } from "next";
-import Head from "next/head";
+import { SeoHead } from "@/components/SeoHead";
 import { AnalyticsTestPanel } from "@/components/analytics";
 
 type IntlMessages = typeof import("@/messages/en.json");
@@ -11,13 +11,11 @@ interface AnalyticsTestPageProps {
 export default function AnalyticsTestPage() {
   return (
     <>
-      <Head>
-        <title>Analytics API Test - CGOV</title>
-        <meta
-          name="description"
-          content="Test panel for analytics API endpoints"
-        />
-      </Head>
+      <SeoHead
+        title="Analytics API Test - CGOV"
+        description="Test panel for analytics API endpoints"
+        noindex
+      />
       <div className="min-h-screen bg-background">
         <div className="container mx-auto py-8 px-4">
           <div className="mb-8">
