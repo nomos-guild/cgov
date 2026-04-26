@@ -11,6 +11,7 @@ export default function Document({ __NEXT_DATA__ }: DocumentProps) {
         <link rel="icon" type="image/svg+xml" href="/nomos.svg" />
         <link rel="apple-touch-icon" href="/nomos.png" />
         <meta name="theme-color" content="#0bd1a2" />
+        <meta name="google-site-verification" content="MoCHt11jlK9DzY3ujUV2Itq2EhBKWvfvnCaedOI-Wbc" />
       </Head>
       <body>
         {/* Blocking script: apply saved theme before first paint to prevent flash */}
