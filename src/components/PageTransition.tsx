@@ -140,14 +140,37 @@ export function PageTransition({ children }: PageTransitionProps) {
   const [showLoader, setShowLoader] = useState(false);
 
   useEffect(() => {
+    // Safety timer: if onLinkClick fires but no routeChangeStart follows
+    // (cancelled navigation, non-routable href, etc.), this resets the
+    // dimmed state so the page doesn't stay stuck at opacity 0.4 forever.
+    let pendingTimeout: number | null = null;
+    const clearPending = () => {
+      if (pendingTimeout !== null) {
+        window.clearTimeout(pendingTimeout);
+        pendingTimeout = null;
+      }
+    };
+
     const onStart = () => {
+      clearPending();
       setPhase("fading-out");
       setShowLoader(true);
     };
 
     const onComplete = () => {
+      clearPending();
       setShowLoader(false);
       window.scrollTo({ top: 0 });
+    };
+
+    // Cancelled or errored navigations never produce an asPath change, so
+    // the second useEffect's "fading-in → visible" recovery never runs. We
+    // have to reset the phase here ourselves, otherwise the page stays
+    // permanently dimmed.
+    const onError = () => {
+      clearPending();
+      setShowLoader(false);
+      setPhase("visible");
     };
 
     // Show loader immediately on internal link clicks — before routeChangeStart fires,
@@ -164,17 +187,28 @@ export function PageTransition({ children }: PageTransitionProps) {
       ) return;
       setPhase("fading-out");
       setShowLoader(true);
+      // Safety net — if Next.js never fires routeChangeStart for this
+      // click (e.g. another handler called preventDefault, the link is
+      // intercepted, or the navigation is otherwise cancelled), recover
+      // after a short delay so the page doesn't stay dimmed.
+      clearPending();
+      pendingTimeout = window.setTimeout(() => {
+        setPhase("visible");
+        setShowLoader(false);
+        pendingTimeout = null;
+      }, 1000);
     };
 
     document.addEventListener("click", onLinkClick, true);
     router.events.on("routeChangeStart", onStart);
     router.events.on("routeChangeComplete", onComplete);
-    router.events.on("routeChangeError", onComplete);
+    router.events.on("routeChangeError", onError);
     return () => {
+      clearPending();
       document.removeEventListener("click", onLinkClick, true);
       router.events.off("routeChangeStart", onStart);
       router.events.off("routeChangeComplete", onComplete);
-      router.events.off("routeChangeError", onComplete);
+      router.events.off("routeChangeError", onError);
     };
   }, [router]);
 

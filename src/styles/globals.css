@@ -70,6 +70,66 @@
   }
 }
 
+/* Pulsing stroke for "active" treasury proposal edges — signals that the
+   proposal is still under vote. Animates stroke-opacity so it composes with
+   the fixed stroke color and width. The hover state overrides this by
+   removing the class so the highlighted edge stays solid. */
+@keyframes treasury-edge-pulse {
+  0%, 100% {
+    stroke-opacity: 0.3;
+  }
+  50% {
+    stroke-opacity: 0.7;
+  }
+}
+
+.treasury-edge-pulse {
+  animation: treasury-edge-pulse 1.8s ease-in-out infinite;
+}
+
+/* Traveling impulse drawn on top of active edges. The path uses
+   pathLength="100" to normalize length, then a short dash with a long gap
+   slides along it via stroke-dashoffset — giving a single bright pulse
+   that travels from the centre outward to the proposal. */
+@keyframes treasury-edge-impulse {
+  from {
+    stroke-dashoffset: 100;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.treasury-edge-impulse {
+  animation: treasury-edge-impulse 2s linear infinite;
+}
+
+/* Pulsing halo around active proposal title pills — same idea as the edge
+   pulse so the whole active subtree (boxes + edges) breathes in unison. */
+@keyframes treasury-box-pulse {
+  0%, 100% {
+    stroke-opacity: 0.15;
+  }
+  50% {
+    stroke-opacity: 0.65;
+  }
+}
+
+.treasury-box-pulse {
+  animation: treasury-box-pulse 1.8s ease-in-out infinite;
+}
+
+/* Respect prefers-reduced-motion: stop the treasury flow animations so
+   motion-sensitive users get a static chart. The base styles (stroke colour,
+   width, opacity) still convey the meaning. */
+@media (prefers-reduced-motion: reduce) {
+  .treasury-edge-pulse,
+  .treasury-edge-impulse,
+  .treasury-box-pulse {
+    animation: none !important;
+  }
+}
+
 @layer base {
   * {
     @apply border-border;

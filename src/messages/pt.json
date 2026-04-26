@@ -11,7 +11,8 @@
     "showMoreProposals": "Mostrar mais {count} propostas",
     "showMoreVotes": "Mostrar mais {count} votos",
     "selected": "{count} selecionado(s)",
-    "profile": "Perfil"
+    "profile": "Perfil",
+    "close": "Fechar"
   },
   "meta": {
     "homeTitle": "CGOV - Plataforma de Governação de Cardano",
@@ -20,6 +21,8 @@
     "dashboardDescription": "CGOV Dashboard - Visão geral da atividade de desenvolvimento",
     "governanceDashboardTitle": "Painel de governação - CGOV",
     "governanceDashboardDescription": "CGOV Painel de governação - Análises de governação",
+    "treasuryTitle": "Fluxo da Tesouraria - CGOV",
+    "treasuryDescription": "Visualize os levantamentos da Tesouraria Cardano e as entidades financiadas",
     "notFoundTitle": "404 - Página não encontrada",
     "notFoundDescription": "A página que está a procurar não existe"
   },
@@ -33,7 +36,15 @@
   "treasury": {
     "flowChartTitle": "Fluxo da tesouraria 2025",
     "flowApprovedOnly": "Apenas aprovados",
+    "flowRequestingOnly": "Apenas em curso",
+    "flowRejectedOnly": "Apenas rejeitados",
     "flowIncludingRejected": "Mostrar tudo",
+    "flowYearsAll": "Todos os anos",
+    "flowEmptyFiltered": "Nenhuma proposta corresponde aos filtros actuais.",
+    "flowResetFilters": "Repor filtros",
+    "centerLabel": "Despesas",
+    "spentLabel": "Gasto",
+    "requestedLabel": "Solicitado",
     "tabSpending": "Gastos da tesouraria",
     "tabFundedEntities": "Entidades financiadas",
     "entitiesIntro": "Organizações e projetos que receberam financiamento da tesouraria. Clica num cartão para ver o histórico completo de financiamento.",

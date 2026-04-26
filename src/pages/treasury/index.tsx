@@ -7,13 +7,13 @@ import { type InitialGovernanceData } from "@/hooks/useGovernanceData";
 import { fetchAllGovernanceData } from "@/lib/serverFetch";
 import { ChartSkeleton } from "@/components/dashboards/shared/ChartSkeleton";
 
-// Lazy-load the Sankey to keep d3-sankey + chart layout code out of the
-// initial bundle — matches the pattern used for other heavy charts in
-// dashboards/{governance,development_activity}/charts/index.tsx.
-const TreasuryFlowSankey = dynamic(
+// Lazy-load the radial chart to keep d3-hierarchy + chart layout code out
+// of the initial bundle — matches the pattern used for other heavy charts
+// in dashboards/{governance,development_activity}/charts/index.tsx.
+const TreasuryFlowRadial = dynamic(
   () =>
-    import("@/components/treasury/TreasuryFlowSankey").then(
-      (mod) => mod.TreasuryFlowSankey
+    import("@/components/treasury/TreasuryFlowRadial").then(
+      (mod) => mod.TreasuryFlowRadial
     ),
   { loading: () => <ChartSkeleton />, ssr: false }
 );
@@ -31,11 +31,11 @@ export default function Treasury({ initialData }: InferGetStaticPropsType<typeof
   return (
     <>
       <SeoHead
-        title={t("meta.homeTitle")}
-        description={t("meta.homeDescription")}
+        title={t("meta.treasuryTitle")}
+        description={t("meta.treasuryDescription")}
       />
       <TreasuryPageLayout initialData={initialData}>
-        <TreasuryFlowSankey />
+        <TreasuryFlowRadial />
       </TreasuryPageLayout>
     </>
   );

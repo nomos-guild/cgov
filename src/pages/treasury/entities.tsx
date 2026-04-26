@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import type { GetStaticProps, InferGetStaticPropsType } from "next";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
@@ -59,14 +59,10 @@ export default function FundedEntitiesPage({
   const isGame = activeTheme.id === "game";
   const isLight = activeTheme.id === "light" || activeTheme.id === "neural";
 
-  const { actions, refresh } = useGovernanceActions(initialData?.actions);
-
-  // Force one revalidation on mount — the SWR hook skips the initial fetch
-  // when fallbackData is provided, so without this nudge the cards would
-  // forever show whatever snapshot ISR baked in at build time.
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
+  const { actions } = useGovernanceActions(initialData?.actions);
+  // No on-mount refresh: TreasuryPageLayout (mounted below) runs its own
+  // periodic refresh through useGovernanceDataLoader, and the ISR snapshot
+  // is only ~60s stale at worst.
 
   const rows: EntityRow[] = useMemo(() => {
     const acc = new Map<

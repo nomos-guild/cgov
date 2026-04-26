@@ -11,7 +11,8 @@
     "showMoreProposals": "显示更多{count}个提案",
     "showMoreVotes": "显示更多{count}个投票",
     "selected": "已选择{count}项",
-    "profile": "个人资料"
+    "profile": "个人资料",
+    "close": "关闭"
   },
   "meta": {
     "homeTitle": "CGOV - 卡达诺治理平台",
@@ -20,6 +21,8 @@
     "dashboardDescription": "CGOV控制面板 - 开发活动概览",
     "governanceDashboardTitle": "治理仪表板 - CGOV",
     "governanceDashboardDescription": "CGOV治理仪表板 - 治理分析概览",
+    "treasuryTitle": "金库资金流向 - CGOV",
+    "treasuryDescription": "可视化展示Cardano金库的资金提取和受资助方",
     "notFoundTitle": "404 - 找不到页面",
     "notFoundDescription": "您要查找的页面不存在"
   },
@@ -33,7 +36,15 @@
   "treasury": {
     "flowChartTitle": "2025年金库流向",
     "flowApprovedOnly": "仅已批准",
+    "flowRequestingOnly": "仅申请中",
+    "flowRejectedOnly": "仅已拒绝",
     "flowIncludingRejected": "显示全部",
+    "flowYearsAll": "所有年份",
+    "flowEmptyFiltered": "没有符合当前筛选条件的提案。",
+    "flowResetFilters": "重置筛选",
+    "centerLabel": "支出",
+    "spentLabel": "已花费",
+    "requestedLabel": "已申请",
     "tabSpending": "金库支出",
     "tabFundedEntities": "受资助实体",
     "entitiesIntro": "已获得金库资助的组织和项目。点击卡片查看完整的资助历史。",

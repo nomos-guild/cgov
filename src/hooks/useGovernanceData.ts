@@ -6,7 +6,7 @@
  */
 
 import useSWR from "swr";
-import { useEffect, useLayoutEffect, useRef, useMemo } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useMemo } from "react";
 import { API_ENDPOINTS } from "@/config/api";
 import { normalizeProposalSurveyResponse } from "@/lib/surveyMetadata";
 
@@ -208,8 +208,16 @@ export function useGovernanceActions(fallbackData?: GovernanceAction[]) {
     }
   }, [data, dispatch]);
 
+  // Memoize the transformed array — without this, every consumer re-runs
+  // the lovelace→ADA transform on every render, even when the underlying
+  // SWR data hasn't changed identity.
+  const transformedActions = useMemo(
+    () => (data ? data.map(transformGovernanceAction) : []),
+    [data]
+  );
+
   return {
-    actions: data ? data.map(transformGovernanceAction) : [],
+    actions: transformedActions,
     isLoading: !fallbackData && isLoading,
     error: error?.message ?? null,
     refresh: mutate,
@@ -334,16 +342,26 @@ export function useGovernanceDataLoader(initialData?: InitialGovernanceData) {
 
   const hasInitialData = Boolean(initialData?.actions?.length);
 
+  // Stable identity so consumers' useEffect deps don't fire on every render
+  // (e.g. the periodic refresh interval in TreasuryPageLayout). Extracted
+  // to locals so react-hooks/exhaustive-deps can verify the deps without
+  // demanding the entire parent objects (which change every render).
+  const actionsRefresh = actions.refresh;
+  const overviewRefresh = overview.refresh;
+  const nclRefresh = ncl.refresh;
+  const treasuryRefresh = treasury.refresh;
+  const refresh = useCallback(() => {
+    actionsRefresh();
+    overviewRefresh();
+    nclRefresh();
+    treasuryRefresh();
+  }, [actionsRefresh, overviewRefresh, nclRefresh, treasuryRefresh]);
+
   return {
     isLoading: actions.isLoading || overview.isLoading || ncl.isLoading || treasury.isLoading,
     error: actions.error || overview.error || ncl.error || treasury.error,
     hasData: hasInitialData || actions.actions.length > 0,
-    refresh: () => {
-      actions.refresh();
-      overview.refresh();
-      ncl.refresh();
-      treasury.refresh();
-    },
+    refresh,
   };
 }
 

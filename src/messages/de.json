@@ -11,7 +11,8 @@
     "showMoreProposals": "{count} weitere Vorschläge anzeigen",
     "showMoreVotes": "{count} weitere Stimmen anzeigen",
     "selected": "{count} ausgewählt",
-    "profile": "Profil"
+    "profile": "Profil",
+    "close": "Schließen"
   },
   "meta": {
     "homeTitle": "CGOV - Die Cardano-Governance-Plattform",
@@ -20,6 +21,8 @@
     "dashboardDescription": "CGOV Dashboard - Überblick über die Entwicklungsaktivität",
     "governanceDashboardTitle": "Governance-Dashboard - CGOV",
     "governanceDashboardDescription": "CGOV Governance-Dashboard - Governance-Analysen",
+    "treasuryTitle": "Treasury-Flüsse - CGOV",
+    "treasuryDescription": "Treasury-Auszahlungen und geförderte Organisationen von Cardano im Überblick",
     "notFoundTitle": "404 - Seite nicht gefunden",
     "notFoundDescription": "Die von Ihnen gesuchte Seite existiert nicht"
   },
@@ -33,7 +36,15 @@
   "treasury": {
     "flowChartTitle": "Treasury-Fluss 2025",
     "flowApprovedOnly": "Nur genehmigt",
+    "flowRequestingOnly": "Nur ausstehend",
+    "flowRejectedOnly": "Nur abgelehnt",
     "flowIncludingRejected": "Alle anzeigen",
+    "flowYearsAll": "Alle Jahre",
+    "flowEmptyFiltered": "Keine Anträge entsprechen den aktuellen Filtern.",
+    "flowResetFilters": "Filter zurücksetzen",
+    "centerLabel": "Ausgaben",
+    "spentLabel": "Ausgegeben",
+    "requestedLabel": "Beantragt",
     "tabSpending": "Treasury-Ausgaben",
     "tabFundedEntities": "Geförderte Entitäten",
     "entitiesIntro": "Organisationen und Projekte, die Mittel aus dem Treasury erhalten haben. Klicke auf eine Karte, um die vollständige Förderhistorie anzuzeigen.",

@@ -11,7 +11,8 @@
     "showMoreProposals": "Show {count} more proposals",
     "showMoreVotes": "Show {count} more votes",
     "selected": "{count} selected",
-    "profile": "Profile"
+    "profile": "Profile",
+    "close": "Close"
   },
   "meta": {
     "homeTitle": "CGOV - Cardano Governance Platform",
@@ -20,6 +21,8 @@
     "dashboardDescription": "CGOV Dashboard - Development Activity Overview",
     "governanceDashboardTitle": "Governance Dashboard - CGOV",
     "governanceDashboardDescription": "CGOV Governance Dashboard - Governance Analytics Overview",
+    "treasuryTitle": "Treasury Flow - CGOV",
+    "treasuryDescription": "Visualize Cardano Treasury withdrawals and funded entities",
     "notFoundTitle": "404 - Page Not Found",
     "notFoundDescription": "The page you're looking for doesn't exist"
   },
@@ -33,7 +36,15 @@
   "treasury": {
     "flowChartTitle": "2025 Treasury flow",
     "flowApprovedOnly": "Approved only",
+    "flowRequestingOnly": "Requesting only",
+    "flowRejectedOnly": "Rejected only",
     "flowIncludingRejected": "Show all",
+    "flowYearsAll": "All years",
+    "flowEmptyFiltered": "No proposals match the current filters.",
+    "flowResetFilters": "Reset filters",
+    "centerLabel": "Spendings",
+    "spentLabel": "Spent",
+    "requestedLabel": "Requested",
     "tabSpending": "Treasury Spending",
     "tabFundedEntities": "Funded Entities",
     "entitiesIntro": "Organizations and projects that have received Treasury funding. Click a card to view their full funding history.",
