@@ -11,7 +11,8 @@
     "showMoreProposals": "さらに{count}件の提案を表示",
     "showMoreVotes": "さらに{count}件の投票を表示",
     "selected": "{count}件選択中",
-    "profile": "プロフィール"
+    "profile": "プロフィール",
+    "close": "閉じる"
   },
   "meta": {
     "homeTitle": "CGOV - カルダノ・ガバナンス・プラットフォーム",
@@ -20,6 +21,8 @@
     "dashboardDescription": "CGOVダッシュボード - 開発活動の概要",
     "governanceDashboardTitle": "ガバナンスダッシュボード - CGOV",
     "governanceDashboardDescription": "CGOVガバナンスダッシュボード - ガバナンス分析",
+    "treasuryTitle": "国庫フロー - CGOV",
+    "treasuryDescription": "Cardano国庫の支出と資金提供先を可視化",
     "notFoundTitle": "404 - ページが見つかりません",
     "notFoundDescription": "お探しのページは存在しません。"
   },
@@ -33,7 +36,15 @@
   "treasury": {
     "flowChartTitle": "2025年トレジャリーの流れ",
     "flowApprovedOnly": "承認済みのみ",
+    "flowRequestingOnly": "申請中のみ",
+    "flowRejectedOnly": "却下のみ",
     "flowIncludingRejected": "すべて表示",
+    "flowYearsAll": "全期間",
+    "flowEmptyFiltered": "現在のフィルターに一致する提案はありません。",
+    "flowResetFilters": "フィルターをリセット",
+    "centerLabel": "支出",
+    "spentLabel": "支出済",
+    "requestedLabel": "申請済",
     "tabSpending": "トレジャリー支出",
     "tabFundedEntities": "資金提供エンティティ",
     "entitiesIntro": "トレジャリー資金を受領した組織やプロジェクト。カードをクリックすると、資金提供の履歴をすべて表示できます。",
