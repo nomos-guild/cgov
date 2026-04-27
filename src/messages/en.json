@@ -34,7 +34,7 @@
     "tabAnalytics": "Analytics"
   },
   "treasury": {
-    "flowChartTitle": "2025 Treasury flow",
+    "flowChartTitle": "Treasury Requests & Spendings",
     "flowApprovedOnly": "Approved only",
     "flowRequestingOnly": "Requesting only",
     "flowRejectedOnly": "Rejected only",
@@ -59,7 +59,7 @@
       "proposalsTitle": "Funded Proposals",
       "byYearTitle": "By Year",
       "approved": "Approved",
-      "pending": "Pending",
+      "pending": "Requested",
       "rejected": "Rejected",
       "year": "Year",
       "status": "Status",

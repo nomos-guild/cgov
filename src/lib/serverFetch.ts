@@ -15,6 +15,7 @@ import type {
   NCLDisplayData,
 } from "@/types/governance";
 import { normalizeProposalSurveyResponse } from "@/lib/surveyMetadata";
+import { correctedWithdrawalAmount } from "@/lib/withdrawalAmountOverrides";
 
 const BACKEND_API_URL = process.env.BACKEND_API_URL || "http://localhost:3001";
 const BACKEND_API_KEY = process.env.BACKEND_API_KEY || "";
@@ -97,7 +98,7 @@ function transformGovernanceAction(action: GovernanceAction): GovernanceAction {
     txHash: derivedTxHash,
     title: action.title || "Untitled Proposal",
     type: action.type,
-    withdrawalAmount: action.withdrawalAmount ?? null,
+    withdrawalAmount: correctedWithdrawalAmount(action.proposalId, action.withdrawalAmount),
     status: action.status,
     constitutionality: action.constitutionality || "Unspecified",
     drepYesPercent: action.drep?.yesPercent ?? 0,

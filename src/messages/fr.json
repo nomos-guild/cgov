@@ -34,7 +34,7 @@
     "tabAnalytics": "Analytique"
   },
   "treasury": {
-    "flowChartTitle": "Flux de trésorerie 2025",
+    "flowChartTitle": "Demandes et dépenses de la Trésorerie",
     "flowApprovedOnly": "Approuvés uniquement",
     "flowRequestingOnly": "En cours uniquement",
     "flowRejectedOnly": "Rejetés uniquement",
@@ -59,7 +59,7 @@
       "proposalsTitle": "Propositions financées",
       "byYearTitle": "Par année",
       "approved": "Approuvée",
-      "pending": "En cours",
+      "pending": "Demandée",
       "rejected": "Rejetée",
       "year": "Année",
       "status": "Statut",

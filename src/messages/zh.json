@@ -34,7 +34,7 @@
     "tabAnalytics": "分析"
   },
   "treasury": {
-    "flowChartTitle": "2025年金库流向",
+    "flowChartTitle": "金库申请与支出",
     "flowApprovedOnly": "仅已批准",
     "flowRequestingOnly": "仅申请中",
     "flowRejectedOnly": "仅已拒绝",
@@ -59,7 +59,7 @@
       "proposalsTitle": "已资助的提案",
       "byYearTitle": "按年份",
       "approved": "已批准",
-      "pending": "待定",
+      "pending": "申请中",
       "rejected": "已拒绝",
       "year": "年份",
       "status": "状态",

@@ -327,13 +327,16 @@ export function TreasuryFlowRadial() {
     };
   }, [actions, mode, yearMode]);
 
-  // Spent vs requested totals for the centre label. Computed independently
-  // of the chart's "approved only / show all" mode.
-  //   spent     — approved & paid out (Enacted / Ratified)
-  //   requested — only currently live (Active) proposals; rejected
-  //               proposals are neither spent nor still being requested,
-  //               so they're excluded.
+  // Spent vs requested totals for the centre label and the header subtitle.
+  // Computed independently of the chart's status / year filter modes so the
+  // user always sees the full picture.
+  //   spent       — approved & paid out (Enacted / Ratified)
+  //   spentByYear — same, broken down by submission year
+  //   requested   — only currently live (Active) proposals; rejected
+  //                 proposals are neither spent nor still being requested,
+  //                 so they're excluded.
   const treasuryTotals = useMemo(() => {
+    const spentByYear = new Map<TreasuryYear, number>();
     let spent = 0;
     let requested = 0;
     for (const action of actions) {
@@ -345,11 +348,15 @@ export function TreasuryFlowRadial() {
       if (amountAda <= 0) continue;
       if (APPROVED_STATUSES.has(action.status)) {
         spent += amountAda;
+        spentByYear.set(
+          resolved.year,
+          (spentByYear.get(resolved.year) ?? 0) + amountAda
+        );
       } else if (action.status === "Active") {
         requested += amountAda;
       }
     }
-    return { spent, requested };
+    return { spent, spentByYear, requested };
   }, [actions]);
 
   // ── Layout ───────────────────────────────────────────────────────────
@@ -667,8 +674,6 @@ export function TreasuryFlowRadial() {
     );
   }
 
-  const totalAda = tree.ada;
-
   return (
     <>
     <div
@@ -691,8 +696,21 @@ export function TreasuryFlowRadial() {
           >
             {t("flowChartTitle")}
           </h3>
-          <p className="text-xs text-muted-foreground mt-1">
-            {formatAda(totalAda)}
+          <p className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+            {SUPPORTED_YEARS.map((year) => (
+              <span key={year}>
+                {year}{" "}
+                <span className="font-medium text-foreground/80">
+                  {formatAda(treasuryTotals.spentByYear.get(year) ?? 0)}
+                </span>
+              </span>
+            ))}
+            <span>
+              {t("requestedLabel")}{" "}
+              <span className="font-medium text-foreground/80">
+                {formatAda(treasuryTotals.requested)}
+              </span>
+            </span>
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 self-start">
