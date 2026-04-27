@@ -9,6 +9,7 @@ import useSWR from "swr";
 import { useCallback, useEffect, useLayoutEffect, useRef, useMemo } from "react";
 import { API_ENDPOINTS } from "@/config/api";
 import { normalizeProposalSurveyResponse } from "@/lib/surveyMetadata";
+import { correctedWithdrawalAmount } from "@/lib/withdrawalAmountOverrides";
 
 // useLayoutEffect on client (fires before paint), useEffect on server (avoids SSR warning)
 const useIsomorphicLayoutEffect =
@@ -86,7 +87,7 @@ function transformGovernanceAction(action: GovernanceAction): GovernanceAction {
     txHash: derivedTxHash,
     title: action.title || "Untitled Proposal",
     type: action.type,
-    withdrawalAmount: action.withdrawalAmount ?? null,
+    withdrawalAmount: correctedWithdrawalAmount(action.proposalId, action.withdrawalAmount),
     status: action.status,
     constitutionality: action.constitutionality || "Unspecified",
     drepYesPercent: action.drep?.yesPercent ?? 0,

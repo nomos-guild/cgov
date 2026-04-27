@@ -34,7 +34,7 @@
     "tabAnalytics": "分析"
   },
   "treasury": {
-    "flowChartTitle": "2025年トレジャリーの流れ",
+    "flowChartTitle": "国庫の申請と支出",
     "flowApprovedOnly": "承認済みのみ",
     "flowRequestingOnly": "申請中のみ",
     "flowRejectedOnly": "却下のみ",
@@ -59,7 +59,7 @@
       "proposalsTitle": "資金提供された提案",
       "byYearTitle": "年別",
       "approved": "承認済み",
-      "pending": "保留中",
+      "pending": "申請中",
       "rejected": "却下",
       "year": "年",
       "status": "ステータス",

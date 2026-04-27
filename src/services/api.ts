@@ -8,6 +8,7 @@
 
 import { API_ENDPOINTS } from "@/config/api";
 import { normalizeProposalSurveyResponse } from "@/lib/surveyMetadata";
+import { correctedWithdrawalAmount } from "@/lib/withdrawalAmountOverrides";
 import type {
   GovernanceAction,
   GovernanceActionDetail,
@@ -289,7 +290,7 @@ function transformGovernanceAction(action: GovernanceAction): GovernanceAction {
     txHash: derivedTxHash,
     title: action.title || "Untitled Proposal",
     type: action.type,
-    withdrawalAmount: action.withdrawalAmount ?? null,
+    withdrawalAmount: correctedWithdrawalAmount(action.proposalId, action.withdrawalAmount),
     status: action.status,
     constitutionality: action.constitutionality || "Unspecified",
 
