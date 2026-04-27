@@ -4,7 +4,9 @@ import { useRouter } from "next/router";
 import { useTranslations } from "next-intl";
 import { hierarchy, cluster, type HierarchyLink, type HierarchyNode } from "d3-hierarchy";
 import { linkRadial } from "d3-shape";
-import { X } from "lucide-react";
+import { zoom, zoomIdentity, type ZoomTransform } from "d3-zoom";
+import { select } from "d3-selection";
+import { Maximize2, X } from "lucide-react";
 import { useAppSelector } from "@/store/hooks";
 import { useTheme } from "@/lib/theme";
 import {
@@ -60,7 +62,7 @@ const REJECTED_STATUSES = new Set(["Expired", "Closed"]);
 // A smaller VIEW_SIZE relative to LEAF_RADIUS makes everything appear
 // physically larger on screen since the SVG fills its container.
 const VIEW_SIZE = 1750;
-const LEAF_RADIUS = 520;
+const LEAF_RADIUS = 440;
 const CANVAS_HALF = VIEW_SIZE / 2;
 
 // Pill geometry — heuristic character widths since we don't measure text
@@ -138,6 +140,14 @@ export function TreasuryFlowRadial() {
   const [mode, setMode] = useState<FilterMode>("all");
   const [yearMode, setYearMode] = useState<YearMode>("all");
   const [hoverId, setHoverId] = useState<string | null>(null);
+  // Pan/zoom transform applied to the chart content. Wheel always zooms
+  // (centred on the cursor); drag-pan only kicks in once the user has
+  // zoomed in (k > 1), so at default scale the existing click-on-empty-svg
+  // → close-panel behaviour still works.
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [zoomTransform, setZoomTransform] = useState<ZoomTransform>(zoomIdentity);
+  const zoomTransformRef = useRef<ZoomTransform>(zoomIdentity);
+  zoomTransformRef.current = zoomTransform;
   // Defer clearing hover by a few frames so moving between sibling pills
   // (e.g. proposal A → proposal B under the same entity) doesn't reset the
   // shared parent's highlight in between. The pending clear is cancelled by
@@ -175,6 +185,61 @@ export function TreasuryFlowRadial() {
   // SSR guard for the portal.
   const [portalReady, setPortalReady] = useState(false);
   useEffect(() => setPortalReady(true), []);
+
+  // Attach d3-zoom to the SVG. Wheel events always trigger zoom; mousedown
+  // (drag-pan) is gated to k > 1 so the existing click-on-empty-svg
+  // close-panel behaviour is preserved at the default scale.
+  const zoomBehaviorRef = useRef<ReturnType<typeof zoom<SVGSVGElement, unknown>> | null>(null);
+  useEffect(() => {
+    const svgEl = svgRef.current;
+    if (!svgEl) return;
+    const behavior = zoom<SVGSVGElement, unknown>()
+      .scaleExtent([1, 6])
+      .filter((event) => {
+        if (event.type === "wheel") return !event.ctrlKey;
+        if (event.type === "mousedown") {
+          // Only allow drag-pan after the user has zoomed in.
+          return zoomTransformRef.current.k > 1;
+        }
+        // Allow touch gestures (pinch-zoom) regardless.
+        return event.type.startsWith("touch");
+      })
+      .on("zoom", (event) => {
+        setZoomTransform(event.transform);
+      })
+      .on("end", (event) => {
+        // When the user zooms back out to the minimum scale, snap the pan
+        // offset back to the centre too — otherwise repeated zoom-in/out
+        // cycles drift the view, forcing the user to re-centre manually
+        // before they can see the whole chart again.
+        if (
+          event.transform.k <= 1.001 &&
+          (event.transform.x !== 0 || event.transform.y !== 0)
+        ) {
+          select(svgEl)
+            .transition()
+            .duration(220)
+            .call(behavior.transform, zoomIdentity);
+        }
+      });
+    zoomBehaviorRef.current = behavior;
+    const sel = select(svgEl);
+    sel.call(behavior);
+    return () => {
+      sel.on(".zoom", null);
+      zoomBehaviorRef.current = null;
+    };
+  }, []);
+
+  const resetZoom = () => {
+    const svgEl = svgRef.current;
+    const behavior = zoomBehaviorRef.current;
+    if (!svgEl || !behavior) return;
+    // Canonical d3-zoom reset: drive the transform through the behavior's
+    // own .transform() on a transition selection so the "zoom" callback
+    // fires and React state stays in sync.
+    select(svgEl).transition().duration(280).call(behavior.transform, zoomIdentity);
+  };
 
   // Ref for the side panel — clicks inside the panel itself shouldn't
   // dismiss it. Other "keep open" surfaces (clickable nodes, toggle group)
@@ -788,13 +853,44 @@ export function TreasuryFlowRadial() {
         </div>
       </div>
 
-      <div className="w-full overflow-hidden">
+      <div className="w-full overflow-hidden relative">
+        {/* Reset-zoom button — only visible once the user has zoomed in. */}
+        {zoomTransform.k > 1.001 && (
+          <button
+            type="button"
+            onClick={resetZoom}
+            data-chart-keep-open
+            aria-label={tCommon("reset")}
+            title={tCommon("reset")}
+            className={cn(
+              "absolute top-2 right-2 z-10 inline-flex items-center justify-center h-8 w-8 transition-colors",
+              isGame
+                ? "rounded-none border border-white/30 bg-black/60 text-white hover:bg-white/10"
+                : isDark
+                ? "rounded-none border border-[#0bd1a2] bg-background/80 text-[#0bd1a2] hover:bg-[#0bd1a2]/10"
+                : "rounded-md border border-border bg-card text-foreground hover:bg-secondary"
+            )}
+          >
+            <Maximize2 className="h-4 w-4" />
+          </button>
+        )}
         <svg
+          ref={svgRef}
           viewBox={`-${CANVAS_HALF} -${CANVAS_HALF} ${VIEW_SIZE} ${VIEW_SIZE}`}
-          className="w-full h-auto"
+          // Fill the card's full width so zoomed content can use the whole
+          // available area. h-auto keeps the square aspect from the
+          // viewBox, giving a chart that's as tall as the card is wide.
+          className="w-full h-auto block"
           role="img"
           aria-label="Treasury flow radial chart"
+          style={{
+            cursor: zoomTransform.k > 1 ? "grab" : "default",
+            touchAction: "none",
+          }}
         >
+          {/* Single zoom/pan group wrapping all chart content. d3-zoom
+              writes the matrix transform here on each wheel/drag event. */}
+          <g transform={zoomTransform.toString()}>
           {/* Links — purely visual; opacity/width still react to node hover
               via isLinkHighlighted, but the paths themselves don't capture
               pointer events so cursoring over an edge doesn't trigger any
@@ -1211,6 +1307,7 @@ export function TreasuryFlowRadial() {
                 </g>
               );
             })}
+          </g>
           </g>
         </svg>
       </div>
