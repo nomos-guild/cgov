@@ -62,6 +62,7 @@ function DefaultBrand() {
 const NAV_LINKS = [
   { href: "/", label: "Proposals" },
   { href: "/drep", label: "DReps" },
+  { href: "/governance-action", label: "Governance Action" },
   // { href: "/adadev", label: "AdaDev" },
 ] as const;
 
