@@ -55,6 +55,7 @@ export const TREASURY_ENTITIES: Record<string, TreasuryEntity> = {
     entityId: "cardano-foundation",
     label: "Cardano Foundation",
   },
+  emurgo: { entityId: "emurgo", label: "EMURGO" },
   mlabs: { entityId: "mlabs", label: "MLabs" },
   txpipe: { entityId: "txpipe", label: "TxPipe" },
   "anastasia-labs": { entityId: "anastasia-labs", label: "Anastasia Labs" },
@@ -485,6 +486,31 @@ export const PROPOSAL_ENTITY_MAP: Record<
       entityId: "input-output",
       evidence: "Blockfrost-led proposal — Blockfrost is an IO subsidiary post-acquisition. Curated by maintainer.",
     },
+
+    // Revised Cardano Summit 2026 Singapore — Cardano Foundation. Original
+    // combined "Cardano Summit 2026 and TOKEN2049 Singapore" proposal was
+    // split after community pushback; the Summit half stayed with CF, the
+    // TOKEN2049 sponsorship halves moved to EMURGO (mapped below).
+    "gov_action10dp9wzmgt2nqshyrghufff4sfhcxedhmzluly5k0azguatnsthwqqs84cjf": {
+      entityId: "cardano-foundation",
+      evidence:
+        "Description: 'Following extensive discussions with the community the Foundation has revised the proposal'. Decoupled from EMURGO's TOKEN2049 sponsorship. Successor to the combined Cardano Summit 2026 + TOKEN2049 proposal.",
+    },
+
+    // EMURGO TOKEN2049 Singapore 2026 — Baseline 'Platinum' Sponsorship.
+    "gov_action18u8lpkzge2csxe3plynn9lh4agwtv3nrqkyfwalwj4ykjv7l68jqqzmul9z": {
+      entityId: "emurgo",
+      evidence:
+        "Description: 'reflects EMURGO's direct response to community feedback… EMURGO, headquartered in Singapore and holding a multi-year partnership with TOKEN2049 spanning 2022 through 2025, is very well-positioned to execute this sponsorship'.",
+    },
+
+    // EMURGO TOKEN2049 Singapore 2026 — Top-Up 'Title' Sponsorship Upgrade.
+    // Voted in conjunction with the Baseline 'Platinum' proposal above.
+    "gov_action1kj6ghzuz9wcq88f3y72cyyeekdcemlq0dqk4zpjd4eck5assuypqq0pckkw": {
+      entityId: "emurgo",
+      evidence:
+        "Description: 'EMURGO commits to returning 100% of the funds to the Cardano Treasury within 30 days of enactment'. Modular top-up paired with EMURGO's Baseline 'Platinum' Sponsorship proposal.",
+    },
   },
 };
 
@@ -578,6 +604,7 @@ const ENTITY_KEYWORDS: Record<string, readonly string[]> = {
     "blockfrost",
   ],
   "cardano-foundation": ["cardano foundation"],
+  emurgo: ["emurgo"],
   mlabs: ["mlabs"],
   txpipe: ["txpipe"],
   "anastasia-labs": ["anastasia labs"],
