@@ -95,10 +95,15 @@ function hasPlausibleEntityId(strippedPath: string): boolean {
 }
 
 // Bech32 data-part alphabet (RFC) — note `b`, `i`, `o`, `1` are excluded.
-// CIP-129 DRep IDs are bech32 with HRP `drep` and the type-prefix byte `y`
-// (script) or `u` (key). Real IDs run ~57–60 chars; we accept a wider band
-// to stay forward-compatible with future encoding tweaks.
-const BECH32_DREP_RE = /^drep1[yu][qpzry9x8gf2tvdw0s3jn54khce6mua7l]{40,90}$/;
+// We accept both DRep ID conventions:
+//   - CIP-129 — 29-byte payload, always `drep1y…` (key) or `drep1u…` (script).
+//   - CIP-105 — 28-byte raw key hash, any bech32 char after `drep1`.
+// LLMs (and some older tooling) still produce CIP-105; the cgov-api
+// `normalizeDrepIdToCip129` server-side handles the rewrite, so we just
+// need to let the chip survive the client gate. Real IDs run ~52–60
+// chars after the `drep1` separator; the wider band stays
+// forward-compatible.
+const BECH32_DREP_RE = /^drep1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{40,90}$/;
 
 function isPlausibleDrepId(id: string): boolean {
   return BECH32_DREP_RE.test(id);
