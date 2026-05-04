@@ -291,7 +291,25 @@
     "thresholds": "阈值",
     "bubbleMap": "气泡图",
     "curves": "曲线",
-    "details": "详情"
+    "details": "详情",
+    "ai": "AI"
+  },
+  "aiChat": {
+    "title": "向 AI 询问此提案",
+    "subtitle": "与 AI 助手讨论这项 Cardano 治理提案。",
+    "titleGlobal": "向 CGOV AI 提问",
+    "subtitleGlobal": "讨论 Cardano 治理、DRep、SPO、国库以及如何使用 CGOV。",
+    "placeholder": "提出关于此提案的问题...",
+    "emptyState": "开始对话吧。试试「总结此提案」或「谁可以投票？」",
+    "emptyStateGlobal": "开始对话吧。试试「CIP-1694 投票如何运作？」或「显示活跃提案」。",
+    "send": "发送",
+    "thinking": "思考中...",
+    "emptyReply": "助手返回了空回复。",
+    "unknownError": "出现问题，请重试。",
+    "disclaimer": "AI 回复可能不准确，请在链上核实重要信息。",
+    "walletGate": "请连接 Cardano 钱包后与 AI 讨论此提案。",
+    "walletGateGlobal": "请连接 Cardano 钱包以开始与 CGOV AI 对话。",
+    "walletRequired": "请连接钱包以发送消息。"
   },
   "proposal": {
     "backToDashboard": "返回仪表板",
@@ -377,7 +395,9 @@
     "noWalletsDetected": "未检测到Cardano钱包",
     "installWalletExtension": "请安装Cardano钱包扩展程序以继续。",
     "connectToStartVoting": "连接以开始投票",
-    "failedToConnect": "钱包连接失败"
+    "failedToConnect": "钱包连接失败",
+    "checkingNetwork": "正在检查钱包网络...",
+    "awaitingSignature": "请在钱包中批准签名以证明所有权。"
   },
   "voteAction": {
     "castYourVote": "投出您的票",

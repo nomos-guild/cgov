@@ -291,7 +291,25 @@
     "thresholds": "Seuils",
     "bubbleMap": "Carte à bulles",
     "curves": "Courbes",
-    "details": "Détails"
+    "details": "Détails",
+    "ai": "IA"
+  },
+  "aiChat": {
+    "title": "Interroger l'IA sur cette proposition",
+    "subtitle": "Discutez avec un assistant IA à propos de cette proposition de gouvernance Cardano.",
+    "titleGlobal": "Demander à l'IA de CGOV",
+    "subtitleGlobal": "Discutez de la gouvernance Cardano, des DReps, SPO, du trésor et de l'utilisation de CGOV.",
+    "placeholder": "Posez une question sur cette proposition...",
+    "emptyState": "Commencez une conversation. Essayez « Résumez cette proposition » ou « Qui peut voter ? »",
+    "emptyStateGlobal": "Commencez une conversation. Essayez « Comment fonctionne le vote CIP-1694 ? » ou « Afficher les propositions actives ».",
+    "send": "Envoyer",
+    "thinking": "Réflexion...",
+    "emptyReply": "L'assistant a renvoyé une réponse vide.",
+    "unknownError": "Une erreur est survenue. Veuillez réessayer.",
+    "disclaimer": "Les réponses de l'IA peuvent être inexactes. Vérifiez les détails importants on-chain.",
+    "walletGate": "Connectez un portefeuille Cardano pour discuter avec l'IA de cette proposition.",
+    "walletGateGlobal": "Connectez un portefeuille Cardano pour discuter avec l'IA de CGOV.",
+    "walletRequired": "Veuillez connecter votre portefeuille pour envoyer des messages."
   },
   "proposal": {
     "backToDashboard": "Retour au tableau de bord",
@@ -377,7 +395,9 @@
     "noWalletsDetected": "Aucun portefeuille Cardano détecté",
     "installWalletExtension": "Veuillez installer une extension de portefeuille Cardano pour continuer.",
     "connectToStartVoting": "Connectez-vous pour voter",
-    "failedToConnect": "Échec de la connexion au portefeuille"
+    "failedToConnect": "Échec de la connexion au portefeuille",
+    "checkingNetwork": "Vérification du réseau du portefeuille...",
+    "awaitingSignature": "Approuvez la signature dans votre portefeuille pour prouver la propriété."
   },
   "voteAction": {
     "castYourVote": "Votez",

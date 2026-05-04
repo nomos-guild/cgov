@@ -542,3 +542,43 @@
 [data-theme="light"] body {
   overflow-x: hidden;
 }
+
+/* Sticky AI chat FAB attention animations */
+@keyframes cgov-fab-halo {
+  0% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  70% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+@keyframes cgov-fab-breath {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.04);
+  }
+}
+
+.cgov-fab-halo {
+  animation: cgov-fab-halo 2.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite;
+}
+
+.cgov-fab-breath {
+  animation: cgov-fab-breath 3.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cgov-fab-halo,
+  .cgov-fab-breath {
+    animation: none;
+  }
+}

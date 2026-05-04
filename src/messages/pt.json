@@ -291,7 +291,25 @@
     "thresholds": "Limiares",
     "bubbleMap": "Mapa de bolhas",
     "curves": "Curvas",
-    "details": "Detalhes"
+    "details": "Detalhes",
+    "ai": "IA"
+  },
+  "aiChat": {
+    "title": "Pergunte à IA sobre esta proposta",
+    "subtitle": "Converse com um assistente de IA sobre esta proposta de governança da Cardano.",
+    "titleGlobal": "Pergunte à IA da CGOV",
+    "subtitleGlobal": "Converse sobre governança Cardano, DReps, SPOs, tesouraria e como usar a CGOV.",
+    "placeholder": "Faça uma pergunta sobre esta proposta...",
+    "emptyState": "Inicie uma conversa. Tente «Resuma esta proposta» ou «Quem pode votar?»",
+    "emptyStateGlobal": "Inicie uma conversa. Tente «Como funciona a votação CIP-1694?» ou «Mostre as propostas ativas».",
+    "send": "Enviar",
+    "thinking": "A pensar...",
+    "emptyReply": "O assistente devolveu uma resposta vazia.",
+    "unknownError": "Algo correu mal. Tente novamente.",
+    "disclaimer": "As respostas da IA podem ser imprecisas. Verifique os detalhes importantes on-chain.",
+    "walletGate": "Conecte uma carteira Cardano para conversar com a IA sobre esta proposta.",
+    "walletGateGlobal": "Conecte uma carteira Cardano para conversar com a IA da CGOV.",
+    "walletRequired": "Por favor, conecte a sua carteira para enviar mensagens."
   },
   "proposal": {
     "backToDashboard": "Voltar ao painel",
@@ -377,7 +395,9 @@
     "noWalletsDetected": "Nenhuma carteira Cardano detetada",
     "installWalletExtension": "Por favor, instale uma extensão de carteira Cardano para continuar.",
     "connectToStartVoting": "Conecte-se para votar",
-    "failedToConnect": "Falha ao conectar carteira"
+    "failedToConnect": "Falha ao conectar carteira",
+    "checkingNetwork": "Verificando a rede da carteira...",
+    "awaitingSignature": "Aprove a assinatura na sua carteira para provar a propriedade."
   },
   "voteAction": {
     "castYourVote": "Vote",

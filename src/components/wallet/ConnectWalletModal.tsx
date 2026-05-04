@@ -15,8 +15,11 @@ import {
   LogOut,
   ExternalLink,
   ChevronRight,
+  ShieldCheck,
+  Loader2,
 } from "lucide-react";
 import Image from "next/image";
+import { useWalletAuth } from "@/hooks/useWalletAuth";
 
 interface ConnectWalletModalProps {
   isOpen: boolean;
@@ -27,7 +30,13 @@ export function ConnectWalletModal({
   isOpen,
   onClose,
 }: ConnectWalletModalProps) {
-  const { connect, disconnect, connected, name, wallet } = useWallet();
+  const { connected, name, wallet } = useWallet();
+  const {
+    status: authStatus,
+    error: authError,
+    connectAndVerify,
+    signOut,
+  } = useWalletAuth();
   const t = useTranslations("wallet");
   const [availableWallets, setAvailableWallets] = useState<Wallet[]>([]);
   const [walletAddress, setWalletAddress] = useState<string>("");
@@ -68,7 +77,10 @@ export function ConnectWalletModal({
       setIsLoading(true);
       setError(null);
       try {
-        await connect(walletName);
+        // Enforces mainnet + sign-data ownership BEFORE injecting the wallet
+        // into the Mesh context — so a rejected testnet wallet never appears
+        // connected anywhere in the app.
+        await connectAndVerify(walletName);
         onClose();
       } catch (err) {
         setError(
@@ -78,14 +90,14 @@ export function ConnectWalletModal({
         setIsLoading(false);
       }
     },
-    [connect, onClose, t]
+    [connectAndVerify, onClose, t]
   );
 
   const handleDisconnect = useCallback(async () => {
-    disconnect();
+    signOut();
     setWalletAddress("");
     onClose();
-  }, [disconnect, onClose]);
+  }, [signOut, onClose]);
 
   const formatAddress = (addr: string) => {
     if (addr.length <= 20) return addr;
@@ -107,9 +119,22 @@ export function ConnectWalletModal({
           </DialogDescription>
         </DialogHeader>
 
-        {error && (
+        {(error || authError) && (
           <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
-            {error}
+            {error ?? authError}
+          </div>
+        )}
+
+        {authStatus === "verifying-network" && (
+          <div className="text-sm flex items-center gap-2 bg-secondary/50 p-3 rounded-md">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            {t("checkingNetwork")}
+          </div>
+        )}
+        {authStatus === "awaiting-signature" && (
+          <div className="text-sm flex items-center gap-2 bg-secondary/50 p-3 rounded-md">
+            <ShieldCheck className="h-4 w-4" />
+            {t("awaitingSignature")}
           </div>
         )}
 

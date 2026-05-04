@@ -8,6 +8,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { store } from "@/store";
 import { Header } from "@/components/layout";
 import { Footer } from "@/components/Footer";
+import { StickyAIChat } from "@/components/ai/StickyAIChat";
 import { ThemeProvider } from "@/lib/theme";
 import { MeshProviderWrapper } from "@/components/providers/MeshProviderWrapper";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -73,6 +74,7 @@ export default function App({ Component, pageProps }: AppProps) {
                   </PageTransition>
                 </main>
                 <Footer />
+                <StickyAIChat />
               </MeshProviderWrapper>
             </div>
           </TooltipProvider>

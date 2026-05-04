@@ -63,6 +63,7 @@ const NAV_LINKS = [
   { href: "/", label: "Proposals" },
   { href: "/drep", label: "DReps" },
   { href: "/treasury", label: "Treasury" },
+  { href: "/ai", label: "AI" },
   // { href: "/adadev", label: "AdaDev" },
 ] as const;
 

@@ -291,7 +291,25 @@
     "thresholds": "Schwellenwerte",
     "bubbleMap": "Bubble Map",
     "curves": "Kurven",
-    "details": "Details"
+    "details": "Details",
+    "ai": "KI"
+  },
+  "aiChat": {
+    "title": "KI zu diesem Antrag befragen",
+    "subtitle": "Chatten Sie mit einem KI-Assistenten über diesen Cardano-Governance-Antrag.",
+    "titleGlobal": "CGOV-KI fragen",
+    "subtitleGlobal": "Chatten Sie über Cardano-Governance, DReps, SPOs, Treasury und die Nutzung von CGOV.",
+    "placeholder": "Stellen Sie eine Frage zu diesem Antrag...",
+    "emptyState": "Starten Sie ein Gespräch. Versuchen Sie „Diesen Antrag zusammenfassen“ oder „Wer darf darüber abstimmen?“",
+    "emptyStateGlobal": "Starten Sie ein Gespräch. Versuchen Sie „Wie funktioniert die CIP-1694-Abstimmung?“ oder „Aktive Anträge anzeigen“.",
+    "send": "Senden",
+    "thinking": "Denkt nach...",
+    "emptyReply": "Der Assistent hat eine leere Antwort zurückgegeben.",
+    "unknownError": "Etwas ist schiefgelaufen. Bitte erneut versuchen.",
+    "disclaimer": "KI-Antworten können ungenau sein. Wichtige Angaben bitte on-chain überprüfen.",
+    "walletGate": "Verbinden Sie eine Cardano-Wallet, um mit der KI über diesen Antrag zu chatten.",
+    "walletGateGlobal": "Verbinden Sie eine Cardano-Wallet, um mit der CGOV-KI zu chatten.",
+    "walletRequired": "Bitte verbinden Sie Ihre Wallet, um Nachrichten zu senden."
   },
   "proposal": {
     "backToDashboard": "Zurück zum Dashboard",
@@ -377,7 +395,9 @@
     "noWalletsDetected": "Keine Cardano-Wallets erkannt",
     "installWalletExtension": "Bitte installieren Sie eine Cardano-Wallet-Erweiterung, um fortzufahren.",
     "connectToStartVoting": "Verbinden, um abzustimmen",
-    "failedToConnect": "Wallet-Verbindung fehlgeschlagen"
+    "failedToConnect": "Wallet-Verbindung fehlgeschlagen",
+    "checkingNetwork": "Wallet-Netzwerk wird überprüft...",
+    "awaitingSignature": "Bestätige die Signatur in deiner Wallet, um den Besitz nachzuweisen."
   },
   "voteAction": {
     "castYourVote": "Ihre Stimme abgeben",

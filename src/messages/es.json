@@ -291,7 +291,25 @@
     "thresholds": "Umbrales",
     "bubbleMap": "Mapa de burbujas",
     "curves": "Curvas",
-    "details": "Detalles"
+    "details": "Detalles",
+    "ai": "IA"
+  },
+  "aiChat": {
+    "title": "Pregunta a la IA sobre esta propuesta",
+    "subtitle": "Chatea con un asistente de IA sobre esta propuesta de gobernanza de Cardano.",
+    "titleGlobal": "Pregunta a la IA de CGOV",
+    "subtitleGlobal": "Chatea sobre la gobernanza de Cardano, DReps, SPO, tesorería y cómo usar CGOV.",
+    "placeholder": "Haz una pregunta sobre esta propuesta...",
+    "emptyState": "Inicia una conversación. Prueba con «Resume esta propuesta» o «¿Quién puede votar?»",
+    "emptyStateGlobal": "Inicia una conversación. Prueba con «¿Cómo funciona la votación CIP-1694?» o «Muestra las propuestas activas».",
+    "send": "Enviar",
+    "thinking": "Pensando...",
+    "emptyReply": "El asistente devolvió una respuesta vacía.",
+    "unknownError": "Algo salió mal. Inténtalo de nuevo.",
+    "disclaimer": "Las respuestas de la IA pueden ser inexactas. Verifica los detalles importantes on-chain.",
+    "walletGate": "Conecta una billetera de Cardano para chatear con la IA sobre esta propuesta.",
+    "walletGateGlobal": "Conecta una billetera de Cardano para chatear con la IA de CGOV.",
+    "walletRequired": "Por favor, conecta tu billetera para enviar mensajes."
   },
   "proposal": {
     "backToDashboard": "Volver al panel",
@@ -377,7 +395,9 @@
     "noWalletsDetected": "No se detectaron billeteras Cardano",
     "installWalletExtension": "Por favor, instala una extensión de billetera Cardano para continuar.",
     "connectToStartVoting": "Conéctate para votar",
-    "failedToConnect": "Error al conectar la billetera"
+    "failedToConnect": "Error al conectar la billetera",
+    "checkingNetwork": "Comprobando la red de la billetera...",
+    "awaitingSignature": "Aprueba la firma en tu billetera para demostrar la propiedad."
   },
   "voteAction": {
     "castYourVote": "Emite tu voto",

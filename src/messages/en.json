@@ -291,7 +291,25 @@
     "thresholds": "Thresholds",
     "bubbleMap": "Bubble Map",
     "curves": "Curves",
-    "details": "Details"
+    "details": "Details",
+    "ai": "AI"
+  },
+  "aiChat": {
+    "title": "Ask AI about this proposal",
+    "subtitle": "Chat with an AI assistant about this Cardano governance proposal.",
+    "titleGlobal": "Ask CGOV AI",
+    "subtitleGlobal": "Chat about Cardano governance, DReps, SPOs, treasury, and how to use CGOV.",
+    "placeholder": "Ask a question about this proposal...",
+    "emptyState": "Start a conversation. Try \"Summarize this proposal\" or \"Who can vote on this?\"",
+    "emptyStateGlobal": "Start a conversation. Try \"How does CIP-1694 voting work?\" or \"Show me active proposals\".",
+    "send": "Send",
+    "thinking": "Thinking...",
+    "emptyReply": "The assistant returned an empty response.",
+    "unknownError": "Something went wrong. Please try again.",
+    "disclaimer": "AI responses may be inaccurate. Verify important details on-chain.",
+    "walletGate": "Connect a Cardano wallet to chat with the AI about this proposal.",
+    "walletGateGlobal": "Connect a Cardano wallet to start chatting with CGOV AI.",
+    "walletRequired": "Please connect your wallet to send messages."
   },
   "proposal": {
     "backToDashboard": "Back to Dashboard",
@@ -377,7 +395,9 @@
     "noWalletsDetected": "No Cardano wallets detected",
     "installWalletExtension": "Please install a Cardano wallet extension to continue.",
     "connectToStartVoting": "Connect to start voting",
-    "failedToConnect": "Failed to connect wallet"
+    "failedToConnect": "Failed to connect wallet",
+    "checkingNetwork": "Checking wallet network...",
+    "awaitingSignature": "Approve the signature in your wallet to prove ownership."
   },
   "voteAction": {
     "castYourVote": "Cast Your Vote",

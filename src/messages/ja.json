@@ -291,7 +291,25 @@
     "thresholds": "閾値",
     "bubbleMap": "バブルマップ",
     "curves": "曲線",
-    "details": "詳細"
+    "details": "詳細",
+    "ai": "AI"
+  },
+  "aiChat": {
+    "title": "この提案について AI に質問",
+    "subtitle": "Cardano ガバナンス提案について AI アシスタントとチャットできます。",
+    "titleGlobal": "CGOV AI に質問",
+    "subtitleGlobal": "Cardano ガバナンス、DRep、SPO、財務、CGOV の使い方についてチャットできます。",
+    "placeholder": "この提案について質問を入力...",
+    "emptyState": "会話を始めましょう。「この提案を要約して」「誰が投票できますか？」などをお試しください。",
+    "emptyStateGlobal": "会話を始めましょう。「CIP-1694 の投票はどのように機能しますか？」「アクティブな提案を表示」などをお試しください。",
+    "send": "送信",
+    "thinking": "考え中...",
+    "emptyReply": "アシスタントから空の応答が返されました。",
+    "unknownError": "問題が発生しました。再度お試しください。",
+    "disclaimer": "AI の回答は不正確な場合があります。重要な情報はオンチェーンでご確認ください。",
+    "walletGate": "この提案について AI とチャットするには Cardano ウォレットを接続してください。",
+    "walletGateGlobal": "CGOV AI とチャットを開始するには Cardano ウォレットを接続してください。",
+    "walletRequired": "メッセージを送信するにはウォレットを接続してください。"
   },
   "proposal": {
     "backToDashboard": "ダッシュボードに戻る",
@@ -377,7 +395,9 @@
     "noWalletsDetected": "Cardanoウォレットが検出されませんでした",
     "installWalletExtension": "続行するにはCardanoウォレット拡張機能をインストールしてください。",
     "connectToStartVoting": "接続して投票を開始",
-    "failedToConnect": "ウォレットの接続に失敗しました"
+    "failedToConnect": "ウォレットの接続に失敗しました",
+    "checkingNetwork": "ウォレットのネットワークを確認中...",
+    "awaitingSignature": "所有権を証明するためにウォレットで署名を承認してください。"
   },
   "voteAction": {
     "castYourVote": "投票する",
