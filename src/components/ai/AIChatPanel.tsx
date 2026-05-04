@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useWallet } from "@meshsdk/react";
 import Link from "next/link";
@@ -33,32 +33,12 @@ interface ChatUpdateDetail {
   sourceId: string;
 }
 
-const MAX_CONTEXT_CHARS = 4_000;
-
 // Sidanclaw `truncateFromMessageId` requires a session_messages UUID.
 // Local synthetic ids (`u-…`/`a-…`) only show up between a fresh send and
 // the post-send history rehydrate; gating retry on UUID format prevents
 // the upstream from rejecting with `message_not_found`.
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-function buildProposalContext(action: GovernanceActionDetail): string {
-  const description = (action.description || "").slice(0, MAX_CONTEXT_CHARS);
-  const rationale = (action.rationale || "").slice(0, MAX_CONTEXT_CHARS);
-  const lines = [
-    "You are an assistant helping a user understand a Cardano governance proposal.",
-    `Proposal Title: ${action.title || "(untitled)"}`,
-    `Proposal ID: ${action.proposalId || action.hash || "(unknown)"}`,
-    `Type: ${action.type || "(unknown)"}`,
-    action.status ? `Status: ${action.status}` : "",
-    description ? `Description:\n${description}` : "",
-    rationale ? `Rationale:\n${rationale}` : "",
-  ].filter(Boolean);
-  return lines.join("\n\n");
-}
-
-const GENERIC_CONTEXT =
-  "You are CGOV's customer-service assistant. Help users understand Cardano governance (CIP-1694), DReps, SPOs, the constitutional committee, treasury, and how to use the CGOV dashboard.";
 
 export interface AIChatPanelProps {
   action?: GovernanceActionDetail;
@@ -88,7 +68,6 @@ export function AIChatPanel({
 
   const sessionScope = action?.proposalId || action?.hash || "global";
   const sessionIdRef = useRef<string>("");
-  const hasSentContextRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const instanceIdRef = useRef<string>(
     `panel-${Math.random().toString(36).slice(2)}`,
@@ -141,7 +120,6 @@ export function AIChatPanel({
     if (!walletAddress) {
       setMessages([]);
       sessionIdRef.current = "";
-      hasSentContextRef.current = false;
       return;
     }
 
@@ -149,7 +127,6 @@ export function AIChatPanel({
 
     if (typeof window === "undefined" || !storageKey) {
       setMessages([]);
-      hasSentContextRef.current = false;
       return;
     }
 
@@ -157,20 +134,16 @@ export function AIChatPanel({
       const raw = window.localStorage.getItem(storageKey);
       if (!raw) {
         setMessages([]);
-        hasSentContextRef.current = false;
         return;
       }
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
         setMessages(parsed as ChatMessage[]);
-        hasSentContextRef.current = parsed.length > 0;
       } else {
         setMessages([]);
-        hasSentContextRef.current = false;
       }
     } catch {
       setMessages([]);
-      hasSentContextRef.current = false;
     }
   }, [sessionScope, walletAddress, storageKey]);
 
@@ -257,7 +230,6 @@ export function AIChatPanel({
         // (e.g., POST never landed) and we shouldn't blank the UI.
         if (projected.length > 0) {
           setMessages(projected);
-          hasSentContextRef.current = true;
         }
       } catch {
         /* network failure — keep local state, no banner shown */
@@ -296,13 +268,11 @@ export function AIChatPanel({
         const raw = window.localStorage.getItem(storageKey);
         if (!raw) {
           setMessages([]);
-          hasSentContextRef.current = false;
           return;
         }
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) {
           setMessages(parsed as ChatMessage[]);
-          hasSentContextRef.current = parsed.length > 0;
         }
       } catch {
         /* ignore */
@@ -375,11 +345,6 @@ export function AIChatPanel({
     }
   }, [messages, isSending]);
 
-  const initialContext = useMemo(
-    () => (action ? buildProposalContext(action) : GENERIC_CONTEXT),
-    [action],
-  );
-
   // Fires the actual fetch + handles the response. Does NOT append a user
   // message to state — the caller decides whether this is a fresh send
   // (which adds the user message first) or a retry (which leaves the
@@ -413,8 +378,6 @@ export function AIChatPanel({
       }
     }
 
-    const includeContext = !hasSentContextRef.current;
-
     try {
       const res = await fetch("/api/ai-chat", {
         method: "POST",
@@ -423,7 +386,6 @@ export function AIChatPanel({
           message: text,
           sessionId: sessionIdRef.current,
           walletAddress,
-          context: includeContext ? initialContext : undefined,
           ...(options.truncateFromMessageId
             ? { truncateFromMessageId: options.truncateFromMessageId }
             : {}),
@@ -438,7 +400,6 @@ export function AIChatPanel({
         );
       }
 
-      hasSentContextRef.current = true;
       if (data?.sessionId) sessionIdRef.current = data.sessionId;
 
       const reply: string = (data?.reply || "").toString().trim();
