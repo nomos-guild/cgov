@@ -1,14 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useWallet } from "@meshsdk/react";
 import Link from "next/link";
-import { Send, Loader2, Sparkles, Lock, ArrowUpRight } from "lucide-react";
+import { Send, Loader2, Sparkles, Lock, ArrowUpRight, RotateCcw } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ConnectWalletButton } from "@/components/wallet/ConnectWalletButton";
 import { MarkdownContent } from "@/components/ai/MarkdownContent";
 import {
+  filterValidNavigations,
   parseAssistantTags,
   toClientPath,
   type NavigationSuggestion,
@@ -33,6 +34,13 @@ interface ChatUpdateDetail {
 }
 
 const MAX_CONTEXT_CHARS = 4_000;
+
+// Sidanclaw `truncateFromMessageId` requires a session_messages UUID.
+// Local synthetic ids (`u-…`/`a-…`) only show up between a fresh send and
+// the post-send history rehydrate; gating retry on UUID format prevents
+// the upstream from rejecting with `message_not_found`.
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function buildProposalContext(action: GovernanceActionDetail): string {
   const description = (action.description || "").slice(0, MAX_CONTEXT_CHARS);
@@ -166,17 +174,22 @@ export function AIChatPanel({
     }
   }, [sessionScope, walletAddress, storageKey]);
 
-  // Self-healing rehydrate from upstream Sidanclaw via cgov-api. Runs after
-  // the localStorage hydrate so the UI shows something instantly, then
-  // reconciles with the authoritative server view. Recovers replies that
-  // were generated while a previous tab was unmounted (refresh / tab close).
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (!walletAddress || !storageKey || !pendingKey) return;
+  // Self-healing rehydrate from upstream Sidanclaw via cgov-api. Provides
+  // the authoritative server view: assigns upstream message UUIDs to local
+  // bubbles (which is what the retry endpoint needs as
+  // `truncateFromMessageId`) and recovers replies that were generated while
+  // a previous tab was unmounted.
+  //
+  // `respectSendingFlag` defaults true on the mount-time hydrate (don't
+  // trample in-flight optimistic state). After-send refreshes pass false:
+  // the send has just resolved, and we want the upstream IDs immediately
+  // so a follow-up retry click can target the correct row.
+  const refreshHistory = useCallback(
+    async (opts: { respectSendingFlag?: boolean } = {}) => {
+      if (typeof window === "undefined") return;
+      if (!walletAddress || !storageKey || !pendingKey) return;
+      const respectSending = opts.respectSendingFlag !== false;
 
-    let cancelled = false;
-
-    const fetchHistory = async () => {
       try {
         const url =
           `/api/ai-chat/history?walletAddress=${encodeURIComponent(walletAddress)}` +
@@ -184,12 +197,9 @@ export function AIChatPanel({
         const res = await fetch(url);
         if (!res.ok) return;
         const data = await res.json().catch(() => null);
-        if (cancelled) return;
         if (!data || !Array.isArray(data.messages)) return;
 
-        // Don't trample an in-flight send — race between server snapshot and
-        // optimistic local append would briefly drop the just-typed message.
-        if (isSendingRef.current) return;
+        if (respectSending && isSendingRef.current) return;
 
         const projected: ChatMessage[] = (data.messages as Array<{
           id: string;
@@ -252,13 +262,13 @@ export function AIChatPanel({
       } catch {
         /* network failure — keep local state, no banner shown */
       }
-    };
+    },
+    [walletAddress, storageKey, pendingKey, sessionScope],
+  );
 
-    fetchHistory();
-    return () => {
-      cancelled = true;
-    };
-  }, [walletAddress, storageKey, pendingKey, sessionScope]);
+  useEffect(() => {
+    void refreshHistory();
+  }, [refreshHistory]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !storageKey) return;
@@ -320,6 +330,45 @@ export function AIChatPanel({
     };
   }, [storageKey]);
 
+  // Validate navigation chips against the backend and drop any whose target
+  // 404s. Defends against the LLM hallucinating well-formed IDs (e.g. a
+  // confabulated `drep1y…` bech32 or proposal txHash). Runs per-message and
+  // tracks completion in a ref so we don't re-probe on every state update.
+  const validatedMessageIdsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    let cancelled = false;
+    const targets = messages.filter(
+      (m) =>
+        m.role === "assistant" &&
+        m.navigations &&
+        m.navigations.length > 0 &&
+        !validatedMessageIdsRef.current.has(m.id),
+    );
+    if (targets.length === 0) return;
+
+    targets.forEach((m) => validatedMessageIdsRef.current.add(m.id));
+
+    targets.forEach(async (m) => {
+      const filtered = await filterValidNavigations(m.navigations!);
+      if (cancelled) return;
+      if (filtered.length === m.navigations!.length) return;
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === m.id
+            ? {
+                ...msg,
+                navigations: filtered.length > 0 ? filtered : undefined,
+              }
+            : msg,
+        ),
+      );
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [messages]);
+
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -335,9 +384,15 @@ export function AIChatPanel({
   // message to state — the caller decides whether this is a fresh send
   // (which adds the user message first) or a retry (which leaves the
   // existing user message in place).
+  //
+  // `truncateFromMessageId` is the upstream Sidanclaw destroy-and-regenerate
+  // hook: when set, the named row and everything after it are deleted
+  // server-side before the new turn is appended, and the model gets a hint
+  // to pick a different angle. UUID-only — synthetic local ids are skipped.
   const requestAssistantReply = async (
     text: string,
     userMessageId: string,
+    options: { truncateFromMessageId?: string } = {},
   ) => {
     setIsSending(true);
     setError(null);
@@ -369,6 +424,9 @@ export function AIChatPanel({
           sessionId: sessionIdRef.current,
           walletAddress,
           context: includeContext ? initialContext : undefined,
+          ...(options.truncateFromMessageId
+            ? { truncateFromMessageId: options.truncateFromMessageId }
+            : {}),
         }),
       });
 
@@ -400,6 +458,14 @@ export function AIChatPanel({
           navigations: navigations.length > 0 ? navigations : undefined,
         },
       ]);
+
+      // Pull the upstream UUIDs onto local user bubbles so a follow-up
+      // retry click has a real `truncateFromMessageId` to send. Pass
+      // respectSendingFlag:false because the in-flight guard would
+      // otherwise bail (we've already setIsSending(false) below, but
+      // leaving the flag truthy until then). We're past the optimistic
+      // race — the assistant reply is already in state.
+      void refreshHistory({ respectSendingFlag: false });
     } catch (err) {
       const msg = err instanceof Error ? err.message : t("unknownError");
       setError(msg);
@@ -444,6 +510,32 @@ export function AIChatPanel({
     const lastUser = [...messages].reverse().find((m) => m.role === "user");
     if (!lastUser) return;
     void requestAssistantReply(lastUser.content, lastUser.id);
+  };
+
+  // Retry from a specific user message: tells upstream Sidanclaw to delete
+  // that row and every subsequent row before regenerating, via the public
+  // API's `truncateFromMessageId`. Locally we drop the trailing assistant
+  // reply (and any later turns) so the UI matches what the server is about
+  // to do.
+  //
+  // Synthetic ids (`u-…`) — bubbles that haven't yet been reconciled with
+  // the upstream history GET — can't be used: the server only accepts a
+  // real session_messages UUID. Fetching history before retry would close
+  // the gap, but in practice the rehydrate after each successful send
+  // means the window is small.
+  const retryFromMessage = (messageId: string) => {
+    if (isSending) return;
+    if (!connected || !walletAddress) return;
+    if (!UUID_PATTERN.test(messageId)) return;
+    const idx = messages.findIndex((m) => m.id === messageId);
+    if (idx === -1) return;
+    const target = messages[idx];
+    if (target.role !== "user") return;
+
+    setMessages((prev) => prev.slice(0, idx + 1));
+    void requestAssistantReply(target.content, target.id, {
+      truncateFromMessageId: target.id,
+    });
   };
 
   const canRetry =
@@ -581,15 +673,36 @@ export function AIChatPanel({
             m.navigations.length > 0;
           return (
             <div key={m.id} className="flex flex-col gap-2">
-              <div className={m.role === "user" ? userBubbleClass : assistantBubbleClass}>
-                {m.role === "assistant" ? (
+              {m.role === "user" ? (
+                <div className="ml-auto flex max-w-[85%] items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => retryFromMessage(m.id)}
+                    disabled={
+                      isSending || !walletAddress || !UUID_PATTERN.test(m.id)
+                    }
+                    aria-label={t("retry")}
+                    title={t("retry")}
+                    className={cn(
+                      "shrink-0 rounded-full p-1 transition-colors disabled:cursor-not-allowed disabled:opacity-30",
+                      isGame
+                        ? "text-white/60 hover:bg-white/10 hover:text-white"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground dark:text-[#0bd1a2]/70 dark:hover:bg-[#0bd1a2]/10 dark:hover:text-[#0bd1a2]",
+                    )}
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
+                  </button>
+                  <div className={cn(userBubbleClass, "ml-0 max-w-none")}>
+                    {m.content}
+                  </div>
+                </div>
+              ) : (
+                <div className={assistantBubbleClass}>
                   <MarkdownContent isGame={isGame} isAssistant>
                     {m.content}
                   </MarkdownContent>
-                ) : (
-                  m.content
-                )}
-              </div>
+                </div>
+              )}
               {showNavigations && (
                 <div className="mr-auto flex max-w-[85%] flex-wrap gap-1.5">
                   {m.navigations!.map((nav, i) => (

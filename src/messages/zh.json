@@ -303,6 +303,7 @@
     "emptyState": "开始对话吧。试试「总结此提案」或「谁可以投票？」",
     "emptyStateGlobal": "开始对话吧。试试「CIP-1694 投票如何运作？」或「显示活跃提案」。",
     "send": "发送",
+    "retry": "从此条消息重试",
     "thinking": "思考中...",
     "emptyReply": "助手返回了空回复。",
     "unknownError": "出现问题，请重试。",

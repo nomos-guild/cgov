@@ -177,6 +177,30 @@ function GovernanceDetailContent({ initialDetail }: GovernanceDetailProps) {
   const [isExporting, setIsExporting] = useState(false);
   const [contentVisible, setContentVisible] = useState(!!initialDetail);
   const [isContentExpanded, setIsContentExpanded] = useState<boolean>(false);
+  const [highlightVoteSection, setHighlightVoteSection] = useState(false);
+
+  // Deep-link: `#vote` fragment scrolls the cast-vote card into view and
+  // pulses a brief highlight. Re-runs when the hash changes (e.g. user lands
+  // here from a chat chip after the page is already mounted).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const checkAndScroll = () => {
+      if (window.location.hash !== "#vote") return;
+      const el = document.getElementById("vote-on-proposal");
+      if (!el) return;
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      setHighlightVoteSection(true);
+      const t = setTimeout(() => setHighlightVoteSection(false), 2400);
+      return () => clearTimeout(t);
+    };
+    const cleanup = checkAndScroll();
+    const onHashChange = () => checkAndScroll();
+    window.addEventListener("hashchange", onHashChange);
+    return () => {
+      window.removeEventListener("hashchange", onHashChange);
+      cleanup?.();
+    };
+  }, [contentVisible]);
   const [curveRoleFilter, setCurveRoleFilter] =
     useState<RoleFilter>("All");
   const [chartMode, setChartMode] = useState<ChartMode>("live");
@@ -1357,14 +1381,22 @@ function GovernanceDetailContent({ initialDetail }: GovernanceDetailProps) {
 
               {/* Cast Your Vote Card */}
               {selectedAction && voteTxHash && (
-                <LazyVoteOnProposal
-                  txHash={voteTxHash}
-                  certIndex={voteCertIndex}
-                  proposalTitle={selectedAction.title}
-                  status={selectedAction.status}
-                  proposalId={selectedAction.proposalId || selectedAction.hash}
-                  onVoteSubmitted={refresh}
-                />
+                <div
+                  id="vote-on-proposal"
+                  className={cn(
+                    "scroll-mt-24 transition-shadow duration-500",
+                    highlightVoteSection && "rounded-2xl ring-2 ring-amber-400 dark:ring-amber-300 shadow-lg"
+                  )}
+                >
+                  <LazyVoteOnProposal
+                    txHash={voteTxHash}
+                    certIndex={voteCertIndex}
+                    proposalTitle={selectedAction.title}
+                    status={selectedAction.status}
+                    proposalId={selectedAction.proposalId || selectedAction.hash}
+                    onVoteSubmitted={refresh}
+                  />
+                </div>
               )}
 
             </div>

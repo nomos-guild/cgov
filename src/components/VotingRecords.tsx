@@ -14,6 +14,7 @@ import { toCip129DRepId } from "@/lib/drepFormatters";
 import useSWR from "swr";
 import { Search, ChevronDown, ChevronRight, Copy, Check, Download } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
@@ -292,8 +293,13 @@ export function VotingRecords({
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [showAllVotes, setShowAllVotes] = useState(false);
   const [participationMode, setParticipationMode] = useState<"voted" | "not-voted">("voted");
+  const [highlightedVoterId, setHighlightedVoterId] = useState<string | null>(null);
   const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
+  const handledVoterParamRef = useRef<string | null>(null);
+
+  const router = useRouter();
+  const voterParam = typeof router.query.voter === "string" ? router.query.voter : null;
+
   const INITIAL_VOTES_LIMIT = 20;
 
   const handleDropdownOpenChange = useCallback((id: string, open: boolean) => {
@@ -379,6 +385,40 @@ export function VotingRecords({
     setSelectedVoteRecord(vote);
     setIsModalOpen(true);
   };
+
+  // Deep-link: `?voter=<voterId|drepId>` highlights the matching row, opens the
+  // rationale modal, and scrolls the row into view. `handledVoterParamRef`
+  // guards against re-firing when `votes` refreshes.
+  useEffect(() => {
+    if (!voterParam) {
+      handledVoterParamRef.current = null;
+      return;
+    }
+    if (handledVoterParamRef.current === voterParam) return;
+    if (votes.length === 0) return;
+
+    const matches = votes.filter((v) => (v.voterId || v.drepId) === voterParam);
+    if (matches.length === 0) return;
+
+    const target = [...matches].sort((a, b) => {
+      const at = a.votedAt ? new Date(a.votedAt).getTime() : 0;
+      const bt = b.votedAt ? new Date(b.votedAt).getTime() : 0;
+      return bt - at;
+    })[0];
+
+    setParticipationMode("voted");
+    setShowAllVotes(true);
+    setHighlightedVoterId(voterParam);
+    setSelectedVoteRecord(target);
+    setIsModalOpen(true);
+    handledVoterParamRef.current = voterParam;
+
+    const scrollTimer = setTimeout(() => {
+      const el = document.getElementById(`voter-row-${voterParam}`);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 200);
+    return () => clearTimeout(scrollTimer);
+  }, [voterParam, votes]);
 
   const [copiedTxHash, setCopiedTxHash] = useState<string | null>(null);
 
@@ -862,13 +902,16 @@ export function VotingRecords({
           displayedVotes.map((vote) => {
             const voteId = getVoteId(vote);
             const hasRationale = Boolean(vote.rationale && vote.rationale.trim().length > 0);
-            const isMyVoteMobile = connectedDrepId != null && (vote.voterId || vote.drepId) === connectedDrepId;
+            const voterKey = vote.voterId || vote.drepId || "";
+            const isMyVoteMobile = connectedDrepId != null && voterKey === connectedDrepId;
             const isUnconfirmedMobile = !!vote.isPendingConfirmation;
             const staleInfo = staleness.get(vote);
             const isStale = !!staleInfo;
+            const isHighlighted = highlightedVoterId != null && voterKey === highlightedVoterId;
             return (
               <div
                 key={voteId}
+                id={voterKey ? `voter-row-${voterKey}` : undefined}
                 className={cn(
                   "p-3 transition-transform duration-normal ease-out transform-gpu active:scale-[0.99]",
                   isGame
@@ -877,6 +920,7 @@ export function VotingRecords({
                   isMyVoteMobile && (isGame
                     ? "ring-1 ring-white/30"
                     : "ring-1 ring-primary/30 bg-primary/5 dark:ring-[#0bd1a2]/30 dark:bg-[#0bd1a2]/5"),
+                  isHighlighted && "ring-2 ring-amber-400 dark:ring-amber-300 shadow-lg",
                   isUnconfirmedMobile && "animate-pulse",
                   isStale && "opacity-60"
                 )}
@@ -998,16 +1042,19 @@ export function VotingRecords({
                     const hasRationale = Boolean(
                       vote.rationale && vote.rationale.trim().length > 0
                     );
+                    const voterKey = vote.voterId || vote.drepId || "";
                     const isFirstRow = index === 0;
                     const voteLower = vote.vote.toLowerCase();
                     const isNoVote = voteLower === "no";
-                    const isMyVote = connectedDrepId != null && (vote.voterId || vote.drepId) === connectedDrepId;
+                    const isMyVote = connectedDrepId != null && voterKey === connectedDrepId;
                     const isUnconfirmed = !!vote.isPendingConfirmation;
                     const staleInfo = staleness.get(vote);
                     const isStale = !!staleInfo;
+                    const isHighlighted = highlightedVoterId != null && voterKey === highlightedVoterId;
                     return (
                   <TableRow
                     key={voteId}
+                    id={voterKey ? `voter-row-${voterKey}` : undefined}
                     className={cn(
                       "voting-record-row hover:bg-transparent transition-transform duration-normal ease-out transform-gpu hover:scale-101",
                       isFirstRow && "first-row",
@@ -1016,6 +1063,7 @@ export function VotingRecords({
                       isMyVote && (isGame
                         ? "bg-white/5 border-l-2 border-l-white/40"
                         : "bg-primary/5 border-l-2 border-l-primary dark:bg-[#0bd1a2]/5 dark:border-l-[#0bd1a2]"),
+                      isHighlighted && "bg-amber-100/40 ring-2 ring-amber-400 dark:bg-amber-300/10 dark:ring-amber-300",
                       isUnconfirmed && "opacity-75",
                       isStale && "opacity-60"
                     )}
@@ -1339,7 +1387,14 @@ export function VotingRecords({
       <VotingRationaleModal
         vote={selectedVoteRecord}
         open={isModalOpen}
-        onOpenChange={setIsModalOpen}
+        onOpenChange={(open) => {
+          setIsModalOpen(open);
+          if (!open && voterParam) {
+            const rest = { ...router.query };
+            delete rest.voter;
+            router.replace({ pathname: router.pathname, query: rest }, undefined, { shallow: true });
+          }
+        }}
       />
     </div>
   );

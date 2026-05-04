@@ -303,6 +303,7 @@
     "emptyState": "Starten Sie ein Gespräch. Versuchen Sie „Diesen Antrag zusammenfassen“ oder „Wer darf darüber abstimmen?“",
     "emptyStateGlobal": "Starten Sie ein Gespräch. Versuchen Sie „Wie funktioniert die CIP-1694-Abstimmung?“ oder „Aktive Anträge anzeigen“.",
     "send": "Senden",
+    "retry": "Ab dieser Nachricht erneut senden",
     "thinking": "Denkt nach...",
     "emptyReply": "Der Assistent hat eine leere Antwort zurückgegeben.",
     "unknownError": "Etwas ist schiefgelaufen. Bitte erneut versuchen.",

@@ -303,6 +303,7 @@
     "emptyState": "Start a conversation. Try \"Summarize this proposal\" or \"Who can vote on this?\"",
     "emptyStateGlobal": "Start a conversation. Try \"How does CIP-1694 voting work?\" or \"Show me active proposals\".",
     "send": "Send",
+    "retry": "Retry from this message",
     "thinking": "Thinking...",
     "emptyReply": "The assistant returned an empty response.",
     "unknownError": "Something went wrong. Please try again.",

@@ -303,6 +303,7 @@
     "emptyState": "Inicie uma conversa. Tente «Resuma esta proposta» ou «Quem pode votar?»",
     "emptyStateGlobal": "Inicie uma conversa. Tente «Como funciona a votação CIP-1694?» ou «Mostre as propostas ativas».",
     "send": "Enviar",
+    "retry": "Tentar novamente a partir desta mensagem",
     "thinking": "A pensar...",
     "emptyReply": "O assistente devolveu uma resposta vazia.",
     "unknownError": "Algo correu mal. Tente novamente.",

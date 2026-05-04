@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { callApi } from "@/utils/apiHelper";
 
 export const config = {
-  maxDuration: 300,
+  maxDuration: 800,
 };
 
 export default async function handler(

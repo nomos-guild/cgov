@@ -64,9 +64,54 @@ function isValidCgovPath(raw: unknown): raw is string {
   if (!path.startsWith("/")) return false;
   const stripped = stripLocalePrefix(path);
   if (stripped === "/") return true;
-  return ALLOWED_PATH_PREFIXES.some(
-    (prefix) => stripped === prefix || stripped.startsWith(prefix + "/"),
-  );
+  if (
+    !ALLOWED_PATH_PREFIXES.some(
+      (prefix) => stripped === prefix || stripped.startsWith(prefix + "/"),
+    )
+  ) {
+    return false;
+  }
+  return hasPlausibleEntityId(stripped);
+}
+
+/**
+ * Reject deep-link chips whose ID can't possibly be real. Catches the
+ * common LLM placeholder patterns — wrong-length txHashes, bech32 IDs
+ * containing characters outside the bech32 alphabet, "deadbeef…"-style
+ * filler — without waiting on a backend probe. A `true` here just means
+ * "shape is plausible"; the async `validateNavigationPath` still runs to
+ * confirm the ID actually resolves.
+ */
+function hasPlausibleEntityId(strippedPath: string): boolean {
+  const path = strippedPath.split(/[?#]/)[0];
+
+  const drepMatch = path.match(/^\/drep\/([^/]+)$/);
+  if (drepMatch) return isPlausibleDrepId(drepMatch[1]);
+
+  const govMatch = path.match(/^\/governance\/([^/]+)$/);
+  if (govMatch) return isPlausibleProposalId(govMatch[1]);
+
+  return true;
+}
+
+// Bech32 data-part alphabet (RFC) — note `b`, `i`, `o`, `1` are excluded.
+// CIP-129 DRep IDs are bech32 with HRP `drep` and the type-prefix byte `y`
+// (script) or `u` (key). Real IDs run ~57–60 chars; we accept a wider band
+// to stay forward-compatible with future encoding tweaks.
+const BECH32_DREP_RE = /^drep1[yu][qpzry9x8gf2tvdw0s3jn54khce6mua7l]{40,90}$/;
+
+function isPlausibleDrepId(id: string): boolean {
+  return BECH32_DREP_RE.test(id);
+}
+
+// Proposal route accepts a 64-char hex txHash, optionally suffixed with
+// `:N` or `#N` (the cert index). Anything else — including the LLM's
+// favourite trick of repeating `b9b9b9…` to pad to a plausible-looking
+// length — is rejected.
+const PROPOSAL_HASH_RE = /^[0-9a-f]{64}([:#][0-9]+)?$/i;
+
+function isPlausibleProposalId(id: string): boolean {
+  return PROPOSAL_HASH_RE.test(id);
 }
 
 function parseFollowupBlock(inner: string): string[] {
@@ -150,4 +195,75 @@ export function parseAssistantTags(raw: string): ParsedAssistantReply {
  */
 export function toClientPath(path: string): string {
   return stripLocalePrefix(path);
+}
+
+/**
+ * Module-level cache so repeated chip validations across messages and
+ * panel instances share the same probe result. Keyed by API probe URL
+ * so multiple chip paths that resolve to the same backend resource
+ * (e.g. detail vs. detail?voter=…) only spend one round trip.
+ */
+const navValidationCache = new Map<string, Promise<boolean>>();
+
+/**
+ * Map a chip path to the API URL we should probe to confirm the target
+ * exists. Returns null for paths that don't carry a deep-linked ID
+ * (landing pages, treasury entity slugs that resolve client-side, etc.) —
+ * those are treated as always-valid by the caller.
+ */
+function probeUrlForPath(path: string): string | null {
+  const stripped = stripLocalePrefix(path).split(/[?#]/)[0];
+
+  const drepMatch = stripped.match(/^\/drep\/([^/]+)$/);
+  if (drepMatch) {
+    const id = decodeURIComponent(drepMatch[1]);
+    return `/api/dreps/${encodeURIComponent(id)}`;
+  }
+
+  const govMatch = stripped.match(/^\/governance\/([^/]+)$/);
+  if (govMatch) {
+    const id = decodeURIComponent(govMatch[1]);
+    return `/api/proposal/${encodeURIComponent(id)}`;
+  }
+
+  return null;
+}
+
+/**
+ * Probe the backend to confirm a chip's target actually exists. Resolves
+ * `false` on any 4xx — covers 404 (id not found) and 400/422 (id is the
+ * wrong shape, e.g. a hallucinated 72-char "txHash" or a bech32 with the
+ * wrong checksum). 5xx and network errors fail open so a flaky backend
+ * doesn't blank chips the user could otherwise click and retry.
+ *
+ * Used to defend against hallucinated `/drep/{id}` and `/governance/{id}`
+ * IDs from the LLM, which can be either well-formed-but-nonexistent or
+ * malformed-but-plausible-looking.
+ */
+export function validateNavigationPath(path: string): Promise<boolean> {
+  const probeUrl = probeUrlForPath(path);
+  if (!probeUrl) return Promise.resolve(true);
+
+  const cached = navValidationCache.get(probeUrl);
+  if (cached) return cached;
+
+  const promise = fetch(probeUrl, { method: "GET" })
+    .then((res) => !(res.status >= 400 && res.status < 500))
+    .catch(() => true);
+  navValidationCache.set(probeUrl, promise);
+  return promise;
+}
+
+/**
+ * Filter a list of navigation suggestions, dropping any whose target
+ * 404s. Order is preserved so the assistant's intended priority survives.
+ */
+export async function filterValidNavigations(
+  navs: NavigationSuggestion[],
+): Promise<NavigationSuggestion[]> {
+  if (navs.length === 0) return navs;
+  const verdicts = await Promise.all(
+    navs.map((nav) => validateNavigationPath(nav.path)),
+  );
+  return navs.filter((_, i) => verdicts[i]);
 }
