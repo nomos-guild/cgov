@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import Link from "next/link";
+import { useRowLink } from "@/hooks/useRowLink";
 import { useRouter } from "next/router";
 import { useTranslations } from "next-intl";
 import { hierarchy, cluster, type HierarchyLink, type HierarchyNode } from "d3-hierarchy";
@@ -132,6 +134,7 @@ export function TreasuryFlowRadial() {
   const tCommon = useTranslations("common");
   const tStatus = useTranslations("status");
   const router = useRouter();
+  const rowLink = useRowLink();
   const { activeTheme } = useTheme();
   const isDark = activeTheme.isDark;
   const isGame = activeTheme.id === "game";
@@ -1463,8 +1466,7 @@ export function TreasuryFlowRadial() {
 
             {/* Profile button */}
             <Button
-              type="button"
-              onClick={() => router.push(`/treasury/${selectedEntityId}`)}
+              asChild
               className={cn(
                 "w-full mb-5",
                 isGame
@@ -1474,7 +1476,9 @@ export function TreasuryFlowRadial() {
                   : "bg-foreground text-background hover:bg-foreground/90"
               )}
             >
-              {tCommon("profile")}
+              <Link href={`/treasury/${selectedEntityId}`}>
+                {tCommon("profile")}
+              </Link>
             </Button>
 
             {/* Proposals list */}
@@ -1524,7 +1528,7 @@ export function TreasuryFlowRadial() {
                   return (
                     <li
                       key={p.proposalId}
-                      onClick={() => router.push(`/governance/${p.hash}`)}
+                      {...rowLink(`/governance/${p.hash}`)}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") router.push(`/governance/${p.hash}`);
                       }}
@@ -1550,7 +1554,9 @@ export function TreasuryFlowRadial() {
                               : "text-foreground"
                           )}
                         >
-                          {cleanProposalTitle(p.title)}
+                          <Link href={`/governance/${p.hash}`} className="hover:underline">
+                            {cleanProposalTitle(p.title)}
+                          </Link>
                         </p>
                         <span
                           className="inline-block h-1.5 w-1.5 rounded-full shrink-0"
@@ -1765,10 +1771,7 @@ export function TreasuryFlowRadial() {
 
             {/* View Proposal button */}
             <Button
-              type="button"
-              onClick={() =>
-                router.push(`/governance/${selectedProposal.action.hash}`)
-              }
+              asChild
               className={cn(
                 "w-full",
                 isGame
@@ -1778,7 +1781,9 @@ export function TreasuryFlowRadial() {
                   : "bg-foreground text-background hover:bg-foreground/90"
               )}
             >
-              {t("profile.viewProposal")}
+              <Link href={`/governance/${selectedProposal.action.hash}`}>
+                {t("profile.viewProposal")}
+              </Link>
             </Button>
           </div>
         )}

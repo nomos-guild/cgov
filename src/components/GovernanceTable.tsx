@@ -1,6 +1,6 @@
 import { useMemo, useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { useRouter } from "next/router";
+import { useRowLink } from "@/hooks/useRowLink";
 import { useTranslations } from "next-intl";
 import { TranslatedText } from "@/components/TranslatedText";
 import { Button } from "@/components/ui/button";
@@ -66,7 +66,7 @@ function WithdrawalAmountTag({ amount, isGame }: { amount: string | null | undef
 
 
 export function GovernanceTable() {
-  const router = useRouter();
+  const rowLink = useRowLink();
   const dispatch = useAppDispatch();
   const t = useTranslations();
   const actions = useAppSelector((state) => state.governance.actions);
@@ -695,7 +695,7 @@ export function GovernanceTable() {
                     className={`stagger-item proposal-row cursor-pointer transition-all duration-normal ease-out transform-gpu hover:scale-101 hover:bg-transparent border-b-0 ${
                       isFirstRow ? "first-row" : ""
                     }`}
-                    onClick={() => router.push(`/governance/${action.hash}`)}
+                    {...rowLink(`/governance/${action.hash}`)}
                     style={{ cursor: 'pointer', animationDelay: `${Math.min(index, 10) * 50}ms` }}
                   >
                     <TableCell className="hidden md:table-cell py-1 px-0">
@@ -835,7 +835,9 @@ export function GovernanceTable() {
                       <div className="flex items-center gap-2">
                         <WithdrawalAmountTag amount={action.withdrawalAmount} isGame={isGame} />
                         <h3 className="text-sm sm:text-base font-semibold line-clamp-1 dark:text-[#0bd1a2]">
-                          <TranslatedText text={action.title} />
+                          <Link href={`/governance/${action.hash}`} className="hover:underline">
+                            <TranslatedText text={action.title} />
+                          </Link>
                         </h3>
                       </div>
                       <div className="mt-1">
@@ -950,14 +952,16 @@ export function GovernanceTable() {
                   <TableRow
                     key={rowId}
                     className="stagger-item proposal-row cursor-pointer transition-colors hover:bg-muted/50 border-b-0"
-                    onClick={() => router.push(`/governance/${action.hash}`)}
+                    {...rowLink(`/governance/${action.hash}`)}
                     style={{ animationDelay: `${Math.min(compactIndex, 10) * 50}ms` }}
                   >
                     <TableCell className="py-2 pl-3 sm:pl-4 max-w-[300px]">
                       <div className="flex items-center gap-2 min-w-0">
                         <WithdrawalAmountTag amount={action.withdrawalAmount} isGame={isGame} />
                         <h3 className="text-sm font-medium truncate dark:text-[#0bd1a2]">
-                          <TranslatedText text={action.title} />
+                          <Link href={`/governance/${action.hash}`} className="hover:underline">
+                            <TranslatedText text={action.title} />
+                          </Link>
                         </h3>
                       </div>
                     </TableCell>

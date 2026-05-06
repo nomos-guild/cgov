@@ -511,6 +511,19 @@ export const PROPOSAL_ENTITY_MAP: Record<
       evidence:
         "Description: 'EMURGO commits to returning 100% of the funds to the Cardano Treasury within 30 days of enactment'. Modular top-up paired with EMURGO's Baseline 'Platinum' Sponsorship proposal.",
     },
+
+    // Harmonic Labs (HLabs) — curated by maintainer. Title did not include a
+    // Harmonic-Labs-distinctive keyword (e.g. "harmonic labs", "hlabs",
+    // "gerolamo"), so the heuristic missed it and the proposal landed in the
+    // "unknown" bucket on the radial chart.
+    "gov_action1guz68e8zkwphcdc8wnp40cclkv92qgnel7xnffmsmp2ljp09qtwqq596k4c": {
+      entityId: "harmonic-labs",
+      evidence: "Curated by maintainer as a Harmonic Labs (HLabs) proposal — title did not include an HLabs-distinctive keyword so the heuristic missed it.",
+    },
+    "gov_action1ggr2uz7prwn5l84cdn2krwngfez0p7wluy4u3u3ez9pz5ls2whesqnsjly8": {
+      entityId: "harmonic-labs",
+      evidence: "Curated by maintainer as a Harmonic Labs (HLabs) proposal — title did not include an HLabs-distinctive keyword so the heuristic missed it.",
+    },
   },
 };
 
