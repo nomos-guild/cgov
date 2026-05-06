@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from "react";
 import type { GetStaticProps, GetStaticPaths, InferGetStaticPropsType } from "next";
 import Link from "next/link";
-import { useRouter } from "next/router";
+import { useRowLink } from "@/hooks/useRowLink";
 import { useTranslations } from "next-intl";
 import { SeoHead } from "@/components/SeoHead";
 import { Card } from "@/components/ui/card";
@@ -63,7 +63,7 @@ export default function EntityProfilePage({
   entity,
   initialData,
 }: InferGetStaticPropsType<typeof getStaticProps>) {
-  const router = useRouter();
+  const rowLink = useRowLink();
   const t = useTranslations("treasury.profile");
   const tStatus = useTranslations("status");
   const { activeTheme } = useTheme();
@@ -325,7 +325,7 @@ export default function EntityProfilePage({
                               ? "hover:bg-secondary/40"
                               : "hover:bg-[#0bd1a2]/5"
                           )}
-                          onClick={() => router.push(`/governance/${a.hash}`)}
+                          {...rowLink(`/governance/${a.hash}`)}
                           role="link"
                           tabIndex={0}
                           aria-label={t("viewProposal")}
@@ -336,7 +336,9 @@ export default function EntityProfilePage({
                                 "text-sm font-medium truncate",
                                 isGame ? "text-white" : isLight ? "text-foreground" : "text-[#0bd1a2]"
                               )}>
-                                {a.title}
+                                <Link href={`/governance/${a.hash}`} className="hover:underline">
+                                  {a.title}
+                                </Link>
                               </p>
                               <p className={cn(
                                 "text-xs mt-0.5",

@@ -161,6 +161,20 @@ export function PageTransition({ children }: PageTransitionProps) {
       clearPending();
       setShowLoader(false);
       window.scrollTo({ top: 0 });
+      // Watchdog: the second useEffect's "fading-out → fading-in → visible"
+      // recovery only fires when router.asPath !== currentPath at the time
+      // it runs. Navigations that don't change asPath (server-side redirects
+      // that resolve back to the current path, render races where currentPath
+      // has already absorbed the new asPath, etc.) leave phase stuck at
+      // "fading-out" → the page stays at opacity 0.4 with pointer-events:none
+      // and feels frozen. Two RAFs out — past where the happy-path chain
+      // would have already moved phase past "fading-out" — force visible if
+      // we're still stuck. No-op when recovery ran normally.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setPhase((p) => (p === "fading-out" ? "visible" : p));
+        });
+      });
     };
 
     // Cancelled or errored navigations never produce an asPath change, so
