@@ -26,6 +26,7 @@ import { blake2bHex } from "blakejs";
 import { canonize } from "jsonld";
 import * as cbor from "cbor-js";
 import { GovernanceAction, MeshTxBuilder } from "@meshsdk/core";
+import { API_ENDPOINTS } from "@/config/api";
 
 export default function GovernanceActionPage() {
   const { connected, wallet } = useWallet();
@@ -282,9 +283,28 @@ export default function GovernanceActionPage() {
       throw new Error("Please create Anchor JSON before signing.");
     }
 
+    let anchorUrl = "";
+    try {
+      const uploadRes = await fetch(API_ENDPOINTS.ipfsUpload, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ json: JSON.parse(anchorJson) }),
+      });
+      if (!uploadRes.ok) {
+        throw new Error(`Upload failed: ${uploadRes.status}`);
+      }
+      const data = await uploadRes.json();
+      anchorUrl = data.url;
+    } catch (error) {
+      throw new Error(
+        `Failed to upload anchor JSON to IPFS. Please try again.`,
+      );
+    }
+
     const utxos = await wallet.getUtxos();
     const rewardAddresses = await wallet.getRewardAddresses();
     const changeAddress = await wallet.getChangeAddress();
+    const network = await wallet.getNetworkId();
 
     const proposal: GovernanceAction =
       actionType === "treasury-withdrawal"
@@ -316,7 +336,7 @@ export default function GovernanceActionPage() {
       .proposal(
         proposal,
         {
-          anchorUrl: "",
+          anchorUrl: anchorUrl,
           anchorDataHash: anchorJsonHash,
         },
         rewardAddresses[0],

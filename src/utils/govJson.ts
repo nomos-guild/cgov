@@ -1,4 +1,4 @@
-import { NodeObject, compact, ContextDefinition } from "jsonld";
+import { compact, ContextDefinition } from "jsonld";
 
 export const getImageSha = async (imageUrl: string) => {
   try {
@@ -206,5 +206,3 @@ export const generateJsonld = async <
 
   return json;
 };
-
-export const generateJsonHash = async (jsonld: NodeObject) => {};
