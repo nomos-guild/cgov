@@ -658,10 +658,42 @@ export function AIChatPanel({
                   </div>
                 </div>
               ) : (
-                <div className={assistantBubbleClass}>
-                  <MarkdownContent isGame={isGame} isAssistant>
-                    {m.content}
-                  </MarkdownContent>
+                <div className="mr-auto flex max-w-[85%] items-start gap-1.5">
+                  <div className={cn(assistantBubbleClass, "ml-0 max-w-none")}>
+                    <MarkdownContent isGame={isGame} isAssistant>
+                      {m.content}
+                    </MarkdownContent>
+                  </div>
+                  {(() => {
+                    // Regenerate: find the user message that produced this
+                    // assistant reply (the one immediately before it) and
+                    // truncate from there. UUID-only — synthetic ids can't
+                    // be retried until the history rehydrate reconciles them.
+                    const prev = messages[idx - 1];
+                    const canRegenerate =
+                      prev?.role === "user" &&
+                      UUID_PATTERN.test(prev.id) &&
+                      !isSending &&
+                      !!walletAddress;
+                    if (!prev || prev.role !== "user") return null;
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => retryFromMessage(prev.id)}
+                        disabled={!canRegenerate}
+                        aria-label={t("regenerate")}
+                        title={t("regenerate")}
+                        className={cn(
+                          "shrink-0 rounded-full p-1 transition-colors disabled:cursor-not-allowed disabled:opacity-30",
+                          isGame
+                            ? "text-white/60 hover:bg-white/10 hover:text-white"
+                            : "text-muted-foreground hover:bg-muted hover:text-foreground dark:text-[#0bd1a2]/70 dark:hover:bg-[#0bd1a2]/10 dark:hover:text-[#0bd1a2]",
+                        )}
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
+                      </button>
+                    );
+                  })()}
                 </div>
               )}
               {showNavigations && (

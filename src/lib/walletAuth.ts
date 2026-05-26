@@ -47,6 +47,14 @@ export async function assertMainnet(wallet: IWallet): Promise<void> {
 }
 
 async function resolveSigningAddress(wallet: IWallet): Promise<string> {
+  // Prefer the reward (stake) address: Ledger/Trezor firmware only supports
+  // CIP-8 signing with the stake key, so signing against a base/payment
+  // address fails verification when the wallet is connected via a hardware
+  // device (even when forwarded through Eternl). The stake address commits
+  // only to the stake key hash, which both hot and hardware wallets sign
+  // with consistently.
+  const reward = await wallet.getRewardAddresses();
+  if (reward && reward.length > 0) return reward[0];
   const used = await wallet.getUsedAddresses();
   if (used && used.length > 0) return used[0];
   const unused = await wallet.getUnusedAddresses();
