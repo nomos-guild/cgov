@@ -25,8 +25,21 @@ import {
 import { blake2bHex } from "blakejs";
 import { canonize } from "jsonld";
 import * as cbor from "cbor-js";
-import { GovernanceAction, MeshTxBuilder } from "@meshsdk/core";
+import {
+  GovernanceAction,
+  MeshTxBuilder,
+  applyCborEncoding,
+} from "@meshsdk/core";
 import { API_ENDPOINTS } from "@/config/api";
+import {
+  guardrailsScript,
+  guardrailsScriptHash,
+} from "@/utils/govActionConstants";
+import {
+  PlutusV1CostModels,
+  PlutusV2CostModels,
+  PlutusV3CostModels,
+} from "@/utils/costModelConstants";
 
 export default function GovernanceActionPage() {
   const { connected, wallet } = useWallet();
@@ -61,6 +74,10 @@ export default function GovernanceActionPage() {
   });
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [anchorJsonHash, setAnchorJsonHash] = useState("");
+  const [anchorCid, setAnchorCid] = useState("");
+  const [anchorIpfsUrl, setAnchorIpfsUrl] = useState("");
+  const [governanceActionTxHex, setGovernanceActionTxHex] = useState("");
+  const [governanceActionTxHash, setGovernanceActionTxHash] = useState("");
   const { activeTheme } = useTheme();
   const isGame = activeTheme.id === "game";
   const isLight = activeTheme.id === "light";
@@ -217,6 +234,10 @@ export default function GovernanceActionPage() {
         signature: "",
       },
     });
+    setGovernanceActionTxHex("");
+    setGovernanceActionTxHash("");
+    setAnchorCid("");
+    setAnchorIpfsUrl("");
     setActiveTab("sign");
     setIsSubmitted(true);
   };
@@ -261,10 +282,14 @@ export default function GovernanceActionPage() {
     parsedAnchorJson["authors"].push(authorWitness);
     setAnchorJson(JSON.stringify(parsedAnchorJson, null, 2));
     setAuthorWitness(authorWitness);
+    setGovernanceActionTxHex("");
+    setGovernanceActionTxHash("");
+    setAnchorCid("");
+    setAnchorIpfsUrl("");
     setActiveTab("submit");
   };
 
-  const handleSubmitGovernanceAction = async () => {
+  const handleSignGovernanceActionTx = async () => {
     if (!wallet || !connected) {
       throw new Error(
         "Please connect your wallet to submit the governance action.",
@@ -283,6 +308,9 @@ export default function GovernanceActionPage() {
       throw new Error("Please create Anchor JSON before signing.");
     }
 
+    setAnchorCid("");
+    setAnchorIpfsUrl("");
+
     let anchorUrl = "";
     try {
       const uploadRes = await fetch(API_ENDPOINTS.ipfsUpload, {
@@ -294,18 +322,24 @@ export default function GovernanceActionPage() {
         throw new Error(`Upload failed: ${uploadRes.status}`);
       }
       const data = await uploadRes.json();
-      anchorUrl = data.url;
+      console.log("IPFS upload response:", data);
+      const cid = String(data?.cid ?? "");
+      if (!cid) {
+        throw new Error("Upload succeeded but CID was missing in response.");
+      }
+      anchorUrl = `ipfs://${cid}`;
+      setAnchorCid(cid);
+      setAnchorIpfsUrl(`https://ipfs.io/ipfs/${cid}`);
     } catch (error) {
       throw new Error(
-        `Failed to upload anchor JSON to IPFS. Please try again.`,
+        `Failed to upload anchor JSON to IPFS. Please try again. {Error details: ${error instanceof Error ? error.message : String(error)}}`,
       );
     }
 
     const utxos = await wallet.getUtxos();
+    const collaterals = await wallet.getCollateral();
     const rewardAddresses = await wallet.getRewardAddresses();
     const changeAddress = await wallet.getChangeAddress();
-    const network = await wallet.getNetworkId();
-
     const proposal: GovernanceAction =
       actionType === "treasury-withdrawal"
         ? {
@@ -323,6 +357,7 @@ export default function GovernanceActionPage() {
                     withdrawal.amount.trim(),
                   ]),
               ),
+              policyHash: { bytes: guardrailsScriptHash },
             },
           }
         : {
@@ -333,6 +368,12 @@ export default function GovernanceActionPage() {
     const txBuilder = new MeshTxBuilder({});
     const txHex = await txBuilder
       .selectUtxosFrom(utxos)
+      .txInCollateral(
+        collaterals[0].input.txHash,
+        collaterals[0].input.outputIndex,
+        collaterals[0].output.amount,
+        collaterals[0].output.address,
+      )
       .proposal(
         proposal,
         {
@@ -342,10 +383,38 @@ export default function GovernanceActionPage() {
         rewardAddresses[0],
         String(100_000_000_000),
       )
+      .proposalScript(applyCborEncoding(guardrailsScript.cborHex), "V3")
+      .proposalRedeemerValue(0)
       .changeAddress(changeAddress)
+      .setCostModels([
+        PlutusV1CostModels,
+        PlutusV2CostModels,
+        PlutusV3CostModels,
+      ])
+      .setFee("1500000")
       .complete();
     const signedTx = await wallet.signTx(txHex);
-    console.log("Signed transaction:", signedTx);
+    setGovernanceActionTxHex(signedTx);
+    setGovernanceActionTxHash("");
+
+    setIsSubmitted(true);
+  };
+
+  const handleSubmitGovernanceActionTx = async () => {
+    if (!wallet || !connected) {
+      throw new Error(
+        "Please connect your wallet to submit the governance action transaction.",
+      );
+    }
+
+    if (!governanceActionTxHex.trim()) {
+      throw new Error(
+        "Please sign the governance action transaction before submitting.",
+      );
+    }
+
+    const txHash = await wallet.submitTx(governanceActionTxHex);
+    setGovernanceActionTxHash(txHash);
 
     setIsSubmitted(true);
   };
@@ -747,6 +816,10 @@ export default function GovernanceActionPage() {
                             signature: "",
                           },
                         });
+                        setGovernanceActionTxHex("");
+                        setGovernanceActionTxHash("");
+                        setAnchorCid("");
+                        setAnchorIpfsUrl("");
                       }}
                     />
                   </div>
@@ -784,21 +857,110 @@ export default function GovernanceActionPage() {
                 </TabsContent>
 
                 <TabsContent value="submit" className="mt-0 space-y-4">
+                  <div className="space-y-2">
+                    <label
+                      className={labelClass}
+                      htmlFor="submit-anchor-json-summary"
+                    >
+                      Anchor JSON Summary
+                    </label>
+                    <Textarea
+                      id="submit-anchor-json-summary"
+                      className={cn(
+                        textareaClass,
+                        "min-h-[260px] font-mono text-xs",
+                      )}
+                      value={anchorJson}
+                      readOnly
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className={labelClass} htmlFor="submit-anchor-cid">
+                      IPFS CID
+                    </label>
+                    <Input
+                      id="submit-anchor-cid"
+                      className={inputClass}
+                      value={anchorCid}
+                      readOnly
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label
+                      className={labelClass}
+                      htmlFor="submit-anchor-ipfs-link"
+                    >
+                      Final IPFS link
+                    </label>
+                    <Input
+                      id="submit-anchor-ipfs-link"
+                      className={inputClass}
+                      value={anchorIpfsUrl}
+                      readOnly
+                    />
+                    {anchorIpfsUrl && (
+                      <a
+                        className={cn(
+                          "inline-block text-sm underline underline-offset-4",
+                          isGame
+                            ? "text-white/80 hover:text-white"
+                            : isLight
+                              ? "text-foreground hover:text-foreground/80"
+                              : "text-[#0bd1a2] hover:text-[#0bd1a2]/80",
+                        )}
+                        href={anchorIpfsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Open in new tab
+                      </a>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className={labelClass} htmlFor="submit-final-tx-hex">
+                      Final tx hex
+                    </label>
+                    <Textarea
+                      id="submit-final-tx-hex"
+                      className={cn(
+                        textareaClass,
+                        "min-h-[160px] font-mono text-xs",
+                      )}
+                      value={governanceActionTxHex}
+                      readOnly
+                    />
+                  </div>
+
                   <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
                     <Button
                       className={submitButtonClass}
-                      onClick={handleSubmitGovernanceAction}
+                      onClick={handleSignGovernanceActionTx}
                       type="button"
                       disabled={!authorWitness.witness.signature}
                     >
-                      Submit Governance Action
+                      Sign Governance Action Tx
                     </Button>
-                    {!authorWitness.witness.signature && (
-                      <p className={helperTextClass}>
-                        Sign the anchor JSON in step 2 before submitting.
-                      </p>
-                    )}
                   </div>
+
+                  <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+                    <Button
+                      className={submitButtonClass}
+                      onClick={handleSubmitGovernanceActionTx}
+                      type="button"
+                      disabled={!governanceActionTxHex.trim()}
+                    >
+                      Submit Governance Action Tx
+                    </Button>
+                  </div>
+
+                  {governanceActionTxHash && (
+                    <p className={helperTextClass}>
+                      Governance action tx submitted: {governanceActionTxHash}
+                    </p>
+                  )}
                 </TabsContent>
               </Tabs>
             </section>
