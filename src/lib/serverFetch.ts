@@ -6,15 +6,12 @@
 import type {
   GovernanceAction,
   GovernanceActionDetail,
-  ProposalSurveyResponse,
-  ProposalSurveyTallyResponse,
   VoteRecord,
   ProposalReferenceObject,
   OverviewSummary,
   NCLYearData,
   NCLDisplayData,
 } from "@/types/governance";
-import { normalizeProposalSurveyResponse } from "@/lib/surveyMetadata";
 import { correctedWithdrawalAmount } from "@/lib/withdrawalAmountOverrides";
 
 const BACKEND_API_URL = process.env.BACKEND_API_URL || "http://localhost:3001";
@@ -301,33 +298,6 @@ export async function fetchGovernanceActionDetailServer(
     return sanitizeForJson(transformed);
   } catch (error) {
     console.error("Failed to fetch proposal detail server-side:", error);
-    return null;
-  }
-}
-
-export async function fetchProposalSurveyServer(
-  proposalId: string
-): Promise<ProposalSurveyResponse | null> {
-  try {
-    const survey = await fetchBackend<ProposalSurveyResponse>(
-      `/proposal/${encodeURIComponent(proposalId)}/survey`
-    );
-    return normalizeProposalSurveyResponse(survey);
-  } catch (error) {
-    console.error("Failed to fetch proposal survey server-side:", error);
-    return null;
-  }
-}
-
-export async function fetchProposalSurveyTallyServer(
-  proposalId: string
-): Promise<ProposalSurveyTallyResponse | null> {
-  try {
-    return await fetchBackend<ProposalSurveyTallyResponse>(
-      `/proposal/${encodeURIComponent(proposalId)}/survey-tally`
-    );
-  } catch (error) {
-    console.error("Failed to fetch proposal survey tally server-side:", error);
     return null;
   }
 }

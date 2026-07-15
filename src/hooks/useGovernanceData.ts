@@ -533,9 +533,13 @@ export function useProposalSurvey(
       revalidateOnMount: true,
     }
   );
+  const survey = useMemo(
+    () => normalizeProposalSurveyResponse(data),
+    [data]
+  );
 
   return {
-    survey: normalizeProposalSurveyResponse(data) ?? null,
+    survey,
     isLoading: !fallbackData && isLoading,
     error: error?.message ?? null,
     refresh: mutate,

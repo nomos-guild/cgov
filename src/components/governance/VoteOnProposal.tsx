@@ -1,6 +1,8 @@
 import { useState, useCallback, useEffect } from "react";
 import { useWallet } from "@meshsdk/react";
 import { MeshTxBuilder, hashDrepAnchor } from "@meshsdk/core";
+import { CredentialType, DRepID } from "@meshsdk/core-cst";
+import { Role, type AnswerItem, type Credential } from "cip-179";
 import { useTranslations } from "next-intl";
 import { useProposalSurvey } from "@/hooks/useGovernanceData";
 import {
@@ -20,7 +22,6 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ConnectWalletButton } from "@/components/wallet";
 import {
@@ -34,18 +35,14 @@ import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import { wrapRationaleAsJson } from "@/lib/rationaleHelpers";
 import { toCip129DRepId } from "@/lib/drepFormatters";
-import type {
-  ProposalSurveyResponse,
-  SurveyQuestion,
-  SurveyResponsePayload,
-} from "@/types/governance";
 import {
-  BUILTIN_SURVEY_METHODS,
-  buildSurveyResponseMetadata,
-  isCustomSurveyMethod,
-  SUPPORTED_SURVEY_RESPONSE_ROLE,
-  validateSurveyResponse,
+  buildDrepResponse,
+  encodeResponseMetadata,
+  SURVEY_METADATA_LABEL,
+  validateDrepResponse,
 } from "@/lib/surveyMetadata";
+import { Cip179ResponseForm } from "@/components/governance/Cip179ResponseForm";
+import { useCip179Presentation } from "@/hooks/useCip179Presentation";
 
 type VoteChoice = "Yes" | "No" | "Abstain";
 
@@ -75,271 +72,9 @@ interface WalletRoleState {
   detail: string | null;
 }
 
-type SurveyDraftAnswer = {
-  selection?: number[];
-  numericValue?: number;
-  customValue?: string;
-};
-
-async function attachMetadataToVoteBuilder(
-  txBuilder: MeshTxBuilder,
-  metadata: Record<number, unknown>
-) {
-  const builder = txBuilder as MeshTxBuilder & Record<string, unknown>;
-  const [labelKey] = Object.keys(metadata);
-  const label = Number(labelKey);
-  const value = metadata[label];
-
-  const candidates: Array<{ name: string; args: unknown[] }> = [
-    { name: "metadataValue", args: [label, value] },
-    { name: "metadataValue", args: [String(label), value] },
-    { name: "metadataJson", args: [label, value] },
-    { name: "metadataJson", args: [String(label), value] },
-    { name: "metadata", args: [label, value] },
-    { name: "metadata", args: [metadata] },
-    { name: "txMetadata", args: [label, value] },
-    { name: "txMetadata", args: [metadata] },
-    { name: "auxiliaryData", args: [metadata] },
-  ];
-
-  for (const candidate of candidates) {
-    const method = builder[candidate.name];
-    if (typeof method !== "function") continue;
-    try {
-      const result = (method as (...args: unknown[]) => unknown).apply(
-        txBuilder,
-        candidate.args
-      );
-      if (result && typeof (result as Promise<unknown>).then === "function") {
-        await result;
-      }
-      return;
-    } catch {
-      continue;
-    }
-  }
-
-  throw new Error(
-    "This cgov build could not attach CIP-0179 survey metadata to the vote transaction."
-  );
-}
-
-function hasAnySurveyAnswer(answer: SurveyDraftAnswer | undefined): boolean {
-  if (!answer) return false;
-  return (
-    (Array.isArray(answer.selection) && answer.selection.length > 0) ||
-    typeof answer.numericValue === "number" ||
-    (typeof answer.customValue === "string" && answer.customValue.trim() !== "")
-  );
-}
-
-function buildSurveyResponsePayload(
-  survey: ProposalSurveyResponse,
-  answerState: Record<string, SurveyDraftAnswer>
-): SurveyResponsePayload | null {
-  const questions = survey.surveyDetails?.questions ?? [];
-  const answers: SurveyResponsePayload["answers"] = [];
-
-  for (const question of questions) {
-    const answer = answerState[question.questionId];
-    if (!hasAnySurveyAnswer(answer)) continue;
-
-    if (question.methodType === BUILTIN_SURVEY_METHODS.numericRange) {
-      const numericValue = answer?.numericValue;
-      if (!Number.isInteger(numericValue)) {
-        throw new Error(`Question "${question.question}" requires an integer value.`);
-      }
-      answers.push({
-        questionId: question.questionId,
-        numericValue: numericValue as number,
-      });
-      continue;
-    }
-
-    if (Array.isArray(answer?.selection)) {
-      answers.push({
-        questionId: question.questionId,
-        selection: answer.selection,
-      });
-      continue;
-    }
-  }
-
-  if (!answers.length || !survey.surveyTxId) {
-    return null;
-  }
-
-  return {
-    specVersion: "1.0.0",
-    surveyTxId: survey.surveyTxId,
-    responderRole: SUPPORTED_SURVEY_RESPONSE_ROLE,
-    answers,
-  };
-}
-
-function SurveyQuestionInput({
-  question,
-  answer,
-  setAnswer,
-  disabled,
-}: {
-  question: SurveyQuestion;
-  answer?: SurveyDraftAnswer;
-  setAnswer: (next: SurveyDraftAnswer | undefined) => void;
-  disabled: boolean;
-}) {
-  if (question.methodType === BUILTIN_SURVEY_METHODS.singleChoice) {
-    return (
-      <div className="mt-2 space-y-2">
-        <div className="flex flex-wrap gap-2">
-          {(question.options ?? []).map((option, index) => {
-            const isSelected = answer?.selection?.[0] === index;
-            return (
-              <Button
-                key={`${question.questionId}-${option}`}
-                type="button"
-                variant={isSelected ? "secondary" : "outline"}
-                className="h-8 rounded-none text-xs"
-                disabled={disabled}
-                onClick={() =>
-                  setAnswer(
-                    isSelected
-                      ? undefined
-                      : {
-                          selection: [index],
-                        }
-                  )
-                }
-              >
-                {option}
-              </Button>
-            );
-          })}
-        </div>
-        {answer?.selection?.length ? (
-          <Button
-            type="button"
-            variant="ghost"
-            className="h-auto p-0 text-xs text-muted-foreground hover:text-foreground"
-            disabled={disabled}
-            onClick={() => setAnswer(undefined)}
-          >
-            Clear response
-          </Button>
-        ) : null}
-      </div>
-    );
-  }
-
-  if (question.methodType === BUILTIN_SURVEY_METHODS.multiSelect) {
-    const currentSelection = answer?.selection ?? [];
-    const maxSelections = question.maxSelections ?? question.options?.length ?? 0;
-    const selectionLimitReached = currentSelection.length >= maxSelections;
-    return (
-      <div className="mt-2 space-y-2">
-        {maxSelections > 0 ? (
-          <div className="text-xs text-muted-foreground">
-            Select up to {maxSelections} option{maxSelections === 1 ? "" : "s"}.
-          </div>
-        ) : null}
-        {(question.options ?? []).map((option, index) => {
-          const checked = currentSelection.includes(index);
-          return (
-            <label
-              key={`${question.questionId}-${option}`}
-              className={cn(
-                "flex items-center gap-2 text-sm",
-                !checked && selectionLimitReached && "opacity-60"
-              )}
-            >
-              <input
-                type="checkbox"
-                checked={checked}
-                disabled={disabled || (!checked && selectionLimitReached)}
-                onChange={(event) => {
-                  const nextSelection = event.target.checked
-                    ? [...currentSelection, index].sort((left, right) => left - right)
-                    : currentSelection.filter((item) => item !== index);
-                  setAnswer({ selection: nextSelection });
-                }}
-              />
-              <span>{option}</span>
-            </label>
-          );
-        })}
-        {currentSelection.length ? (
-          <Button
-            type="button"
-            variant="ghost"
-            className="h-auto p-0 text-xs text-muted-foreground hover:text-foreground"
-            disabled={disabled}
-            onClick={() => setAnswer(undefined)}
-          >
-            Clear response
-          </Button>
-        ) : null}
-      </div>
-    );
-  }
-
-  if (question.methodType === BUILTIN_SURVEY_METHODS.numericRange) {
-    const constraints = question.numericConstraints;
-    const currentValue = answer?.numericValue;
-    if (!constraints) {
-      return (
-        <div className="mt-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300">
-          This numeric question is missing its constraints, so `cgov` cannot render an input for it.
-        </div>
-      );
-    }
-
-    return (
-      <div className="mt-2 space-y-2.5">
-        <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
-          <span>
-            {constraints.minValue} to {constraints.maxValue}
-            {constraints.step ? `, step ${constraints.step}` : ""}
-          </span>
-          <span className="font-medium text-foreground">
-            {currentValue ?? "No answer selected"}
-          </span>
-        </div>
-        <Slider
-          disabled={disabled}
-          min={constraints.minValue}
-          max={constraints.maxValue}
-          step={constraints.step ?? 1}
-          value={[currentValue ?? constraints.minValue]}
-          onValueChange={(values) => {
-            const nextValue = values[0];
-            if (Number.isInteger(nextValue)) {
-              setAnswer({ numericValue: nextValue });
-            }
-          }}
-        />
-        <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
-          <span>{constraints.minValue}</span>
-          <span>{constraints.maxValue}</span>
-        </div>
-        {currentValue !== undefined ? (
-          <Button
-            type="button"
-            variant="ghost"
-            className="h-auto p-0 text-xs text-muted-foreground hover:text-foreground"
-            disabled={disabled}
-            onClick={() => setAnswer(undefined)}
-          >
-            Clear response
-          </Button>
-        ) : null}
-      </div>
-    );
-  }
-
-  return (
-    <div className="mt-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300">
-      This survey uses a custom method. `cgov` can display the question, but it does not yet render an interactive input for this method.
-    </div>
+function credentialHashBytes(hash: string): Uint8Array {
+  return Uint8Array.from(
+    hash.match(/.{2}/g)?.map((byte) => Number.parseInt(byte, 16)) ?? []
   );
 }
 
@@ -381,7 +116,7 @@ export function VoteOnProposal({
   const [rationaleJsonText, setRationaleJsonText] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
-  const [surveyAnswers, setSurveyAnswers] = useState<Record<string, SurveyDraftAnswer>>({});
+  const [surveyAnswers, setSurveyAnswers] = useState<AnswerItem[] | null>([]);
   const [voteState, setVoteState] = useState<VoteState>({
     isSubmitting: false,
     isSuccess: false,
@@ -401,25 +136,27 @@ export function VoteOnProposal({
   const linkedSurvey =
     proposalSurvey?.linked &&
     proposalSurvey.linkValidation.valid &&
-    proposalSurvey.surveyDetailsValidation.valid &&
-    proposalSurvey.surveyDetails &&
-    proposalSurvey.surveyTxId
+    proposalSurvey.phase === "open" &&
+    proposalSurvey.bundle &&
+    proposalSurvey.surveyRef
       ? proposalSurvey
       : null;
-  const drepCanRespond = !!linkedSurvey?.surveyDetails?.roleWeighting?.DRep;
-  const surveyQuestionCount = linkedSurvey?.surveyDetails?.questions.length ?? 0;
-  const answeredQuestionCount = linkedSurvey?.surveyDetails?.questions.reduce(
-    (count, question) =>
-      hasAnySurveyAnswer(surveyAnswers[question.questionId]) ? count + 1 : count,
-    0
-  ) ?? 0;
+  const sourceDefinition = linkedSurvey?.bundle?.survey.definition ?? null;
+  const { definition: surveyDefinition, error: surveyPresentationError } =
+    useCip179Presentation(sourceDefinition);
+  const drepCanRespond = !!surveyDefinition &&
+    surveyDefinition.submissionMode.type === "public" &&
+    surveyDefinition.eligibleRoles.includes(Role.DRep);
+  const handleSurveyAnswers = useCallback((answers: AnswerItem[] | null) => {
+    setSurveyAnswers(answers);
+  }, []);
 
   const isVotingOpen = status === "Active";
 
 
   useEffect(() => {
     if (!isModalOpen) {
-      setSurveyAnswers({});
+      setSurveyAnswers([]);
     }
   }, [isModalOpen]);
 
@@ -587,16 +324,34 @@ export function VoteOnProposal({
         verbose: true,
       });
 
-      const surveyResponse = linkedSurvey && drepCanRespond
-        ? buildSurveyResponsePayload(linkedSurvey, surveyAnswers)
-        : null;
+      let surveyResponse = null;
+      if (
+        linkedSurvey &&
+        surveyDefinition &&
+        drepCanRespond &&
+        surveyAnswers &&
+        surveyAnswers.length > 0
+      ) {
+        const drepCredential = DRepID.toCredential(DRepID(drepId));
+        const credential: Credential =
+          drepCredential.type === CredentialType.KeyHash
+            ? { type: "key", keyHash: credentialHashBytes(drepCredential.hash) }
+            : { type: "script", scriptHash: credentialHashBytes(drepCredential.hash) };
+        surveyResponse = buildDrepResponse({
+          survey: linkedSurvey,
+          credential,
+          answers: surveyAnswers,
+        });
+      }
       if (surveyResponse) {
-        const surveyValidationErrors = validateSurveyResponse(
-          linkedSurvey,
+        const surveyValidationErrors = validateDrepResponse(
+          surveyDefinition!,
           surveyResponse
         );
         if (surveyValidationErrors.length > 0) {
-          throw new Error(surveyValidationErrors[0]);
+          throw new Error(
+            `CIP-179 response validation failed: ${surveyValidationErrors[0]}`
+          );
         }
       }
 
@@ -699,9 +454,9 @@ export function VoteOnProposal({
         }
       );
       if (surveyResponse) {
-        await attachMetadataToVoteBuilder(
-          txBuilder,
-          buildSurveyResponseMetadata(surveyResponse)
+        txBuilder.metadataValue(
+          SURVEY_METADATA_LABEL,
+          encodeResponseMetadata(surveyResponse)
         );
       }
 
@@ -781,6 +536,7 @@ export function VoteOnProposal({
     rationaleComment,
     rationaleJsonText,
     linkedSurvey,
+    surveyDefinition,
     drepCanRespond,
     surveyAnswers,
     onVoteSubmitted,
@@ -797,7 +553,7 @@ export function VoteOnProposal({
     setRationaleComment("");
     setRationaleJsonText("");
     setIsAdvancedOpen(false);
-    setSurveyAnswers({});
+    setSurveyAnswers([]);
     setVoteState({
       isSubmitting: false,
       isSuccess: false,
@@ -1098,76 +854,42 @@ export function VoteOnProposal({
                     <div className="rounded-md border border-border/50 p-3 text-sm text-muted-foreground">
                       The linked survey could not be loaded. Your governance vote can still be submitted without a survey response.
                     </div>
-                  ) : linkedSurvey?.surveyDetails ? (
+                  ) : surveyPresentationError && !surveyDefinition ? (
+                    <div className="rounded-md border border-border/50 p-3 text-sm text-muted-foreground">
+                      The linked survey cannot be rendered: {surveyPresentationError}
+                    </div>
+                  ) : surveyDefinition ? (
                     <div className="space-y-3 rounded-md border border-border/50 p-4">
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                         <div className="min-w-0">
                           <div className="text-sm font-semibold">
-                            {linkedSurvey.surveyDetails.title}
+                            {surveyDefinition.title}
                           </div>
                           <p className="mt-1 text-xs text-muted-foreground">
-                            Optional survey response. Ends at epoch {linkedSurvey.surveyDetails.endEpoch}.
+                            Optional CIP-179 response. Ends at epoch {surveyDefinition.endEpoch}.
                           </p>
                         </div>
-                        {drepCanRespond ? (
-                          <Badge variant="outline" className="w-fit text-xs">
-                            Answered {answeredQuestionCount} of {surveyQuestionCount}
-                          </Badge>
-                        ) : null}
+                        <Badge variant="outline" className="w-fit text-xs">Version 5</Badge>
                       </div>
-                      {!drepCanRespond ? (
+                      {surveyPresentationError ? (
+                        <div className="text-xs text-amber-700 dark:text-amber-300">
+                          External labels could not be verified: {surveyPresentationError}
+                        </div>
+                      ) : null}
+                      {surveyDefinition.submissionMode.type === "sealed" ? (
+                        <div className="text-xs text-muted-foreground">
+                          This survey uses sealed responses. This CGov release displays sealed surveys but does not submit encrypted answers.
+                        </div>
+                      ) : !drepCanRespond ? (
                         <div className="text-xs text-muted-foreground">
                           This linked survey does not accept DRep responses, so only the governance vote will be submitted.
                         </div>
                       ) : (
-                        <div className="space-y-2">
-                          {linkedSurvey.surveyDetails.questions.map((question, index) => (
-                            <div
-                              key={question.questionId}
-                              className="rounded-md border border-border/50 bg-background/40 p-3"
-                            >
-                              <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
-                                <div className="min-w-0">
-                                  <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                                    Question {index + 1}
-                                  </div>
-                                  <div className="mt-1 text-sm font-medium">
-                                    {question.question}
-                                  </div>
-                                </div>
-                                {!isCustomSurveyMethod(question.methodType) ? (
-                                  <div className="text-xs text-muted-foreground">
-                                    {question.methodType}
-                                  </div>
-                                ) : null}
-                              </div>
-                              {isCustomSurveyMethod(question.methodType) ? (
-                                <div className="mt-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2.5 text-xs text-amber-700 dark:text-amber-300">
-                                  This survey question uses a custom method. `cgov` will not submit a response for this question until a custom renderer is implemented.
-                                </div>
-                              ) : (
-                                <SurveyQuestionInput
-                                  question={question}
-                                  answer={surveyAnswers[question.questionId]}
-                                  disabled={voteState.isSubmitting}
-                                  setAnswer={(next) => {
-                                    setSurveyAnswers((current) => {
-                                      if (!next || !hasAnySurveyAnswer(next)) {
-                                        const nextState = { ...current };
-                                        delete nextState[question.questionId];
-                                        return nextState;
-                                      }
-                                      return {
-                                        ...current,
-                                        [question.questionId]: next,
-                                      };
-                                    });
-                                  }}
-                                />
-                              )}
-                            </div>
-                          ))}
-                        </div>
+                        <Cip179ResponseForm
+                          definition={surveyDefinition}
+                          disabled={voteState.isSubmitting}
+                          onAnswersChange={handleSurveyAnswers}
+                        />
                       )}
                     </div>
                   ) : null}

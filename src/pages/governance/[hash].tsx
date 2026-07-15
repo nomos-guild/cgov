@@ -19,8 +19,8 @@ import { BubbleMap } from "@/components/BubbleMap";
 import { useAppSelector } from "@/store/hooks";
 import {
   useGovernanceActionDetail,
-  // useProposalSurvey,
-  // useProposalSurveyTally,
+  useProposalSurvey,
+  useProposalSurveyTally,
 } from "@/hooks/useGovernanceData";
 import { ArrowLeft } from "lucide-react";
 import type {
@@ -74,7 +74,7 @@ import {
 } from "@/lib/governanceEligibilityOverrides";
 import { VoteTrendTooltip } from "@/components/governance/VoteTrendTooltip";
 import { LazyVoteOnProposal } from "@/components/governance/LazyVoteOnProposal";
-// import { LinkedSurveyPanel } from "@/components/governance/LinkedSurveyPanel";
+import { LinkedSurveyPanel } from "@/components/governance/LinkedSurveyPanel";
 import { ProposalExpiryCard } from "@/components/governance/ProposalExpiryCard";
 import { LiveVotingTab } from "@/components/governance/LiveVotingTab";
 import { ProposalDetailsTab } from "@/components/governance/ProposalDetailsTab";
@@ -147,21 +147,18 @@ function GovernanceDetailContent({ initialDetail }: GovernanceDetailProps) {
   // SWR-based data loading with ISR fallback for instant hydration
   const { isLoading: swrLoading, error: swrError, refresh } =
     useGovernanceActionDetail(proposalId, initialDetail);
-  // Hidden until surveys exist on-chain
-  // const {
-  //   survey: proposalSurvey,
-  //   isLoading: isSurveyLoading,
-  //   error: surveyError,
-  // } = useProposalSurvey(proposalId);
-  // const shouldFetchSurveyTally =
-  //   !!proposalSurvey?.linked &&
-  //   !!proposalSurvey.linkValidation.valid &&
-  //   !!proposalSurvey.surveyDetailsValidation.valid;
-  // const {
-  //   tally: proposalSurveyTally,
-  //   isLoading: isSurveyTallyLoading,
-  //   error: surveyTallyError,
-  // } = useProposalSurveyTally(proposalId, shouldFetchSurveyTally);
+  const {
+    survey: proposalSurvey,
+    isLoading: isSurveyLoading,
+    error: surveyError,
+  } = useProposalSurvey(proposalId);
+  const shouldFetchSurveyTally =
+    !!proposalSurvey?.linked && proposalSurvey.linkValidation.valid;
+  const {
+    tally: proposalSurveyTally,
+    isLoading: isSurveyTallyLoading,
+    error: surveyTallyError,
+  } = useProposalSurveyTally(proposalId, shouldFetchSurveyTally);
 
   // Redux still has the data (synced by the hook) for components that read from it
   const { selectedAction } = useAppSelector((state) => state.governance);
@@ -1035,7 +1032,8 @@ function GovernanceDetailContent({ initialDetail }: GovernanceDetailProps) {
             {/* Left Column - Tabs for donuts, bubble map, curves, details */}
             <div className="space-y-4 sm:space-y-5 md:space-y-6 lg:col-span-2">
               <Card className={cn(
-                "info-container p-3 sm:p-4 md:p-6 overflow-hidden dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none dark:rounded-none h-full flex flex-col",
+                "info-container p-3 sm:p-4 md:p-6 overflow-hidden dark:border-[#0bd1a2] dark:bg-transparent dark:shadow-none dark:rounded-none flex flex-col",
+                !proposalSurvey?.linked && "h-full",
                 isGame && "game-voting-card"
               )}>
                 <Tabs
@@ -1266,8 +1264,7 @@ function GovernanceDetailContent({ initialDetail }: GovernanceDetailProps) {
                 </Tabs>
               </Card>
 
-              {/* Hidden until surveys exist on-chain
-              {selectedAction && (
+              {selectedAction && proposalSurvey?.linked && (
                 <LinkedSurveyPanel
                   survey={proposalSurvey}
                   tally={proposalSurveyTally}
@@ -1278,7 +1275,6 @@ function GovernanceDetailContent({ initialDetail }: GovernanceDetailProps) {
                   isGame={isGame}
                 />
               )}
-              */}
 
             </div>
 

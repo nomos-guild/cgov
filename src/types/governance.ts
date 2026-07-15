@@ -230,112 +230,22 @@ export interface GovernanceActionDetail extends GovernanceAction {
   ccVotes?: VoteRecord[]; // Constitutional Committee votes
 }
 
-export type ResponderRole = "DRep" | "SPO" | "CC" | "Stakeholder";
-
-export type SurveyWeightingMode =
-  | "CredentialBased"
-  | "StakeBased"
-  | "PledgeBased";
-
-export interface SurveyNumericConstraints {
-  minValue: number;
-  maxValue: number;
-  step?: number;
-}
-
-export interface SurveyQuestion {
-  questionId: string;
-  question: string;
-  methodType: string;
-  options?: string[];
-  maxSelections?: number;
-  numericConstraints?: SurveyNumericConstraints;
-  methodSchemaUri?: string;
-  methodSchemaHash?: string;
-}
-
-export interface SurveyDetails {
-  specVersion: string;
-  title: string;
-  description: string;
-  questions: SurveyQuestion[];
-  roleWeighting: Partial<Record<ResponderRole, SurveyWeightingMode>>;
-  endEpoch: number;
-}
-
 export interface ProposalSurveyResponse {
   linked: boolean;
-  surveyTxId: string | null;
+  surveyRef: { txId: string; index: number } | null;
   linkValidation: {
     valid: boolean;
     errors: string[];
-    actionEligibility?: ResponderRole[];
-    linkedRoleWeighting?:
-      | Partial<Record<ResponderRole, SurveyWeightingMode>>
-      | null;
-    linkedActionId?: {
-      txId: string;
-      govActionIx: number;
-    } | null;
+    linkedActions: string[];
   };
-  surveyDetails: SurveyDetails | null;
-  surveyDetailsValidation: {
-    valid: boolean;
-    errors: string[];
-  };
+  phase: "open" | "closed" | "cancelled" | "unavailable";
+  bundle: import("cip-179/domain").SurveyBundle | null;
 }
-
-export interface ProposalSurveyMethodResult {
-  [key: string]: unknown;
-}
-
-export interface ProposalSurveyRoleResult {
-  responderRole: ResponderRole;
-  weightingMode: SurveyWeightingMode;
-  totals: {
-    totalSeen: number;
-    valid: number;
-    invalid: number;
-    deduped: number;
-    uniqueResponders: number;
-  };
-  methodResults: ProposalSurveyMethodResult[];
-}
-
-export type ProposalSurveyTallyPhase =
-  | "provisional"
-  | "finalization_pending"
-  | "finalized";
 
 export interface ProposalSurveyTallyResponse {
-  surveyTxId: string | null;
-  phase: ProposalSurveyTallyPhase;
-  asOfEpoch: number | null;
-  finalizationEpoch: number | null;
-  totals: {
-    totalSeen: number;
-    valid: number;
-    invalid: number;
-    deduped: number;
-    uniqueResponders: number;
-  };
-  roleResults: ProposalSurveyRoleResult[];
+  phase: "open" | "finalization_pending" | "finalized" | "unsupported";
+  artifact: import("cip-179/tally").TallyArtifact | null;
   errors: string[];
-  warnings: string[];
-}
-
-export interface SurveyResponseAnswer {
-  questionId: string;
-  selection?: number[];
-  numericValue?: number;
-  customValue?: unknown;
-}
-
-export interface SurveyResponsePayload {
-  specVersion: string;
-  surveyTxId: string;
-  responderRole: ResponderRole;
-  answers: SurveyResponseAnswer[];
 }
 
 /**
