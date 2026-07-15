@@ -8,7 +8,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test:cip179": "esbuild src/lib/surveyMetadata.test.mts --bundle --platform=node --format=esm --external:@meshsdk/core --outfile=.next/cip179-test.mjs && node --test .next/cip179-test.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -16,6 +17,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@meshsdk/core": "1.9.0-beta.87",
     "@meshsdk/react": "1.9.0-beta.87",
+    "@noble/hashes": "2.2.0",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-label": "^2.1.8",
     "@radix-ui/react-popover": "^1.1.15",
@@ -27,6 +29,7 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "@reduxjs/toolkit": "^2.10.1",
     "@types/d3": "^7.4.3",
+    "cip-179": "0.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "d3": "^7.9.0",
@@ -61,6 +64,7 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "dotenv": "^17.2.3",
+    "esbuild": "0.28.1",
     "eslint": "^8",
     "eslint-config-next": "15.5.14",
     "postcss": "^8",
