@@ -12,22 +12,23 @@ export function useCip179Presentation(source: SurveyDefinition | null) {
 
   useEffect(() => {
     let active = true;
+    const controller = new AbortController();
     const renderabilityProblem = source
       ? getRenderabilityProblem(source)
       : null;
     setDefinition(renderabilityProblem ? null : source);
     setError(renderabilityProblem);
     if (!source?.contentAnchor || renderabilityProblem) {
-      return () => { active = false; };
+      return () => { active = false; controller.abort(); };
     }
-    void fetchAnchorJson(source.contentAnchor)
+    void fetchAnchorJson(source.contentAnchor, controller.signal)
       .then((value) => {
         if (active) setDefinition(applyPresentation(source, value));
       })
       .catch((reason) => {
         if (active) setError(reason instanceof Error ? reason.message : String(reason));
       });
-    return () => { active = false; };
+    return () => { active = false; controller.abort(); };
   }, [source]);
 
   return { definition, error };

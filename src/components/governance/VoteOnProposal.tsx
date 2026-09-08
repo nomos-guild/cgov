@@ -116,7 +116,9 @@ export function VoteOnProposal({
   const [rationaleJsonText, setRationaleJsonText] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
+  const [voteOnly, setVoteOnly] = useState(false);
   const [surveyAnswers, setSurveyAnswers] = useState<AnswerItem[] | null>([]);
+  useEffect(() => setVoteOnly(false), [surveyAnswers, proposalId, selectedVote]);
   const [voteState, setVoteState] = useState<VoteState>({
     isSubmitting: false,
     isSuccess: false,
@@ -146,8 +148,10 @@ export function VoteOnProposal({
     useCip179Presentation(sourceDefinition);
   const drepCanRespond = !!surveyDefinition &&
     surveyDefinition.submissionMode.type === "public" &&
-    surveyDefinition.eligibleRoles.includes(Role.DRep);
+    surveyDefinition.eligibleRoles.includes(Role.DRep) &&
+    !surveyDefinition.questions.some((question) => question.type === "custom");
   const handleSurveyAnswers = useCallback((answers: AnswerItem[] | null) => {
+    setVoteOnly(false);
     setSurveyAnswers(answers);
   }, []);
 
@@ -299,6 +303,9 @@ export function VoteOnProposal({
     });
 
     try {
+      if (linkedSurvey && surveyDefinition && drepCanRespond && surveyAnswers === null && !voteOnly) {
+        throw new Error("Correct the survey answers or explicitly choose to submit only the governance vote.");
+      }
       // Get wallet data
       const utxos = await wallet.getUtxos();
       const changeAddress = await wallet.getChangeAddress();
@@ -329,6 +336,7 @@ export function VoteOnProposal({
         linkedSurvey &&
         surveyDefinition &&
         drepCanRespond &&
+        !voteOnly &&
         surveyAnswers &&
         surveyAnswers.length > 0
       ) {
@@ -539,6 +547,7 @@ export function VoteOnProposal({
     surveyDefinition,
     drepCanRespond,
     surveyAnswers,
+    voteOnly,
     onVoteSubmitted,
     proposalId,
     t,
@@ -882,14 +891,24 @@ export function VoteOnProposal({
                         </div>
                       ) : !drepCanRespond ? (
                         <div className="text-xs text-muted-foreground">
-                          This linked survey does not accept DRep responses, so only the governance vote will be submitted.
+                          This survey does not accept DRep responses or uses an unsupported custom method. Only the governance vote will be submitted.
                         </div>
                       ) : (
-                        <Cip179ResponseForm
-                          definition={surveyDefinition}
-                          disabled={voteState.isSubmitting}
-                          onAnswersChange={handleSurveyAnswers}
-                        />
+                        <>
+                          <Cip179ResponseForm
+                            key={`${linkedSurvey?.surveyRef?.txId}:${linkedSurvey?.surveyRef?.index}`}
+                            definition={surveyDefinition}
+                            disabled={voteState.isSubmitting}
+                            onAnswersChange={handleSurveyAnswers}
+                          />
+                          {surveyAnswers === null ? (
+                            <label className="flex gap-2 text-sm">
+                              <input type="checkbox" checked={voteOnly} disabled={voteState.isSubmitting}
+                                onChange={(event) => setVoteOnly(event.target.checked)} />
+                              Submit only the governance vote and discard the incomplete survey response
+                            </label>
+                          ) : null}
+                        </>
                       )}
                     </div>
                   ) : null}

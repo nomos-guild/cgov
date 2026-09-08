@@ -41,7 +41,7 @@ function labels(question: Question): string[] {
   return Array.from({ length: count }, (_, index) => `Option ${index + 1}`);
 }
 
-function ResultRows({ result, question }: { result: ArtifactQuestion; question: Question }) {
+export function ResultRows({ result, question }: { result: ArtifactQuestion; question: Question }) {
   if (result.kind === "custom") {
     return <p className="text-sm text-muted-foreground">{result.answeredCount} responses</p>;
   }
@@ -75,7 +75,7 @@ function ResultRows({ result, question }: { result: ArtifactQuestion; question: 
       {result.perOption.map((value, index) => (
         <div key={index} className="flex justify-between gap-4">
           <span>{names[index] ?? `Option ${index + 1}`}</span>
-          <span>{value.count} responses</span>
+          <span>{value.count} responses; weighted {result.unit} sum {value.weightedSum}; answered weight {value.answeredWeight}</span>
         </div>
       ))}
     </div>
@@ -95,6 +95,10 @@ function RoleResult({ role, question, questionIndex }: {
         <span className="text-sm font-semibold">{ROLE_NAMES[role.role] ?? `Role ${role.role}`}</span>
         <span className="text-xs text-muted-foreground">{role.responders.length} responders</span>
       </div>
+      <p className="mb-2 text-xs text-muted-foreground">
+        {role.role === 4 ? "Weight: one per eligible keyholder." : "Weight: snapshot voting power in lovelace."}
+        {" "}Counts are unweighted. A weighted mean is the weighted sum divided by answered weight.
+      </p>
       <ResultRows result={result} question={question} />
     </div>
   );
@@ -145,6 +149,7 @@ export function LinkedSurveyPanel({
               {artifact ? "Finalized" : tally?.phase === "unsupported" ? "Results unsupported" : "Results pending"}
             </Badge>
           </div>
+          {artifact ? <p className="text-xs text-muted-foreground">CGov weights results by voting power at epoch {definition.endEpoch}; eligible keyholders count equally. CIP-179 does not prescribe this weighting policy.</p> : null}
           {tallyError || tally?.errors.length ? (
             <p className="text-sm text-destructive">{tallyError ?? tally?.errors.join(" ")}</p>
           ) : null}

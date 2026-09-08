@@ -48,7 +48,11 @@ export function validateDrepResponse(
   definition: SurveyDefinition,
   response: SurveyResponse
 ): string[] {
-  return [...validateDefinition(definition), ...validateResponse(definition, response)];
+  const unsupported = definition.questions.some((question) => question.type === "custom")
+    ? ["Custom survey methods are not supported by this CGov release."] : [];
+  const empty = response.answers.type === "public" && response.answers.answers.length === 0
+    ? ["A survey response must answer at least one question."] : [];
+  return [...unsupported, ...empty, ...validateDefinition(definition), ...validateResponse(definition, response)];
 }
 
 export function encodeResponseMetadata(response: SurveyResponse): Metadatum {

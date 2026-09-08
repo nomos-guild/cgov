@@ -9,7 +9,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test:cip179": "esbuild src/lib/surveyMetadata.test.mts --bundle --platform=node --format=esm --external:@meshsdk/core --outfile=.next/cip179-test.mjs && node --test .next/cip179-test.mjs"
+    "test:cip179": "esbuild src/lib/surveyMetadata.test.mts --bundle --platform=node --format=esm --external:@meshsdk/core --outfile=.next/cip179-test.mjs && node --test .next/cip179-test.mjs",
+    "test:cip179:integration": "vitest run --config vitest.config.mts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -70,9 +71,14 @@
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
     "tsx": "^4.21.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "3.2.7",
+    "@emurgo/cardano-serialization-lib-asmjs": "14.1.2"
   },
   "overrides": {
     "libsodium-wrappers-sumo": "0.7.15"
+  },
+  "engines": {
+    "node": ">=22.13.0"
   }
 }

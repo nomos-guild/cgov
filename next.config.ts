@@ -12,7 +12,16 @@ const nextConfig: NextConfig = {
     defaultLocale: "en",
     // localeDetection is enabled by default in Next.js 15
   },
-  webpack: (config, { dev }) => {
+  webpack: (config, { dev, isServer }) => {
+    if (!isServer) {
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        "@peculiar/webcrypto$": path.join(
+          __dirname,
+          "src/lib/browserWebCrypto.ts",
+        ),
+      };
+    }
     // Windows file locking causes webpack cache corruption during HMR
     // ("Cannot find module './chunks/vendor-chunks/next.js'" errors)
     // Using in-memory cache in dev avoids the filesystem rename issue
