@@ -33,7 +33,7 @@ interface ChatUpdateDetail {
   sourceId: string;
 }
 
-// Sidanclaw `truncateFromMessageId` requires a session_messages UUID.
+// Use Brian `truncateFromMessageId` requires a session_messages UUID.
 // Local synthetic ids (`u-…`/`a-…`) only show up between a fresh send and
 // the post-send history rehydrate; gating retry on UUID format prevents
 // the upstream from rejecting with `message_not_found`.
@@ -147,7 +147,7 @@ export function AIChatPanel({
     }
   }, [sessionScope, walletAddress, storageKey]);
 
-  // Self-healing rehydrate from upstream Sidanclaw via cgov-api. Provides
+  // Self-healing rehydrate from upstream Use Brian via cgov-api. Provides
   // the authoritative server view: assigns upstream message UUIDs to local
   // bubbles (which is what the retry endpoint needs as
   // `truncateFromMessageId`) and recovers replies that were generated while
@@ -350,7 +350,7 @@ export function AIChatPanel({
   // (which adds the user message first) or a retry (which leaves the
   // existing user message in place).
   //
-  // `truncateFromMessageId` is the upstream Sidanclaw destroy-and-regenerate
+  // `truncateFromMessageId` is the upstream Use Brian destroy-and-regenerate
   // hook: when set, the named row and everything after it are deleted
   // server-side before the new turn is appended, and the model gets a hint
   // to pick a different angle. UUID-only — synthetic local ids are skipped.
@@ -473,7 +473,7 @@ export function AIChatPanel({
     void requestAssistantReply(lastUser.content, lastUser.id);
   };
 
-  // Retry from a specific user message: tells upstream Sidanclaw to delete
+  // Retry from a specific user message: tells upstream Use Brian to delete
   // that row and every subsequent row before regenerating, via the public
   // API's `truncateFromMessageId`. Locally we drop the trailing assistant
   // reply (and any later turns) so the UI matches what the server is about
@@ -550,7 +550,7 @@ export function AIChatPanel({
       <span>
         Chat powered by{" "}
         <a
-          href="https://sidan.ai"
+          href="https://usebrian.ai"
           target="_blank"
           rel="noreferrer"
           className={cn(
@@ -558,7 +558,7 @@ export function AIChatPanel({
             isGame ? "text-white/70" : "text-foreground/80 dark:text-[#0bd1a2]",
           )}
         >
-          SidanClaw · sidan.ai
+          use-brian · usebrian.ai
         </a>
       </span>
     </p>
