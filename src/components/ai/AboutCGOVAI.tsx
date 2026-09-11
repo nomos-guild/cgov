@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { useTheme } from "@/lib/theme";
 
 const CGOV_MCP_REPO_URL = "https://github.com/nomos-guild/cgov-mcp";
-const SIDANCLAW_URL = "https://sidan.ai";
+const USE_BRIAN_URL = "https://usebrian.ai";
 
 const CGOV_MCP_URL = "https://cgov-mcp-589811450826.asia-south1.run.app/mcp";
 
@@ -119,8 +119,8 @@ export function AboutCGOVAI() {
         </a>{" "}
         — a Model Context Protocol server for Cardano governance data — consumed
         through a{" "}
-        <a href={SIDANCLAW_URL} target="_blank" rel="noreferrer" className={linkClass}>
-          SidanClaw
+        <a href={USE_BRIAN_URL} target="_blank" rel="noreferrer" className={linkClass}>
+          use-brian
           <ExternalLink className="h-3 w-3" />
         </a>{" "}
         assistant. Each message you send is routed to the assistant, which calls
